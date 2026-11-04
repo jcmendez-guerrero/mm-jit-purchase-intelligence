@@ -91,17 +91,17 @@
 
 **Purpose**: Demand from movements, separate loss series, cutover classification, censoring.
 
-- [ ] T047 [P] [US2] Unit test: demand = sale_shipment − return_customer; other reasons excluded in services/inventory-service/tests/test_demand.py
-- [ ] T048 [P] [US2] Unit test: loss classification before/after cutover date; reclassification on cutover change in services/inventory-service/tests/test_losses.py
-- [ ] T049 [P] [US2] Unit test: backward stock reconstruction, censoring and mismatch flag in services/inventory-service/tests/test_stock_history.py
-- [ ] T050 [P] [US2] Create migrations for demand_observations, flow_series, stock_history, data_quality_metrics, config_loss_cutover in services/inventory-service/migrations/versions/0002_demand.py
-- [ ] T051 [US2] Implement DemandProvider interface with movements implementation in services/inventory-service/src/demand/provider.py
-- [ ] T052 [P] [US2] Implement loss classifier with configurable cutover (default 2026-09-19) in services/inventory-service/src/demand/losses.py
-- [ ] T053 [P] [US2] Implement backward on-hand reconstruction and censored days in services/inventory-service/src/demand/stock_history.py
-- [ ] T054 [US2] Implement quarantine exclusion and review release flow in services/inventory-service/src/quality/review.py
-- [ ] T055 [P] [US2] Implement data-quality metric: share of post-cutover negative adjustments without reason in services/inventory-service/src/quality/metrics.py
-- [ ] T056 [US2] Publish inventory.snapshot.created.v1 and inventory.demand.updated.v1 in services/inventory-service/src/demand/publisher.py
-- [ ] T057 [P] [US2] Expose inventory API endpoints (variant detail, review list) in services/inventory-service/src/api/routes.py
+- [X] T047 [P] [US2] Unit test: demand = sale_shipment − return_customer; other reasons excluded in services/inventory-service/tests/test_demand.py
+- [X] T048 [P] [US2] Unit test: loss classification before/after cutover date; reclassification on cutover change in services/inventory-service/tests/test_losses.py
+- [X] T049 [P] [US2] Unit test: backward stock reconstruction, censoring and mismatch flag in services/inventory-service/tests/test_stock_history.py
+- [X] T050 [P] [US2] Create migrations for demand_observations, flow_series, stock_history, data_quality_metrics, config_loss_cutover in services/inventory-service/migrations/versions/0002_demand.py
+- [X] T051 [US2] Implement DemandProvider interface with movements implementation in services/inventory-service/src/demand/provider.py
+- [X] T052 [P] [US2] Implement loss classifier with configurable cutover (default 2026-09-19) in services/inventory-service/src/demand/losses.py
+- [X] T053 [P] [US2] Implement backward on-hand reconstruction and censored days in services/inventory-service/src/demand/stock_history.py
+- [X] T054 [US2] Implement quarantine exclusion and review release flow in services/inventory-service/src/quality/review.py
+- [X] T055 [P] [US2] Implement data-quality metric: share of post-cutover negative adjustments without reason in services/inventory-service/src/quality/metrics.py
+- [X] T056 [US2] Publish inventory.snapshot.created.v1 and inventory.demand.updated.v1 in services/inventory-service/src/demand/publisher.py
+- [X] T057 [P] [US2] Expose inventory API endpoints (variant detail, review list) in services/inventory-service/src/api/routes.py
 
 ---
 

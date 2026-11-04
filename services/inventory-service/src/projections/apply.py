@@ -34,7 +34,7 @@ def apply_payload(conn: Connection, doc: dict[str, Any], snapshot_date: date, to
     if kind == "variants":
         return _variants(conn, records, snapshot_date)
     if kind == "movements":
-        return _movements(conn, records, {int(k) for k in doc.get("quarantined", {})})
+        return _movements(conn, records, {int(k): ",".join(v) for k, v in doc.get("quarantined", {}).items()})
     raise ValueError(f"unknown sync kind: {kind}")
 
 
@@ -113,7 +113,7 @@ def _safe_expiry(value: Any) -> date | None:
         return None
 
 
-def _movement_row(r: dict[str, Any], quarantined: bool) -> dict[str, Any]:
+def _movement_row(r: dict[str, Any], quarantined: bool, codes: str | None = None) -> dict[str, Any]:
     cost = r.get("unit_cost_cents")
     try:
         created = parse_siweb_timestamp(r["created_at"]).utc
@@ -130,11 +130,11 @@ def _movement_row(r: dict[str, Any], quarantined: bool) -> dict[str, Any]:
         "reference_number": r.get("reference_number"), "batch_number": r.get("batch_number"),
         "expiry_date": _safe_expiry(r.get("expiry_date")),
         "unit_cost": Money.from_cents(str(cost)).amount if cost not in (None, "") else None,
-        "has_note": has_note, "quarantined": quarantined,
+        "has_note": has_note, "quarantined": quarantined, "quarantine_codes": codes,
     }
 
 
-def _movements(conn: Connection, records: list[dict[str, Any]], quarantined_ids: set[int]) -> int:
+def _movements(conn: Connection, records: list[dict[str, Any]], quarantined: dict[int, str]) -> int:
     _ensure_unassigned(conn)
     stored = 0
     for start in range(0, len(records), CHUNK):
@@ -145,7 +145,8 @@ def _movements(conn: Connection, records: list[dict[str, Any]], quarantined_ids:
         for r in chunk:
             if int(r["id"]) in known:
                 continue
-            new_rows.append(_movement_row(r, int(r["id"]) in quarantined_ids))
+            rid = int(r["id"])
+            new_rows.append(_movement_row(r, rid in quarantined, quarantined.get(rid)))
         if new_rows:
             conn.execute(insert(stock_movements), new_rows)
             stored += len(new_rows)

@@ -6,11 +6,12 @@ from db.tables import metadata
 from mmi_common.bus import InMemoryBus, new_envelope
 from projections.blob import LocalBlobReader
 from sqlalchemy import create_engine, event
+from sqlalchemy.pool import StaticPool
 
 
 @pytest.fixture
 def engine():
-    eng = create_engine("sqlite://")
+    eng = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})  # shared with the API thread
 
     @event.listens_for(eng, "connect")
     def _c(dbapi_conn, _):
