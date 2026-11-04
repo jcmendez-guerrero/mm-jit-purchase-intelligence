@@ -22,6 +22,7 @@ from costs.directory import SqlProductDirectory
 from costs.recargo import RecargoTable, UnknownVatError, net_from_gross
 from costs.rules import CostRules
 from costs.store import NewCost, add_version, current, refresh_erp_verification
+from costs.writes import relink_pending
 
 SOURCE = "siweb_product_supplier"
 ACTOR = "siweb-import"
@@ -61,6 +62,7 @@ def import_supplier_rows(conn: Connection, rows: Iterable[dict[str, Any]], rules
         link = conn.execute(select(erp_supplier_links.c.product_id).where(erp_supplier_links.c.product_id == pid, erp_supplier_links.c.supplier_id == sid)).first()
         if link is None:
             conn.execute(insert(erp_supplier_links).values(product_id=pid, supplier_id=sid, has_cost=has_cost, last_seen_at=now))
+            relink_pending(conn, pid, sid, now)     # a parked pending_link request becomes reviewable again
         else:
             conn.execute(update(erp_supplier_links).where(erp_supplier_links.c.product_id == pid, erp_supplier_links.c.supplier_id == sid)
                          .values(has_cost=has_cost, last_seen_at=now))

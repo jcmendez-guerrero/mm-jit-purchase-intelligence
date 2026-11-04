@@ -24,3 +24,5 @@ class Payload(BaseModel):
     )
     cost_write_request_id: UUID
     outcome: str
+    attempts: Annotated[int | None, Field(ge=0)] = None
+    error: Annotated[str | None, Field(max_length=200)] = None

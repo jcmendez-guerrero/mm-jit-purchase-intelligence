@@ -148,30 +148,30 @@
 
 **Purpose**: Replenishment targets, supplier allocation, proposals, separation of duties, order confirmation, cost write-back, exports.
 
-- [ ] T083 [P] [US5] Unit test: replenishment targets (H = 7d + lead time, inventory position, expiring lots) in services/procurement-service/tests/test_targets.py
-- [ ] T084 [P] [US5] Property test: allocation respects minimums, thresholds, pack multiples, budget, overrides in services/procurement-service/tests/test_allocation.py
-- [ ] T085 [P] [US5] Unit test: proposal reproducibility from inputs_hash and rule versions in services/procurement-service/tests/test_reproducibility.py
-- [ ] T086 [P] [US5] Unit test: separation of duties (creator and last editor cannot approve; edit resets eligibility; stale MFA refused) in services/procurement-service/tests/test_approval.py
-- [ ] T087 [P] [US5] Contract test: cost-writer allowlist allows only the supplier-cost PUT and refuses everything else in services/siweb-cost-writer/tests/test_allowlist.py
-- [ ] T088 [P] [US5] Integration test: cost write flow (missing cost, order confirmed, failure + visible retry, read-after-write verification, forged message rejected) in services/siweb-cost-writer/tests/test_write_flow.py
-- [ ] T089 [P] [US5] Create migrations for replenishment_targets, proposals, proposal_lines, supplier_order_groups, approvals, inbound_orders, inbound_order_lines, cost_write_requests in services/procurement-service/migrations/versions/0002_proposals.py
-- [ ] T090 [P] [US5] Create costwrite migrations (write_attempts, writer_audit) in services/siweb-cost-writer/migrations/versions/0001_costwrite.py
-- [ ] T091 [US5] Implement replenishment target engine in services/procurement-service/src/proposals/targets.py
-- [ ] T092 [US5] Implement greedy baseline allocation in services/procurement-service/src/allocation/greedy.py
-- [ ] T093 [US5] Implement OR-Tools CP-SAT allocation with fixed-charge minimums, free-delivery thresholds, time box and fallback in services/procurement-service/src/allocation/cpsat.py
-- [ ] T094 [US5] Implement top-up / reallocation / shortfall options with cost impact in services/procurement-service/src/allocation/shortfall.py
-- [ ] T095 [US5] Implement proposal generation, line explanations (structured) and input/rule-version recording in services/procurement-service/src/proposals/generate.py
-- [ ] T096 [P] [US5] Implement proposal edit with optimistic concurrency and constraint re-validation in services/procurement-service/src/proposals/edit.py
-- [ ] T097 [US5] Implement submit/approve state machine with separation of duties and MFA freshness in services/procurement-service/src/approvals/workflow.py
-- [ ] T098 [US5] Implement per-supplier order confirmation (actual qty/cost) and inbound projection event in services/procurement-service/src/orders/confirm.py
-- [ ] T099 [P] [US5] Implement receipt matching to purchase_receipt movements (plain id and 'Compra #n') in services/procurement-service/src/orders/reconcile.py
-- [ ] T100 [US5] Implement cost_write_requests creation for missing-cost entry and order-confirmed differences, including variant-conflict warning and fresh-MFA release, in services/procurement-service/src/costs/writes.py (real-ERP use blocked until T135)
-- [ ] T140 [US5] Implement and test the `pending_link` path: no product–supplier record in the ERP means no call, the pair is flagged in the UI and the cost stays local, in services/procurement-service/src/costs/writes.py and services/siweb-cost-writer/tests/test_no_link.py
-- [ ] T101 [US5] Implement the cost writer: allowlist, read-modify-write of purchase cost only, read-after-write verification, bounded retries, hash-chained audit in services/siweb-cost-writer/src/writer/
-- [ ] T102 [P] [US5] Implement writer identity separation (own Key Vault access policy, egress limited to Siweb host) in infra/bicep/modules/costWriter.bicep
-- [ ] T103 [P] [US5] Implement CSV and Excel exports in Spanish locale profile (Spanish headers, semicolon CSV, comma decimals; test asserts all three) in services/procurement-service/src/proposals/export.py and services/procurement-service/tests/test_export_locale.py
-- [ ] T104 [P] [US5] Publish procurement.proposal.generated.v1 and procurement.order.confirmed.v1 in services/procurement-service/src/proposals/publisher.py
-- [ ] T105 [P] [US5] Expose proposal/order/cost-write endpoints per contracts/bff-api.openapi.yaml in services/procurement-service/src/api/proposals.py
+- [X] T083 [P] [US5] Unit test: replenishment targets (H = 7d + lead time, inventory position, expiring lots) in services/procurement-service/tests/test_targets.py
+- [X] T084 [P] [US5] Property test: allocation respects minimums, thresholds, pack multiples, budget, overrides in services/procurement-service/tests/test_allocation.py
+- [X] T085 [P] [US5] Unit test: proposal reproducibility from inputs_hash and rule versions in services/procurement-service/tests/test_reproducibility.py
+- [X] T086 [P] [US5] Unit test: separation of duties (creator and last editor cannot approve; edit resets eligibility; stale MFA refused) in services/procurement-service/tests/test_approval.py
+- [X] T087 [P] [US5] Contract test: cost-writer allowlist allows only the supplier-cost PUT and refuses everything else in services/siweb-cost-writer/tests/test_allowlist.py
+- [X] T088 [P] [US5] Integration test: cost write flow (missing cost, order confirmed, failure + visible retry, read-after-write verification, forged message rejected) in services/siweb-cost-writer/tests/test_write_flow.py
+- [X] T089 [P] [US5] Create migrations for replenishment_targets, proposals, proposal_lines, supplier_order_groups, approvals, inbound_orders, inbound_order_lines, cost_write_requests in services/procurement-service/migrations/versions/0002_proposals.py
+- [X] T090 [P] [US5] Create costwrite migrations (write_attempts, writer_audit) in services/siweb-cost-writer/migrations/versions/0001_costwrite.py
+- [X] T091 [US5] Implement replenishment target engine in services/procurement-service/src/proposals/targets.py
+- [X] T092 [US5] Implement greedy baseline allocation in services/procurement-service/src/allocation/greedy.py
+- [X] T093 [US5] Implement OR-Tools CP-SAT allocation with fixed-charge minimums, free-delivery thresholds, time box and fallback in services/procurement-service/src/allocation/cpsat.py
+- [X] T094 [US5] Implement top-up / reallocation / shortfall options with cost impact in services/procurement-service/src/allocation/shortfall.py
+- [X] T095 [US5] Implement proposal generation, line explanations (structured) and input/rule-version recording in services/procurement-service/src/proposals/generate.py
+- [X] T096 [P] [US5] Implement proposal edit with optimistic concurrency and constraint re-validation in services/procurement-service/src/proposals/edit.py
+- [X] T097 [US5] Implement submit/approve state machine with separation of duties and MFA freshness in services/procurement-service/src/approvals/workflow.py
+- [X] T098 [US5] Implement per-supplier order confirmation (actual qty/cost) and inbound projection event in services/procurement-service/src/orders/confirm.py
+- [X] T099 [P] [US5] Implement receipt matching to purchase_receipt movements (plain id and 'Compra #n') in services/procurement-service/src/orders/reconcile.py
+- [X] T100 [US5] Implement cost_write_requests creation for missing-cost entry and order-confirmed differences, including variant-conflict warning and fresh-MFA release, in services/procurement-service/src/costs/writes.py (real-ERP use blocked until T135)
+- [X] T140 [US5] Implement and test the `pending_link` path: no product–supplier record in the ERP means no call, the pair is flagged in the UI and the cost stays local, in services/procurement-service/src/costs/writes.py and services/siweb-cost-writer/tests/test_no_link.py
+- [X] T101 [US5] Implement the cost writer: allowlist, read-modify-write of purchase cost only, read-after-write verification, bounded retries, hash-chained audit in services/siweb-cost-writer/src/writer/
+- [ ] T102 [P] [US5] Implement writer identity separation (own Key Vault access policy, egress limited to Siweb host) in infra/bicep/modules/costWriter.bicep — identity, secret-scoped role and queue roles done; network-level egress restriction NOT deployed (needs a firewall that does not fit the budget; the application allowlist enforces one host)
+- [X] T103 [P] [US5] Implement CSV and Excel exports in Spanish locale profile (Spanish headers, semicolon CSV, comma decimals; test asserts all three) in services/procurement-service/src/proposals/export.py and services/procurement-service/tests/test_export_locale.py
+- [X] T104 [P] [US5] Publish procurement.proposal.generated.v1 and procurement.order.confirmed.v1 in services/procurement-service/src/proposals/publisher.py
+- [X] T105 [P] [US5] Expose proposal/order/cost-write endpoints per contracts/bff-api.openapi.yaml in services/procurement-service/src/api/proposals.py
 
 ---
 

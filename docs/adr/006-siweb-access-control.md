@@ -13,4 +13,5 @@ Siweb issues one full-scope token per company, so read-only behaviour cannot be 
 
 ### Consequences
 - Good: ERP stays the source of truth for supplier cost; blast radius limited by code path, identity and egress rules.
-- Bad: the writer holds a full-scope token (residual risk recorded in the internal threat model); PUT semantics must be verified on a non-production record first (Gate 0, V4 / task T135).
+- Bad: the writer holds a full-scope token (residual risk recorded in the internal threat model); PUT semantics had to be verified first (Gate 0, V4 / T135). Verified on 2026-11-04/05 on a test product (the ERP has no non-production environment): the PUT upserts, merges, ignores lead time, minimum order and unknown fields, and accepts fractional cents; see research.md V4.
+- Open: egress is restricted by the application (closed allowlist: one host, one PUT, one supplier-list read). A network-level FQDN rule would need Azure Firewall, which does not fit the shared EUR 120/month budget. Revisit if the budget changes.

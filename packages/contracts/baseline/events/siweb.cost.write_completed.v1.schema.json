@@ -30,6 +30,14 @@
         },
         "outcome": {
           "type": "string"
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "error": {
+          "type": "string",
+          "maxLength": 200
         }
       },
       "description": "Document stored at payload_ref.uri; the envelope sha256 covers its bytes."

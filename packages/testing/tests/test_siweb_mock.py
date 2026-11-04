@@ -87,44 +87,57 @@ def _pair(client):
     raise AssertionError
 
 
-def test_put_merge_changes_only_cost(client):
+def test_put_merges_and_changes_only_the_cost(client):
     pid, row = _pair(client)
     before = dict(row)
-    r = client.put(f"{BASE}/products/{pid}/suppliers/{row['contact_id']}", json={"purchase_cost_cents": "1234.5"})
+    r = client.put(f"{BASE}/products/{pid}/suppliers/{row['contact_id']}", json={"purchase_cost_cents": 1234.5})
     assert r.status_code == 200
     after = next(x for x in client.get(f"{BASE}/products/{pid}/suppliers").json()["data"] if x["contact_id"] == row["contact_id"])
-    assert after["purchase_cost_cents"] == "1234.5"
+    assert after["purchase_cost_cents"] == 1234.5                                        # fractional cents are accepted, as in the real API
     assert {k: v for k, v in after.items() if k != "purchase_cost_cents"} == {k: v for k, v in before.items() if k != "purchase_cost_cents"}
 
 
-def test_put_replace_semantics_wipes_omitted_fields_unless_read_modify_write(client):
+def test_lead_time_minimum_order_and_unknown_fields_are_ignored_like_the_real_api(client):
+    pid, row = _pair(client)
+    url = f"{BASE}/products/{pid}/suppliers/{row['contact_id']}"
+    lead, moq = row["lead_time_days"], row["min_order_qty"]
+    assert client.put(url, json={"purchase_cost_cents": 5, "lead_time_days": 99, "min_order_qty": 99, "bogus": 1}).status_code == 200
+    assert (row["lead_time_days"], row["min_order_qty"]) == (lead, moq) and "bogus" not in row
+
+
+def test_replace_mode_wipes_flags_unless_the_client_resends_them(client):
     client.mock.config.put_semantics = "replace"
     pid, row = _pair(client)
-    full = {**row, "purchase_cost_cents": "999"}
-    for k in ("supplier_name", "supplier_cif", "contact_id"):
-        full.pop(k)
-    client.put(f"{BASE}/products/{pid}/suppliers/{row['contact_id']}", json=full)
-    kept = next(x for x in client.mock.suppliers[pid] if x["contact_id"] == row["contact_id"])
-    assert kept["is_preferred"] is True and kept["lead_time_days"] == row["lead_time_days"]  # read-modify-write survives
-    client.put(f"{BASE}/products/{pid}/suppliers/{row['contact_id']}", json={"purchase_cost_cents": "1"})
-    assert kept["is_preferred"] is False  # naive partial body would have destroyed the flag
-
-
-def test_put_missing_link_is_404_unless_enabled_and_failures_are_injected(client):
-    assert client.put(f"{BASE}/products/1/suppliers/1", json={"purchase_cost_cents": "5"}).status_code == 404
-    pid, row = _pair(client)
-    client.mock.config.fail_next_puts = 1
     url = f"{BASE}/products/{pid}/suppliers/{row['contact_id']}"
-    assert client.put(url, json={"purchase_cost_cents": "5"}).status_code == 503
-    assert client.put(url, json={"purchase_cost_cents": "5"}).status_code == 200
-    assert client.put(url, json={"purchase_cost_cents": "5", "bogus": 1}).status_code == 422
-    assert client.put(url, json={}).status_code == 422
+    client.put(url, json={"purchase_cost_cents": 9, "is_preferred": True, "supplier_reference": row["supplier_reference"]})
+    assert row["is_preferred"] is True                                                    # read-modify-write survives
+    client.put(url, json={"purchase_cost_cents": 1})
+    assert row["is_preferred"] is False                                                   # a naive partial body would not
+
+
+def test_put_creates_a_missing_link_like_the_real_api_unless_disabled(client):
+    url = f"{BASE}/products/1/suppliers/987654"
+    r = client.put(url, json={"purchase_cost_cents": 5})
+    assert r.status_code == 200 and r.json()["data"]["contact_id"] == 987654 and r.json()["data"]["purchase_cost_cents"] == 5
+    client.mock.config.allow_create = False
+    assert client.put(f"{BASE}/products/1/suppliers/987655", json={"purchase_cost_cents": 5}).status_code == 404
+
+
+def test_put_validation_and_injected_failures(client):
+    pid, row = _pair(client)
+    url = f"{BASE}/products/{pid}/suppliers/{row['contact_id']}"
+    for bad in ({}, {"purchase_cost_cents": -5}, {"purchase_cost_cents": "abc"}, {"purchase_cost_cents": True}):
+        r = client.put(url, json=bad)
+        assert r.status_code == 400 and "mayor o igual que 0" in r.json()["message"]
+    client.mock.config.fail_next_puts = 1
+    assert client.put(url, json={"purchase_cost_cents": 5}).status_code == 503
+    assert client.put(url, json={"purchase_cost_cents": 5}).status_code == 200
 
 
 def test_request_log_records_writes(client):
     pid, row = _pair(client)
     client.get(f"{BASE}/warehouses")
-    client.put(f"{BASE}/products/{pid}/suppliers/{row['contact_id']}", json={"purchase_cost_cents": "7"})
+    client.put(f"{BASE}/products/{pid}/suppliers/{row['contact_id']}", json={"purchase_cost_cents": 7})
     log = client.get("/__mock__/requests").json()
     assert [r["method"] for r in log].count("PUT") == 1
     assert len(client.mock.writes()) == 1

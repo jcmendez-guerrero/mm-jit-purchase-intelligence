@@ -8,7 +8,9 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     Column,
+    Date,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     MetaData,
@@ -95,6 +97,8 @@ product_refs = Table(
     Column("product_id", Integer, nullable=False, index=True),
     Column("vat_rate", Numeric(5, 2)),                       # buyer-maintained until Siweb provides it (V5)
     Column("vat_source", String(20)),
+    Column("sku", String(60)),                               # catalogue attributes for exports only; never a key
+    Column("name", String(200)),
 )
 audit_events = Table(
     "audit_events", metadata,
@@ -108,6 +112,123 @@ audit_events = Table(
     Column("after", JSON),
     Column("prev_hash", String(64), nullable=False, unique=True),
     Column("hash", String(64), nullable=False),
+)
+proposals = Table(
+    "proposals", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("week", String(10), nullable=False, index=True),            # ISO week, e.g. 2026-W45
+    Column("status", String(12), nullable=False),                       # draft / submitted / approved / exported / superseded
+    Column("created_by", String(120), nullable=False),
+    Column("last_edited_by", String(120), nullable=False),
+    Column("version", Integer, nullable=False, default=1),             # optimistic concurrency token
+    Column("inputs_hash", String(64), nullable=False),
+    Column("rule_versions", JSON, nullable=False),
+    Column("solver_status", String(20), nullable=False),
+    Column("budget", MONEY),
+    Column("flags", JSON, nullable=False),                              # shortfall options, notes
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    Column("submitted_at", DateTime(timezone=True)),
+)
+proposal_lines = Table(
+    "proposal_lines", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("proposal_id", String(36), ForeignKey("proposals.id"), nullable=False, index=True),
+    Column("variant_id", Integer, nullable=False),
+    Column("product_id", Integer, nullable=False),
+    Column("supplier_id", String(36), nullable=False),
+    Column("qty", Integer, nullable=False),
+    Column("unit_cost_with_recargo", MONEY, nullable=False),
+    Column("line_total", MONEY, nullable=False),
+    Column("forecast_or_policy", String(30), nullable=False),
+    Column("safety_stock", Integer),
+    Column("constraints_applied", JSON, nullable=False),
+    Column("risk", String(8), nullable=False),
+    Column("confidence", String(8), nullable=False),
+    Column("explanation", JSON, nullable=False),
+    Column("alternatives_compared", JSON, nullable=False),
+    Column("manual_override", Boolean, nullable=False, default=False),
+    Column("topup", Boolean, nullable=False, default=False),
+    UniqueConstraint("proposal_id", "variant_id", name="uq_line_variant"),
+)
+replenishment_targets = Table(
+    "replenishment_targets", metadata,
+    Column("proposal_id", String(36), primary_key=True),
+    Column("variant_id", Integer, primary_key=True, autoincrement=False),
+    Column("protection_horizon_days", Integer, nullable=False),
+    Column("expected_demand", Float),
+    Column("safety_stock", Integer),
+    Column("target_level", Integer, nullable=False),
+    Column("inventory_position", Integer, nullable=False),
+    Column("inputs_hash", String(64), nullable=False),
+)
+supplier_order_groups = Table(
+    "supplier_order_groups", metadata,
+    Column("proposal_id", String(36), primary_key=True),
+    Column("supplier_id", String(36), primary_key=True),
+    Column("subtotal", MONEY, nullable=False),
+    Column("delivery_charge", MONEY, nullable=False),
+    Column("total_cost", MONEY, nullable=False),
+    Column("expected_delivery_date", Date),
+    Column("minimum_status", String(10), nullable=False),                # met / topped_up / shortfall
+    Column("free_delivery", Boolean, nullable=False, default=False),
+    Column("shortfall_options", JSON, nullable=False),
+)
+approvals = Table(
+    "approvals", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("proposal_id", String(36), nullable=False, index=True),
+    Column("approver_id", String(120), nullable=False),
+    Column("decided_at", DateTime(timezone=True), nullable=False),
+    Column("decision", String(10), nullable=False),                     # approved / rejected
+    Column("mfa_auth_time", DateTime(timezone=True), nullable=False),
+    Column("proposal_version", Integer, nullable=False),
+)
+inbound_orders = Table(
+    "inbound_orders", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("proposal_id", String(36), nullable=False),
+    Column("supplier_id", String(36), nullable=False),
+    Column("status", String(20), nullable=False),                       # confirmed / partially_received / received / cancelled
+    Column("confirmed_by", String(120), nullable=False),
+    Column("confirmed_at", DateTime(timezone=True), nullable=False),
+    Column("expected_delivery", Date),
+    Column("erp_purchase_ref", Integer),                                # buyer may link the ERP purchase number
+    UniqueConstraint("proposal_id", "supplier_id", name="uq_order_per_supplier"),
+)
+inbound_order_lines = Table(
+    "inbound_order_lines", metadata,
+    Column("order_id", String(36), primary_key=True),
+    Column("variant_id", Integer, primary_key=True, autoincrement=False),
+    Column("qty", Integer, nullable=False),
+    Column("confirmed_cost_with_recargo", MONEY, nullable=False),
+    Column("received_qty", Integer, nullable=False, default=0),
+)
+receipt_matches = Table(
+    "receipt_matches", metadata,
+    Column("movement_id", BigInteger, primary_key=True, autoincrement=False),     # each receipt movement is applied once
+    Column("order_id", String(36), nullable=False),
+    Column("variant_id", Integer, nullable=False),
+    Column("qty", Integer, nullable=False),
+    Column("matched_at", DateTime(timezone=True), nullable=False),
+)
+cost_write_requests = Table(
+    "cost_write_requests", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("cost_id", String(36), nullable=False),
+    Column("product_id", Integer, nullable=False),
+    Column("supplier_id", String(36), nullable=False),
+    Column("trigger", String(16), nullable=False),                      # missing_cost / order_confirmed
+    Column("proposed_value", MONEY, nullable=False),
+    Column("previous_siweb_value", MONEY),
+    Column("status", String(16), nullable=False),
+    Column("attempts", Integer, nullable=False, default=0),
+    Column("last_error", String(200)),
+    Column("requested_by", String(120), nullable=False),
+    Column("reviewed_by", String(120)),
+    Column("idempotency_key", String(120), nullable=False, unique=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
 )
 outbox = outbox_table(metadata)
 inbox = inbox_table(metadata)

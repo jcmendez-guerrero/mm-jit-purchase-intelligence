@@ -23,7 +23,7 @@ class MockConfig:
     unauthorized_after: int | None = None        # token "expires" after N requests (401)
     # supplier-cost PUT behaviour (suppliers.py)
     put_semantics: str = "merge"                 # "merge" keeps omitted fields; "replace" resets them
-    allow_create: bool = False                   # PUT for a missing product-supplier link
+    allow_create: bool = True                    # the real PUT creates a missing product-supplier link (verified)
     fail_next_puts: int = 0
     fail_status: int = 503
 
