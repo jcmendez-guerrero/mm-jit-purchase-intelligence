@@ -7,9 +7,13 @@ from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, RootModel
 
 from . import money_v1_schema
+
+
+class VariantId(RootModel[int]):
+    root: Annotated[int, Field(ge=1)]
 
 
 class Source(Enum):
@@ -23,9 +27,9 @@ class SupplierCost(BaseModel):
         extra='forbid',
     )
     id: UUID
-    product_id: UUID
+    product_id: Annotated[int, Field(ge=1)]
     supplier_id: UUID
-    variant_id: UUID | None = None
+    variant_id: VariantId | None = None
     version: Annotated[int, Field(ge=1)]
     cost_net: money_v1_schema.Money | None = None
     recargo_rate: Annotated[str | None, Field(pattern='^0(\\.[0-9]+)?$')] = None

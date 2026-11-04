@@ -128,19 +128,19 @@
 
 **Purpose**: Versioned costs, recargo handling, price lists, staleness, jump blocking, supplier terms.
 
-- [ ] T070 [P] [US4] Unit/property test: recargo math (10%→1.4%, 21%→5.2%), net↔gross round trip, unknown VAT rejection in services/procurement-service/tests/test_recargo.py
-- [ ] T071 [P] [US4] Unit test: version immutability, staleness and jump blocking in services/procurement-service/tests/test_costs.py
-- [ ] T072 [P] [US4] Unit test: price-list CSV/Excel import validation and error list in services/procurement-service/tests/test_price_import.py
-- [ ] T073 [P] [US4] Create procurement migrations (suppliers, supplier_terms, supplier_costs, recargo_rates config, audit_events with hash chain) in services/procurement-service/migrations/versions/0001_costs.py
-- [ ] T074 [US4] Implement recargo calculator with versioned rate table and rounding rule in services/procurement-service/src/costs/recargo.py
-- [ ] T075 [US4] Implement immutable cost versions with source, verified_at, supersession in services/procurement-service/src/costs/store.py
-- [ ] T076 [P] [US4] Implement ERP cost ingestion from supplier rows (cost treated as with-recargo; supplier_cif ignored) in services/procurement-service/src/costs/siweb_import.py
-- [ ] T077 [P] [US4] Implement staleness rule and abnormal-jump detection (defaults 30 days, ±25%, configurable) in services/procurement-service/src/costs/rules.py
-- [ ] T078 [P] [US4] Implement per-variant override and cost-not-found requirement for proposal use in services/procurement-service/src/costs/resolve.py
-- [ ] T079 [P] [US4] Implement price-list import (fixed template, CSV/Excel via openpyxl) in services/procurement-service/src/costs/price_import.py
-- [ ] T080 [P] [US4] Implement supplier terms CRUD with versioning in services/procurement-service/src/terms/
-- [ ] T081 [P] [US4] Implement hash-chained audit events in services/procurement-service/src/audit/chain.py
-- [ ] T082 [P] [US4] Expose cost and terms endpoints per contracts/bff-api.openapi.yaml in services/procurement-service/src/api/costs.py
+- [X] T070 [P] [US4] Unit/property test: recargo math (10%→1.4%, 21%→5.2%), net↔gross round trip, unknown VAT rejection in services/procurement-service/tests/test_recargo.py
+- [X] T071 [P] [US4] Unit test: version immutability, staleness and jump blocking in services/procurement-service/tests/test_costs.py
+- [X] T072 [P] [US4] Unit test: price-list CSV/Excel import validation and error list in services/procurement-service/tests/test_price_import.py
+- [X] T073 [P] [US4] Create procurement migrations (suppliers, supplier_terms, supplier_costs, recargo_rates config, audit_events with hash chain) in services/procurement-service/migrations/versions/0001_costs.py
+- [X] T074 [US4] Implement recargo calculator with versioned rate table and rounding rule in services/procurement-service/src/costs/recargo.py
+- [X] T075 [US4] Implement immutable cost versions with source, verified_at, supersession in services/procurement-service/src/costs/store.py
+- [X] T076 [P] [US4] Implement ERP cost ingestion from supplier rows (cost treated as with-recargo; supplier_cif ignored) in services/procurement-service/src/costs/siweb_import.py
+- [X] T077 [P] [US4] Implement staleness rule and abnormal-jump detection (defaults 30 days, ±25%, configurable) in services/procurement-service/src/costs/rules.py
+- [X] T078 [P] [US4] Implement per-variant override and cost-not-found requirement for proposal use in services/procurement-service/src/costs/resolve.py
+- [X] T079 [P] [US4] Implement price-list import (fixed template, CSV/Excel via openpyxl) in services/procurement-service/src/costs/price_import.py
+- [X] T080 [P] [US4] Implement supplier terms CRUD with versioning in services/procurement-service/src/terms/
+- [X] T081 [P] [US4] Implement hash-chained audit events in services/procurement-service/src/audit/chain.py
+- [X] T082 [P] [US4] Expose cost and terms endpoints per contracts/bff-api.openapi.yaml in services/procurement-service/src/api/costs.py
 
 ---
 

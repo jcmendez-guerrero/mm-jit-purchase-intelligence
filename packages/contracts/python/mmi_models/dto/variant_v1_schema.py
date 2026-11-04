@@ -15,7 +15,7 @@ class Variant(BaseModel):
     )
     id: UUID
     external_id: str
-    product_id: UUID
+    product_id: Annotated[int, Field(ge=1)]
     sku: str | None = None
     pack_size: Annotated[int, Field(ge=1)]
     uom: str

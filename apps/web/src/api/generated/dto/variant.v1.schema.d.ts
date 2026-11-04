@@ -8,7 +8,7 @@
 export interface Variant {
   id: string;
   external_id: string;
-  product_id: string;
+  product_id: number;
   sku?: string | null;
   pack_size: number;
   uom: string;

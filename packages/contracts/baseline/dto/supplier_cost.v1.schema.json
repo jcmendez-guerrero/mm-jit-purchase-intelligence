@@ -19,8 +19,8 @@
       "format": "uuid"
     },
     "product_id": {
-      "type": "string",
-      "format": "uuid"
+      "type": "integer",
+      "minimum": 1
     },
     "supplier_id": {
       "type": "string",
@@ -29,8 +29,8 @@
     "variant_id": {
       "oneOf": [
         {
-          "type": "string",
-          "format": "uuid"
+          "type": "integer",
+          "minimum": 1
         },
         {
           "type": "null"

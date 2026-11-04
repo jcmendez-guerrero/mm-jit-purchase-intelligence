@@ -20,8 +20,8 @@
       "type": "string"
     },
     "product_id": {
-      "type": "string",
-      "format": "uuid"
+      "type": "integer",
+      "minimum": 1
     },
     "sku": {
       "type": [

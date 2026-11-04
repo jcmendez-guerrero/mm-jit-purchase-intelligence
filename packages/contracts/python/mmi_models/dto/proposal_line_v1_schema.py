@@ -28,7 +28,7 @@ class ProposalLine(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    variant_id: UUID
+    variant_id: Annotated[int, Field(ge=1)]
     supplier_id: UUID
     qty: Annotated[int, Field(ge=0)]
     unit_cost_with_recargo: money_v1_schema.Money

@@ -7,9 +7,9 @@
 
 export interface SupplierCost {
   id: string;
-  product_id: string;
+  product_id: number;
   supplier_id: string;
-  variant_id?: string | null;
+  variant_id?: number | null;
   version: number;
   cost_net?: Money;
   recargo_rate?: string;

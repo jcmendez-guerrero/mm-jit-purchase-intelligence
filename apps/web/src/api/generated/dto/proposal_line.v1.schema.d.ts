@@ -6,7 +6,7 @@
  */
 
 export interface ProposalLine {
-  variant_id: string;
+  variant_id: number;
   supplier_id: string;
   qty: number;
   unit_cost_with_recargo: Money;

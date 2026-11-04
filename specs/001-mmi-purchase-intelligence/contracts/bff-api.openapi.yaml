@@ -54,7 +54,7 @@ paths:
       tags: [costs]
       summary: Costs per product-supplier with provenance, staleness and jump flags
       parameters:
-        - {name: product_id, in: query, schema: {type: string, format: uuid}}
+        - {name: product_id, in: query, schema: {type: integer}}
         - {name: supplier_id, in: query, schema: {type: string, format: uuid}}
         - {name: only_issues, in: query, schema: {type: boolean}}
       responses: {"200": {description: OK, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/SupplierCost'}}}}}}
@@ -75,6 +75,18 @@ paths:
       summary: Upload a supplier price list (CSV/Excel, fixed template); returns validation result
       requestBody: {required: true, content: {multipart/form-data: {schema: {type: object, properties: {supplier_id: {type: string, format: uuid}, file: {type: string, format: binary}}}}}}
       responses: {"200": {description: Import result with error list}}
+  /products/{productId}/vat:
+    put:
+      tags: [costs]
+      summary: Set the product VAT rate (buyer-maintained until the ERP provides it); needed for net cost entry
+      parameters: [{name: productId, in: path, required: true, schema: {type: integer, minimum: 1}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [vat_rate], properties: {vat_rate: {type: string, nullable: true, description: "Percent, e.g. 10 or 21"}}}}}}
+      responses: {"200": {description: Saved}, "404": {description: Unknown product}, "422": {description: Invalid rate}}
+  /audit/verify:
+    get:
+      tags: [costs]
+      summary: Verify the hash chain of the audit trail
+      responses: {"200": {description: "{ok, checked, broken_at, reason}"}}
   /cost-writes:
     get:
       tags: [costs]
@@ -172,7 +184,7 @@ components:
         type: object
         required: [variant_id, risk_type, explanation_key]
         properties:
-          variant_id: {type: string, format: uuid}
+          variant_id: {type: integer, minimum: 1, description: Siweb id}
           risk_type: {type: string, enum: [stockout, expiry, data_quality]}
           explanation_key: {type: string}
           params: {type: object}
@@ -190,9 +202,9 @@ components:
       required: [id, product_id, supplier_id, cost_with_recargo, source, verified_at, status]
       properties:
         id: {type: string, format: uuid}
-        product_id: {type: string, format: uuid}
+        product_id: {type: integer, minimum: 1, description: Siweb id}
         supplier_id: {type: string, format: uuid}
-        variant_id: {type: string, format: uuid, nullable: true}
+        variant_id: {type: integer, minimum: 1, nullable: true, description: Siweb id}
         cost_net: {type: string}
         cost_with_recargo: {type: string}
         recargo_rate: {type: string}
@@ -206,9 +218,9 @@ components:
       type: object
       required: [product_id, supplier_id, amount, includes_recargo]
       properties:
-        product_id: {type: string, format: uuid}
+        product_id: {type: integer, minimum: 1, description: Siweb id}
         supplier_id: {type: string, format: uuid}
-        variant_id: {type: string, format: uuid, nullable: true}
+        variant_id: {type: integer, minimum: 1, nullable: true, description: Siweb id}
         amount: {type: string, description: Decimal EUR}
         includes_recargo: {type: boolean, description: "false = net cost; the system adds recargo using the product VAT rate"}
         lead_time_days: {type: integer}
@@ -226,7 +238,7 @@ components:
       properties:
         id: {type: string, format: uuid}
         trigger: {type: string, enum: [missing_cost, order_confirmed]}
-        product_id: {type: string, format: uuid}
+        product_id: {type: integer, minimum: 1, description: Siweb id}
         supplier_id: {type: string, format: uuid}
         previous_siweb_value: {type: string, nullable: true}
         proposed_value: {type: string, description: Cost including recargo}
@@ -249,7 +261,7 @@ components:
       required: [id, variant_id, supplier_id, qty, unit_cost_with_recargo, explanation]
       properties:
         id: {type: string, format: uuid}
-        variant_id: {type: string, format: uuid}
+        variant_id: {type: integer, minimum: 1, description: Siweb id}
         supplier_id: {type: string, format: uuid}
         qty: {type: integer}
         unit_cost_with_recargo: {type: string}
@@ -273,6 +285,6 @@ components:
             type: object
             required: [variant_id, qty, cost_with_recargo]
             properties:
-              variant_id: {type: string, format: uuid}
+              variant_id: {type: integer, minimum: 1, description: Siweb id}
               qty: {type: integer, minimum: 0}
               cost_with_recargo: {type: string}

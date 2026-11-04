@@ -13,8 +13,8 @@
   ],
   "properties": {
     "variant_id": {
-      "type": "string",
-      "format": "uuid"
+      "type": "integer",
+      "minimum": 1
     },
     "supplier_id": {
       "type": "string",
