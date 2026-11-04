@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from mmi_common.outbox import inbox_table, outbox_table
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     Column,
@@ -50,6 +51,7 @@ variants = Table(
     Column("pack_size", Integer),
     Column("uom", String(20)),
     Column("reorder_point", Integer),
+    Column("price", Numeric(18, 6)),  # selling price in EUR, used only to rank value (ABC)
 )
 stock_snapshots = Table(
     "stock_snapshots", metadata,
@@ -138,4 +140,34 @@ review_decisions = Table(
     Column("decision", String(10), nullable=False),  # confirm / ignore
     Column("decided_by", String(120), nullable=False),
     Column("decided_at", DateTime(timezone=True), nullable=False),
+)
+
+product_segments = Table(
+    "product_segments", metadata,
+    Column("variant_id", Integer, primary_key=True, autoincrement=False),
+    Column("abc", String(1), nullable=False),
+    Column("xyz", String(1), nullable=False),
+    Column("pattern", String(14), nullable=False),  # smooth / intermittent / lumpy / new / discontinued
+    Column("forecast_eligible", Boolean, nullable=False),
+    Column("reason", String(200), nullable=False),  # comma-separated reason codes; empty when eligible
+    Column("metrics", JSON, nullable=False),        # the numbers behind the labels (rationale)
+    Column("computed_at", DateTime(timezone=True), nullable=False),
+    Column("run_id", String(36), nullable=False),
+)
+service_level_config = Table(
+    "service_level_config", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("scope", String(10), nullable=False),    # abc / critical / sparse / product
+    Column("key", String(20), nullable=False),      # A/B/C, "*", or the product id
+    Column("target", Numeric(5, 4), nullable=False),
+    Column("valid_from", DateTime(timezone=True), nullable=False),
+    Column("changed_by", String(120), nullable=False),
+)
+criticality_changes = Table(
+    "criticality_changes", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("product_id", Integer, nullable=False),
+    Column("clinical_critical", Boolean, nullable=False),
+    Column("changed_by", String(120), nullable=False),
+    Column("changed_at", DateTime(timezone=True), nullable=False),
 )

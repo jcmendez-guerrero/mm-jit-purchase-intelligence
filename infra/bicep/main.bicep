@@ -45,4 +45,28 @@ module alerts 'modules/alerts.bicep' = if (!empty(logAnalyticsId) && !empty(aler
   }
 }
 
+@description('Container Apps environment id (existing shared environment).')
+param environmentId string = ''
+@description('Forecast image, pinned by digest.')
+param forecastImage string = ''
+@description('User-assigned identity id for the forecast job.')
+param forecastIdentityId string = ''
+@description('Cron schedule (UTC) for the forecast job, after the night sync window.')
+param forecastCron string = '30 5 * * *'
+
+// Forecast job (T069): scale-to-zero, one replica, runs after the Siweb sync window.
+module forecastJob 'modules/containerAppJob.bicep' = if (!empty(environmentId) && !empty(forecastImage) && !empty(forecastIdentityId)) {
+  name: 'forecast-job'
+  params: {
+    name: '${names.outputs.containerAppJob}-forecast'
+    location: location
+    environmentId: environmentId
+    image: forecastImage
+    identityId: forecastIdentityId
+    cronExpression: forecastCron
+    command: ['python', '-m', 'job']
+    replicaTimeoutSeconds: 1800
+  }
+}
+
 output storageAccountId string = storage.outputs.accountId

@@ -109,18 +109,18 @@
 
 **Purpose**: ABC/XYZ, demand patterns, policies, rolling backtests, eligibility, service levels.
 
-- [ ] T058 [P] [US3] Unit test: ABC/XYZ and pattern classification on known synthetic profiles in services/inventory-service/tests/test_classification.py
-- [ ] T059 [P] [US3] Unit test: eligibility flags and conservative min/max fallback in services/forecast-service/tests/test_eligibility.py
-- [ ] T060 [P] [US3] Unit test: rolling-origin backtest scoring by stockout/holding/expiry cost in services/forecast-service/tests/test_backtest.py
-- [ ] T061 [P] [US3] Create migrations for product_segments, service_level_config in services/inventory-service/migrations/versions/0003_segments.py
-- [ ] T062 [P] [US3] Create forecasting migrations (forecast_runs, forecast_values, backtest_metrics, model_registry) in services/forecast-service/migrations/versions/0001_forecasting.py
-- [ ] T063 [US3] Implement ABC/XYZ/pattern classification in services/inventory-service/src/classification/segments.py
-- [ ] T064 [P] [US3] Implement clinical-criticality manual flag and API in services/inventory-service/src/classification/criticality.py
-- [ ] T065 [US3] Implement policy ladder (min/max Poisson/NB, moving average, seasonal naive, Croston/TSB/ADIDA candidates) in services/forecast-service/src/policies/
-- [ ] T066 [US3] Implement rolling-origin backtests with economic scoring in services/forecast-service/src/backtest/runner.py
-- [ ] T067 [P] [US3] Implement forecast run versioning and uncertainty output in services/forecast-service/src/runs/
-- [ ] T068 [P] [US3] Implement service-level config with defaults, per-product override and change history in services/inventory-service/src/classification/service_levels.py
-- [ ] T069 [US3] Publish forecast.completed.v1 and add the forecast job definition in services/forecast-service/src/main.py and infra/bicep/modules/containerAppJob.bicep
+- [X] T058 [P] [US3] Unit test: ABC/XYZ and pattern classification on known synthetic profiles in services/inventory-service/tests/test_classification.py
+- [X] T059 [P] [US3] Unit test: eligibility flags and conservative min/max fallback in services/forecast-service/tests/test_eligibility.py
+- [X] T060 [P] [US3] Unit test: rolling-origin backtest scoring by stockout/holding/expiry cost in services/forecast-service/tests/test_backtest.py
+- [X] T061 [P] [US3] Create migrations for product_segments, service_level_config in services/inventory-service/migrations/versions/0003_segments.py
+- [X] T062 [P] [US3] Create forecasting migrations (forecast_runs, forecast_values, backtest_metrics, model_registry) in services/forecast-service/migrations/versions/0001_forecasting.py
+- [X] T063 [US3] Implement ABC/XYZ/pattern classification in services/inventory-service/src/classification/segments.py
+- [X] T064 [P] [US3] Implement clinical-criticality manual flag and API in services/inventory-service/src/classification/criticality.py
+- [X] T065 [US3] Implement policy ladder (min/max Poisson/NB, moving average, seasonal naive, Croston/TSB/ADIDA candidates) in services/forecast-service/src/policies/
+- [X] T066 [US3] Implement rolling-origin backtests with economic scoring in services/forecast-service/src/backtest/runner.py
+- [X] T067 [P] [US3] Implement forecast run versioning and uncertainty output in services/forecast-service/src/runs/
+- [X] T068 [P] [US3] Implement service-level config with defaults, per-product override and change history in services/inventory-service/src/classification/service_levels.py
+- [X] T069 [US3] Publish forecast.completed.v1 and add the forecast job definition in services/forecast-service/src/main.py and infra/bicep/modules/containerAppJob.bicep
 
 ---
 

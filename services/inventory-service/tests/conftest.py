@@ -53,3 +53,29 @@ def publish(bus, tmp_path):
 @pytest.fixture
 def blobs():
     return LocalBlobReader()
+
+
+class _Validator:
+    def validate(self, token, required_roles=()):
+        from mmi_common.auth import AuthError, Principal
+
+        roles = {"viewer", "buyer"} if token == "buyer" else {"viewer"}  # noqa: S105 - test token name, not a secret
+        if not set(required_roles) <= roles:
+            raise AuthError("forbidden", 403)
+        return Principal(subject=f"user-{token}", roles=frozenset(roles), auth_time=None)
+
+
+@pytest.fixture
+def client(engine):
+    from api import routes
+    from fastapi.testclient import TestClient
+    from mmi_common.service import create_service_app
+
+    app = create_service_app("inventory-service", validator=_Validator())
+    app.include_router(routes.build_router(app))
+    app.dependency_overrides[routes.get_engine] = lambda: engine
+    return TestClient(app)
+
+
+def auth(role="viewer"):
+    return {"Authorization": f"Bearer {role}"}

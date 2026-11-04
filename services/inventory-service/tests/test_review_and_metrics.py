@@ -5,7 +5,6 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from api import routes
 from db.tables import (
     ALL_WAREHOUSES,
     data_quality_metrics,
@@ -14,14 +13,11 @@ from db.tables import (
     review_decisions,
     stock_movements,
     stock_snapshots,
-    variants,
 )
 from demand.common import Mov
 from demand.publisher import LocalBlobWriter, publish_demand_updated, publish_snapshot_created
 from demand.rebuild import rebuild
-from fastapi.testclient import TestClient
 from mmi_common.bus import validate_envelope, verify_payload
-from mmi_common.service import create_service_app
 from quality.metrics import UNSPECIFIED_SHARE, unspecified_loss_share
 from quality.review import ReviewError, decide, list_open
 from sqlalchemy import insert, select
@@ -121,49 +117,3 @@ def test_events_are_published_with_valid_envelopes_and_checksums(engine, tmp_pat
         verify_payload(e, Path(e["payload_ref"]["uri"].removeprefix("file://")).read_bytes())
 
 
-# ---- API ------------------------------------------------------------------------------------------------
-
-class _Validator:
-    def validate(self, token, required_roles=()):
-        from mmi_common.auth import AuthError, Principal
-
-        roles = {"viewer", "buyer"} if token == "buyer" else {"viewer"}  # noqa: S105 - test token name, not a secret
-        if not set(required_roles) <= roles:
-            raise AuthError("forbidden", 403)
-        return Principal(subject=f"user-{token}", roles=frozenset(roles), auth_time=None)
-
-
-@pytest.fixture
-def client(engine):
-    app = create_service_app("inventory-service", validator=_Validator())
-    app.include_router(routes.build_router(app))
-    app.dependency_overrides[routes.get_engine] = lambda: engine
-    return TestClient(app)
-
-
-def auth(role="viewer"):
-    return {"Authorization": f"Bearer {role}"}
-
-
-def test_api_requires_authentication_and_the_buyer_role_for_decisions(client, engine):
-    assert client.get("/review").status_code == 401
-    assert client.post("/review/decisions", json={"ids": [1], "decision": "confirm"}, headers=auth("viewer")).status_code == 403
-
-
-def test_api_variant_detail_and_review_flow(client, engine):
-    with engine.begin() as c:
-        c.execute(insert(variants).values(external_id=1, sku="SYN-1", name="Variante", pack_size=1, uom="unit"))
-    add(engine, 1, "initial_stock", 10, T(1))
-    add(engine, 2, "sale_shipment", -4, T(2))
-    add(engine, 3, "sale_shipment", -1, T(3), quarantined=True, codes="unreferenced_sale")
-    snapshot(engine, 1, date(2026, 10, 5), 5)
-    with engine.begin() as c:
-        rebuild(c)
-    assert client.get("/variants/999", headers=auth()).status_code == 404
-    body = client.get("/variants/1", headers=auth()).json()
-    assert body["stock"]["on_hand"] == 5 and [d["qty"] for d in body["demand"]] == [4] and body["history_reconciled"] is True
-    assert client.get("/review", headers=auth()).json()["count"] == 1
-    assert client.post("/review/decisions", json={"ids": [99], "decision": "confirm"}, headers=auth("buyer")).status_code == 409
-    assert client.post("/review/decisions", json={"ids": [3], "decision": "confirm"}, headers=auth("buyer")).json() == {"decided": 1}
-    assert [d["qty"] for d in client.get("/variants/1", headers=auth()).json()["demand"]] == [4, 1]
-    assert client.get("/review", headers=auth()).json()["count"] == 0
