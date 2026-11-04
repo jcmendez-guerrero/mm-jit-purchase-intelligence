@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/variant.v1",
+  "title": "Variant",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "external_id",
+    "product_id",
+    "pack_size",
+    "uom"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "external_id": {
+      "type": "string"
+    },
+    "product_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sku": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pack_size": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "uom": {
+      "type": "string"
+    },
+    "reorder_point": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    }
+  }
+}

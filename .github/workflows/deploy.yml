@@ -1,0 +1,49 @@
+name: deploy
+
+# Minimal deployment of the Siweb connector job (T139); T127 extends it to all services and the SPA.
+# Production needs a manual approval: configure required reviewers on the "production" environment.
+# Azure identifiers come from repository/environment variables, never from this file.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [test, production]
+        default: test
+
+permissions:
+  id-token: write   # OIDC federation, no stored cloud credentials
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  connector:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}   # "production" has required reviewers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push image, capture digest
+        id: build
+        run: |
+          az acr login --name "${{ vars.ACR_NAME }}"
+          image="${{ vars.ACR_NAME }}.azurecr.io/mmi/siweb-connector"
+          docker build -f services/siweb-connector/Dockerfile -t "$image:${{ github.sha }}" .
+          docker push "$image:${{ github.sha }}"
+          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$image:${{ github.sha }}")
+          echo "ref=$digest" >> "$GITHUB_OUTPUT"
+      - name: Update connector job to the pinned digest
+        run: |
+          az containerapp job update \
+            --name "${{ vars.CONNECTOR_JOB_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ steps.build.outputs.ref }}"

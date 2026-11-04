@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/money.v1",
+  "title": "Money",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "amount",
+    "currency"
+  ],
+  "properties": {
+    "amount": {
+      "type": "string",
+      "pattern": "^-?[0-9]+(\\.[0-9]{1,4})?$",
+      "description": "Decimal as string, never a float"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    }
+  }
+}

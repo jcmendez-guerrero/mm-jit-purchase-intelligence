@@ -230,6 +230,8 @@ __marimo__/
 /data/
 **/samples/real/
 !packages/testing/**/fixtures/**/*.csv
+!packages/testing/**/fixtures/**/*.xlsx
+!*.example
 # Environment-specific IaC parameters (commit only *.example)
 *.bicepparam
 !*.bicepparam.example

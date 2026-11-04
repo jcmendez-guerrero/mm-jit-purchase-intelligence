@@ -1,0 +1,36 @@
+title = "MMI gitleaks config"
+
+[extend]
+useDefault = true
+
+# Custom rules for this public repository. Patterns are generic on purpose:
+# real hostnames and IDs must never appear here either.
+
+[[rules]]
+id = "mmi-siweb-host"
+description = "Siweb360 host name or URL (the approved host is configuration, not source)"
+regex = '''(?i)https?://[a-z0-9.-]*siweb[a-z0-9.-]*\.[a-z]{2,}'''
+tags = ["siweb", "host"]
+
+[[rules]]
+id = "mmi-bearer-token"
+description = "Bearer token literal"
+regex = '''(?i)bearer\s+[a-z0-9\-_\.=]{20,}'''
+tags = ["token"]
+
+[[rules]]
+id = "mmi-azure-guid"
+description = "GUID next to an Azure tenant/subscription/client identifier"
+regex = '''(?i)(tenant|subscription|client[_-]?id|object[_-]?id)["'\s:=]+[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'''
+tags = ["azure"]
+
+[[rules]]
+id = "mmi-azure-resource-id"
+description = "Full Azure resource ID"
+regex = '''(?i)/subscriptions/[0-9a-f-]{36}/resourceGroups/'''
+tags = ["azure"]
+
+[allowlist]
+description = "Generic placeholders in examples"
+regexes = ['''00000000-0000-0000-0000-000000000000''', '''<[a-z-]+>''', '''app\.siweb360\.com''', '''sygna\.es''', '''Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq''']
+paths = ['''^\.gitleaks\.toml$''']

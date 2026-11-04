@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/siweb.sync.completed.v1",
+  "title": "SiwebSyncCompleted",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "siweb.sync.completed.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "kind",
+        "reconciled",
+        "counts_stored"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "reconciled": {
+          "type": "boolean"
+        },
+        "counts_stored": {
+          "type": "integer"
+        }
+      },
+      "description": "Document stored at payload_ref.uri; the envelope sha256 covers its bytes."
+    }
+  }
+}

@@ -1,0 +1,26 @@
+[project]
+name = "mmi-workspace"
+version = "0.1.0"
+description = "Mundo Mascotix Intelligence monorepo (workspace root, tooling only)"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+# Reproducible installs: `uv lock` produces uv.lock with hashes; CI installs with `uv sync --frozen`.
+[tool.uv.workspace]
+members = ["services/*", "packages/contracts", "packages/testing"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "DTZ", "RUF"]
+# Justified ignores: S101 asserts in tests; B008 FastAPI Depends()/Header() defaults;
+# S311 seeded random in the synthetic generator; S603/S607 subprocess in tooling and smoke tests.
+ignore = ["B008", "E501"]  # E501: long literal lines are tolerated; no formatter gate
+per-file-ignores = { "**/tests/**" = ["S101", "S603", "S607"], "packages/testing/src/generator/**" = ["S311"], "packages/contracts/tools/**" = ["S603", "S607"] }
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/procurement.cost.write_requested.v1",
+  "title": "CostWriteRequested",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "procurement.cost.write_requested.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cost_write_request_id"
+      ],
+      "properties": {
+        "cost_write_request_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "description": "Document stored at payload_ref.uri; the envelope sha256 covers its bytes."
+    }
+  }
+}

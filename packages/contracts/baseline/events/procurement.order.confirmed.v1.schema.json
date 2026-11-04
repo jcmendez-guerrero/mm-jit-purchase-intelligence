@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/procurement.order.confirmed.v1",
+  "title": "OrderConfirmed",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "procurement.order.confirmed.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order_id",
+        "proposal_id",
+        "supplier_id"
+      ],
+      "properties": {
+        "order_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "proposal_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "supplier_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "description": "Document stored at payload_ref.uri; the envelope sha256 covers its bytes."
+    }
+  }
+}

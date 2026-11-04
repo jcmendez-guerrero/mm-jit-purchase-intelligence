@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/inventory.snapshot.created.v1",
+  "title": "InventorySnapshotCreated",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "inventory.snapshot.created.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_date",
+        "variant_count"
+      ],
+      "properties": {
+        "snapshot_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "variant_count": {
+          "type": "integer"
+        }
+      },
+      "description": "Document stored at payload_ref.uri; the envelope sha256 covers its bytes."
+    }
+  }
+}

@@ -18,17 +18,17 @@
 
 **Purpose**: Monorepo skeleton, tooling and repository hygiene (public repo rules).
 
-- [ ] T001 Create monorepo skeleton per plan.md: apps/web, services/{siweb-connector,siweb-cost-writer,inventory-service,forecast-service,procurement-service,api-bff}, packages/{contracts,testing}, infra/bicep, security/, docs/adr/, .github/workflows/
-- [ ] T002 Write AGENTS.md and CLAUDE.md at repo root (rules: synthetic data only, read-only Siweb except cost write, no real IDs, es-ES UI, contract-first)
-- [ ] T003 [P] Configure Python workspace tooling (uv/pip-tools with hashed lockfiles, ruff, mypy, pytest) in pyproject.toml at repo root and per service services/*/pyproject.toml
-- [ ] T004 [P] Configure web tooling (Vite, TypeScript strict, ESLint, Vitest, Playwright) in apps/web/package.json and apps/web/tsconfig.json
-- [ ] T005 [P] Extend .gitignore to block real data and params: *.csv, *.xlsx, *.har, /data/, *.bicepparam, *.tfvars (allow packages/testing/**/fixtures/ and *.example) in .gitignore
-- [ ] T006 [P] Add Gitleaks config with custom rules (Siweb host + Bearer, Azure ID patterns) in .gitleaks.toml and a pre-commit config in .pre-commit-config.yaml
-- [ ] T007 [P] Add PR template with data/security/cost/contract checklist in .github/pull_request_template.md and Dependabot config in .github/dependabot.yml
-- [ ] T008 [P] Add security method docs (templates only, no findings): security/threat-model-template.md, security/data-classification.md
-- [ ] T009 [P] Create ADR index and MADR template plus ADRs 001, 002, 005, 006 (amended), 012, 017 in docs/adr/
+- [X] T001 Create monorepo skeleton per plan.md: apps/web, services/{siweb-connector,siweb-cost-writer,inventory-service,forecast-service,procurement-service,api-bff}, packages/{contracts,testing}, infra/bicep, security/, docs/adr/, .github/workflows/
+- [X] T002 Write AGENTS.md and CLAUDE.md at repo root (rules: synthetic data only, read-only Siweb except cost write, no real IDs, es-ES UI, contract-first)
+- [X] T003 [P] Configure Python workspace tooling (uv/pip-tools with hashed lockfiles, ruff, mypy, pytest) in pyproject.toml at repo root and per service services/*/pyproject.toml
+- [X] T004 [P] Configure web tooling (Vite, TypeScript strict, ESLint, Vitest, Playwright) in apps/web/package.json and apps/web/tsconfig.json
+- [X] T005 [P] Extend .gitignore to block real data and params: *.csv, *.xlsx, *.har, /data/, *.bicepparam, *.tfvars (allow packages/testing/**/fixtures/ and *.example) in .gitignore
+- [X] T006 [P] Add Gitleaks config with custom rules (Siweb host + Bearer, Azure ID patterns) in .gitleaks.toml and a pre-commit config in .pre-commit-config.yaml
+- [X] T007 [P] Add PR template with data/security/cost/contract checklist in .github/pull_request_template.md and Dependabot config in .github/dependabot.yml
+- [X] T008 [P] Add security method docs (templates only, no findings): security/threat-model-template.md, security/data-classification.md
+- [X] T009 [P] Create ADR index and MADR template plus ADRs 001, 002, 005, 006 (amended), 012, 017 in docs/adr/
 - [ ] T129 Gate 0 live read-only checks, results recorded in the internal wiki (not in repo): movement timezone (V1), ticket reference_type (V2), history depth, page sizes and 429 behaviour (V3), VAT-rate source and rounding (V5), rate split (V6), loss-reason cutover date (V7). Blocks live collection (T045 against the real ERP) and the defaults baked into US1/US2; mock-based work may proceed meanwhile
-- [ ] T135 Gate 0 supplier-cost PUT verification on a non-production record (V4): body, merge semantics, whether a link can be created; record outcome in the internal wiki and update research.md R4/V4. Blocks T100 and T101 against the real ERP and any cost write to production
+- [X] T135 Gate 0 supplier-cost PUT verification on a non-production record (V4): body, merge semantics, whether a link can be created; record outcome in the internal wiki and update research.md R4/V4. Blocks T100 and T101 against the real ERP and any cost write to production
 
 ---
 
@@ -36,26 +36,26 @@
 
 **Purpose**: Contracts, synthetic data, Siweb mock, local stack, shared libraries, CI. No user story starts before this completes.
 
-- [ ] T010 Define JSON Schemas for event envelope and the eight events in packages/contracts/events/*.schema.json (see specs/001-mmi-purchase-intelligence/contracts/events.md)
-- [ ] T011 [P] Define JSON Schemas for shared DTOs (Money, Variant, Proposal, ProposalLine, SupplierCost, CostWrite) in packages/contracts/dto/*.schema.json
-- [ ] T012 Configure codegen to Pydantic and TypeScript plus a schema-compatibility check in packages/contracts/codegen.toml and packages/contracts/tests/test_compat.py
-- [ ] T013 [P] Create shared Python library for Decimal money, UTC time and correlation IDs in packages/contracts/python/mmi_common/money.py and mmi_common/time.py
-- [ ] T014 [P] Implement MessageBus interface with Storage Queue and in-memory implementations in packages/contracts/python/mmi_common/bus.py
-- [ ] T015 [P] Implement outbox relay (one message per subscribed queue) and inbox dedup helpers in packages/contracts/python/mmi_common/outbox.py
-- [ ] T016 [P] Implement structured logging with correlation ID and redaction (tokens, personal data) in packages/contracts/python/mmi_common/logging.py
-- [ ] T017 [P] Implement service-to-service auth (managed-identity validation, dev issuer) in packages/contracts/python/mmi_common/auth.py
-- [ ] T018 Create the seeded synthetic data generator (catalogue ~1,000 variants, 3 warehouses + unassigned, lots, ~9 months of movements across all 15 reasons, demand profiles, stockouts, malformed expiry, missing lots) in packages/testing/src/generator/
-- [ ] T019 Build the Siweb mock server (three pagination shapes, newest-first paging with mid-run inserts, 429/401, missing pages, timezone-less timestamps) serving the generator in packages/testing/src/siweb_mock/
-- [ ] T020 Add supplier-cost PUT to the Siweb mock (read-modify-write pitfalls, failure injection, request log for assertions) in packages/testing/src/siweb_mock/suppliers.py
-- [ ] T021 [P] Add generator tests that fixtures match only the aggregate ratios and contain no real values in packages/testing/tests/test_generator.py
-- [ ] T022 Create Docker Compose stack (Postgres with per-service schemas/roles, Azurite, Siweb mock, dev JWT issuer, all services, web) in infra/compose.yaml
-- [ ] T023 [P] Create per-service Dockerfiles (non-root, pinned digests) in services/*/Dockerfile and apps/web/Dockerfile
-- [ ] T024 [P] Set up Alembic per service with schema-scoped roles in services/*/migrations/ and infra/postgres/init.sql
-- [ ] T025 [P] Create FastAPI service skeletons with health endpoints and auth dependency in services/*/src/main.py
-- [ ] T026 Create CI workflows with path filters, contract-change downstream validation, Gitleaks, Trivy, pip-audit, SBOM in .github/workflows/ci.yml
-- [ ] T027 [P] Create Bicep skeleton: naming module, one module per resource type, main.bicep, *.bicepparam.example in infra/bicep/
-- [ ] T028 Add a compose smoke test that boots with zero cloud credentials in infra/tests/test_compose_smoke.py
-- [ ] T139 [P] Create the minimal OIDC deploy workflow (connector job only, manual production approval, pinned digests) so early capture in Azure can start after US1; US7 extends it to all services in .github/workflows/deploy.yml
+- [X] T010 Define JSON Schemas for event envelope and the eight events in packages/contracts/events/*.schema.json (see specs/001-mmi-purchase-intelligence/contracts/events.md)
+- [X] T011 [P] Define JSON Schemas for shared DTOs (Money, Variant, Proposal, ProposalLine, SupplierCost, CostWrite) in packages/contracts/dto/*.schema.json
+- [X] T012 Configure codegen to Pydantic and TypeScript plus a schema-compatibility check in packages/contracts/codegen.toml and packages/contracts/tests/test_compat.py
+- [X] T013 [P] Create shared Python library for Decimal money, UTC time and correlation IDs in packages/contracts/python/mmi_common/money.py and mmi_common/time.py
+- [X] T014 [P] Implement MessageBus interface with Storage Queue and in-memory implementations in packages/contracts/python/mmi_common/bus.py
+- [X] T015 [P] Implement outbox relay (one message per subscribed queue) and inbox dedup helpers in packages/contracts/python/mmi_common/outbox.py
+- [X] T016 [P] Implement structured logging with correlation ID and redaction (tokens, personal data) in packages/contracts/python/mmi_common/logging.py
+- [X] T017 [P] Implement service-to-service auth (managed-identity validation, dev issuer) in packages/contracts/python/mmi_common/auth.py
+- [X] T018 Create the seeded synthetic data generator (catalogue ~1,000 variants, 3 warehouses + unassigned, lots, ~9 months of movements across all 15 reasons, demand profiles, stockouts, malformed expiry, missing lots) in packages/testing/src/generator/
+- [X] T019 Build the Siweb mock server (three pagination shapes, newest-first paging with mid-run inserts, 429/401, missing pages, timezone-less timestamps) serving the generator in packages/testing/src/siweb_mock/
+- [X] T020 Add supplier-cost PUT to the Siweb mock (read-modify-write pitfalls, failure injection, request log for assertions) in packages/testing/src/siweb_mock/suppliers.py
+- [X] T021 [P] Add generator tests that fixtures match only the aggregate ratios and contain no real values in packages/testing/tests/test_generator.py
+- [X] T022 Create Docker Compose stack (Postgres with per-service schemas/roles, Azurite, Siweb mock, dev JWT issuer, all services, web) in infra/compose.yaml
+- [X] T023 [P] Create per-service Dockerfiles (non-root, pinned digests) in services/*/Dockerfile and apps/web/Dockerfile
+- [X] T024 [P] Set up Alembic per service with schema-scoped roles in services/*/migrations/ and infra/postgres/init.sql
+- [X] T025 [P] Create FastAPI service skeletons with health endpoints and auth dependency in services/*/src/main.py
+- [X] T026 Create CI workflows with path filters, contract-change downstream validation, Gitleaks, Trivy, pip-audit, SBOM in .github/workflows/ci.yml
+- [X] T027 [P] Create Bicep skeleton: naming module, one module per resource type, main.bicep, *.bicepparam.example in infra/bicep/
+- [X] T028 Add a compose smoke test that boots with zero cloud credentials in infra/tests/test_compose_smoke.py
+- [X] T139 [P] Create the minimal OIDC deploy workflow (connector job only, manual production approval, pinned digests) so early capture in Azure can start after US1; US7 extends it to all services in .github/workflows/deploy.yml
 
 ---
 
@@ -63,27 +63,27 @@
 
 **Purpose**: Read-only collection from Siweb with allowlist, rate budget, reconciliation and quarantine.
 
-- [ ] T029 [P] [US1] Contract test: every method/path/host/redirect outside the reader allowlist is refused before sending in services/siweb-connector/tests/contract/test_allowlist.py
-- [ ] T030 [P] [US1] Contract test: dropped fields (supplier_cif, notes) never reach storage; only has_note kept in services/siweb-connector/tests/contract/test_minimisation.py
-- [ ] T031 [P] [US1] Integration test: backfill resumes across nights without gaps or duplicates and respects the request budget in services/siweb-connector/tests/integration/test_backfill.py
-- [ ] T032 [P] [US1] Integration test: quarantine cases (malformed expiry, missing warehouse, unreferenced sale) in services/siweb-connector/tests/integration/test_quarantine.py
-- [ ] T033 [P] [US1] Create integration schema migrations (sync_runs, sync_checkpoints, external_mappings, import_errors, raw_payload_index, rate_budget_log, outbox) in services/siweb-connector/migrations/versions/0001_integration.py
-- [ ] T034 [US1] Implement closed allowlist + host check in services/siweb-connector/src/allowlist/allowlist.py (per specs/001-mmi-purchase-intelligence/contracts/siweb-allowlist.md)
-- [ ] T035 [US1] Implement typed Siweb reader client with three pagination shapes, retry and 429/401 handling in services/siweb-connector/src/client/reader.py
-- [ ] T036 [P] [US1] Implement token-bucket rate limiter (≤ 500 req/h, night window) in services/siweb-connector/src/ratelimit/bucket.py
-- [ ] T037 [P] [US1] Implement Key Vault token provider (reader identity) with local env stub in services/siweb-connector/src/client/token.py
-- [ ] T038 [US1] Implement sync orchestration with frozen date_to, dedupe by movement id, checkpoints and count reconciliation in services/siweb-connector/src/sync/runner.py
-- [ ] T039 [P] [US1] Implement mapping/normalisation (UTC + raw timestamp, Decimal costs, unassigned warehouse, variant_id key) in services/siweb-connector/src/mapping/normalise.py
-- [ ] T040 [P] [US1] Implement data-quality gates writing import_errors in services/siweb-connector/src/mapping/quality.py
-- [ ] T041 [P] [US1] Implement raw payload writer to Blob after field stripping with retention metadata in services/siweb-connector/src/sync/raw_store.py
-- [ ] T042 [US1] Implement outbox publishing of siweb.sync.completed.v1 in services/siweb-connector/src/outbox/publisher.py
-- [ ] T043 [US1] Implement inventory projections: warehouses, products (tombstone after N missed syncs), variants, snapshots, lots, movements in services/inventory-service/src/projections/ and migration services/inventory-service/migrations/versions/0001_inventory.py
-- [ ] T044 [P] [US1] Implement inbox consumer for siweb.sync.completed.v1 in services/inventory-service/src/projections/consumer.py
-- [ ] T045 [P] [US1] Implement connector job entrypoint and ACA Job definition in services/siweb-connector/src/main.py and infra/bicep/modules/containerAppJob.bicep
-- [ ] T141 [P] [US1] Unit test: a product is marked discontinued only after N consecutive missed syncs (default 3), reappearance reactivates it, and a single failed run never tombstones in services/inventory-service/tests/test_tombstone.py
-- [ ] T142 [P] [US1] Unit test: free-text notes are never stored or used in any decision (has_note flag only) in services/inventory-service/tests/test_notes_minimisation.py
-- [ ] T046 [US1] Add alerts for failed syncs, quota denials and allowlist refusals in infra/bicep/modules/alerts.bicep (T122 extends the same file; do not run in parallel)
-- [ ] T136 [P] [US1] Implement raw-payload retention: Blob lifecycle rule and a purge job deleting payloads past expires_at (default 90 days, configurable) with a test that expired payloads are removed and unexpired ones kept, in infra/bicep/modules/storage.bicep and services/siweb-connector/src/storage/purge.py
+- [X] T029 [P] [US1] Contract test: every method/path/host/redirect outside the reader allowlist is refused before sending in services/siweb-connector/tests/contract/test_allowlist.py
+- [X] T030 [P] [US1] Contract test: dropped fields (supplier_cif, notes) never reach storage; only has_note kept in services/siweb-connector/tests/contract/test_minimisation.py
+- [X] T031 [P] [US1] Integration test: backfill resumes across nights without gaps or duplicates and respects the request budget in services/siweb-connector/tests/integration/test_backfill.py
+- [X] T032 [P] [US1] Integration test: quarantine cases (malformed expiry, missing warehouse, unreferenced sale) in services/siweb-connector/tests/integration/test_quarantine.py
+- [X] T033 [P] [US1] Create integration schema migrations (sync_runs, sync_checkpoints, external_mappings, import_errors, raw_payload_index, rate_budget_log, outbox) in services/siweb-connector/migrations/versions/0001_integration.py
+- [X] T034 [US1] Implement closed allowlist + host check in services/siweb-connector/src/allowlist/allowlist.py (per specs/001-mmi-purchase-intelligence/contracts/siweb-allowlist.md)
+- [X] T035 [US1] Implement typed Siweb reader client with three pagination shapes, retry and 429/401 handling in services/siweb-connector/src/client/reader.py
+- [X] T036 [P] [US1] Implement token-bucket rate limiter (≤ 500 req/h, night window) in services/siweb-connector/src/ratelimit/bucket.py
+- [X] T037 [P] [US1] Implement Key Vault token provider (reader identity) with local env stub in services/siweb-connector/src/client/token.py
+- [X] T038 [US1] Implement sync orchestration with frozen date_to, dedupe by movement id, checkpoints and count reconciliation in services/siweb-connector/src/sync/runner.py
+- [X] T039 [P] [US1] Implement mapping/normalisation (UTC + raw timestamp, Decimal costs, unassigned warehouse, variant_id key) in services/siweb-connector/src/mapping/normalise.py
+- [X] T040 [P] [US1] Implement data-quality gates writing import_errors in services/siweb-connector/src/mapping/quality.py
+- [X] T041 [P] [US1] Implement raw payload writer to Blob after field stripping with retention metadata in services/siweb-connector/src/sync/raw_store.py
+- [X] T042 [US1] Implement outbox publishing of siweb.sync.completed.v1 in services/siweb-connector/src/outbox/publisher.py
+- [X] T043 [US1] Implement inventory projections: warehouses, products (tombstone after N missed syncs), variants, snapshots, lots, movements in services/inventory-service/src/projections/ and migration services/inventory-service/migrations/versions/0001_inventory.py
+- [X] T044 [P] [US1] Implement inbox consumer for siweb.sync.completed.v1 in services/inventory-service/src/projections/consumer.py
+- [X] T045 [P] [US1] Implement connector job entrypoint and ACA Job definition in services/siweb-connector/src/main.py and infra/bicep/modules/containerAppJob.bicep
+- [X] T141 [P] [US1] Unit test: a product is marked discontinued only after N consecutive missed syncs (default 3), reappearance reactivates it, and a single failed run never tombstones in services/inventory-service/tests/test_tombstone.py
+- [X] T142 [P] [US1] Unit test: free-text notes are never stored or used in any decision (has_note flag only) in services/inventory-service/tests/test_notes_minimisation.py
+- [X] T046 [US1] Add alerts for failed syncs, quota denials and allowlist refusals in infra/bicep/modules/alerts.bicep (T122 extends the same file; do not run in parallel)
+- [X] T136 [P] [US1] Implement raw-payload retention: Blob lifecycle rule and a purge job deleting payloads past expires_at (default 90 days, configurable) with a test that expired payloads are removed and unexpired ones kept, in infra/bicep/modules/storage.bicep and services/siweb-connector/src/storage/purge.py
 
 ---
 

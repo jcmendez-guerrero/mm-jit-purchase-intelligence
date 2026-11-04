@@ -1,0 +1,163 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      contracts: ${{ steps.f.outputs.contracts }}
+      testing: ${{ steps.f.outputs.testing }}
+      web: ${{ steps.f.outputs.web }}
+      infra: ${{ steps.f.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: f
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            contracts: ['packages/contracts/**']
+            testing: ['packages/testing/**']
+            web: ['apps/web/**']
+            infra: ['infra/**', '.github/workflows/**']
+            siweb-connector: ['services/siweb-connector/**']
+            siweb-cost-writer: ['services/siweb-cost-writer/**']
+            inventory-service: ['services/inventory-service/**']
+            forecast-service: ['services/forecast-service/**']
+            procurement-service: ['services/procurement-service/**']
+            api-bff: ['services/api-bff/**']
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  python:
+    needs: changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - packages/contracts
+          - packages/testing
+          - services/siweb-connector
+          - services/siweb-cost-writer
+          - services/inventory-service
+          - services/forecast-service
+          - services/procurement-service
+          - services/api-bff
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Decide whether this target is affected
+        id: scope
+        run: |
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then echo run=true >> "$GITHUB_OUTPUT"; exit 0; fi
+          changed=$(git diff --name-only "$base" HEAD || true)
+          # Own files, shared contracts (downstream validation) or shared tooling re-run the target.
+          if echo "$changed" | grep -qE '^(${{ matrix.target }}/|packages/contracts/|packages/testing/|pyproject.toml)'; then echo run=true >> "$GITHUB_OUTPUT"; else echo run=false >> "$GITHUB_OUTPUT"; fi
+        # shallow clones need history for the diff
+      - if: steps.scope.outputs.run == 'true'
+        run: |
+          uv venv --python 3.12
+          uv pip install -e packages/contracts -e packages/testing pytest pytest-asyncio hypothesis pyyaml openpyxl ruff mypy
+          if [ -f "${{ matrix.target }}/pyproject.toml" ] && [[ "${{ matrix.target }}" == services/* ]]; then uv pip install -r <(python3 - <<'EOF'
+          import tomllib
+          for d in tomllib.load(open("${{ matrix.target }}/pyproject.toml","rb"))["project"]["dependencies"]:
+              if not d.startswith("mmi-"): print(d)
+          EOF
+          ); fi
+      - if: steps.scope.outputs.run == 'true'
+        run: |
+          . .venv/bin/activate
+          ruff check ${{ matrix.target }}
+          cd ${{ matrix.target }} && pytest -q
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test --if-present
+      - run: npm run build
+
+  bicep:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+
+  security-scans:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan (vulnerabilities, misconfiguration)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: cyclonedx
+          output: sbom.cdx.json
+      - uses: actions/upload-artifact@v4
+        with: { name: sbom, path: sbom.cdx.json }
+      - uses: astral-sh/setup-uv@v3
+      - name: pip-audit on service dependencies
+        run: |
+          uv venv --python 3.12 && . .venv/bin/activate
+          uv pip install pip-audit
+          for f in services/*/pyproject.toml packages/*/pyproject.toml; do
+            python - "$f" <<'EOF' >> /tmp/reqs.txt
+          import sys, tomllib
+          for d in tomllib.load(open(sys.argv[1], "rb"))["project"]["dependencies"]:
+              if not d.startswith("mmi-"): print(d)
+          EOF
+          done
+          sort -u /tmp/reqs.txt > /tmp/reqs-unique.txt
+          pip-audit -r /tmp/reqs-unique.txt --no-deps --disable-pip || pip-audit -r /tmp/reqs-unique.txt
+
+  compose-smoke:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true' || needs.changes.outputs.contracts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: |
+          uv venv --python 3.12 && . .venv/bin/activate
+          uv pip install pytest pyyaml
+          RUN_COMPOSE_SMOKE=1 pytest -q infra/tests

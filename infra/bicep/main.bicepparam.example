@@ -1,0 +1,10 @@
+// Template only. Copy to main.bicepparam (git-ignored) and fill in locally or from the pipeline.
+// Never commit real values: tenant, subscription, resource names or IDs.
+using './main.bicep'
+
+param workload = '<workload-prefix>'
+param environment = 'dev'
+
+// Existing shared Log Analytics workspace id and alert recipient (real values stay in the git-ignored file).
+param logAnalyticsId = '<resource id of the shared workspace>'
+param alertEmail = '<alert recipient>'

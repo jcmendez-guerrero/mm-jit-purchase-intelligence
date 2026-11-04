@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/cost_write.v1",
+  "title": "CostWrite",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "cost_id",
+    "trigger",
+    "proposed_value",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "cost_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "trigger": {
+      "enum": [
+        "missing_cost",
+        "order_confirmed"
+      ]
+    },
+    "proposed_value": {
+      "$ref": "money.v1.schema.json"
+    },
+    "previous_siweb_value": {
+      "oneOf": [
+        {
+          "$ref": "money.v1.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "enum": [
+        "pending_review",
+        "approved_by_buyer",
+        "pending_link",
+        "sent",
+        "succeeded",
+        "failed",
+        "retrying",
+        "cancelled"
+      ]
+    },
+    "attempts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "last_error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

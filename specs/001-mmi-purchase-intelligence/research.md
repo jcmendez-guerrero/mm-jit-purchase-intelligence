@@ -78,10 +78,10 @@ All Technical Context items are resolved below. Items that need live-system conf
 
 | ID | Item | Treated as assumption until checked |
 |----|------|-------------------------------------|
-| V1 | Movement `created_at` timezone | Store UTC + original string; assume Europe/Madrid local time |
+| V1 | Movement `created_at` timezone | **Verified 2026-11-04:** two movements matched the Siweb UI to the second (UI shows CET); the API returns the same wall-clock time with no offset, so it is Europe/Madrid local time. Store UTC + original string. Ambiguous (autumn repeated hour) and non-existent (spring skipped hour) local times go to the review list, not guessed |
 | V2 | `reference_type` for ticket sales; POS tickets → `sale_shipment` | Quarantine unreferenced sales |
 | V3 | History depth, `/variants` max page size, 429/`Retry-After` behaviour | Conservative bucket, adaptive backoff |
-| V4 | Exact `PUT .../suppliers/{contact_id}` body and merge semantics, and whether it can create a link | Writer does read-modify-write of cost only; no link creation; block go-live and tasks T100/T101 against the real ERP until verified on a test record |
+| V4 | Exact `PUT .../suppliers/{contact_id}` body and merge semantics, and whether it can create a link | **Verified 2026-11-04 on a test product (T135):** the PUT is a full replace, not a merge: sending only `purchase_cost_cents` reset `lead_time_days` and `min_order_qty` to null, so the writer MUST read-modify-write and resend every field. It upserts: a missing link is created (200) and the response returns the record. Body is JSON with `purchase_cost_cents`; negative or non-numeric values return 400 with a Spanish message, but fractional values are accepted, so the writer MUST validate integer cents itself. Link creation stays out of scope (`pending_link`) until a decision is recorded |
 | V5 | VAT-rate source per product; 4 % VAT/exempt handling; rounding | Buyer-maintained VAT rate per product |
 | V6 | Rate split with the other app | MMI ≤ 500 req/h, night window |
 | V7 | Exact loss-reason cutover date | 2026-09-19 default |

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/siweb.cost.write_completed.v1",
+  "title": "CostWriteCompleted",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "siweb.cost.write_completed.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cost_write_request_id",
+        "outcome"
+      ],
+      "properties": {
+        "cost_write_request_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "outcome": {
+          "type": "string"
+        }
+      },
+      "description": "Document stored at payload_ref.uri; the envelope sha256 covers its bytes."
+    }
+  }
+}

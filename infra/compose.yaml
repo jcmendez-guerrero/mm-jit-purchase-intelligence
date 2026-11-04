@@ -1,0 +1,162 @@
+# Local stack: everything runs without cloud credentials. All values are synthetic, local-only.
+name: mmi
+services:
+  postgres:
+    image: postgres:16@sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a
+    environment:
+      POSTGRES_DB: mmi
+      POSTGRES_USER: mmi_admin
+      POSTGRES_PASSWORD: dev-only-local
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mmi_admin -d mmi"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.33.0@sha256:2628ee10a72833cc344b9d194cd8b245543892b307d16cf26a2cf55a15b816af
+    command: azurite --skipApiVersionCheck --queueHost 0.0.0.0 --blobHost 0.0.0.0 --tableHost 0.0.0.0
+
+  siweb-mock:
+    build: { context: .., dockerfile: packages/testing/Dockerfile }
+    ports: ["8089:8089"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8089/__mock__/health').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  dev-issuer:
+    build: { context: .., dockerfile: packages/testing/Dockerfile }
+    environment: { MMI_ENV: dev, PORT: "8090" }
+    command: ["python", "-m", "dev_issuer"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8090/healthz').status==200 else 1)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  siweb-connector:
+    build: { context: .., dockerfile: services/siweb-connector/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_DATABASE_URL: postgresql+psycopg://integration_svc:dev-only-local@postgres:5432/mmi
+      MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      SIWEB_BASE_URL: http://siweb-mock:8089
+      SIWEB_TOKEN: synthetic-test-token
+    depends_on:
+      postgres: { condition: service_healthy }
+      azurite: { condition: service_started }
+      dev-issuer: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/siweb-connector && alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  siweb-cost-writer:
+    build: { context: .., dockerfile: services/siweb-cost-writer/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_DATABASE_URL: postgresql+psycopg://costwrite_svc:dev-only-local@postgres:5432/mmi
+      MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      SIWEB_BASE_URL: http://siweb-mock:8089
+      SIWEB_TOKEN: synthetic-test-token
+    depends_on:
+      postgres: { condition: service_healthy }
+      azurite: { condition: service_started }
+      dev-issuer: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/siweb-cost-writer && alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  inventory-service:
+    build: { context: .., dockerfile: services/inventory-service/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_DATABASE_URL: postgresql+psycopg://inventory_svc:dev-only-local@postgres:5432/mmi
+      MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      SIWEB_BASE_URL: http://siweb-mock:8089
+      SIWEB_TOKEN: synthetic-test-token
+    depends_on:
+      postgres: { condition: service_healthy }
+      azurite: { condition: service_started }
+      dev-issuer: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/inventory-service && alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  forecast-service:
+    build: { context: .., dockerfile: services/forecast-service/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_DATABASE_URL: postgresql+psycopg://forecasting_svc:dev-only-local@postgres:5432/mmi
+      MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      SIWEB_BASE_URL: http://siweb-mock:8089
+      SIWEB_TOKEN: synthetic-test-token
+    depends_on:
+      postgres: { condition: service_healthy }
+      azurite: { condition: service_started }
+      dev-issuer: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/forecast-service && alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  procurement-service:
+    build: { context: .., dockerfile: services/procurement-service/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_DATABASE_URL: postgresql+psycopg://procurement_svc:dev-only-local@postgres:5432/mmi
+      MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      SIWEB_BASE_URL: http://siweb-mock:8089
+      SIWEB_TOKEN: synthetic-test-token
+    depends_on:
+      postgres: { condition: service_healthy }
+      azurite: { condition: service_started }
+      dev-issuer: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/procurement-service && alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api-bff:
+    build: { context: .., dockerfile: services/api-bff/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+    depends_on:
+      dev-issuer: { condition: service_healthy }
+    ports: ["8081:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build: { context: .., dockerfile: apps/web/Dockerfile }
+    ports: ["8080:8080"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

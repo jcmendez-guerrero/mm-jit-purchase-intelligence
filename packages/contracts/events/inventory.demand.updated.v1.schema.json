@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/inventory.demand.updated.v1",
+  "title": "InventoryDemandUpdated",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "inventory.demand.updated.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "through_day",
+        "series_count"
+      ],
+      "properties": {
+        "through_day": {
+          "type": "string",
+          "format": "date"
+        },
+        "series_count": {
+          "type": "integer"
+        }
+      },
+      "description": "Document stored at payload_ref.uri; the envelope sha256 covers its bytes."
+    }
+  }
+}

@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: block-real-data-files
+        name: block csv/xlsx/har outside synthetic fixtures
+        language: fail
+        entry: Real data files must not be committed (use packages/testing fixtures)
+        files: '\.(csv|xlsx|xls|har|parquet|duckdb)$'
+        exclude: '^packages/testing/.*/fixtures/'
