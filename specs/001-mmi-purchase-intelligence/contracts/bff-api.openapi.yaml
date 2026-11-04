@@ -1,0 +1,278 @@
+openapi: 3.0.3
+info:
+  title: Mundo Mascotix Intelligence — BFF API
+  version: 0.1.0
+  description: >
+    Frontend-facing API. Cookie-session auth; CSRF token required on mutating requests.
+    Human-readable messages are returned as message keys plus parameters (the SPA localises to es-ES).
+servers:
+  - url: /api
+security:
+  - session: []
+tags: [{name: dashboard}, {name: data-quality}, {name: costs}, {name: suppliers}, {name: proposals}, {name: orders}, {name: config}]
+paths:
+  /me:
+    get:
+      summary: Current user, roles and MFA freshness
+      responses: {"200": {description: OK, content: {application/json: {schema: {$ref: '#/components/schemas/Me'}}}}}
+  /dashboard/risk:
+    get:
+      tags: [dashboard]
+      summary: Stockout and expiry risks (daily evaluation)
+      parameters: [{name: warehouse_id, in: query, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: OK, content: {application/json: {schema: {$ref: '#/components/schemas/RiskList'}}}}}
+  /inventory/variants/{variantId}:
+    get:
+      tags: [dashboard]
+      summary: Stock, demand, losses, segment, eligibility with per-warehouse breakdown
+      parameters: [{$ref: '#/components/parameters/VariantId'}]
+      responses: {"200": {description: OK}}
+  /data-quality/import-errors:
+    get:
+      tags: [data-quality]
+      summary: Review list of quarantined records
+      parameters: [{name: status, in: query, schema: {type: string, enum: [open, resolved, ignored]}}]
+      responses: {"200": {description: OK}}
+  /data-quality/import-errors/{id}/resolve:
+    post:
+      tags: [data-quality]
+      summary: Release or ignore a quarantined record (buyer or admin)
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision], properties: {decision: {type: string, enum: [release, ignore]}}}}}}
+      responses: {"204": {description: Resolved}}
+  /suppliers:
+    get: {tags: [suppliers], summary: List suppliers with terms, responses: {"200": {description: OK}}}
+  /suppliers/{supplierId}/terms:
+    put:
+      tags: [suppliers]
+      summary: Create a new version of supplier order terms (buyer)
+      parameters: [{$ref: '#/components/parameters/SupplierId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SupplierTerms'}}}}
+      responses: {"200": {description: Saved}}
+  /costs:
+    get:
+      tags: [costs]
+      summary: Costs per product-supplier with provenance, staleness and jump flags
+      parameters:
+        - {name: product_id, in: query, schema: {type: string, format: uuid}}
+        - {name: supplier_id, in: query, schema: {type: string, format: uuid}}
+        - {name: only_issues, in: query, schema: {type: boolean}}
+      responses: {"200": {description: OK, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/SupplierCost'}}}}}}
+    post:
+      tags: [costs]
+      summary: Enter a cost (manual source); creates a pending Siweb cost-write if the ERP has none
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CostEntry'}}}}
+      responses:
+        "201": {description: Created, content: {application/json: {schema: {$ref: '#/components/schemas/CostEntryResult'}}}}
+        "422": {description: Invalid (e.g. net entry with unknown VAT rate)}
+  /costs/{costId}/verify:
+    post: {tags: [costs], summary: Mark a cost verified, parameters: [{$ref: '#/components/parameters/CostId'}], responses: {"204": {description: OK}}}
+  /costs/{costId}/confirm-jump:
+    post: {tags: [costs], summary: Confirm an abnormal cost change, parameters: [{$ref: '#/components/parameters/CostId'}], responses: {"204": {description: OK}}}
+  /costs/import:
+    post:
+      tags: [costs]
+      summary: Upload a supplier price list (CSV/Excel, fixed template); returns validation result
+      requestBody: {required: true, content: {multipart/form-data: {schema: {type: object, properties: {supplier_id: {type: string, format: uuid}, file: {type: string, format: binary}}}}}}
+      responses: {"200": {description: Import result with error list}}
+  /cost-writes:
+    get:
+      tags: [costs]
+      summary: Pending and failed Siweb cost writes (visible until succeeded)
+      responses: {"200": {description: OK, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/CostWrite'}}}}}}
+  /cost-writes/{id}/approve:
+    post:
+      tags: [costs]
+      summary: Buyer reviews and releases the write to Siweb (step-up MFA required)
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"202": {description: Queued for the writer}, "403": {description: Role or MFA freshness insufficient}}
+  /cost-writes/{id}/cancel:
+    post: {tags: [costs], summary: Cancel a pending write, parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}], responses: {"204": {description: OK}}}
+  /proposals:
+    get: {tags: [proposals], summary: List proposals, responses: {"200": {description: OK}}}
+    post:
+      tags: [proposals]
+      summary: Generate the weekly company-wide proposal (buyer)
+      responses: {"202": {description: Generation started}}
+  /proposals/{proposalId}:
+    get:
+      tags: [proposals]
+      summary: Proposal with lines, explanations and supplier groups
+      parameters: [{$ref: '#/components/parameters/ProposalId'}]
+      responses: {"200": {description: OK, content: {application/json: {schema: {$ref: '#/components/schemas/Proposal'}}}}}
+  /proposals/{proposalId}/lines/{lineId}:
+    patch:
+      tags: [proposals]
+      summary: Edit quantity or supplier; constraints re-validated; requires If-Match version
+      parameters: [{$ref: '#/components/parameters/ProposalId'}, {name: lineId, in: path, required: true, schema: {type: string, format: uuid}}, {name: If-Match, in: header, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {qty: {type: integer, minimum: 0}, supplier_id: {type: string, format: uuid}}}}}}
+      responses: {"200": {description: Updated proposal}, "409": {description: Version conflict}, "422": {description: Constraint violation}}
+  /proposals/{proposalId}/submit:
+    post: {tags: [proposals], summary: Submit for approval, parameters: [{$ref: '#/components/parameters/ProposalId'}], responses: {"200": {description: OK}, "409": {description: Fewer than two active users could approve (separation of duties)}}}
+  /proposals/{proposalId}/approve:
+    post:
+      tags: [proposals]
+      summary: Approve (approver role; not the creator or last editor; fresh MFA)
+      parameters: [{$ref: '#/components/parameters/ProposalId'}]
+      responses: {"200": {description: Approved}, "403": {description: Separation of duties or MFA freshness}, "409": {description: Edited since submission}}
+  /proposals/{proposalId}/export:
+    get:
+      tags: [proposals]
+      summary: Export approved proposal
+      parameters:
+        - $ref: '#/components/parameters/ProposalId'
+        - {name: format, in: query, required: true, schema: {type: string, enum: [csv, xlsx]}}
+        - {name: supplier_id, in: query, schema: {type: string, format: uuid}}
+      responses: {"200": {description: File}}
+  /proposals/{proposalId}/orders/{supplierId}/confirm:
+    post:
+      tags: [orders]
+      summary: Buyer confirms the order placed with a supplier (actual quantities and costs)
+      parameters: [{$ref: '#/components/parameters/ProposalId'}, {$ref: '#/components/parameters/SupplierId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/OrderConfirmation'}}}}
+      responses:
+        "201": {description: Order confirmed; cost writes created for lines whose cost differs from Siweb}
+  /admin/roles:
+    get: {tags: [config], summary: List users and roles (admin), responses: {"200": {description: OK}}}
+  /admin/roles/{userId}:
+    put:
+      tags: [config]
+      summary: Assign or revoke roles (admin); audited
+      parameters: [{name: userId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [roles], properties: {roles: {type: array, items: {type: string, enum: [viewer, buyer, approver, admin]}}}}}}}
+      responses: {"200": {description: Saved}, "403": {description: Not admin}, "409": {description: Change would leave no eligible approver}}
+  /config/service-levels:
+    get: {tags: [config], summary: Segment and product service-level targets, responses: {"200": {description: OK}}}
+    put:
+      tags: [config]
+      summary: Change targets (buyer); audited; applies to later proposals
+      requestBody: {required: true, content: {application/json: {schema: {type: object}}}}
+      responses: {"200": {description: Saved}}
+  /config/loss-cutover:
+    put: {tags: [config], summary: Change loss-reason cutover date (admin), requestBody: {required: true, content: {application/json: {schema: {type: object, required: [effective_date], properties: {effective_date: {type: string, format: date}}}}}}, responses: {"200": {description: Saved}}}
+components:
+  securitySchemes:
+    session: {type: apiKey, in: cookie, name: mmi_session}
+  parameters:
+    VariantId: {name: variantId, in: path, required: true, schema: {type: string, format: uuid}}
+    SupplierId: {name: supplierId, in: path, required: true, schema: {type: string, format: uuid}}
+    CostId: {name: costId, in: path, required: true, schema: {type: string, format: uuid}}
+    ProposalId: {name: proposalId, in: path, required: true, schema: {type: string, format: uuid}}
+  schemas:
+    Me:
+      type: object
+      required: [user_id, roles, mfa_auth_time]
+      properties:
+        user_id: {type: string}
+        roles: {type: array, items: {type: string, enum: [viewer, buyer, approver, admin]}}
+        mfa_auth_time: {type: string, format: date-time}
+    RiskList:
+      type: array
+      items:
+        type: object
+        required: [variant_id, risk_type, explanation_key]
+        properties:
+          variant_id: {type: string, format: uuid}
+          risk_type: {type: string, enum: [stockout, expiry, data_quality]}
+          explanation_key: {type: string}
+          params: {type: object}
+    SupplierTerms:
+      type: object
+      properties:
+        min_order_value: {type: string, description: Decimal EUR}
+        min_qty_for_delivery: {type: integer}
+        free_delivery_threshold: {type: string}
+        delivery_charge: {type: string}
+        order_days: {type: array, items: {type: integer, minimum: 1, maximum: 7}}
+        delivery_schedule: {type: string}
+    SupplierCost:
+      type: object
+      required: [id, product_id, supplier_id, cost_with_recargo, source, verified_at, status]
+      properties:
+        id: {type: string, format: uuid}
+        product_id: {type: string, format: uuid}
+        supplier_id: {type: string, format: uuid}
+        variant_id: {type: string, format: uuid, nullable: true}
+        cost_net: {type: string}
+        cost_with_recargo: {type: string}
+        recargo_rate: {type: string}
+        source: {type: string, enum: [siweb_product_supplier, csv_price_list, manual]}
+        verified_at: {type: string, format: date-time}
+        status: {type: string, enum: [ok, stale, blocked_jump]}
+        lead_time_days: {type: integer}
+        min_order_qty: {type: integer}
+        pack_size: {type: integer}
+    CostEntry:
+      type: object
+      required: [product_id, supplier_id, amount, includes_recargo]
+      properties:
+        product_id: {type: string, format: uuid}
+        supplier_id: {type: string, format: uuid}
+        variant_id: {type: string, format: uuid, nullable: true}
+        amount: {type: string, description: Decimal EUR}
+        includes_recargo: {type: boolean, description: "false = net cost; the system adds recargo using the product VAT rate"}
+        lead_time_days: {type: integer}
+        min_order_qty: {type: integer}
+        pack_size: {type: integer}
+    CostEntryResult:
+      type: object
+      properties:
+        cost: {$ref: '#/components/schemas/SupplierCost'}
+        cost_write: {$ref: '#/components/schemas/CostWrite'}
+        warnings: {type: array, items: {type: string}}
+    CostWrite:
+      type: object
+      required: [id, product_id, supplier_id, proposed_value, status]
+      properties:
+        id: {type: string, format: uuid}
+        trigger: {type: string, enum: [missing_cost, order_confirmed]}
+        product_id: {type: string, format: uuid}
+        supplier_id: {type: string, format: uuid}
+        previous_siweb_value: {type: string, nullable: true}
+        proposed_value: {type: string, description: Cost including recargo}
+        status: {type: string, enum: [pending_review, approved_by_buyer, pending_link, sent, succeeded, failed, retrying, cancelled]}
+        attempts: {type: integer}
+        last_error: {type: string, nullable: true}
+    Proposal:
+      type: object
+      required: [id, status, version, lines, supplier_groups]
+      properties:
+        id: {type: string, format: uuid}
+        status: {type: string, enum: [draft, submitted, approved, exported, superseded]}
+        version: {type: integer}
+        created_by: {type: string}
+        last_edited_by: {type: string}
+        lines: {type: array, items: {$ref: '#/components/schemas/ProposalLine'}}
+        supplier_groups: {type: array, items: {$ref: '#/components/schemas/SupplierGroup'}}
+    ProposalLine:
+      type: object
+      required: [id, variant_id, supplier_id, qty, unit_cost_with_recargo, explanation]
+      properties:
+        id: {type: string, format: uuid}
+        variant_id: {type: string, format: uuid}
+        supplier_id: {type: string, format: uuid}
+        qty: {type: integer}
+        unit_cost_with_recargo: {type: string}
+        explanation: {type: object, description: "Structured: forecast_or_policy, safety_stock, constraints, risk, confidence, cost_source, alternatives_compared"}
+    SupplierGroup:
+      type: object
+      properties:
+        supplier_id: {type: string, format: uuid}
+        total_cost: {type: string}
+        delivery_charge: {type: string}
+        expected_delivery_date: {type: string, format: date}
+        minimum_status: {type: string, enum: [met, topped_up, shortfall]}
+        shortfall_options: {type: array, items: {type: object}}
+    OrderConfirmation:
+      type: object
+      required: [lines]
+      properties:
+        lines:
+          type: array
+          items:
+            type: object
+            required: [variant_id, qty, cost_with_recargo]
+            properties:
+              variant_id: {type: string, format: uuid}
+              qty: {type: integer, minimum: 0}
+              cost_with_recargo: {type: string}
