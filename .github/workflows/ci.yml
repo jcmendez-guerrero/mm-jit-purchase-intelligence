@@ -34,18 +34,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: false
-          TERRAFORM_TFLINT_CONFIG_FILE: .tflint.custom.hcl
+          # Infrastructure is Bicep (checked by `az bicep build` and the infra tests); there is no Terraform in this repository.
+          VALIDATE_TERRAFORM_TFLINT: false
+          VALIDATE_TERRAFORM_FMT: false
+          VALIDATE_TERRAGRUNT: false
           VALIDATE_JSCPD: false
           VALIDATE_CHECKOV: false
           VALIDATE_CLOUDFORMATION: false
-          VALIDATE_TERRAFORM_TERRASCAN: false
           VALIDATE_NATURAL_LANGUAGE: false
           VALIDATE_MARKDOWN_PRETTIER: false
           FIX_YAML_PRETTIER: true
           VALIDATE_BIOME_LINT: false
           VALIDATE_BIOME_FORMAT: false
           VALIDATE_TRIVY: false
-          FIX_TERRAFORM_FMT: true
           FILTER_REGEX_EXCLUDE: (.*github/linters.*|.*CHANGELOG.md.*|.*specify/.*|.*apps/api/openapi\.json)
           # Python is checked by ruff and the web app by its own ESLint config in the `python` and `web` jobs (line length 120,
           # project rules); repeating them here with default settings only produces conflicting findings.
@@ -193,7 +194,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan (vulnerabilities, misconfiguration)
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -202,7 +203,7 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
       - name: SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
