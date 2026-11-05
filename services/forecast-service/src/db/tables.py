@@ -63,7 +63,7 @@ model_registry = Table(
     Column("version", String(20), primary_key=True),
     Column("params_hash", String(64), nullable=False),
     Column("artifact_uri", String(300)),
-    Column("adopted_for_segment", String(14)),
+    Column("adopted_for_segment", String(120)),   # comma-separated patterns
 )
 outbox = outbox_table(metadata)
 inbox = inbox_table(metadata)

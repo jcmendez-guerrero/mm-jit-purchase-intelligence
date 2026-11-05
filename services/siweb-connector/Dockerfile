@@ -9,7 +9,8 @@ COPY services/siweb-connector/pyproject.toml /app/services/siweb-connector/pypro
 RUN python -c "import tomllib;print(chr(10).join(d for d in tomllib.load(open('services/siweb-connector/pyproject.toml','rb'))['project']['dependencies'] if not d.startswith('mmi-')))" > /tmp/req.txt \
  && pip install -r /tmp/req.txt ./packages/contracts
 COPY services/siweb-connector/ /app/services/siweb-connector/
-RUN useradd --system --uid 10001 --no-create-home app
+RUN useradd --system --uid 10001 --no-create-home app \
+ && mkdir -p /data/blobs && chown 10001 /data/blobs
 USER 10001
 ENV PYTHONPATH=/app/services/siweb-connector/src
 EXPOSE 8000

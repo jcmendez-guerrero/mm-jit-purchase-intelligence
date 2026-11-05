@@ -17,6 +17,7 @@ from costs.rules import CostRules, load_rules
 from costs.store import CostError, NewCost, add_version, confirm_jump, cost_status, verify
 from db.tables import erp_supplier_links, supplier_costs, suppliers
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, UploadFile
+from mmi_common.errors import error_code
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
@@ -93,7 +94,7 @@ def build_router(app: FastAPI) -> APIRouter:
             version = save_terms(conn, supplier_id, Terms(body.min_order_value, body.min_qty_for_delivery, body.free_delivery_threshold,
                                                           body.delivery_charge, tuple(body.order_days), body.delivery_schedule), principal.subject)
         except TermsError as exc:
-            raise HTTPException(422, str(exc)) from exc
+            raise HTTPException(422, error_code(exc)) from exc
         return {"version": version}
 
     @router.get("/costs")
@@ -111,7 +112,7 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.post("/costs", status_code=201)
     def enter_cost(body: CostEntry, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
         if conn.execute(select(suppliers.c.id).where(suppliers.c.id == body.supplier_id)).first() is None:
-            raise HTTPException(422, "unknown supplier")
+            raise HTTPException(422, "unknown_supplier")
         directory, table, rules = SqlProductDirectory(conn), load_table(conn), load_rules(conn)
         vat = directory.vat_for_product(body.product_id)
         warnings: list[str] = []
@@ -126,7 +127,7 @@ def build_router(app: FastAPI) -> APIRouter:
                 net, gross = body.amount, gross_from_net(body.amount, pct)
         except UnknownVatError as exc:
             if not body.includes_recargo:
-                raise HTTPException(422, "vat_unknown: a net cost needs the product VAT rate (10 % or 21 %)") from exc
+                raise HTTPException(422, "vat_unknown") from exc
             warnings.append("vat_unknown")
         link = conn.execute(select(erp_supplier_links.c.has_cost).where(erp_supplier_links.c.product_id == body.product_id,
                                                                          erp_supplier_links.c.supplier_id == body.supplier_id)).first()
@@ -142,7 +143,7 @@ def build_router(app: FastAPI) -> APIRouter:
                 actor=principal.subject, cost_net=net, recargo_rate=rate, entered_includes_recargo=body.includes_recargo, vat_rate_used=vat,
                 pack_size=body.pack_size, lead_time_days=body.lead_time_days, min_order_qty=body.min_order_qty), rules)
         except CostError as exc:
-            raise HTTPException(422, str(exc)) from exc
+            raise HTTPException(422, error_code(exc)) from exc
         if row.jump_flag:
             warnings.append("abnormal_jump")
         return {"cost": cost_json(row, rules, datetime.now(UTC)), "erp_link": erp, "write_case": write_case, "warnings": warnings}
@@ -152,25 +153,25 @@ def build_router(app: FastAPI) -> APIRouter:
         try:
             verify(conn, cost_id, principal.subject)
         except CostError as exc:
-            raise HTTPException(404 if "not found" in str(exc) else 409, str(exc)) from exc
+            raise HTTPException(404 if exc.code == "cost_not_found" else 409, error_code(exc)) from exc
 
     @router.post("/costs/{cost_id}/confirm-jump", status_code=204)
     def confirm(cost_id: str, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> None:
         try:
             confirm_jump(conn, cost_id, principal.subject)
         except CostError as exc:
-            raise HTTPException(404 if "not found" in str(exc) else 409, str(exc)) from exc
+            raise HTTPException(404 if exc.code == "cost_not_found" else 409, error_code(exc)) from exc
 
     @router.post("/costs/import")
     async def import_prices(supplier_id: str = Form(), file: UploadFile = File(), conn: Connection = Depends(conn_dep),
                             principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
         if conn.execute(select(suppliers.c.id).where(suppliers.c.id == supplier_id)).first() is None:
-            raise HTTPException(422, "unknown supplier")
+            raise HTTPException(422, "unknown_supplier")
         data = await file.read(price_import.MAX_BYTES + 1)
         try:
             rows = price_import.read_rows(data, file.filename or "")
         except price_import.ImportFileError as exc:
-            raise HTTPException(422, str(exc)) from exc
+            raise HTTPException(422, error_code(exc)) from exc
         result = price_import.validate(rows, SqlProductDirectory(conn), load_table(conn))
         applied = price_import.apply(conn, result, supplier_id, principal.subject, load_rules(conn))
         audit(conn, principal.subject, "price_list.imported" if result.ok else "price_list.rejected", "supplier", supplier_id,
@@ -180,10 +181,10 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.put("/products/{product_id}/vat")
     def set_vat(product_id: int, body: VatBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
         if body.vat_rate is not None and not (Decimal(0) <= body.vat_rate <= Decimal(100)):
-            raise HTTPException(422, "invalid VAT rate")
+            raise HTTPException(422, "invalid_vat_rate")
         n = SqlProductDirectory(conn).set_vat(product_id, body.vat_rate)
         if n == 0:
-            raise HTTPException(404, "unknown product")
+            raise HTTPException(404, "unknown_product")
         audit(conn, principal.subject, "product.vat_set", "product", str(product_id), after={"vat_rate": None if body.vat_rate is None else str(body.vat_rate)})
         return {"product_id": product_id, "vat_rate": None if body.vat_rate is None else str(body.vat_rate)}
 

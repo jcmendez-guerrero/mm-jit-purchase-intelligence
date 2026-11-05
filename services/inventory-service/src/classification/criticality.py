@@ -11,7 +11,7 @@ from sqlalchemy.engine import Connection
 
 
 class CriticalityError(Exception):
-    pass
+    code = "unknown_product"
 
 
 def set_critical(conn: Connection, product_id: int, critical: bool, changed_by: str, now: datetime | None = None) -> bool:

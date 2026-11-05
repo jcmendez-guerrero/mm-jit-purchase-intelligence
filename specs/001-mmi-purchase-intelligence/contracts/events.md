@@ -18,7 +18,7 @@ Transport: Storage Queues behind a `MessageBus` interface (Azurite locally). Del
 
 | Type | Producer → consumers | Trigger |
 |---|---|---|
-| siweb.sync.completed.v1 | siweb-connector → inventory-service | A reconciled sync run commits |
+| siweb.sync.completed.v1 | siweb-connector → inventory-service, procurement-service (supplier-cost kind only; other kinds acknowledged) | A reconciled sync run commits |
 | inventory.snapshot.created.v1 | inventory-service → forecast-service, procurement-service | New stock snapshot projected |
 | inventory.demand.updated.v1 | inventory-service → forecast-service | Demand/flow series rebuilt |
 | forecast.completed.v1 | forecast-service → procurement-service | Forecast/policy run finished |

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -11,11 +12,12 @@ import httpx
 class InventoryHttpSource:
     """Reads the series export with a service token (managed identity in Azure; a dev-issued token locally)."""
 
-    def __init__(self, base_url: str, token: str, client: httpx.Client | None = None) -> None:
+    def __init__(self, base_url: str, token: str | Callable[[], str], client: httpx.Client | None = None) -> None:
         self._base, self._token, self._client = base_url.rstrip("/"), token, client or httpx.Client(timeout=120)
 
     def fetch(self) -> dict[str, Any]:
-        r = self._client.get(f"{self._base}/export/series", headers={"Authorization": f"Bearer {self._token}"})
+        token = self._token() if callable(self._token) else self._token
+        r = self._client.get(f"{self._base}/export/series", headers={"Authorization": f"Bearer {token}"})
         r.raise_for_status()
         return r.json()  # type: ignore[no-any-return]
 

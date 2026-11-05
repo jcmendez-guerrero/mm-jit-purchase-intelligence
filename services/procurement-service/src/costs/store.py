@@ -24,7 +24,12 @@ SOURCES = ("siweb_product_supplier", "csv_price_list", "manual")
 
 
 class CostError(Exception):
-    pass
+    code = "invalid_cost"
+
+    def __init__(self, message: str, code: str | None = None) -> None:
+        super().__init__(message)
+        if code:
+            self.code = code
 
 
 @dataclass(frozen=True)
@@ -105,14 +110,14 @@ def add_version(conn: Connection, new: NewCost, rules: CostRules, now: datetime 
 def get(conn: Connection, cost_id: str) -> Row[Any]:
     row = conn.execute(select(supplier_costs).where(supplier_costs.c.id == cost_id)).first()
     if row is None:
-        raise CostError("cost not found")
+        raise CostError("cost not found", "cost_not_found")
     return row
 
 
 def verify(conn: Connection, cost_id: str, actor: str, now: datetime | None = None) -> None:
     row = get(conn, cost_id)
     if row.superseded_by is not None:
-        raise CostError("only the current version can be verified")
+        raise CostError("only the current version can be verified", "cost_not_current")
     now = now or datetime.now(UTC)
     conn.execute(update(supplier_costs).where(supplier_costs.c.id == cost_id).values(verified_at=now, verified_by=actor))
     audit(conn, actor, "cost.verified", "supplier_cost", cost_id, before={"verified_at": str(row.verified_at)}, after={"verified_at": now.isoformat()}, now=now)
@@ -126,7 +131,7 @@ def refresh_erp_verification(conn: Connection, cost_id: str, now: datetime) -> N
 def confirm_jump(conn: Connection, cost_id: str, actor: str, now: datetime | None = None) -> None:
     row = get(conn, cost_id)
     if not row.jump_flag:
-        raise CostError("this cost has no abnormal jump to confirm")
+        raise CostError("this cost has no abnormal jump to confirm", "no_jump_to_confirm")
     if row.jump_confirmed_by is not None:
         return
     now = now or datetime.now(UTC)

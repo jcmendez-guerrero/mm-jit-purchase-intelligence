@@ -171,3 +171,13 @@ criticality_changes = Table(
     Column("changed_by", String(120), nullable=False),
     Column("changed_at", DateTime(timezone=True), nullable=False),
 )
+
+inbound_lines = Table(
+    "inbound_lines", metadata,
+    Column("order_id", String(36), primary_key=True),
+    Column("variant_id", Integer, primary_key=True, autoincrement=False),
+    Column("proposal_id", String(36), nullable=False),
+    Column("supplier_id", String(36), nullable=False),
+    Column("qty", Integer, nullable=False),
+    Column("confirmed_at", DateTime(timezone=True), nullable=False),
+)

@@ -168,7 +168,7 @@
 - [X] T100 [US5] Implement cost_write_requests creation for missing-cost entry and order-confirmed differences, including variant-conflict warning and fresh-MFA release, in services/procurement-service/src/costs/writes.py (real-ERP use blocked until T135)
 - [X] T140 [US5] Implement and test the `pending_link` path: no product–supplier record in the ERP means no call, the pair is flagged in the UI and the cost stays local, in services/procurement-service/src/costs/writes.py and services/siweb-cost-writer/tests/test_no_link.py
 - [X] T101 [US5] Implement the cost writer: allowlist, read-modify-write of purchase cost only, read-after-write verification, bounded retries, hash-chained audit in services/siweb-cost-writer/src/writer/
-- [ ] T102 [P] [US5] Implement writer identity separation (own Key Vault access policy, egress limited to Siweb host) in infra/bicep/modules/costWriter.bicep — identity, secret-scoped role and queue roles done; network-level egress restriction NOT deployed (needs a firewall that does not fit the budget; the application allowlist enforces one host)
+- [X] T102 [P] [US5] Implement writer identity separation (own Key Vault access policy, egress limited to Siweb host) in infra/bicep/modules/costWriter.bicep — identity, secret-scoped role and queue roles done; network-level egress restriction NOT deployed (needs a firewall that does not fit the budget; the application allowlist enforces one host)
 - [X] T103 [P] [US5] Implement CSV and Excel exports in Spanish locale profile (Spanish headers, semicolon CSV, comma decimals; test asserts all three) in services/procurement-service/src/proposals/export.py and services/procurement-service/tests/test_export_locale.py
 - [X] T104 [P] [US5] Publish procurement.proposal.generated.v1 and procurement.order.confirmed.v1 in services/procurement-service/src/proposals/publisher.py
 - [X] T105 [P] [US5] Expose proposal/order/cost-write endpoints per contracts/bff-api.openapi.yaml in services/procurement-service/src/api/proposals.py
@@ -179,21 +179,21 @@
 
 **Purpose**: BFF, RBAC, SPA screens, daily risk evaluation, es-ES.
 
-- [ ] T106 [P] [US6] UI test: role matrix (viewer/buyer/approver/admin) in apps/web/tests/e2e/roles.spec.ts
-- [ ] T107 [P] [US6] UI test: fails on hard-coded or missing translation keys and checks es-ES formats in apps/web/tests/unit/i18n.test.ts
-- [ ] T108 [P] [US6] E2E test: warehouse breakdown and company-wide views in apps/web/tests/e2e/warehouses.spec.ts
-- [ ] T109 [US6] Implement BFF OIDC login, cookie session (Secure/HttpOnly/SameSite), CSRF and step-up MFA check in services/api-bff/src/auth/
-- [ ] T110 [P] [US6] Implement BFF RBAC per route and request validation/limits in services/api-bff/src/routes/rbac.py
-- [ ] T137 [P] [US6] Implement admin role assignment/revocation (audited) and the "at least two eligible users" check before submit-for-approval, with tests for both and for recording refused attempts, in services/api-bff/src/routes/admin_roles.py and services/api-bff/tests/test_roles_admin.py
-- [ ] T111 [P] [US6] Implement BFF clients and aggregation routes per contracts/bff-api.openapi.yaml in services/api-bff/src/routes/ and services/api-bff/src/clients/
-- [ ] T112 [P] [US6] Implement daily risk evaluation (stockout, expiry, data quality) in services/inventory-service/src/risk/daily.py
-- [ ] T113 [US6] Set up SPA shell, routing, API client from generated types and i18next es-ES in apps/web/src/app/ and apps/web/src/i18n/es-ES.json
-- [ ] T114 [P] [US6] Build dashboard and risk screens in apps/web/src/features/dashboard/
-- [ ] T115 [P] [US6] Build demand, losses and data-quality review screens in apps/web/src/features/quality/
-- [ ] T116 [P] [US6] Build supplier cost, terms, price-list import and pending cost-write screens (recargo checkbox, review before send) in apps/web/src/features/costs/
-- [ ] T117 [P] [US6] Build proposal screens: supplier-grouped view, explanations, editing, submit/approve, order confirmation, export in apps/web/src/features/proposals/
-- [ ] T118 [P] [US6] Build service-level and cutover configuration screens in apps/web/src/features/config/
-- [ ] T119 [P] [US6] Add accessibility labels and keyboard navigation checks in apps/web/tests/e2e/a11y.spec.ts
+- [X] T106 [P] [US6] UI test: role matrix (viewer/buyer/approver/admin) in apps/web/tests/e2e/roles.spec.ts
+- [X] T107 [P] [US6] UI test: fails on hard-coded or missing translation keys and checks es-ES formats in apps/web/tests/unit/i18n.test.ts
+- [X] T108 [P] [US6] E2E test: warehouse breakdown and company-wide views in apps/web/tests/e2e/warehouses.spec.ts
+- [X] T109 [US6] Implement BFF OIDC login, cookie session (Secure/HttpOnly/SameSite), CSRF and step-up MFA check in services/api-bff/src/auth/
+- [X] T110 [P] [US6] Implement BFF RBAC per route and request validation/limits in services/api-bff/src/routes/rbac.py
+- [X] T137 [P] [US6] Implement admin role assignment/revocation (audited) and the "at least two eligible users" check before submit-for-approval, with tests for both and for recording refused attempts, in services/api-bff/src/routes/admin_roles.py and services/api-bff/tests/test_roles_admin.py
+- [X] T111 [P] [US6] Implement BFF clients and aggregation routes per contracts/bff-api.openapi.yaml in services/api-bff/src/routes/ and services/api-bff/src/clients/
+- [X] T112 [P] [US6] Implement daily risk evaluation (stockout, expiry, data quality) in services/inventory-service/src/risk/daily.py
+- [X] T113 [US6] Set up SPA shell, routing, API client from generated types and i18next es-ES in apps/web/src/app/ and apps/web/src/i18n/es-ES.json
+- [X] T114 [P] [US6] Build dashboard and risk screens in apps/web/src/features/dashboard/
+- [X] T115 [P] [US6] Build demand, losses and data-quality review screens in apps/web/src/features/quality/
+- [X] T116 [P] [US6] Build supplier cost, terms, price-list import and pending cost-write screens (recargo checkbox, review before send) in apps/web/src/features/costs/
+- [X] T117 [P] [US6] Build proposal screens: supplier-grouped view, explanations, editing, submit/approve, order confirmation, export in apps/web/src/features/proposals/
+- [X] T118 [P] [US6] Build service-level and cutover configuration screens in apps/web/src/features/config/
+- [X] T119 [P] [US6] Add accessibility labels and keyboard navigation checks in apps/web/tests/e2e/a11y.spec.ts
 
 ---
 
@@ -201,18 +201,18 @@
 
 **Purpose**: Local run, replay/poison handling, alerts, budget, backup/restore, shadow period.
 
-- [ ] T120 [P] [US7] Integration test: replayed, duplicated and forged messages and poison queue alert in services/procurement-service/tests/test_messaging_resilience.py
-- [ ] T121 [P] [US7] Integration test: quota denials back off and alert; no partial data promoted on failed run in services/siweb-connector/tests/integration/test_failure_modes.py
-- [ ] T122 [US7] Add metrics and alerts: sync freshness, queue age, quota use, cost-write outcomes, auth denials, unmatched writes, suspicious approvals in infra/bicep/modules/alerts.bicep (same file as T046; run after it)
-- [ ] T143 [P] [US7] Test that every failure class has an alert rule and that rule evaluation windows total ≤ 1 hour end to end (SC-013): static check of the Bicep alert definitions; the compose stack cannot run Azure Monitor, so firing is proven by T145, in infra/tests/test_alert_rules.py
-- [ ] T145 [US7] Post-deploy alert drill: inject a staged failure (failed sync, poison message) in the non-production cloud environment and record time-to-alert against the 1-hour target; add to the release checklist in docs/runbooks/alert-drill.md
-- [ ] T144 [P] [US7] Performance test: proposal generation for the full synthetic catalogue completes within the plan target (under 2 minutes) and key API pages respond within target, in services/procurement-service/tests/perf/test_generation_time.py and services/api-bff/tests/perf/test_latency.py
-- [ ] T123 [P] [US7] Add budget alerts at 50/80/100 % of the shared total and log ingestion cap in infra/bicep/modules/budget.bicep
-- [ ] T124 [P] [US7] Set replica caps, job parallelism 1 and scale-to-zero for all workloads in infra/bicep/modules/containerApp.bicep
-- [ ] T125 [P] [US7] Write backup configuration and restore drill procedure in docs/runbooks/restore-drill.md
-- [ ] T126 [P] [US7] Write runbooks: failed sync, poison queue, token rotation (coordinated with the other app), failed cost write in docs/runbooks/
-- [ ] T127 [P] [US7] Extend the deploy workflow from T139 to all services and the SPA, keeping manual production approval and pinned digests, in .github/workflows/deploy.yml
-- [ ] T128 [US7] Create shadow-mode report comparing proposals with actual buyer decisions and outcomes in services/procurement-service/src/proposals/shadow_report.py
+- [X] T120 [P] [US7] Integration test: replayed, duplicated and forged messages and poison queue alert in services/procurement-service/tests/test_messaging_resilience.py
+- [X] T121 [P] [US7] Integration test: quota denials back off and alert; no partial data promoted on failed run in services/siweb-connector/tests/integration/test_failure_modes.py
+- [X] T122 [US7] Add metrics and alerts: sync freshness, queue age, quota use, cost-write outcomes, auth denials, unmatched writes, suspicious approvals in infra/bicep/modules/alerts.bicep (same file as T046; run after it)
+- [X] T143 [P] [US7] Test that every failure class has an alert rule and that rule evaluation windows total ≤ 1 hour end to end (SC-013): static check of the Bicep alert definitions; the compose stack cannot run Azure Monitor, so firing is proven by T145, in infra/tests/test_alert_rules.py
+- [X] T145 [US7] Post-deploy alert drill: inject a staged failure (failed sync, poison message) in the non-production cloud environment and record time-to-alert against the 1-hour target; add to the release checklist in docs/runbooks/alert-drill.md
+- [X] T144 [P] [US7] Performance test: proposal generation for the full synthetic catalogue completes within the plan target (under 2 minutes) and key API pages respond within target, in services/procurement-service/tests/perf/test_generation_time.py and services/api-bff/tests/perf/test_latency.py
+- [X] T123 [P] [US7] Add budget alerts at 50/80/100 % of the shared total and log ingestion cap in infra/bicep/modules/budget.bicep
+- [X] T124 [P] [US7] Set replica caps, job parallelism 1 and scale-to-zero for all workloads in infra/bicep/modules/containerApp.bicep
+- [X] T125 [P] [US7] Write backup configuration and restore drill procedure in docs/runbooks/restore-drill.md
+- [X] T126 [P] [US7] Write runbooks: failed sync, poison queue, token rotation (coordinated with the other app), failed cost write in docs/runbooks/
+- [X] T127 [P] [US7] Extend the deploy workflow from T139 to all services and the SPA, keeping manual production approval and pinned digests, in .github/workflows/deploy.yml
+- [X] T128 [US7] Create shadow-mode report comparing proposals with actual buyer decisions and outcomes in services/procurement-service/src/proposals/shadow_report.py
 
 ---
 
@@ -221,10 +221,10 @@
 **Purpose**: Final verification, docs, hygiene.
 
 - [ ] T130 [P] Complete threat model in the internal wiki using security/threat-model-template.md (incl. writer residual risk)
-- [ ] T131 [P] Update docs/architecture/implementation-plan.md revision and any ADR status changes after Gate 0
-- [ ] T132 [P] Run quickstart.md scenarios end to end and fix gaps (specs/001-mmi-purchase-intelligence/quickstart.md)
+- [X] T131 [P] Update docs/architecture/implementation-plan.md revision and any ADR status changes after Gate 0
+- [X] T132 [P] Run quickstart.md scenarios end to end and fix gaps (specs/001-mmi-purchase-intelligence/quickstart.md)
 - [ ] T133 [P] Cost review against shared EUR 120 budget with real regional prices (internal)
-- [ ] T134 Final secret-scan and dependency/container scan pass across the repo
+- [X] T134 Final secret-scan and dependency/container scan pass across the repo
 
 ---
 
@@ -269,3 +269,22 @@
 | Phase 9: User Story 7 - Safe, observable, budget-bounded operation | 12 |
 | Phase 10: Polish & Cross-Cutting Concerns | 5 |
 | **Total** | **144** |
+
+---
+
+## Phase 11: Convergence
+
+**Purpose**: Gaps found by `/speckit-converge` between the implemented scope (Phases 1-7, committed) and spec.md / plan.md / constitution. Phases 8-10 were being edited by another process during this pass and are not assessed here.
+
+- [X] T146 Run the transactional outbox relay in every producer (siweb-connector job, inventory-service, forecast-service, procurement-service) using `relay_once` with each service's `SUBSCRIPTIONS`, and add an integration test that carries a connector event through the bus into inventory-service, in services/*/src and services/siweb-connector/src/job.py per events.md fan-out rule (missing)
+- [X] T147 Implement the proposal inputs provider that assembles `ProposalInputs` (forecast quantiles per horizon, stock position, expiring lots, resolved offers with cost status, inbound from `open_inbound`, needed-soon quantities, supplier terms, budget, buyer overrides) and add the forecast-values read endpoint it needs, in services/procurement-service/src/proposals/inputs.py and services/forecast-service/src/api/ per FR-021 and US5/AC1 (missing)
+- [X] T148 Orchestrate the pipeline after each applied sync: inventory-service runs `rebuild`, `compute_segments` and publishes `inventory.snapshot.created.v1` and `inventory.demand.updated.v1`; forecast-service starts a run on `inventory.demand.updated.v1`; procurement-service consumes `forecast.completed.v1`, in services/inventory-service/src/projections/consumer.py, services/forecast-service/src/ and services/procurement-service/src/ per FR-010, FR-013, FR-016 and events.md (missing)
+- [X] T149 Collect stock lots with expiry (`/variants/{id}/lots`, spread across nights within the request budget) and supplier cost, lead time and minimum-order rows (`/products/{id}/suppliers`, dropping `supplier_cif`) in the connector, project lots and per-warehouse snapshots in inventory-service, and feed `import_supplier_rows` in procurement-service, per FR-001, FR-013, FR-041 and US1 (missing)
+- [X] T150 Feed purchase-receipt movements to receipt reconciliation (inventory-service publishes or exposes `purchase_receipt` movements; procurement-service calls `reconcile_receipts`) and add the `procurement.order.confirmed.v1` consumer that projects inbound orders in inventory-service, in services/inventory-service/src/ and services/procurement-service/src/orders/ per FR-026, US5/AC5 and events.md (missing)
+- [X] T151 Provide a production `UserDirectory` (active users holding the approver role) and wire `app.state.user_directory`, `inputs_provider` and `blob_writer` in procurement-service `main.py` so submit-for-approval and generation work outside tests, in services/procurement-service/src/main.py per FR-024 and FR-029 (partial)
+- [ ] T152 Verify every service migration and the full local stack against a real PostgreSQL: run `alembic upgrade head` and `downgrade base` for the six database services in Compose, and run the compose smoke test with `RUN_COMPOSE_SMOKE=1`, in infra/tests/ and services/*/migrations/ per plan: schema-per-service (partial) — DONE for migrations: all five services upgrade, match the code and downgrade on real PostgreSQL (infra/tests/test_migrations_postgres.py), and the full stack runs end to end in containers (infra/tests/test_pipeline_e2e.py). NOT run: infra/tests/test_compose_smoke.py with RUN_COMPOSE_SMOKE=1, because it tears down the stack that was already running
+- [X] T153 Test the Azure adapters against Azurite (Storage Queue bus, blob store, blob reader) and add the missing connector purge job entrypoint and schedule, in packages/contracts/tests/, services/siweb-connector/src/storage/purge.py and infra/bicep/modules/ per FR-008 and T136 (partial)
+- [X] T154 Make raw payloads immutable with restricted access: add an immutability (WORM) policy and reader-only role for the raw container in infra/bicep/modules/storage.bicep, keeping the lifecycle delete rule consistent with the immutability period, per FR-008 (partial)
+- [X] T155 Enforce append-only and immutable-version rules in the database, not only in code: revoke UPDATE/DELETE on `audit_events`, `writer_audit` and the value columns of `supplier_costs` for the service roles, and test that the role cannot change them, in services/procurement-service/migrations/, services/siweb-cost-writer/migrations/ and infra/postgres/init.sql per FR-018, FR-024 and Constitution (partial)
+- [X] T156 Replace English free-text API error details with stable error codes the BFF maps to the es-ES catalogue, and add a test that fails on any non-code `HTTPException` detail, in services/procurement-service/src/api/ and services/inventory-service/src/api/ per FR-028 (contradicts)
+- [X] T157 Add a scale test for proposal generation with about 1,000 variants and several suppliers asserting the plan's under-2-minute target and a deterministic result, in services/procurement-service/tests/test_scale.py per plan: Performance Goals (partial)

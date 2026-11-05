@@ -73,7 +73,7 @@ def test_utc_conversion_uses_madrid_local_time(engine, bus, blobs, publish):
 def test_resending_the_same_payload_is_idempotent(engine, bus, blobs, publish, data):
     env = publish("movements", data.movements[:300])
     consume_once(engine, bus, blobs)
-    bus.send("inventory-sync-completed", env)          # redelivery of the same event_id
+    bus.send("inventory-in", env)          # redelivery of the same event_id
     stats = consume_once(engine, bus, blobs)
     assert stats.duplicates == 1 and stats.applied == 0
     publish("movements", data.movements[:300])         # a new event with overlapping rows
@@ -86,8 +86,8 @@ def test_resending_the_same_payload_is_idempotent(engine, bus, blobs, publish, d
 def test_checksum_mismatch_is_poisoned_not_applied(engine, bus, blobs, publish):
     publish("warehouses", [{"id": 1, "name": "A"}], tamper=True)
     stats = consume_once(engine, bus, blobs)
-    assert stats.rejected == 1 and bus.depth("inventory-sync-completed") == 0
-    assert bus.depth("inventory-sync-completed" + POISON_SUFFIX) == 1
+    assert stats.rejected == 1 and bus.depth("inventory-in") == 0
+    assert bus.depth("inventory-in" + POISON_SUFFIX) == 1
     with engine.connect() as c:
         assert c.execute(select(func.count()).select_from(warehouses)).scalar_one() == 0
 
@@ -100,7 +100,7 @@ def test_a_failing_handler_rolls_back_and_retries(engine, bus, blobs, publish):
     with engine.connect() as c:
         assert c.execute(select(func.count()).select_from(stock_movements)).scalar_one() == 0   # nothing half-applied
         assert c.execute(select(func.count()).select_from(inbox)).scalar_one() == 0            # registration rolled back
-    assert bus.depth("inventory-sync-completed") == 1                                            # still queued for retry
+    assert bus.depth("inventory-in") == 1                                            # still queued for retry
 
 
 def test_unknown_kind_is_not_silently_ignored(engine, bus, blobs, publish):

@@ -43,7 +43,7 @@ def test_job_runs_all_kinds_against_the_mock(monkeypatch, tmp_path):
     monkeypatch.setattr(job.httpx, "Client", lambda **kw: TestClient(app, base_url="http://mock.test"))
     assert job.run(list(job.KINDS), enforce_window=False) == 0
     with eng.connect() as c:
-        assert sorted(r.kind for r in c.execute(select(sync_runs)).all()) == ["movements", "products", "variants", "warehouses"]
+        assert sorted(r.kind for r in c.execute(select(sync_runs)).all()) == ["lots", "movements", "products", "supplier_costs", "variants", "warehouses"]   # purge makes no ERP request and no run row
 
 
 def test_job_exits_non_zero_when_the_token_is_rejected(monkeypatch, tmp_path):

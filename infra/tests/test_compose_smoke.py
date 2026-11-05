@@ -16,7 +16,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "infra" / "compose.yaml"
 EXPECTED = {"postgres", "azurite", "siweb-mock", "dev-issuer", "siweb-connector", "siweb-cost-writer",
-            "inventory-service", "forecast-service", "procurement-service", "api-bff", "web"}
+            "inventory-service", "forecast-service", "procurement-service", "api-bff", "web",
+            "inventory-worker", "forecast-worker", "procurement-worker"}
 
 
 def load():
@@ -43,9 +44,17 @@ def test_each_service_has_own_database_role_and_schema():
     roles = {}
     for name, svc in load()["services"].items():
         url = svc.get("environment", {}).get("MMI_DATABASE_URL")
-        if url:
+        if url and not name.endswith("-worker"):
             roles[name] = re.search(r"//([a-z_]+):", url).group(1)
     assert len(set(roles.values())) == len(roles) == 5
+
+
+def test_each_worker_runs_as_the_role_of_its_own_service_and_no_other():
+    services = load()["services"]
+    for name, svc in services.items():
+        if name.endswith("-worker"):
+            owner = services[name.removesuffix("-worker") + "-service"]["environment"]["MMI_DATABASE_URL"]
+            assert svc["environment"]["MMI_DATABASE_URL"] == owner, f"{name} must use the same schema role as its service"
 
 
 def test_dockerfiles_run_as_non_root_with_pinned_base():

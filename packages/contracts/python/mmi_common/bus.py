@@ -24,7 +24,8 @@ from .time import utc_now
 DEFAULT_MAX_AGE = timedelta(hours=24)
 MAX_AGE_OVERRIDES = {"procurement.cost.write_requested.v1": timedelta(hours=1)}
 POISON_SUFFIX = "-poison"
-SCHEMA_DIR = Path(__file__).resolve().parents[2] / "events"
+_PACKAGED = Path(__file__).resolve().parent / "schemas" / "events"      # installed wheel
+SCHEMA_DIR = _PACKAGED if _PACKAGED.is_dir() else Path(__file__).resolve().parents[2] / "events"   # repository checkout
 
 
 class MessageRejected(Exception):

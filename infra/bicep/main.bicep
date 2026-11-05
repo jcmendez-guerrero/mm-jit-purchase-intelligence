@@ -23,9 +23,20 @@ var queueNames = [
   'bff-notifications'
 ]
 
+@description('Managed identity that may write raw payloads (the connector).')
+param connectorPrincipalIds array = []
+@description('Managed identities that may only read raw payloads (inventory-service, procurement-service).')
+param payloadReaderPrincipalIds array = []
+
 module storage 'modules/storage.bicep' = {
   name: 'storage'
-  params: { name: names.outputs.storageAccount, location: location, queueNames: queueNames }
+  params: {
+    name: names.outputs.storageAccount
+    location: location
+    queueNames: queueNames
+    rawWriterPrincipalIds: connectorPrincipalIds
+    rawReaderPrincipalIds: payloadReaderPrincipalIds
+  }
 }
 
 @description('Existing shared Log Analytics workspace (referenced, not created).')

@@ -47,6 +47,12 @@ sync_checkpoints = Table(
     Column("last_created_at", DateTime(timezone=True)),
     Column("backfill_cursor", JSON),
 )
+external_mappings = Table(
+    "external_mappings", metadata,
+    Column("entity", String(20), primary_key=True),
+    Column("external_id", String(40), primary_key=True),
+    Column("internal_id", String(40), nullable=False),
+)
 import_errors = Table(
     "import_errors", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),

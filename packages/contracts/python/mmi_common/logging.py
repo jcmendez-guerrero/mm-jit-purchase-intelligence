@@ -54,3 +54,5 @@ def configure_logging(level: int = logging.INFO, stream: Any = None) -> None:
     root = logging.getLogger()
     root.handlers[:] = [handler]
     root.setLevel(level)
+    for noisy in ("azure", "httpx", "httpcore", "urllib3"):     # per-request transport logs bury the markers the alerts query
+        logging.getLogger(noisy).setLevel(logging.WARNING)

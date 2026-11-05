@@ -28,7 +28,7 @@ SCOPES = ("abc", "critical", "sparse", "product")
 
 
 class ServiceLevelError(Exception):
-    pass
+    code = "invalid_service_level"
 
 
 def set_target(conn: Connection, scope: str, key: str, target: Decimal, changed_by: str, valid_from: datetime | None = None) -> None:

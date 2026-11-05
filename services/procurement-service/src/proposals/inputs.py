@@ -1,0 +1,149 @@
+"""T147: assemble ProposalInputs from the other services' read APIs and this service's own data.
+
+* inventory-service  /export/stock      stock position, lots, classification, service-level target, clinical-critical flag
+* forecast-service   /forecasts/latest  point forecast and quantiles per horizon, or the conservative min/max
+* procurement DB                        usable costs (with provenance), supplier terms, confirmed inbound orders
+Variants without a usable cost cannot be ordered; they are reported (FR-041), never guessed.
+"""
+
+from __future__ import annotations
+
+import math
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from typing import Any, Protocol
+
+import httpx
+from costs.resolve import resolve_cost
+from costs.rules import load_rules
+from db.tables import product_refs, supplier_costs, suppliers
+from orders.confirm import open_inbound
+from sqlalchemy import insert, select, update
+from sqlalchemy.engine import Connection
+from terms.service import current_terms
+
+from proposals.model import (
+    DEFAULT_LEAD_DAYS,
+    Forecast,
+    HorizonForecast,
+    Offer,
+    ProposalInputs,
+    SupplierTermsIn,
+    VariantInput,
+)
+
+EXPIRY_WINDOW_DAYS = 14
+
+
+class InputsUnavailableError(Exception):
+    """A required upstream (stock snapshot or forecast) has nothing to offer yet."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
+
+
+class JsonSource(Protocol):
+    def fetch(self) -> dict[str, Any]: ...
+
+
+class HttpJsonSource:
+    def __init__(self, url: str, token: str | Callable[[], str], client: httpx.Client | None = None) -> None:
+        self._url, self._token, self._client = url, token, client or httpx.Client(timeout=120)
+
+    def fetch(self) -> dict[str, Any]:
+        token = self._token() if callable(self._token) else self._token
+        r = self._client.get(self._url, headers={"Authorization": f"Bearer {token}"})
+        if r.status_code == 404:
+            raise InputsUnavailableError("no_forecast")
+        r.raise_for_status()
+        return r.json()  # type: ignore[no-any-return]
+
+    def __repr__(self) -> str:
+        return "HttpJsonSource(token=***)"
+
+
+def to_forecast(entry: dict[str, Any]) -> Forecast:
+    horizons = {int(h): HorizonForecast(v.get("mean"), {k: int(q) for k, q in v["quantiles"].items()}) for h, v in entry["horizons"].items()}
+    return Forecast(horizons, entry["policy"], bool(entry["eligible"]), tuple(entry.get("reasons") or ()))
+
+
+def refresh_product_refs(conn: Connection, variants: list[dict[str, Any]]) -> int:
+    """Keep the variant -> product map, SKU and name current for exports. The buyer-maintained VAT rate is never touched."""
+    n = 0
+    for v in variants:
+        if v.get("product_id") is None:
+            continue
+        values = {"product_id": int(v["product_id"]), "sku": v.get("sku"), "name": v.get("name")}
+        if conn.execute(select(product_refs.c.variant_id).where(product_refs.c.variant_id == v["variant_id"])).first() is None:
+            conn.execute(insert(product_refs).values(variant_id=int(v["variant_id"]), **values))
+        else:
+            conn.execute(update(product_refs).where(product_refs.c.variant_id == v["variant_id"]).values(**values))
+        n += 1
+    return n
+
+
+@dataclass
+class InputsReport:
+    variants: int = 0
+    without_forecast: list[int] = field(default_factory=list)
+    without_cost: list[int] = field(default_factory=list)
+
+
+@dataclass
+class InputsProvider:
+    stock: JsonSource
+    forecast: JsonSource
+    budget: Decimal | None = None
+    expiry_window_days: int = EXPIRY_WINDOW_DAYS
+    report: InputsReport = field(default_factory=InputsReport)
+
+    def build(self, conn: Connection, today: date) -> ProposalInputs:
+        stock, fc = self.stock.fetch(), self.forecast.fetch()
+        if not stock.get("variants"):
+            raise InputsUnavailableError("no_stock_snapshot")
+        refresh_product_refs(conn, stock["variants"])
+        rules, now = load_rules(conn), datetime.now().astimezone()
+        inbound = open_inbound(conn, today)
+        names = {r.id for r in conn.execute(select(suppliers.c.id)).all()}
+        report = InputsReport(variants=len(stock["variants"]))
+        out: list[VariantInput] = []
+        used_suppliers: set[str] = set()
+        for v in stock["variants"]:
+            vid, pid = int(v["variant_id"]), v.get("product_id")
+            if pid is None:
+                continue
+            entry = fc["variants"].get(str(vid))
+            if entry is None:
+                report.without_forecast.append(vid)
+                continue
+            offers: list[Offer] = []
+            cands = {r.supplier_id for r in conn.execute(select(supplier_costs.c.supplier_id).where(
+                supplier_costs.c.product_id == pid, supplier_costs.c.superseded_by.is_(None), (supplier_costs.c.variant_id.is_(None)) | (supplier_costs.c.variant_id == vid))).all()}
+            for sid in sorted(cands & names):
+                res = resolve_cost(conn, int(pid), sid, rules, vid, now)
+                if res.cost is None:
+                    continue
+                c = res.cost
+                offers.append(Offer(sid, Decimal(str(c.cost_with_recargo)), c.id, c.source, res.status, c.pack_size or 1,
+                                    c.lead_time_days if c.lead_time_days is not None else DEFAULT_LEAD_DAYS, c.min_order_qty or 0))
+                used_suppliers.add(sid)
+            if not offers:
+                report.without_cost.append(vid)
+                continue
+            forecast = to_forecast(entry)
+            horizon_mean = {h: hf.mean for h, hf in forecast.horizons.items() if hf.mean is not None}
+            soon = max(math.ceil(horizon_mean.get(14, 0.0) - horizon_mean.get(7, 0.0)), 0) if forecast.eligible and horizon_mean else 0
+            cutoff = today + timedelta(days=self.expiry_window_days)
+            expiring = sum(int(x["quantity"]) for x in v.get("lots", []) if x.get("expiry_date") and date.fromisoformat(x["expiry_date"]) <= cutoff)
+            out.append(VariantInput(vid, int(pid), int(v.get("on_hand", 0)), forecast, Decimal(str(v["service_level"])), tuple(offers),
+                                    tuple(inbound.get(vid, ())), expiring, bool(v.get("clinical_critical")), soon))
+        terms: dict[str, SupplierTermsIn] = {}
+        for sid in sorted(used_suppliers):
+            t = current_terms(conn, sid, now)
+            terms[sid] = SupplierTermsIn(sid) if t is None else SupplierTermsIn(
+                sid, t.min_order_value, t.min_qty_for_delivery, t.free_delivery_threshold, t.delivery_charge)
+        self.report = report
+        return ProposalInputs(today, tuple(out), terms, self.budget)

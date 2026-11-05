@@ -47,6 +47,15 @@ services:
       MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
       SIWEB_BASE_URL: http://siweb-mock:8089
       SIWEB_TOKEN: synthetic-test-token
+      # the collection job (`docker compose run --rm siweb-connector python -m job all`) reads these
+      MMI_SIWEB_BASE_URL: http://siweb-mock:8089
+      MMI_ALLOW_HTTP: "1"
+      MMI_SIWEB_TOKEN: synthetic-test-token
+      MMI_IGNORE_NIGHT_WINDOW: "1"
+      MMI_SIWEB_REQUESTS_PER_HOUR: "100000"
+      MMI_BLOB_ROOT: /data/blobs
+    volumes:
+      - blobs:/data/blobs
     depends_on:
       postgres: { condition: service_healthy }
       azurite: { condition: service_started }
@@ -127,6 +136,11 @@ services:
       MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
       SIWEB_BASE_URL: http://siweb-mock:8089
       SIWEB_TOKEN: synthetic-test-token
+      MMI_INVENTORY_URL: http://inventory-service:8000
+      MMI_FORECAST_URL: http://forecast-service:8000
+      MMI_BLOB_ROOT: /data/blobs
+    volumes:
+      - blobs:/data/blobs
     depends_on:
       postgres: { condition: service_healthy }
       azurite: { condition: service_started }
@@ -138,13 +152,75 @@ services:
       timeout: 3s
       retries: 20
 
+  inventory-worker:
+    build: { context: .., dockerfile: services/inventory-service/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_DATABASE_URL: postgresql+psycopg://inventory_svc:dev-only-local@postgres:5432/mmi
+      MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      MMI_BLOB_ROOT: /data/blobs
+      MMI_WORKER_LOOP_SECONDS: "10"
+    volumes:
+      - blobs:/data/blobs
+    depends_on:
+      postgres: { condition: service_healthy }
+      azurite: { condition: service_started }
+      dev-issuer: { condition: service_healthy }
+      inventory-service: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/inventory-service && exec python -m worker"]
+
+  forecast-worker:
+    build: { context: .., dockerfile: services/forecast-service/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_DATABASE_URL: postgresql+psycopg://forecasting_svc:dev-only-local@postgres:5432/mmi
+      MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      MMI_BLOB_ROOT: /data/blobs
+      MMI_WORKER_LOOP_SECONDS: "10"
+      MMI_INVENTORY_URL: http://inventory-service:8000
+    volumes:
+      - blobs:/data/blobs
+    depends_on:
+      postgres: { condition: service_healthy }
+      azurite: { condition: service_started }
+      dev-issuer: { condition: service_healthy }
+      forecast-service: { condition: service_healthy }
+      inventory-service: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/forecast-service && exec python -m worker"]
+
+  procurement-worker:
+    build: { context: .., dockerfile: services/procurement-service/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_DATABASE_URL: postgresql+psycopg://procurement_svc:dev-only-local@postgres:5432/mmi
+      MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
+      MMI_BLOB_ROOT: /data/blobs
+      MMI_WORKER_LOOP_SECONDS: "10"
+      MMI_INVENTORY_URL: http://inventory-service:8000
+    volumes:
+      - blobs:/data/blobs
+    depends_on:
+      postgres: { condition: service_healthy }
+      azurite: { condition: service_started }
+      dev-issuer: { condition: service_healthy }
+      procurement-service: { condition: service_healthy }
+      inventory-service: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/procurement-service && exec python -m worker"]
+
   api-bff:
     build: { context: .., dockerfile: services/api-bff/Dockerfile }
     environment:
       MMI_ENV: dev
       MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_INVENTORY_URL: http://inventory-service:8000
+      MMI_PROCUREMENT_URL: http://procurement-service:8000
     depends_on:
       dev-issuer: { condition: service_healthy }
+      inventory-service: { condition: service_healthy }
+      procurement-service: { condition: service_healthy }
     ports: ["8081:8000"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/healthz').status==200 else 1)"]
@@ -154,9 +230,14 @@ services:
 
   web:
     build: { context: .., dockerfile: apps/web/Dockerfile }
+    depends_on:
+      api-bff: { condition: service_healthy }
     ports: ["8080:8080"]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
       interval: 5s
       timeout: 3s
       retries: 20
+
+volumes:
+  blobs: {}

@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 
 import httpx
 from mmi_common.logging import configure_logging
+from mmi_common.servicetoken import service_token
 from sqlalchemy import create_engine
 from writer.allowlist import WriterAllowlist
 from writer.client import SiwebWriterClient, StaticToken
@@ -52,7 +53,7 @@ def build_processor(http: httpx.Client | None = None) -> tuple[WriteProcessor, W
     parts = urlsplit(base)
     allowlist = WriterAllowlist(parts.hostname or "", allow_http=parts.scheme == "http" and bool(os.environ.get("MMI_ALLOW_HTTP")))
     siweb = SiwebWriterClient(http or httpx.Client(timeout=30), base, allowlist, StaticToken(writer_token()))
-    procurement = HttpProcurementApi(os.environ["MMI_PROCUREMENT_URL"], os.environ["MMI_PROCUREMENT_TOKEN"])
+    procurement = HttpProcurementApi(os.environ["MMI_PROCUREMENT_URL"], os.environ.get("MMI_PROCUREMENT_TOKEN") or (lambda: service_token("api://mmi-procurement-service", "svc-cost-writer", ["cost-writer"])))
     engine = create_engine(os.environ["MMI_DATABASE_URL"])
     blobs = FileBlobs(Path(os.environ.get("MMI_BLOB_ROOT", "/tmp/mmi-costwrite")))  # noqa: S108 - local default only
     return WriteProcessor(engine, siweb, procurement, blobs), allowlist

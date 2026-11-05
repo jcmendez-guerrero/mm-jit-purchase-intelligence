@@ -30,7 +30,7 @@ NAMESPACE = uuid.UUID("5c1e3c6e-7a41-4d7e-9a43-1d2e7b9c0a11")
 
 
 class ProposalConflictError(Exception):
-    pass
+    code = "proposal_conflict"
 
 
 @dataclass(frozen=True)

@@ -230,5 +230,25 @@ cost_write_requests = Table(
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
 )
+user_roles = Table(
+    "user_roles", metadata,
+    Column("user_id", String(120), primary_key=True),
+    Column("roles", JSON, nullable=False),
+    Column("active", Boolean, nullable=False, default=True),
+    Column("updated_by", String(120), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+forecast_runs_seen = Table(
+    "forecast_runs_seen", metadata,
+    Column("run_id", String(36), primary_key=True),
+    Column("input_hash", String(64), nullable=False),
+    Column("eligible_count", Integer, nullable=False),
+    Column("received_at", DateTime(timezone=True), nullable=False),
+)
+receipt_cursor = Table(
+    "receipt_cursor", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=False),       # always 1
+    Column("last_movement_id", BigInteger, nullable=False),
+)
 outbox = outbox_table(metadata)
 inbox = inbox_table(metadata)

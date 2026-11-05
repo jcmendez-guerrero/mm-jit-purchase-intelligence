@@ -33,7 +33,7 @@ class Provider:
     def __init__(self, supplier):
         self.supplier = supplier
 
-    def build(self, today):
+    def build(self, conn, today):
         return inputs([variant(1, [offer(self.supplier, "1.00", pack=6)], flat_forecast(1.0))], [terms(self.supplier)], budget="1000")
 
 

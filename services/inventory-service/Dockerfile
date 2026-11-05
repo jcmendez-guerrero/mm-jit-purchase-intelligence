@@ -9,7 +9,8 @@ COPY services/inventory-service/pyproject.toml /app/services/inventory-service/p
 RUN python -c "import tomllib;print(chr(10).join(d for d in tomllib.load(open('services/inventory-service/pyproject.toml','rb'))['project']['dependencies'] if not d.startswith('mmi-')))" > /tmp/req.txt \
  && pip install -r /tmp/req.txt ./packages/contracts
 COPY services/inventory-service/ /app/services/inventory-service/
-RUN useradd --system --uid 10001 --no-create-home app
+RUN useradd --system --uid 10001 --no-create-home app \
+ && mkdir -p /data/blobs && chown 10001 /data/blobs
 USER 10001
 ENV PYTHONPATH=/app/services/inventory-service/src
 EXPOSE 8000

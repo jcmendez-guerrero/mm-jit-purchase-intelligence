@@ -20,7 +20,7 @@ DECISIONS = ("confirm", "ignore")
 
 
 class ReviewError(Exception):
-    pass
+    code = "review_not_allowed"
 
 
 @dataclass(frozen=True)

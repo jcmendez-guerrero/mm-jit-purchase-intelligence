@@ -21,11 +21,11 @@ EDITABLE = ("draft", "submitted")
 
 
 class ConcurrencyError(Exception):
-    pass
+    code = "version_conflict"
 
 
 class ProposalStateError(Exception):
-    pass
+    code = "invalid_proposal_state"
 
 
 class EditError(Exception):

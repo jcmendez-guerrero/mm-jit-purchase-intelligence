@@ -79,13 +79,19 @@ def input_hash(export: dict[str, Any], cfg: RunConfig) -> str:
 
 def run_forecast(engine: Engine, source: SeriesSource, writer: BlobWriter, cfg: RunConfig | None = None,
                  clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> RunResult:
+    with engine.begin() as conn:
+        return run_forecast_conn(conn, source, writer, cfg, clock)
+
+
+def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter, cfg: RunConfig | None = None,
+                      clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> RunResult:
+    """One run inside the caller's transaction (the queue consumer's, so the inbox row and the run commit together)."""
     cfg = cfg or RunConfig()
     export = source.fetch()
     digest = input_hash(export, cfg)
-    with engine.begin() as conn:
-        done = conn.execute(select(forecast_runs).where(forecast_runs.c.input_hash == digest, forecast_runs.c.status == "completed")).first()
-        if done:  # identical inputs, configuration and models: nothing new to compute or announce
-            return RunResult(done.id, digest, True, done.total_count, done.eligible_count, {})
+    done = conn.execute(select(forecast_runs).where(forecast_runs.c.input_hash == digest, forecast_runs.c.status == "completed")).first()
+    if done:  # identical inputs, configuration and models: nothing new to compute or announce
+        return RunResult(done.id, digest, True, done.total_count, done.eligible_count, {})
     run_id, started = str(uuid.uuid4()), clock()
     series = export["series"]
 
@@ -120,17 +126,16 @@ def run_forecast(engine: Engine, source: SeriesSource, writer: BlobWriter, cfg: 
                              "reasons": ",".join(d.reasons), "service_level": Decimal(str(level))})
 
     cid = get_correlation_id() or set_correlation_id()
-    with engine.begin() as conn:
-        conn.execute(insert(forecast_runs).values(
-            id=run_id, started_at=started, through_day=export.get("through_day"), model_versions=model_versions(), input_hash=digest,
-            config=cfg.as_json(), status="running", total_count=len(series), eligible_count=eligible))
-        if rows:
-            conn.execute(insert(forecast_values), rows)
-        _store_backtests(conn, run_id, results, adopted)
-        payload = json.dumps({"run_id": run_id, "input_hash": digest, "eligible_count": eligible}, sort_keys=True, separators=(",", ":")).encode()
-        uri = writer.put(f"events/forecast/{run_id}.json", payload)
-        enqueue(conn, outbox, new_envelope(EVENT_TYPE, run_id, payload, uri, cid))
-        conn.execute(update(forecast_runs).where(forecast_runs.c.id == run_id).values(status="completed", finished_at=clock()))
+    conn.execute(insert(forecast_runs).values(
+        id=run_id, started_at=started, through_day=export.get("through_day"), model_versions=model_versions(), input_hash=digest,
+        config=cfg.as_json(), status="running", total_count=len(series), eligible_count=eligible))
+    if rows:
+        conn.execute(insert(forecast_values), rows)
+    _store_backtests(conn, run_id, results, adopted)
+    payload = json.dumps({"run_id": run_id, "input_hash": digest, "eligible_count": eligible}, sort_keys=True, separators=(",", ":")).encode()
+    uri = writer.put(f"events/forecast/{run_id}.json", payload)
+    enqueue(conn, outbox, new_envelope(EVENT_TYPE, run_id, payload, uri, cid))
+    conn.execute(update(forecast_runs).where(forecast_runs.c.id == run_id).values(status="completed", finished_at=clock()))
     return RunResult(run_id, digest, False, len(series), eligible, adopted)
 
 

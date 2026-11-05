@@ -7,8 +7,10 @@ full rebuild simpler and safer than incremental patches; results are fully deter
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from typing import Any
 
 from db.tables import (
     ALL_WAREHOUSES,
@@ -22,7 +24,7 @@ from db.tables import (
 )
 from mmi_common.time import utc_now
 from quality.metrics import metrics
-from sqlalchemy import delete, func, insert, select
+from sqlalchemy import Table, delete, func, insert, select
 from sqlalchemy.engine import Connection
 
 from demand.common import DEFAULT_CUTOVER, Mov, local_day
@@ -57,6 +59,20 @@ def load_movements(conn: Connection) -> list[Mov]:
     return [Mov(r.external_id, r.variant_id, r.warehouse_id, local_day(r.created_at_utc), r.reason, r.quantity, bool(r.quarantined)) for r in rows]
 
 
+CHUNK = 5000
+
+
+def _insert_chunked(conn: Connection, table: Table, rows: Iterable[dict[str, Any]]) -> None:
+    chunk: list[dict[str, Any]] = []
+    for row in rows:
+        chunk.append(row)
+        if len(chunk) >= CHUNK:
+            conn.execute(insert(table), chunk)
+            chunk = []
+    if chunk:
+        conn.execute(insert(table), chunk)
+
+
 def rebuild(conn: Connection, provider: DemandProvider | None = None, through_day: date | None = None) -> RebuildResult:
     movements = load_movements(conn)
     latest = conn.execute(select(func.max(stock_snapshots.c.snapshot_date)).where(stock_snapshots.c.warehouse_id == ALL_WAREHOUSES)).scalar_one()
@@ -81,15 +97,12 @@ def rebuild(conn: Connection, provider: DemandProvider | None = None, through_da
 
     for t in (demand_observations, flow_series, stock_history):
         conn.execute(delete(t))
-    if demand:
-        conn.execute(insert(demand_observations), [
-            {"variant_id": d.variant_id, "warehouse_id": d.warehouse_id, "day": d.day, "demand_qty": d.demand_qty,
-             "censored": censored.get((d.variant_id, d.day), False), "lineage": d.lineage} for d in demand])
-    if flows:
-        conn.execute(insert(flow_series), [{"variant_id": f.variant_id, "warehouse_id": f.warehouse_id, "day": f.day, "flow": f.flow, "qty": f.qty} for f in flows])
-    if history:
-        conn.execute(insert(stock_history), [{"variant_id": h.variant_id, "warehouse_id": ALL_WAREHOUSES, "day": h.day,
-                                              "on_hand_reconstructed": h.on_hand, "censored": h.censored, "reconciled_ok": h.reconciled_ok} for h in history])
+    # Inserted in bounded chunks: a full rebuild must fit in the small replicas the budget allows (about 1 GiB).
+    _insert_chunked(conn, demand_observations, ({"variant_id": d.variant_id, "warehouse_id": d.warehouse_id, "day": d.day, "demand_qty": d.demand_qty,
+                                                 "censored": censored.get((d.variant_id, d.day), False), "lineage": d.lineage} for d in demand))
+    _insert_chunked(conn, flow_series, ({"variant_id": f.variant_id, "warehouse_id": f.warehouse_id, "day": f.day, "flow": f.flow, "qty": f.qty} for f in flows))
+    _insert_chunked(conn, stock_history, ({"variant_id": h.variant_id, "warehouse_id": ALL_WAREHOUSES, "day": h.day, "on_hand_reconstructed": h.on_hand,
+                                           "censored": h.censored, "reconciled_ok": h.reconciled_ok} for h in history))
     if through_day:
         conn.execute(delete(data_quality_metrics).where(data_quality_metrics.c.day == through_day))
         conn.execute(insert(data_quality_metrics), [{"day": d, "metric": k, "value": v} for (d, k), v in metrics(movements, cutover, through_day).items()])

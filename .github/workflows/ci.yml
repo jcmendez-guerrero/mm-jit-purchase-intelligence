@@ -161,3 +161,39 @@ jobs:
           uv venv --python 3.12 && . .venv/bin/activate
           uv pip install pytest pyyaml
           RUN_COMPOSE_SMOKE=1 pytest -q infra/tests
+
+  # T152 / T153: real PostgreSQL migrations (including the immutability triggers) and the Azure adapters against Azurite.
+  emulators:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true' || needs.changes.outputs.contracts == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Install
+        run: |
+          uv venv --python 3.12
+          uv pip install -e packages/contracts -e packages/testing pytest pyyaml "psycopg[binary]" alembic sqlalchemy azure-storage-queue azure-storage-blob \
+            fastapi httpx pydantic hypothesis openpyxl
+      - name: Migrations on PostgreSQL
+        run: . .venv/bin/activate && RUN_PG_MIGRATIONS=1 pytest -q infra/tests/test_migrations_postgres.py
+      - name: Azure adapters on Azurite
+        run: |
+          . .venv/bin/activate
+          RUN_AZURITE=1 pytest -q packages/contracts/tests/test_azurite_bus.py
+          (cd services/siweb-connector && uv pip install -r <(python3 -c "import tomllib;print('\n'.join(d for d in tomllib.load(open('pyproject.toml','rb'))['project']['dependencies'] if not d.startswith('mmi-')))") && RUN_AZURITE=1 pytest -q tests/integration/test_azurite_blob.py)
+          (cd services/inventory-service && RUN_AZURITE=1 pytest -q tests/test_azurite_reader.py)
+      - name: Routing, error-code and storage-policy contract tests
+        run: . .venv/bin/activate && pytest -q infra/tests/test_event_routing.py infra/tests/test_error_codes.py infra/tests/test_storage_policy.py
+
+  # T146 / T152: the whole pipeline in containers (minutes, about 1.5 GiB): on pushes to main only.
+  pipeline-e2e:
+    needs: changes
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv --python 3.12 && uv pip install pytest
+      - run: . .venv/bin/activate && RUN_E2E=1 pytest -q infra/tests/test_pipeline_e2e.py

@@ -44,7 +44,23 @@ def publish(bus, tmp_path):
         env = new_envelope("siweb.sync.completed.v1", run_id, data, path.as_uri(), str(uuid.uuid4()))
         if tamper:
             path.write_bytes(data + b" ")
-        bus.send("inventory-sync-completed", env)
+        bus.send("inventory-in", env)
+        return env
+
+    return _publish
+
+
+@pytest.fixture
+def publish_event(bus, tmp_path):
+    """Announce an event of any type to inventory-in (payload is a JSON document)."""
+
+    def _publish(type_, doc):
+        rid = str(uuid.uuid4())
+        data = json.dumps(doc).encode()
+        path = tmp_path / f"{rid}.json"
+        path.write_bytes(data)
+        env = new_envelope(type_, rid, data, path.as_uri(), str(uuid.uuid4()))
+        bus.send("inventory-in", env)
         return env
 
     return _publish

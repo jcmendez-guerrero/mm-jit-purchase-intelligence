@@ -9,7 +9,7 @@ from sqlalchemy.engine import Connection
 from sync.raw_store import RawPayload
 
 EVENT_TYPE = "siweb.sync.completed.v1"
-SUBSCRIPTIONS = {EVENT_TYPE: ["inventory-sync-completed"]}
+SUBSCRIPTIONS = {EVENT_TYPE: ["inventory-in", "procurement-in"]}   # procurement reads only the supplier-cost kind
 
 
 def publish_sync_completed(conn: Connection, run_id: str, raw: RawPayload, correlation_id: str) -> dict:

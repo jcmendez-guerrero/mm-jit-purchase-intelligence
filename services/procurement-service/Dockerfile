@@ -9,7 +9,8 @@ COPY services/procurement-service/pyproject.toml /app/services/procurement-servi
 RUN python -c "import tomllib;print(chr(10).join(d for d in tomllib.load(open('services/procurement-service/pyproject.toml','rb'))['project']['dependencies'] if not d.startswith('mmi-')))" > /tmp/req.txt \
  && pip install -r /tmp/req.txt ./packages/contracts
 COPY services/procurement-service/ /app/services/procurement-service/
-RUN useradd --system --uid 10001 --no-create-home app
+RUN useradd --system --uid 10001 --no-create-home app \
+ && mkdir -p /data/blobs && chown 10001 /data/blobs
 USER 10001
 ENV PYTHONPATH=/app/services/procurement-service/src
 EXPOSE 8000

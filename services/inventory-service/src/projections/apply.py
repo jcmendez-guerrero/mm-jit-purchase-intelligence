@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -10,6 +10,7 @@ from db.tables import (
     ALL_WAREHOUSES,
     UNASSIGNED_WAREHOUSE,
     products,
+    stock_lots,
     stock_movements,
     stock_snapshots,
     variants,
@@ -17,15 +18,18 @@ from db.tables import (
 )
 from mmi_common.money import Money
 from mmi_common.time import parse_siweb_timestamp
-from sqlalchemy import insert, select, update
+from sqlalchemy import delete, insert, select, update
 from sqlalchemy.engine import Connection
 
 TOMBSTONE_AFTER_DEFAULT = 3
+NOT_FOR_INVENTORY = frozenset({"supplier_costs"})   # consumed by procurement-service
 CHUNK = 500
 
 
 def apply_payload(conn: Connection, doc: dict[str, Any], snapshot_date: date, tombstone_after: int = TOMBSTONE_AFTER_DEFAULT) -> int:
     kind = doc["kind"]
+    if kind in NOT_FOR_INVENTORY:      # announced to every subscriber of the sync event; other services own these kinds
+        return 0
     records = doc.get("records", [])
     if kind == "warehouses":
         return _warehouses(conn, records)
@@ -33,6 +37,8 @@ def apply_payload(conn: Connection, doc: dict[str, Any], snapshot_date: date, to
         return _products(conn, records, bool(doc.get("reconciled")), tombstone_after)
     if kind == "variants":
         return _variants(conn, records, snapshot_date)
+    if kind == "lots":
+        return _lots(conn, records, snapshot_date)
     if kind == "movements":
         return _movements(conn, records, {int(k): ",".join(v) for k, v in doc.get("quarantined", {}).items()})
     raise ValueError(f"unknown sync kind: {kind}")
@@ -152,3 +158,48 @@ def _movements(conn: Connection, records: list[dict[str, Any]], quarantined: dic
             conn.execute(insert(stock_movements), new_rows)
             stored += len(new_rows)
     return stored
+
+
+def _lot_row(r: dict[str, Any], variant_id: int, seen_at: datetime) -> dict[str, Any] | None:
+    """Tolerant of the field names the ERP uses for a lot; a lot with a malformed expiry keeps no expiry and is flagged upstream."""
+    qty = r.get("quantity", r.get("on_hand", r.get("available")))
+    if qty is None:
+        return None
+    return {"variant_id": variant_id, "warehouse_id": int(r["warehouse_id"]) if r.get("warehouse_id") is not None else UNASSIGNED_WAREHOUSE,
+            "batch_number": r.get("batch_number", r.get("batch", r.get("lot_number"))), "expiry_date": _safe_expiry(r.get("expiry_date")),
+            "quantity": int(qty), "seen_at": seen_at}
+
+
+def _lots(conn: Connection, records: list[dict[str, Any]], snapshot_date: date) -> int:
+    """Replace the stored lots of every variant present in the batch (a batch is a complete picture of those variants)."""
+    seen_at = datetime(snapshot_date.year, snapshot_date.month, snapshot_date.day, tzinfo=UTC)
+    by_variant: dict[int, list[dict[str, Any]]] = {}
+    for r in records:
+        vid = r.get("variant_id")
+        if vid is None:
+            continue
+        row = _lot_row(r, int(vid), seen_at)
+        by_variant.setdefault(int(vid), [])
+        if row is not None and row["quantity"] > 0:
+            by_variant[int(vid)].append(row)
+    ids = list(by_variant)
+    for start in range(0, len(ids), CHUNK):
+        conn.execute(delete(stock_lots).where(stock_lots.c.variant_id.in_(ids[start:start + CHUNK])))
+    rows = [x for v in by_variant.values() for x in v]
+    if rows:
+        conn.execute(insert(stock_lots), rows)
+    _warehouse_snapshots(conn, by_variant, snapshot_date)
+    return len(rows)
+
+
+def _warehouse_snapshots(conn: Connection, by_variant: dict[int, list[dict[str, Any]]], snapshot_date: date) -> None:
+    """Per-warehouse stock for the day, from the lots (the variants list only gives company-wide totals). Replaces that day's rows."""
+    for vid, lots in by_variant.items():
+        conn.execute(delete(stock_snapshots).where(stock_snapshots.c.variant_id == vid, stock_snapshots.c.snapshot_date == snapshot_date,
+                                                   stock_snapshots.c.warehouse_id != ALL_WAREHOUSES))
+        per_wh: dict[int, int] = {}
+        for lot in lots:
+            per_wh[lot["warehouse_id"]] = per_wh.get(lot["warehouse_id"], 0) + lot["quantity"]
+        if per_wh:
+            conn.execute(insert(stock_snapshots), [{"variant_id": vid, "warehouse_id": wh, "snapshot_date": snapshot_date, "on_hand": q, "available": q, "reserved": 0}
+                                                   for wh, q in per_wh.items()])

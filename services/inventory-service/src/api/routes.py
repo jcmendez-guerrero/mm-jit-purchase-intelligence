@@ -18,14 +18,18 @@ from db.tables import (
     product_segments,
     products,
     stock_history,
+    stock_lots,
+    stock_movements,
     stock_snapshots,
     variants,
 )
 from demand.rebuild import rebuild
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
+from mmi_common.errors import error_code
 from pydantic import BaseModel, Field
 from quality.review import ReviewError, decide, list_open
-from sqlalchemy import create_engine, select
+from risk.daily import evaluate_risks
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.engine import Connection, Engine
 
 _engine: Engine | None = None
@@ -61,11 +65,15 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
         with engine.begin() as conn:
             yield conn
 
+    @router.get("/risk")
+    def list_risks(warehouse_id: int | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
+        return evaluate_risks(conn, warehouse_id=warehouse_id)
+
     @router.get("/variants/{variant_id}")
     def variant_detail(variant_id: int, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         v = conn.execute(select(variants).where(variants.c.external_id == variant_id)).first()
         if v is None:
-            raise HTTPException(404, "variant not found")
+            raise HTTPException(404, "unknown_variant")
         prod = conn.execute(select(products).where(products.c.external_id == v.product_id)).first()
         snap = conn.execute(select(stock_snapshots).where(stock_snapshots.c.variant_id == variant_id, stock_snapshots.c.warehouse_id == ALL_WAREHOUSES)
                             .order_by(stock_snapshots.c.snapshot_date.desc()).limit(1)).first()
@@ -102,7 +110,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
         try:
             n = decide(conn, body.ids, body.decision, principal.subject)
         except ReviewError as exc:
-            raise HTTPException(409, str(exc)) from exc
+            raise HTTPException(409, error_code(exc)) from exc
         rebuild(conn)  # released movements enter the series immediately; ignored ones stay out
         return {"decided": n}
 
@@ -111,7 +119,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
         try:
             changed = set_critical(conn, product_id, body.critical, principal.subject)
         except CriticalityError as exc:
-            raise HTTPException(404, str(exc)) from exc
+            raise HTTPException(404, error_code(exc)) from exc
         return {"product_id": product_id, "clinical_critical": body.critical, "changed": changed}
 
     @router.get("/service-levels")
@@ -123,7 +131,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
         try:
             set_target(conn, body.scope, body.key, body.target, principal.subject)
         except ServiceLevelError as exc:
-            raise HTTPException(422, str(exc)) from exc
+            raise HTTPException(422, error_code(exc)) from exc
         return {"ok": True}  # applies to proposals created from now on
 
     @router.get("/export/series")
@@ -146,5 +154,39 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
                 "service_level": str(effective_target(conn, pid or 0, seg.abc if seg else "C", seg.pattern if seg else "intermittent", pid in crit, now)),
                 "clinical_critical": pid in crit})
         return {"through_day": series[0].days[-1].isoformat() if series else None, "count": len(out), "series": out}
+
+    @router.get("/export/stock")
+    def export_stock(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """Per-variant stock, lots, classification and service-level target: the proposal inputs procurement-service cannot read directly."""
+        now = datetime.now(UTC)
+        latest = conn.execute(select(func.max(stock_snapshots.c.snapshot_date)).where(stock_snapshots.c.warehouse_id == ALL_WAREHOUSES)).scalar()
+        snaps = {r.variant_id: r for r in conn.execute(select(stock_snapshots).where(stock_snapshots.c.warehouse_id == ALL_WAREHOUSES,
+                                                                                    stock_snapshots.c.snapshot_date == latest)).all()} if latest else {}
+        segs = {r.variant_id: r for r in conn.execute(select(product_segments)).all()}
+        crit = {r.external_id for r in conn.execute(select(products.c.external_id).where(products.c.clinical_critical)).all()}
+        lots: dict[int, list[dict[str, Any]]] = {}
+        for r in conn.execute(select(stock_lots).order_by(stock_lots.c.variant_id, stock_lots.c.expiry_date)).all():
+            lots.setdefault(r.variant_id, []).append({"warehouse_id": r.warehouse_id, "batch_number": r.batch_number, "quantity": r.quantity,
+                                                      "expiry_date": r.expiry_date.isoformat() if r.expiry_date else None})
+        out = []
+        for v in conn.execute(select(variants).order_by(variants.c.external_id)).all():
+            seg, snap = segs.get(v.external_id), snaps.get(v.external_id)
+            pid = v.product_id or 0
+            out.append({
+                "variant_id": v.external_id, "product_id": v.product_id, "sku": v.sku, "name": v.name, "pack_size": v.pack_size,
+                "on_hand": snap.on_hand if snap else 0, "available": snap.available if snap else 0, "lots": lots.get(v.external_id, []),
+                "segment": None if seg is None else {"abc": seg.abc, "pattern": seg.pattern, "forecast_eligible": seg.forecast_eligible},
+                "clinical_critical": v.product_id in crit,
+                "service_level": str(effective_target(conn, pid, seg.abc if seg else "C", seg.pattern if seg else "intermittent", v.product_id in crit, now))})
+        return {"snapshot_date": latest.isoformat() if latest else None, "count": len(out), "variants": out}
+
+    @router.get("/receipts")
+    def receipts(after_id: int = 0, limit: int = 1000, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """Supplier receipts (purchase_receipt movements) after a movement id, oldest first, for order reconciliation."""
+        rows = conn.execute(select(stock_movements).where(stock_movements.c.reason == "purchase_receipt", stock_movements.c.quantity > 0,
+                                                          stock_movements.c.external_id > after_id, stock_movements.c.quarantined.is_(False))
+                            .order_by(stock_movements.c.external_id).limit(min(limit, 5000))).all()
+        return {"receipts": [{"movement_id": r.external_id, "variant_id": r.variant_id, "qty": r.quantity,
+                              "reference": r.reference_number if r.reference_number is not None else r.reference_id} for r in rows]}
 
     return router

@@ -21,15 +21,21 @@ import httpx
 from allowlist.allowlist import Allowlist
 from client.reader import AuthExpiredError, ReaderClient
 from client.token import provider_from_env
+from db.tables import outbox
+from mmi_common.busfactory import bus_from_env
 from mmi_common.logging import configure_logging
+from mmi_common.outbox import relay_once
+from outbox.publisher import SUBSCRIPTIONS
 from ratelimit.bucket import NightWindow, TokenBucket
 from sqlalchemy import create_engine
 from storage.blob import AzureBlobStore, BlobStore, LocalBlobStore
+from storage.purge import purge_expired
+from sync.per_item import PerItemSync
 from sync.runner import MovementSync
 from sync.snapshot import SnapshotSync
 
 log = logging.getLogger("siweb-connector.job")
-KINDS = ("warehouses", "products", "variants", "movements")
+KINDS = ("warehouses", "products", "variants", "movements", "lots", "supplier_costs", "purge")
 
 
 def build_store() -> BlobStore:
@@ -38,7 +44,18 @@ def build_store() -> BlobStore:
     return AzureBlobStore(os.environ["MMI_BLOB_ACCOUNT_URL"], os.environ.get("MMI_BLOB_CONTAINER", "raw"))
 
 
-def run(kinds: list[str], enforce_window: bool = True) -> int:
+def relay_events(engine, bus=None) -> int:  # type: ignore[no-untyped-def]
+    """T146: send committed sync events to their subscribers (inventory-in, procurement-in) through the transactional outbox."""
+    if bus is None:
+        if not (os.environ.get("MMI_QUEUE_CONNECTION_STRING") or os.environ.get("MMI_QUEUE_CONNECTION") or os.environ.get("MMI_QUEUE_URL")):
+            log.warning("RELAY_SKIPPED no queue configured; events stay in the outbox")
+            return 0
+        bus = bus_from_env()
+    with engine.begin() as conn:
+        return relay_once(conn, outbox, bus, SUBSCRIPTIONS)
+
+
+def run(kinds: list[str], enforce_window: bool = True, bus=None) -> int:  # type: ignore[no-untyped-def]
     base = os.environ["MMI_SIWEB_BASE_URL"].rstrip("/")
     host = urlsplit(base)
     if enforce_window and not NightWindow().is_open(datetime.now(UTC)) and not os.environ.get("MMI_IGNORE_NIGHT_WINDOW"):
@@ -52,7 +69,16 @@ def run(kinds: list[str], enforce_window: bool = True) -> int:
     code = 0
     for kind in kinds:
         try:
-            result = MovementSync(reader, engine, store).run() if kind == "movements" else SnapshotSync(reader, engine, store, kind).run()
+            if kind == "purge":      # retention: delete raw payloads past expires_at (no ERP request is made)
+                n = purge_expired(engine, store, datetime.now(UTC))
+                log.info("PURGE_OK removed=%s", n)
+                continue
+            if kind == "movements":
+                result = MovementSync(reader, engine, store).run()
+            elif kind in ("lots", "supplier_costs"):
+                result = PerItemSync(reader, engine, store, kind).run()
+            else:
+                result = SnapshotSync(reader, engine, store, kind).run()
             log.info("sync %s: %s fetched=%s stored=%s errors=%s reconciled=%s requests=%s", kind, result.status,
                      result.fetched, result.stored, result.errors, result.reconciled, result.requests_used)
             if result.status == "committed":
@@ -61,7 +87,13 @@ def run(kinds: list[str], enforce_window: bool = True) -> int:
                 log.warning("QUOTA_DENIED kind=%s requests=%s", kind, result.requests_used)
         except AuthExpiredError:
             log.error("SYNC_FAILED kind=%s reason=token_rejected", kind)
+            relay_events(engine, bus)
             return 1
+        except Exception as exc:
+            log.error("SYNC_FAILED kind=%s reason=%s", kind, exc)
+            relay_events(engine, bus)
+            return 1
+    relay_events(engine, bus)
     if allowlist.refusals:
         log.error("ALLOWLIST_REFUSED count=%s", len(allowlist.refusals))
         code = 1

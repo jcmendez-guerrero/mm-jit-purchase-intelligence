@@ -14,7 +14,7 @@ from sqlalchemy.engine import Connection, Row
 
 
 class TermsError(Exception):
-    pass
+    code = "invalid_terms"
 
 
 @dataclass(frozen=True)

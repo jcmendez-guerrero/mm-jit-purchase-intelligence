@@ -11,22 +11,25 @@ from approvals.workflow import ApprovalError, UserDirectory, decide, is_approval
 from costs.writes import WriteError, approve_write, cancel_write, list_visible, writer_view
 from db.tables import approvals, proposal_lines, proposals, supplier_order_groups
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Response
+from mmi_common.errors import error_code
 from mmi_common.time import get_correlation_id, set_correlation_id
 from orders.confirm import ConfirmLine, OrderError, confirm_order
 from proposals.edit import ConcurrencyError, EditError, ProposalStateError, edit_line
 from proposals.export import ExportError, export_proposal
 from proposals.generate import ProposalConflictError, generate, store
+from proposals.inputs import InputsUnavailableError
 from proposals.model import ProposalInputs
 from proposals.publisher import BlobWriter, proposal_generated
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.engine import Connection, Engine
+from users.directory import DirectoryError, set_roles
 
 from api.costs import get_engine
 
 
 class InputsProvider(Protocol):
-    def build(self, today: date) -> ProposalInputs: ...
+    def build(self, conn: Connection, today: date) -> ProposalInputs: ...
 
 
 class LineEdit(BaseModel):
@@ -45,6 +48,11 @@ class OrderConfirmation(BaseModel):
     erp_purchase_ref: int | None = None
 
 
+class RolesBody(BaseModel):
+    roles: list[str]
+    active: bool = True
+
+
 class WriteApproval(BaseModel):
     acknowledge_variant_conflict: bool = False
 
@@ -57,7 +65,7 @@ def _iso_week(d: date) -> str:
 def _need(app: FastAPI, name: str) -> Any:
     obj = getattr(app.state, name, None)
     if obj is None:
-        raise HTTPException(503, f"{name} not configured")
+        raise HTTPException(503, "not_configured")
     return obj
 
 
@@ -67,7 +75,7 @@ def _version(if_match: str | None, current: int) -> int:
     try:
         return int(if_match.strip('"'))
     except ValueError as exc:
-        raise HTTPException(400, "If-Match must be the proposal version") from exc
+        raise HTTPException(400, "invalid_if_match") from exc
 
 
 def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
@@ -100,7 +108,7 @@ def build_router(app: FastAPI) -> APIRouter:
     def get_proposal(conn: Connection, proposal_id: str) -> Any:
         p = conn.execute(select(proposals).where(proposals.c.id == proposal_id)).first()
         if p is None:
-            raise HTTPException(404, "unknown proposal")
+            raise HTTPException(404, "unknown_proposal")
         return p
 
     @router.get("/proposals")
@@ -113,11 +121,14 @@ def build_router(app: FastAPI) -> APIRouter:
         provider: InputsProvider = _need(app, "inputs_provider")
         writer: BlobWriter = _need(app, "blob_writer")
         today = datetime.now(UTC).date()
-        inputs = provider.build(today)
+        try:
+            inputs = provider.build(conn, today)
+        except InputsUnavailableError as exc:
+            raise HTTPException(503, exc.code) from exc
         try:
             pid = store(conn, generate(inputs), principal.subject, _iso_week(today), inputs.budget)
         except ProposalConflictError as exc:
-            raise HTTPException(409, str(exc)) from exc
+            raise HTTPException(409, error_code(exc)) from exc
         p = get_proposal(conn, pid)
         proposal_generated(conn, writer, pid, p.week, p.version, get_correlation_id() or set_correlation_id())
         return {"id": pid, "status": p.status, "version": p.version}
@@ -132,13 +143,13 @@ def build_router(app: FastAPI) -> APIRouter:
         p = get_proposal(conn, proposal_id)
         line = conn.execute(select(proposal_lines).where(proposal_lines.c.id == line_id, proposal_lines.c.proposal_id == proposal_id)).first()
         if line is None:
-            raise HTTPException(404, "unknown line")
+            raise HTTPException(404, "unknown_line")
         try:
             res = edit_line(conn, proposal_id, line.variant_id, _version(if_match, p.version), principal.subject, qty=body.qty, supplier_id=body.supplier_id)
         except ConcurrencyError as exc:
-            raise HTTPException(409, str(exc)) from exc
+            raise HTTPException(409, error_code(exc)) from exc
         except ProposalStateError as exc:
-            raise HTTPException(409, str(exc)) from exc
+            raise HTTPException(409, error_code(exc)) from exc
         except EditError as exc:
             raise HTTPException(422, exc.code) from exc
         out = proposal_json(conn, get_proposal(conn, proposal_id))
@@ -148,12 +159,13 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.post("/proposals/{proposal_id}/submit")
     def submit_proposal(proposal_id: str, if_match: str | None = Header(default=None), conn: Connection = Depends(conn_dep),
                         principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
-        users: UserDirectory = _need(app, "user_directory")
+        directory = _need(app, "user_directory")
+        users: UserDirectory = directory.bind(conn) if hasattr(directory, "bind") else directory
         p = get_proposal(conn, proposal_id)
         try:
             submit(conn, proposal_id, principal.subject, _version(if_match, p.version), users)
         except (ConcurrencyError, ProposalStateError) as exc:
-            raise HTTPException(409, str(exc)) from exc
+            raise HTTPException(409, error_code(exc)) from exc
         except ApprovalError as exc:
             raise HTTPException(409, exc.code) from exc
         return {"status": "submitted"}
@@ -165,7 +177,7 @@ def build_router(app: FastAPI) -> APIRouter:
         try:
             decide(conn, proposal_id, principal, _version(if_match, p.version))
         except (ConcurrencyError, ProposalStateError) as exc:
-            raise HTTPException(409, str(exc)) from exc
+            raise HTTPException(409, error_code(exc)) from exc
         except ApprovalError as exc:
             raise HTTPException(403, exc.code) from exc
         return {"status": "approved"}
@@ -188,7 +200,7 @@ def build_router(app: FastAPI) -> APIRouter:
             res = confirm_order(conn, proposal_id, supplier_id, [ConfirmLine(x.variant_id, x.qty, x.cost_with_recargo) for x in body.lines],
                                 principal.subject, writer, erp_purchase_ref=body.erp_purchase_ref)
         except (OrderError, ProposalStateError) as exc:
-            raise HTTPException(409, getattr(exc, "code", str(exc))) from exc
+            raise HTTPException(409, error_code(exc)) from exc
         return {"order_id": res.order_id, "warnings": res.warnings,
                 "cost_writes": [{"id": w.request.id, "status": w.status, "warnings": w.warnings} for w in res.cost_writes if w.request is not None]}
 
@@ -222,7 +234,15 @@ def build_router(app: FastAPI) -> APIRouter:
     def internal_write(request_id: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require("cost-writer"))) -> dict[str, Any]:
         view = writer_view(conn, request_id)
         if view is None:
-            raise HTTPException(404, "no released request with this id")
+            raise HTTPException(404, "write_request_not_released")
         return view
+
+    @router.put("/internal/users/{user_id}/roles")
+    def mirror_roles(user_id: str, body: RolesBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("bff"))) -> dict[str, Any]:
+        try:
+            set_roles(conn, user_id, body.roles, principal.subject, body.active)
+        except DirectoryError as exc:
+            raise HTTPException(422, "unknown_role") from exc
+        return {"user_id": user_id, "roles": sorted(set(body.roles)), "active": body.active}
 
     return router

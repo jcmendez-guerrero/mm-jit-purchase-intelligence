@@ -9,7 +9,8 @@ COPY services/siweb-cost-writer/pyproject.toml /app/services/siweb-cost-writer/p
 RUN python -c "import tomllib;print(chr(10).join(d for d in tomllib.load(open('services/siweb-cost-writer/pyproject.toml','rb'))['project']['dependencies'] if not d.startswith('mmi-')))" > /tmp/req.txt \
  && pip install -r /tmp/req.txt ./packages/contracts
 COPY services/siweb-cost-writer/ /app/services/siweb-cost-writer/
-RUN useradd --system --uid 10001 --no-create-home app
+RUN useradd --system --uid 10001 --no-create-home app \
+ && mkdir -p /data/blobs && chown 10001 /data/blobs
 USER 10001
 ENV PYTHONPATH=/app/services/siweb-cost-writer/src
 EXPOSE 8000

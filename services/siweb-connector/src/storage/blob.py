@@ -5,6 +5,14 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 from typing import Protocol
+from urllib.parse import urlsplit
+
+
+def blob_name(uri: str, container: str) -> str:
+    """Blob name inside the container from a blob URL (the name may itself start with the container's name)."""
+    path = urlsplit(uri).path
+    marker = f"/{container}/"
+    return path[path.index(marker) + len(marker):]
 
 
 class BlobStore(Protocol):
@@ -51,21 +59,34 @@ class AzureBlobStore:
 
         self._c = ContainerClient(account_url, container, credential=DefaultAzureCredential())
 
+    @classmethod
+    def from_connection_string(cls, conn: str, container: str) -> AzureBlobStore:
+        """Azurite (local development and tests); production uses the managed identity constructor."""
+        from azure.storage.blob import ContainerClient  # type: ignore[import-not-found]
+
+        self = cls.__new__(cls)
+        self._c = ContainerClient.from_connection_string(conn, container)
+        try:
+            self._c.create_container()
+        except Exception:  # noqa: S110 - already exists
+            pass
+        return self
+
     def put(self, name: str, data: bytes, expires_at: datetime) -> str:
         blob = self._c.get_blob_client(name)
         blob.upload_blob(data, overwrite=True, metadata={"expires_at": expires_at.isoformat()})
         return str(blob.url)
 
     def get(self, uri: str) -> bytes:
-        return bytes(self._c.get_blob_client(uri.rsplit(f"/{self._c.container_name}/", 1)[-1]).download_blob().readall())
+        return bytes(self._c.get_blob_client(blob_name(uri, self._c.container_name)).download_blob().readall())
 
     def delete(self, uri: str) -> None:
         from azure.core.exceptions import ResourceNotFoundError  # type: ignore[import-not-found]
 
         try:
-            self._c.get_blob_client(uri.rsplit(f"/{self._c.container_name}/", 1)[-1]).delete_blob()
+            self._c.get_blob_client(blob_name(uri, self._c.container_name)).delete_blob()
         except ResourceNotFoundError:
             pass
 
     def exists(self, uri: str) -> bool:
-        return bool(self._c.get_blob_client(uri.rsplit(f"/{self._c.container_name}/", 1)[-1]).exists())
+        return bool(self._c.get_blob_client(blob_name(uri, self._c.container_name)).exists())
