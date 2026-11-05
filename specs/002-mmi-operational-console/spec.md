@@ -38,6 +38,7 @@ Out of scope: any ERP write other than the existing buyer-released, fresh-MFA su
 
 - Q: Where do supplier commercial terms that the ERP cannot hold (lead time, delivery schedule, pack multiples, discounts) live? → A: Locally in MMI as effective-dated versions; the ERP is never written for them (verified: lead time and minimum order are not writable through the ERP supplier PUT).
 - Q: Which value wins when ERP, approved local override and imported estimate disagree? → A: Per field, a verified ERP fact is used for ERP-owned fields (stock, movements, ERP cost); an approved local override wins for MMI-owned fields; an uploaded estimate is used only where no actual or approved value exists and is always labelled. Conflicts are shown to the buyer.
+- Q: At what unit cost is stock valued on the dashboard ("inventory value")? → A: At acquisition cost, not at the ERP movement price. The ERP movement price is the retail price (PVP), and the ERP holds only one unit cost per supplier although lots of one product can have different acquisition costs. MMI therefore keeps its own per-lot acquisition-cost record. The median of the lot acquisition costs is the value suggested to the buyer for the supplier-cost update (still reviewed by the buyer, released with fresh MFA, and audited, as in 001).
 - Q: Which role may activate a predictive dataset and change policies? → A: Buyer or admin may upload, map and validate; activation and rollback need buyer-or-admin confirmation with an audit record; approving purchase proposals remains the approver role.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -193,6 +194,7 @@ The admin sees sync status and source freshness, import jobs, supplier-policy hi
 - The orchestration layer restarts mid-approval or mid-import: state resumes from stored records.
 - Daylight-saving transitions in imported timestamps: ambiguous or non-existent local times go to review, as for ERP movements.
 - Budget cap is below the sum of mandatory (clinical-critical) needs: the shortfall is shown, not silently dropped.
+- A lot in stock has no recorded acquisition cost, or lots of one product have very different costs: the value uses the labelled fallback, is counted in the estimated-cost indicator, and the median suggestion shows every lot it used.
 - Free-text notes appear in an imported file: ignored; only a has-note indicator is kept.
 
 ## Requirements *(mandatory)*
@@ -208,11 +210,17 @@ The admin sees sync status and source freshness, import jobs, supplier-policy hi
 
 **Analytics**
 
-- **FR-005**: The dashboard MUST show at least four business KPIs (inventory value, coverage days, products at stockout risk or expiring value, proposed purchase spend) and at least five distinct visualisations (demand versus forecast with uncertainty, ABC/XYZ distribution, stockout and expiry risk, forecast accuracy, spend), all from live data.
+- **FR-005**: The dashboard MUST show at least four business KPIs (inventory value at acquisition cost, coverage days, products at stockout risk or expiring value, proposed purchase spend) and at least five distinct visualisations (demand versus forecast with uncertainty, ABC/XYZ distribution, stockout and expiry risk, forecast accuracy, spend), all from live data.
 - **FR-006**: Filters for date range, category, supplier and warehouse MUST be populated from live data and apply consistently to every KPI and chart; server-side filtering and pagination MUST be used for lists.
 - **FR-007**: Every KPI and chart MUST support drill-down to product and supplier detail and show data freshness; empty, loading, error and stale states MUST be explicit.
 - **FR-008**: Views MUST distinguish actual ERP data from imported estimates and manual forecasts everywhere they appear.
 - **FR-009**: Charts MUST have accessible text or table alternatives and be keyboard operable.
+
+**Acquisition cost of stock**
+
+- **FR-040**: The system MUST keep, in MMI's own data, an acquisition cost per product lot (variant, lot/batch, quantity received, unit acquisition cost, source, date), because ERP stock movements carry the retail price (PVP) and the ERP holds a single unit cost per supplier. ERP movement prices MUST NOT be used as cost.
+- **FR-041**: Inventory value on the dashboard MUST be quantity on hand per lot multiplied by that lot's acquisition cost; the basis MUST be labelled. A lot with no recorded acquisition cost MUST be valued at the best available labelled fallback (current verified supplier cost) and counted in a "valued with estimated cost" indicator, never silently at zero or at PVP.
+- **FR-042**: When the buyer reviews a supplier-cost update, the system MUST propose the median of the acquisition costs of the lots in stock for that product-supplier pair as the suggested value, show the lots and values it was computed from, and let the buyer accept or change it. The suggestion alone MUST NOT cause an ERP write; the existing buyer review, fresh MFA, separate writer and audit remain mandatory.
 
 **Supplier configuration**
 
@@ -268,6 +276,7 @@ The admin sees sync status and source freshness, import jobs, supplier-policy hi
 - **Seed row / quarantine entry**: one imported record and, when invalid, its Spanish rejection reason.
 - **Column mapping**: saved association between file columns and canonical fields.
 - **Scenario**: a parameter set computed against the baseline, with results, constraint explanations, sensitivity, and recorded input versions; may be promoted to a proposal.
+- **Lot acquisition cost**: MMI-owned record of what a lot of a product actually cost to acquire (variant, lot, quantity, unit cost, source such as confirmed order, receipt, import or manual entry, date); basis for inventory value and for the suggested supplier-cost update.
 - **Dashboard aggregate**: read model of KPIs, trends, distributions, accuracy and risks, with filters and freshness.
 - **Role assignment**: durable user-to-role mapping with change history and mirror status.
 - **Audit entry**: tamper-evident record of who, when, what, before and after.

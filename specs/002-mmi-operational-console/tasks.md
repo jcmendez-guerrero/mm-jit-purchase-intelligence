@@ -15,6 +15,7 @@
 - **[P]**: parallelisable (different files, no dependency on incomplete tasks)
 - **[USn]**: user story from spec.md
 - Existing code is extended, not rewritten (see plan.md "existing components").
+- Task IDs are stable identifiers, not file order: T133–T141 were added after clarification and sit in the phase where they belong.
 
 ---
 
@@ -46,10 +47,12 @@
 - [ ] T015 [P] Add localisation check that fails on hard-coded user-facing strings or error keys without an es-ES message in apps/web/tests/unit/i18n-coverage.test.ts and infra/tests/test_error_keys_localised.py
 - [ ] T016 Write migration for schema bff (user_roles, role_audit, role_mirror_outbox) in services/api-bff/migrations/ with alembic.ini and a bff database role in infra/compose.yaml and infra/bicep/modules/
 - [ ] T017 Write procurement migrations 0005 (extended supplier_terms, product_supplier_terms), 0006 (policy_sets, budget_caps), 0007 (scenarios, results, sensitivity, version columns on proposals) in services/procurement-service/migrations/versions/
+- [ ] T133 [P] Add JSON Schema lot-acquisition-cost and event procurement.lot_cost.changed.v1 in packages/contracts/dto/ and packages/contracts/events/
 - [ ] T018 Write forecast migrations 0003 (seed_datasets, seed_mappings, seed_rows, seed_quarantine, import_jobs) and 0004 (forecast_parameters, forecast_accuracy, version columns on forecast_runs) in services/forecast-service/migrations/versions/
 - [ ] T019 Write inventory migration 0003 (demand_exclusions, censoring_rules, agg_daily_kpis, agg_demand_trend, agg_abc_xyz) in services/inventory-service/migrations/versions/
 - [ ] T020 Extend the PostgreSQL migration test to cover upgrade and downgrade of every new migration and schema-versus-definition parity in infra/tests/test_migrations_postgres.py
 - [ ] T021 [P] Add append-only and hash-chained audit usage for the bff, forecast and inventory new tables (reuse procurement audit chain pattern) in services/api-bff/src/audit.py, services/forecast-service/src/audit.py, services/inventory-service/src/audit.py
+- [ ] T134 Write procurement migration 0008 (lot_acquisition_costs, suggested_median_cost on cost_write_requests) and inventory lot_cost_projection migration in services/procurement-service/migrations/versions/ and services/inventory-service/migrations/versions/
 - [ ] T022 Add private encrypted seed-file container with lifecycle deletion to the existing storage account in infra/bicep/modules/ and the Azurite equivalent in infra/compose.yaml
 - [ ] T023 Update docs/architecture/implementation-plan.md decisions log and docs/adr/README.md to reference ADRs 018–020 as proposed
 
@@ -102,6 +105,8 @@
 - [ ] T042 [P] [US3] Test allocation uses lead time, pack multiples, discounts, validity windows, preferred flag and manual disable, and cites terms in the explanation in services/procurement-service/tests/test_allocation_terms.py
 - [ ] T043 [P] [US3] Test no request is built for any ERP path or method when terms change (connector and writer allowlist tests unchanged) in services/siweb-connector/tests/ and services/siweb-cost-writer/tests/
 - [ ] T044 [P] [US3] Test viewer cannot edit and refusal is audited in services/api-bff/tests/test_suppliers_rbac.py
+- [ ] T137 [P] [US3] Test lot acquisition costs are append-only, non-negative, never taken from ERP movement price, and emit lot_cost.changed in services/procurement-service/tests/test_lot_costs.py
+- [ ] T138 [P] [US3] Test the median suggestion (odd, even and single lot, zero lots, outliers) shows the lots used, is advisory only, and the cost write still needs buyer release, fresh MFA and writer re-check in services/procurement-service/tests/test_median_cost_suggestion.py
 - [ ] T045 [P] [US3] Write Spanish browser test: edit terms, reload, see persistence and history, conflict message on stale save in apps/web/tests/e2e/suppliers.spec.ts
 
 ### Implementation
@@ -111,6 +116,9 @@
 - [ ] T048 [US3] Add revision and If-Match handling to terms routes (GET/PUT /suppliers/{id}/terms, /product-suppliers/{variant}/{supplier}/terms) in services/procurement-service/src/api/terms.py
 - [ ] T049 [US3] Make the allocation engine read effective terms for the run date and record terms version ids on proposals in services/procurement-service/src/allocation/ and services/procurement-service/src/proposals/
 - [ ] T050 [US3] Emit procurement.terms.changed.v1 through the outbox in services/procurement-service/src/terms/service.py
+- [ ] T139 [US3] Implement the lot acquisition cost ledger (record from confirmed orders and receipts, import and manual entry with audit) and emit procurement.lot_cost.changed.v1 in services/procurement-service/src/costs/lot_costs.py and services/procurement-service/src/orders/
+- [ ] T140 [US3] Compute the median suggestion and attach it with its lot references to the cost-write request in services/procurement-service/src/costs/median_suggestion.py and services/procurement-service/src/api/costs.py
+- [ ] T141 [US3] Show the suggested median, the lots behind it and an editable accepted value in the cost-write review screen in apps/web/src/features/costs/ with es-ES strings
 - [ ] T051 [US3] Add BFF client methods and routes for supplier list/search, terms and overrides with role checks in services/api-bff/src/clients/procurement.py and services/api-bff/src/routes/suppliers.py
 - [ ] T052 [US3] Build supplier list, terms editor, override editor, history and source badges in apps/web/src/features/suppliers/ with es-ES strings in apps/web/src/i18n/es-ES/suppliers.json
 - [ ] T053 [US3] Show terms used and precedence in proposal line explanations in apps/web/src/features/proposals/
@@ -197,6 +205,7 @@
 
 - [ ] T090 [P] [US2] Test aggregate read models equal reference totals on the synthetic dataset (value, coverage, risk, ABC/XYZ, trend) in services/inventory-service/tests/test_aggregates.py
 - [ ] T091 [P] [US2] Test filter options come from live warehouses, categories and suppliers and none are hard-coded in services/inventory-service/tests/test_filter_options.py and apps/web/tests/unit/no-hardcoded-options.test.ts
+- [ ] T135 [P] [US2] Test inventory value equals quantity per lot times lot acquisition cost, ignores ERP movement price (PVP), uses the labelled fallback for lots without cost and counts them in the estimated-cost indicator in services/inventory-service/tests/test_inventory_value.py
 - [ ] T092 [P] [US2] Test forecast accuracy and spend summaries in services/forecast-service/tests/test_accuracy.py and services/procurement-service/tests/test_spend_summary.py
 - [ ] T093 [P] [US2] Test actual ERP series and imported estimates are separate in the trend response in services/inventory-service/tests/test_trend_series_separation.py
 - [ ] T094 [P] [US2] Test BFF merges card-level results only and degrades per card on a failing service in services/api-bff/tests/test_dashboard_orchestration.py
@@ -206,6 +215,7 @@
 ### Implementation
 
 - [ ] T097 [US2] Implement daily aggregate refresh in the existing inventory worker pass in services/inventory-service/src/projections/aggregates.py and services/inventory-service/src/worker.py
+- [ ] T136 [US2] Project lot acquisition costs from procurement.lot_cost.changed.v1 into lot_cost_projection and compute inventory value from it in services/inventory-service/src/projections/lot_costs.py and services/inventory-service/src/projections/aggregates.py
 - [ ] T098 [US2] Implement dashboard routes (summary, demand-trend, abc-xyz, risks, filters/options) in services/inventory-service/src/api/dashboard.py
 - [ ] T099 [US2] Implement forecast accuracy, runs list and variant forecast routes in services/forecast-service/src/api.py and services/forecast-service/src/runs/accuracy.py
 - [ ] T100 [US2] Implement proposed-spend summary in services/procurement-service/src/api/summary.py

@@ -40,9 +40,16 @@ All items are decisions taken from the authoritative sources, the existing archi
 
 ## R7. Dashboard aggregates and charts
 
-- **Decision**: inventory maintains daily aggregate read models refreshed by the existing worker pass; forecast exposes accuracy; procurement exposes spend; the BFF merges card-level results only. Charts use Recharts (SVG) with a data-table toggle, keyboard focus and text summaries; filter options come from a single "filter options" endpoint per service. Inventory value is valued at the latest known unit cost per variant and labelled as such. **Verify (Phase 4)** with the owner that this valuation basis is acceptable versus current verified supplier cost.
+- **Decision**: inventory maintains daily aggregate read models refreshed by the existing worker pass; forecast exposes accuracy; procurement exposes spend; the BFF merges card-level results only. Charts use Recharts (SVG) with a data-table toggle, keyboard focus and text summaries; filter options come from a single "filter options" endpoint per service. Inventory value is quantity on hand per lot times that lot's acquisition cost (decided by the owner on 2026-11-05: ERP movements carry PVP, not cost, and the ERP has one cost per supplier). Acquisition costs are an MMI-owned per-lot record in procurement, projected to inventory by event; lots without a recorded cost use the labelled fallback of the current verified supplier cost and are counted. The median of lot costs is the suggested value for the buyer-reviewed supplier-cost update.
 - **Rationale**: no always-on analytics; meets 3 s budget with pre-aggregation.
 - **Alternatives**: per-request aggregation of movements (slow); Power BI / Synapse (cost); canvas charts (poor accessibility).
+
+## R7b. Lot acquisition cost ledger
+
+- **Decision**: procurement owns an append-only `lot_acquisition_costs` record; it emits an event that inventory projects for valuation; the median suggestion is computed in procurement and attached to the cost-write request as advice only.
+- **Rationale**: the ERP exposes PVP in movements and a single unit cost per supplier, so true per-lot acquisition cost exists nowhere else; procurement already owns cost versions, confirmed orders and receipt matching.
+- **Alternatives**: use ERP movement price (it is PVP, wrong); use the ERP supplier cost for all lots (loses lot differences); compute in inventory (cost data belongs to procurement).
+- **Open**: how acquisition costs enter the ledger (see Clarifications follow-up).
 
 ## R8. Concurrency and versioning
 

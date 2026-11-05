@@ -22,6 +22,8 @@ Conventions are those of 001: UUID `id`, UTC timestamps plus original strings wh
 | scenarios | New | id, name, base_run_ref, parameters (budget, disabled suppliers, terms deltas, service-level deltas), status (computing/ready/failed/promoted), created_by, input_versions (terms, policy, dataset ids), result_hash, created_at | Never writes live tables |
 | scenario_results | New | scenario_id, supplier_id, lines (variant, qty, unit_cost, discount, shipping), order_total, expected_delivery, budget_utilisation, binding_constraints (key + params) | Reproducible from `input_versions` |
 | scenario_sensitivity | New | scenario_id, constraint_key, delta, cost_impact | Top N binding constraints only |
+| lot_acquisition_costs | New | id, variant_id, lot (batch_number), received_at, quantity, unit_cost EUR, source (confirmed_order/receipt/import/manual), source_ref, recorded_by, revision | Append-only; unit_cost ≥ 0; never taken from ERP movement price (PVP); feeds inventory value and the median suggestion; changes emit `procurement.lot_cost.changed.v1` |
+| cost_write_requests | Extend | + suggested_median_cost, + suggestion_lot_refs | Suggestion is advisory; release, fresh MFA and writer checks unchanged |
 | user_roles | Existing | mirror of BFF roles | Written only through the internal endpoint |
 | proposals / proposal_lines | Extend | + scenario_id (nullable), + terms_version_ids, + policy_version_ids, + dataset_version_id | Every proposal records versions used (FR-026) |
 
@@ -44,7 +46,8 @@ Conventions are those of 001: UUID `id`, UTC timestamps plus original strings wh
 |---|---|---|---|
 | demand_exclusions | New | id, variant_id (nullable = all), from_day, to_day, reason, revision, changed_by | Excluded days not used by forecast; reversible; audited |
 | censoring_rules | New | id, rule (e.g. min consecutive zero-stock days), value, valid_from, revision | Replaces fixed constants |
-| agg_daily_kpis | New | day, warehouse_id (nullable), category_id (nullable), supplier_id (nullable), inventory_value, coverage_days_avg, stockout_risk_count, expiring_value, refreshed_at | Refreshed by existing worker pass |
+| lot_cost_projection | New | variant_id, lot, unit_cost, source, updated_at | Read-only copy fed by procurement events; no cross-schema SQL |
+| agg_daily_kpis | New | day, warehouse_id (nullable), category_id (nullable), supplier_id (nullable), inventory_value (quantity per lot × lot acquisition cost), valued_with_estimate_count, coverage_days_avg, stockout_risk_count, expiring_value, refreshed_at | Refreshed by existing worker pass |
 | agg_demand_trend | New | day, variant_id/segment key, actual_qty, forecast_mean, forecast_low, forecast_high | Actual from ERP only; estimates labelled separately |
 | agg_abc_xyz | New | day, abc, xyz, variant_count, value | Distribution chart |
 | filter_options | New (view) | kind (warehouse/category), id, label | No hard-coded options |
