@@ -32,3 +32,4 @@ Keys are English identifiers; messages are Spanish in `apps/web` and service loc
 | policy.override_requires_approval | 202 | Override saved as pending; the recommendation stays in force |
 | policy.override_self_approval | 403 | The requester cannot approve their own override |
 | stocking.floor_required | 422 | An always-stocked product needs a floor of at least 1 |
+| cost.lot_lookup_unavailable | 503 | Inventory could not be reached; the cost-update request fails visibly and is retried |
