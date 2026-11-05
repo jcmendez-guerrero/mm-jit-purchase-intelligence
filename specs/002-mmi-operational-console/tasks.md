@@ -106,7 +106,7 @@
 - [ ] T043 [P] [US3] Test no request is built for any ERP path or method when terms change (connector and writer allowlist tests unchanged) in services/siweb-connector/tests/ and services/siweb-cost-writer/tests/
 - [ ] T044 [P] [US3] Test viewer cannot edit and refusal is audited in services/api-bff/tests/test_suppliers_rbac.py
 - [ ] T137 [P] [US3] Test lot acquisition costs are append-only, non-negative, never taken from ERP movement price, and emit lot_cost.changed in services/procurement-service/tests/test_lot_costs.py
-- [ ] T138 [P] [US3] Test the median suggestion (odd, even and single lot, zero lots, outliers) shows the lots used, is advisory only, and the cost write still needs buyer release, fresh MFA and writer re-check in services/procurement-service/tests/test_median_cost_suggestion.py
+- [ ] T138 [P] [US3] Test the median cost (odd, even and single lot, zero lots, outliers) shows the lots used, is the only value that can be released, and the cost write still needs buyer release, fresh MFA and writer re-check in services/procurement-service/tests/test_median_cost_suggestion.py
 - [ ] T045 [P] [US3] Write Spanish browser test: edit terms, reload, see persistence and history, conflict message on stale save in apps/web/tests/e2e/suppliers.spec.ts
 
 ### Implementation
@@ -116,9 +116,9 @@
 - [ ] T048 [US3] Add revision and If-Match handling to terms routes (GET/PUT /suppliers/{id}/terms, /product-suppliers/{variant}/{supplier}/terms) in services/procurement-service/src/api/terms.py
 - [ ] T049 [US3] Make the allocation engine read effective terms for the run date and record terms version ids on proposals in services/procurement-service/src/allocation/ and services/procurement-service/src/proposals/
 - [ ] T050 [US3] Emit procurement.terms.changed.v1 through the outbox in services/procurement-service/src/terms/service.py
-- [ ] T139 [US3] Implement the lot acquisition cost ledger (record from confirmed orders and receipts, import and manual entry with audit) and emit procurement.lot_cost.changed.v1 in services/procurement-service/src/costs/lot_costs.py and services/procurement-service/src/orders/
-- [ ] T140 [US3] Compute the median suggestion and attach it with its lot references to the cost-write request in services/procurement-service/src/costs/median_suggestion.py and services/procurement-service/src/api/costs.py
-- [ ] T141 [US3] Show the suggested median, the lots behind it and an editable accepted value in the cost-write review screen in apps/web/src/features/costs/ with es-ES strings
+- [ ] T139 [US3] Implement the lot acquisition cost ledger (record automatically from confirmed order costs at receipt matching, buyer correction on arrival with audit) and emit procurement.lot_cost.changed.v1 in services/procurement-service/src/costs/lot_costs.py and services/procurement-service/src/orders/
+- [ ] T140 [US3] Compute the median cost and attach it, with its lot references, as the only value of the cost-write request in services/procurement-service/src/costs/median_suggestion.py and services/procurement-service/src/api/costs.py
+- [ ] T141 [US3] Show the median, the lots behind it and a lot-cost correction action (no free cost entry) in the cost-write review screen in apps/web/src/features/costs/ with es-ES strings
 - [ ] T051 [US3] Add BFF client methods and routes for supplier list/search, terms and overrides with role checks in services/api-bff/src/clients/procurement.py and services/api-bff/src/routes/suppliers.py
 - [ ] T052 [US3] Build supplier list, terms editor, override editor, history and source badges in apps/web/src/features/suppliers/ with es-ES strings in apps/web/src/i18n/es-ES/suppliers.json
 - [ ] T053 [US3] Show terms used and precedence in proposal line explanations in apps/web/src/features/proposals/
