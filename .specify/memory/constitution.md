@@ -19,8 +19,7 @@ Rationale: feature MMI 002 (specs/002-mmi-operational-console, FR-040 to FR-044,
   cost record, and the value sent to the ERP is the median of those lot costs.
 Follow-up TODOs:
   - TODO(RATIFICATION_DATE): confirm formal adoption date (still open)
-  - TODO(OVERRIDE_SEPARATION): owner to confirm whether the admin who sets an override MUST
-    differ from the person who releases it (recommended: yes); Principle I notes it as deferred
+  - Resolved 2026-11-05 (owner): the admin who sets an override MUST NOT release it
   - Update ADR-006 and docs/architecture/implementation-plan.md to describe the median value,
     margin check and admin override
   - Note in specs/002-mmi-operational-console that scenarios 4c and 4d of
@@ -70,8 +69,8 @@ only flag and explain. An admin MAY replace the median with a value of their own
 only for a flagged or blocked update, with a mandatory written reason and explanatory tips
 shown, and the audit record MUST hold the median, the chosen value, the margins before and
 after, who, and when.
-TODO(OVERRIDE_SEPARATION): owner to confirm whether the admin who sets an override MUST NOT be
-the person who releases it (recommended: yes).
+The admin who sets an override MUST NOT be the person who releases it; a different buyer MUST
+release it.
 
 Every such write, including an override, MUST:
 - use an identity and permissions separate from the read-only collection;
