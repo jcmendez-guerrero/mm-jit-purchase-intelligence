@@ -20,6 +20,7 @@ jobs:
       contents: read
       checks: write
       pull-requests: write
+      statuses: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,7 +48,7 @@ jobs:
           VALIDATE_BIOME_LINT: false
           VALIDATE_BIOME_FORMAT: false
           VALIDATE_TRIVY: false
-          FILTER_REGEX_EXCLUDE: (.*github/linters.*|.*CHANGELOG.md.*|.*specify/.*|.*apps/api/openapi\.json)
+          FILTER_REGEX_EXCLUDE: (.*github/linters.*|.*CHANGELOG.md.*|.*specify/.*|.*apps/api/openapi\.json|.*\.agents/.*|.*\.claude/.*|.*github/agents/.*|.*github/skills/.*|.*github/prompts/.*)
           # Python is checked by ruff and the web app by its own ESLint config in the `python` and `web` jobs (line length 120,
           # project rules); repeating them here with default settings only produces conflicting findings.
           VALIDATE_PYTHON_BLACK: false
@@ -127,7 +128,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v4
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
       - name: Decide whether this target is affected
         id: scope
         env:
@@ -196,7 +197,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Trivy filesystem scan (vulnerabilities, misconfiguration)
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -205,7 +206,7 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
       - name: SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -213,7 +214,7 @@ jobs:
           output: sbom.cdx.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with: { name: sbom, path: sbom.cdx.json }
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v4
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
       - name: pip-audit on service dependencies
         run: |
           uv venv --python 3.12 && . .venv/bin/activate
@@ -236,7 +237,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v4
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
       - run: |
           uv venv --python 3.12 && . .venv/bin/activate
           uv pip install pytest pyyaml -e packages/contracts   # test_packaging validates an envelope from the built wheel
@@ -251,7 +252,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v4
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
       - name: Install
         run: |
           uv venv --python 3.12
@@ -278,6 +279,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v4
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
       - run: uv venv --python 3.12 && uv pip install pytest
       - run: . .venv/bin/activate && RUN_E2E=1 pytest -q infra/tests/test_pipeline_e2e.py
