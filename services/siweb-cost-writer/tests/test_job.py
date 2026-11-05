@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 
 
 def env(monkeypatch, **extra):
-    base = {"MMI_DATABASE_URL": "sqlite://", "MMI_SIWEB_BASE_URL": "https://siweb.example.test", "MMI_PROCUREMENT_URL": "http://proc.test",
+    base = {"MMI_DATABASE_URL": "sqlite://", "MMI_SIWEB_BASE_URL": "https://erp.example.test", "MMI_PROCUREMENT_URL": "http://proc.test",
             "MMI_PROCUREMENT_TOKEN": "svc", "MMI_SIWEB_WRITER_TOKEN": "writer-secret"}
     for k, v in {**base, **extra}.items():
         monkeypatch.setenv(k, v)
@@ -15,7 +15,7 @@ def env(monkeypatch, **extra):
 def test_processor_is_built_from_the_environment_with_the_host_allowlist(monkeypatch, tmp_path):
     env(monkeypatch, MMI_BLOB_ROOT=str(tmp_path))
     proc, allowlist = job.build_processor()
-    assert allowlist.host == "siweb.example.test" and not allowlist.allow_http
+    assert allowlist.host == "erp.example.test" and not allowlist.allow_http
     assert "writer-secret" not in repr(proc.siweb.tokens) and "svc" not in repr(proc.procurement)
     assert proc.max_attempts == 5 and create_engine("sqlite://")
 

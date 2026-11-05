@@ -20,12 +20,28 @@ from .logging import configure_logging
 from .time import set_correlation_id
 
 
+def _fetch_public_key(url: str) -> str:
+    """Fetch the PEM public key from dev-issuer, handling both plain-text and JSON responses."""
+    resp = httpx.get(f"{url}/public-key", timeout=5)
+    resp.raise_for_status()
+    content_type = resp.headers.get("content-type", "")
+    if "application/json" in content_type:
+        # FastAPI may JSON-encode the PEM string; unwrap it.
+        return resp.json()
+    pem = resp.text
+    # Guard against leftover JSON quotes (older images).
+    if pem.startswith('"') and pem.endswith('"'):
+        import json
+        pem = json.loads(pem)
+    return pem
+
+
 def validator_from_env(audience: str) -> TokenValidator:
     issuer = os.environ.get("MMI_ISSUER", "http://dev-issuer.local")
     if url := os.environ.get("MMI_DEV_ISSUER_URL"):
         if os.environ.get("MMI_ENV") != "dev":
             raise RuntimeError("the dev issuer is only allowed with MMI_ENV=dev")
-        pem = httpx.get(f"{url}/public-key", timeout=5).text
+        pem = _fetch_public_key(url)
         return TokenValidator(issuer, audience, pem)
     if jwks := os.environ.get("MMI_JWKS_URL"):
         import jwt

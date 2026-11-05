@@ -3,6 +3,7 @@
 import os
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 from mmi_common.auth import DevIssuer
 from pydantic import BaseModel
 
@@ -23,7 +24,7 @@ def create_app() -> FastAPI:
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
-    @app.get("/public-key")
+    @app.get("/public-key", response_class=PlainTextResponse)
     def public_key() -> str:
         return issuer.public_pem
 

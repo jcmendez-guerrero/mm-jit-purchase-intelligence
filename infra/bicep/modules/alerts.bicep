@@ -1,7 +1,6 @@
-// Alerts for the Siweb connector (T046). T122 extends this file with freshness-by-metric, queue age,
-// cost-write outcomes, auth denials and approval anomalies.
-// Rules read the job's console logs. The job writes stable markers (SYNC_FAILED, QUOTA_DENIED,
-// ALLOWLIST_REFUSED, SYNC_OK) so alert queries do not depend on free-text wording.
+// Alerts for the Siweb connector and platform services (T046, T122).
+// Rules read console logs for stable markers so queries do not depend on free-text wording.
+// Evaluation windows are <= 1 hour (SC-013).
 
 param location string = resourceGroup().location
 param namePrefix string
@@ -51,6 +50,46 @@ var rules = [
     query: '${logTable} | where ContainerJobName_s == "${connectorJobName}" | where Log_s has "ALLOWLIST_REFUSED"'
     evaluationFrequency: 'PT5M'
     windowSize: 'PT5M'
+  }
+  {
+    key: 'queue-poison'
+    description: 'A message was rejected and sent to a poison queue (deserialization, checksum, or freshness failure).'
+    severity: 1
+    query: '${logTable} | where Log_s has "POISON_MESSAGE" or Log_s has "poison_queue"'
+    evaluationFrequency: 'PT15M'
+    windowSize: 'PT15M'
+  }
+  {
+    key: 'cost-write-failed'
+    description: 'A supplier cost write-back to Siweb failed or was rejected by ERP allowlist/validation.'
+    severity: 1
+    query: '${logTable} | where Log_s has "COST_WRITE_FAILED"'
+    evaluationFrequency: 'PT15M'
+    windowSize: 'PT15M'
+  }
+  {
+    key: 'auth-denials'
+    description: 'Repeated unauthorized access attempts, missing permissions, or invalid tokens detected at BFF/services.'
+    severity: 2
+    query: '${logTable} | where Log_s has "Access refused" or Log_s has "AUTH_DENIED"'
+    evaluationFrequency: 'PT15M'
+    windowSize: 'PT15M'
+  }
+  {
+    key: 'unmatched-writes'
+    description: 'An ERP supplier-cost write completed but read-after-write verification did not match the expected cost.'
+    severity: 0
+    query: '${logTable} | where Log_s has "UNMATCHED_WRITE" or Log_s has "write_mismatch"'
+    evaluationFrequency: 'PT5M'
+    windowSize: 'PT5M'
+  }
+  {
+    key: 'suspicious-approvals'
+    description: 'An approval anomaly was attempted (e.g. self-approval attempt or approval with stale MFA).'
+    severity: 1
+    query: '${logTable} | where Log_s has "forbidden_mfa_stale" or Log_s has "self_approval_refused" or Log_s has "SUSPICIOUS_APPROVAL"'
+    evaluationFrequency: 'PT15M'
+    windowSize: 'PT15M'
   }
 ]
 
