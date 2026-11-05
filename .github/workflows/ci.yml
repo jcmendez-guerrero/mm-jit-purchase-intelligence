@@ -129,20 +129,25 @@ jobs:
       - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v4
       - name: Decide whether this target is affected
         id: scope
+        env:
+          TARGET: ${{ matrix.target }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          base="$BASE_SHA"
           if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then echo run=true >> "$GITHUB_OUTPUT"; exit 0; fi
           changed=$(git diff --name-only "$base" HEAD || true)
           # Own files, shared contracts (downstream validation) or shared tooling re-run the target.
-          if echo "$changed" | grep -qE '^(${{ matrix.target }}/|packages/contracts/|packages/testing/|pyproject.toml)'; then echo run=true >> "$GITHUB_OUTPUT"; else echo run=false >> "$GITHUB_OUTPUT"; fi
+          if echo "$changed" | grep -qE "^($TARGET/|packages/contracts/|packages/testing/|pyproject.toml)"; then echo run=true >> "$GITHUB_OUTPUT"; else echo run=false >> "$GITHUB_OUTPUT"; fi
         # shallow clones need history for the diff
       - if: steps.scope.outputs.run == 'true'
+        env:
+          TARGET: ${{ matrix.target }}
         run: |
           uv venv --python 3.12
           uv pip install -e packages/contracts -e packages/testing pytest pytest-asyncio hypothesis pyyaml openpyxl ruff mypy
-          if [ -f "${{ matrix.target }}/pyproject.toml" ] && [[ "${{ matrix.target }}" == services/* ]]; then uv pip install -r <(python3 - <<'EOF'
-          import tomllib
-          for d in tomllib.load(open("${{ matrix.target }}/pyproject.toml","rb"))["project"]["dependencies"]:
+          if [ -f "$TARGET/pyproject.toml" ] && [[ "$TARGET" == services/* ]]; then uv pip install -r <(python3 - <<'EOF'
+          import os, tomllib
+          for d in tomllib.load(open(os.environ["TARGET"] + "/pyproject.toml","rb"))["project"]["dependencies"]:
               if not d.startswith("mmi-"): print(d)
           EOF
           ); fi
