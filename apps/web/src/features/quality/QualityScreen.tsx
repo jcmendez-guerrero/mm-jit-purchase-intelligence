@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "../../api/client";
+import { api, ImportErrorItem, errorMessage } from "../../api/client";
 
 interface Props {
   userRoles: string[];
@@ -8,7 +8,7 @@ interface Props {
 
 export const QualityScreen: React.FC<Props> = ({ userRoles }) => {
   const { t } = useTranslation();
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<ImportErrorItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,8 +19,8 @@ export const QualityScreen: React.FC<Props> = ({ userRoles }) => {
       setLoading(true);
       const res = await api.getImportErrors();
       setItems(res.items || []);
-    } catch (err: any) {
-      setError(err.message || t("common.error"));
+    } catch (err) {
+      setError(errorMessage(err, t("common.error")));
     } finally {
       setLoading(false);
     }
@@ -34,8 +34,8 @@ export const QualityScreen: React.FC<Props> = ({ userRoles }) => {
     try {
       await api.resolveImportError(id, decision);
       setItems((prev) => prev.filter((i) => i.id !== id));
-    } catch (err: any) {
-      alert(err.message || t("common.error"));
+    } catch (err) {
+      alert(errorMessage(err, t("common.error")));
     }
   };
 

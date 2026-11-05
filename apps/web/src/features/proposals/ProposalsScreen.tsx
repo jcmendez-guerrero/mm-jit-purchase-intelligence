@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, Proposal, ProposalLine } from "../../api/client";
+import { api, Proposal, ProposalLine, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
 
 interface Props {
@@ -26,8 +26,8 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
       if (list && list.length > 0) {
         setSelectedProposal(list[0] || null);
       }
-    } catch (err: any) {
-      setError(err.message || t("common.error"));
+    } catch (err) {
+      setError(errorMessage(err, t("common.error")));
     } finally {
       setLoading(false);
     }
@@ -48,8 +48,8 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
       await api.editProposalLine(selectedProposal.id, lineId, newQty);
       const updated = await api.getProposal(selectedProposal.id);
       setSelectedProposal(updated);
-    } catch (err: any) {
-      alert(err.message || t("common.error"));
+    } catch (err) {
+      alert(errorMessage(err, t("common.error")));
     }
   };
 
@@ -60,8 +60,8 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
       const updated = await api.getProposal(selectedProposal.id);
       setSelectedProposal(updated);
       await loadProposals();
-    } catch (err: any) {
-      alert(err.message || t("common.error"));
+    } catch (err) {
+      alert(errorMessage(err, t("common.error")));
     }
   };
 
@@ -72,8 +72,8 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
       const updated = await api.getProposal(selectedProposal.id);
       setSelectedProposal(updated);
       await loadProposals();
-    } catch (err: any) {
-      alert(err.message || t("common.error"));
+    } catch (err) {
+      alert(errorMessage(err, t("common.error")));
     }
   };
 

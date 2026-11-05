@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, RiskItem } from "../../api/client";
+import { api, RiskItem, errorMessage } from "../../api/client";
 
 interface Props {
   selectedWarehouse?: number | undefined;
@@ -20,8 +20,8 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
       setError(null);
       const data = await api.getRisks(whId);
       setRisks(data);
-    } catch (err: any) {
-      setError(err.message || t("common.error"));
+    } catch (err) {
+      setError(errorMessage(err, t("common.error")));
     } finally {
       setLoading(false);
     }

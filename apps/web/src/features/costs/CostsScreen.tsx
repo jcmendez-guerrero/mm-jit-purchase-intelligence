@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "../../api/client";
+import { api, CostRecord, CostWriteRecord, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
 
 interface Props {
@@ -9,8 +9,8 @@ interface Props {
 
 export const CostsScreen: React.FC<Props> = ({ userRoles }) => {
   const { t } = useTranslation();
-  const [costs, setCosts] = useState<any[]>([]);
-  const [writes, setWrites] = useState<any[]>([]);
+  const [costs, setCosts] = useState<CostRecord[]>([]);
+  const [writes, setWrites] = useState<CostWriteRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,8 +22,8 @@ export const CostsScreen: React.FC<Props> = ({ userRoles }) => {
       const [costList, writeList] = await Promise.all([api.getCosts(), api.getCostWrites()]);
       setCosts(costList || []);
       setWrites(writeList || []);
-    } catch (err: any) {
-      setError(err.message || t("common.error"));
+    } catch (err) {
+      setError(errorMessage(err, t("common.error")));
     } finally {
       setLoading(false);
     }
@@ -38,8 +38,8 @@ export const CostsScreen: React.FC<Props> = ({ userRoles }) => {
       await api.approveCostWrite(writeId);
       alert("Cost write enviado a Siweb.");
       loadData();
-    } catch (err: any) {
-      alert(err.message || t("common.error"));
+    } catch (err) {
+      alert(errorMessage(err, t("common.error")));
     }
   };
 

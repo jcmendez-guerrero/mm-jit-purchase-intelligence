@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api } from "../../api/client";
+import { api, ServiceLevelEntry, UserRoles, errorMessage } from "../../api/client";
 
 interface Props {
   userRoles: string[];
@@ -8,8 +8,8 @@ interface Props {
 
 export const ConfigScreen: React.FC<Props> = ({ userRoles }) => {
   const { t } = useTranslation();
-  const [users, setUsers] = useState<any[]>([]);
-  const [serviceLevels, setServiceLevels] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserRoles[]>([]);
+  const [serviceLevels, setServiceLevels] = useState<ServiceLevelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,8 +24,8 @@ export const ConfigScreen: React.FC<Props> = ({ userRoles }) => {
         const r = await api.getRoles();
         setUsers(r.users || []);
       }
-    } catch (err: any) {
-      setError(err.message || t("common.error"));
+    } catch (err) {
+      setError(errorMessage(err, t("common.error")));
     } finally {
       setLoading(false);
     }
@@ -48,8 +48,8 @@ export const ConfigScreen: React.FC<Props> = ({ userRoles }) => {
     try {
       await api.updateRoles(userId, nextRoles);
       await loadData();
-    } catch (err: any) {
-      alert(err.message || t("common.error"));
+    } catch (err) {
+      alert(errorMessage(err, t("common.error")));
     }
   };
 

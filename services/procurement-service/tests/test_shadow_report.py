@@ -28,7 +28,7 @@ def test_shadow_report_computes_variance_and_override_rate():
     assert report.cost_variance == Decimal("50.00")
     assert report.stockout_incidents == 1
 
-    var2 = next(l for l in report.lines if l.variant_id == 2)
+    var2 = next(line for line in report.lines if line.variant_id == 2)
     assert var2.overridden is True
     assert var2.qty_difference == -5
     assert var2.stockout_occurred is True

@@ -20,11 +20,54 @@ export interface UserSession {
   csrf_token: string;
 }
 
+/** A JSON object whose members are not described by an interface here. */
+export type JsonRecord = Record<string, unknown>;
+
+export interface CostRecord {
+  variant_id: number;
+  supplier_contact_id: number;
+  net_cost: number | string;
+  applies_recargo?: boolean;
+  verified_at: string;
+}
+
+export interface CostWriteRecord {
+  id: string;
+  variant_id: number;
+  new_cost: number | string;
+  status: string;
+}
+
+export interface ImportErrorItem {
+  id: number;
+  variant_id: number;
+  movement_reason_raw?: string | null;
+  anomaly_codes?: string[];
+  created_at: string;
+}
+
+export interface ServiceLevelEntry {
+  scope: string;
+  scope_key: string;
+  target_level: string;
+  updated_by?: string;
+}
+
+export interface UserRoles {
+  user_id: string;
+  roles: string[];
+}
+
+/** The message of a caught value, or the fallback when it is not an Error. */
+export function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
 export interface RiskItem {
   variant_id: number;
   risk_type: "stockout" | "expiry" | "data_quality";
   explanation_key: string;
-  params?: Record<string, any>;
+  params?: JsonRecord;
 }
 
 export interface VariantDetail {
@@ -51,7 +94,7 @@ export interface VariantDetail {
     pattern: string;
     forecast_eligible: boolean;
     reasons: string[];
-    metrics: Record<string, any>;
+    metrics: JsonRecord;
   };
   history_reconciled?: boolean;
 }
@@ -147,8 +190,8 @@ export class ApiClient {
     return this.request<VariantDetail>(`/inventory/variants/${variantId}`);
   }
 
-  async getImportErrors(): Promise<{ count: number; items: any[] }> {
-    return this.request<{ count: number; items: any[] }>("/data-quality/import-errors");
+  async getImportErrors(): Promise<{ count: number; items: ImportErrorItem[] }> {
+    return this.request<{ count: number; items: ImportErrorItem[] }>("/data-quality/import-errors");
   }
 
   async resolveImportError(id: number, decision: "release" | "ignore"): Promise<void> {
@@ -158,20 +201,20 @@ export class ApiClient {
     });
   }
 
-  async getSuppliers(): Promise<any[]> {
-    return this.request<any[]>("/suppliers");
+  async getSuppliers(): Promise<JsonRecord[]> {
+    return this.request<JsonRecord[]>("/suppliers");
   }
 
-  async getCosts(): Promise<any[]> {
-    return this.request<any[]>("/costs");
+  async getCosts(): Promise<CostRecord[]> {
+    return this.request<CostRecord[]>("/costs");
   }
 
-  async getCostWrites(): Promise<any[]> {
-    return this.request<any[]>("/cost-writes");
+  async getCostWrites(): Promise<CostWriteRecord[]> {
+    return this.request<CostWriteRecord[]>("/cost-writes");
   }
 
-  async approveCostWrite(writeId: string): Promise<any> {
-    return this.request<any>(`/cost-writes/${writeId}/approve`, { method: "POST" });
+  async approveCostWrite(writeId: string): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/cost-writes/${writeId}/approve`, { method: "POST" });
   }
 
   async getProposals(): Promise<Proposal[]> {
@@ -182,31 +225,31 @@ export class ApiClient {
     return this.request<Proposal>(`/proposals/${id}`);
   }
 
-  async editProposalLine(proposalId: string, lineId: string, orderQty: number): Promise<any> {
-    return this.request<any>(`/proposals/${proposalId}/lines/${lineId}`, {
+  async editProposalLine(proposalId: string, lineId: string, orderQty: number): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/proposals/${proposalId}/lines/${lineId}`, {
       method: "PUT",
       body: JSON.stringify({ order_qty: orderQty }),
     });
   }
 
-  async submitProposal(proposalId: string): Promise<any> {
-    return this.request<any>(`/proposals/${proposalId}/submit`, { method: "POST" });
+  async submitProposal(proposalId: string): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/proposals/${proposalId}/submit`, { method: "POST" });
   }
 
-  async approveProposal(proposalId: string): Promise<any> {
-    return this.request<any>(`/proposals/${proposalId}/approve`, { method: "POST" });
+  async approveProposal(proposalId: string): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/proposals/${proposalId}/approve`, { method: "POST" });
   }
 
-  async getServiceLevels(): Promise<any> {
-    return this.request<any>("/config/service-levels");
+  async getServiceLevels(): Promise<{ history?: ServiceLevelEntry[] }> {
+    return this.request<{ history?: ServiceLevelEntry[] }>("/config/service-levels");
   }
 
-  async getRoles(): Promise<any> {
-    return this.request<any>("/admin/roles");
+  async getRoles(): Promise<{ users?: UserRoles[] }> {
+    return this.request<{ users?: UserRoles[] }>("/admin/roles");
   }
 
-  async updateRoles(userId: string, roles: string[]): Promise<any> {
-    return this.request<any>(`/admin/roles/${userId}`, {
+  async updateRoles(userId: string, roles: string[]): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/admin/roles/${userId}`, {
       method: "PUT",
       body: JSON.stringify({ roles }),
     });

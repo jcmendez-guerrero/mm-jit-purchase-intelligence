@@ -26,14 +26,8 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Setup pnpm
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 #v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      # The web app uses npm (apps/web/package-lock.json) and is linted by the `web` job with its own ESLint config,
+      # so super-linter does not repeat that and no pnpm workspace is needed here.
 
       - name: Super-linter
         uses: super-linter/super-linter@2da136927bd4a73596db63044b504547c62cb854 # v9.0.0
@@ -53,8 +47,19 @@ jobs:
           VALIDATE_TRIVY: false
           FIX_TERRAFORM_FMT: true
           FILTER_REGEX_EXCLUDE: (.*github/linters.*|.*CHANGELOG.md.*|.*specify/.*|.*apps/api/openapi\.json)
-          JAVASCRIPT_ES_CONFIG_FILE: eslint.config.js
-          TYPESCRIPT_ES_CONFIG_FILE: eslint.config.js
+          # Python is checked by ruff and the web app by its own ESLint config in the `python` and `web` jobs (line length 120,
+          # project rules); repeating them here with default settings only produces conflicting findings.
+          VALIDATE_PYTHON_BLACK: false
+          VALIDATE_PYTHON_FLAKE8: false
+          VALIDATE_PYTHON_ISORT: false
+          VALIDATE_PYTHON_MYPY: false
+          VALIDATE_PYTHON_PYLINT: false
+          VALIDATE_JAVASCRIPT_ES: false
+          VALIDATE_JAVASCRIPT_PRETTIER: false
+          VALIDATE_TYPESCRIPT_ES: false
+          VALIDATE_TYPESCRIPT_PRETTIER: false
+          VALIDATE_JSX: false
+          VALIDATE_TSX: false
           VALIDATE_SPELL_CODESPELL: false
           VALIDATE_PYTHON_RUFF: false
           VALIDATE_PYTHON_RUFF_FORMAT: false
@@ -183,7 +188,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy filesystem scan (vulnerabilities, misconfiguration)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
         with:
           scan-type: fs
           scan-ref: .
@@ -192,7 +197,7 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
       - name: SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
         with:
           scan-type: fs
           scan-ref: .
@@ -224,7 +229,7 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: |
           uv venv --python 3.12 && . .venv/bin/activate
-          uv pip install pytest pyyaml
+          uv pip install pytest pyyaml -e packages/contracts   # test_packaging validates an envelope from the built wheel
           RUN_COMPOSE_SMOKE=1 pytest -q infra/tests
 
   # T152 / T153: real PostgreSQL migrations (including the immutability triggers) and the Azure adapters against Azurite.
