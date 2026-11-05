@@ -19,11 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "order_id",
-        "proposal_id",
-        "supplier_id"
-      ],
+      "required": ["order_id", "proposal_id", "supplier_id"],
       "properties": {
         "order_id": {
           "type": "string",

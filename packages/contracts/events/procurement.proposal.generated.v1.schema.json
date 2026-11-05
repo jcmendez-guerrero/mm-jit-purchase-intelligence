@@ -19,11 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "proposal_id",
-        "week",
-        "version"
-      ],
+      "required": ["proposal_id", "week", "version"],
       "properties": {
         "proposal_id": {
           "type": "string",

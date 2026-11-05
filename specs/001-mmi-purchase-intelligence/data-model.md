@@ -68,7 +68,7 @@ Conventions for every table: stable internal `id` (UUID), `external_id` where so
 
 ## Key state transitions
 
-```
+```text
 Proposal:   draft ──submit──▶ submitted ──approve (≠ creator/last editor, fresh MFA)──▶ approved ──export/read──▶ exported
               ▲                  │ edit after submit → back to draft, approval eligibility reset
 Order:      approved ──buyer confirms per supplier (qty + cost)──▶ confirmed ──receipts──▶ partially_received ──▶ received

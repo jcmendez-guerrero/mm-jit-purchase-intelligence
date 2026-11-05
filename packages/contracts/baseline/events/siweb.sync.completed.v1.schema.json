@@ -19,12 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "run_id",
-        "kind",
-        "reconciled",
-        "counts_stored"
-      ],
+      "required": ["run_id", "kind", "reconciled", "counts_stored"],
       "properties": {
         "run_id": {
           "type": "string",

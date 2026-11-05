@@ -4,13 +4,7 @@
   "title": "CostWrite",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "id",
-    "cost_id",
-    "trigger",
-    "proposed_value",
-    "status"
-  ],
+  "required": ["id", "cost_id", "trigger", "proposed_value", "status"],
   "properties": {
     "id": {
       "type": "string",
@@ -21,10 +15,7 @@
       "format": "uuid"
     },
     "trigger": {
-      "enum": [
-        "missing_cost",
-        "order_confirmed"
-      ]
+      "enum": ["missing_cost", "order_confirmed"]
     },
     "proposed_value": {
       "$ref": "money.v1.schema.json"
@@ -56,10 +47,7 @@
       "minimum": 0
     },
     "last_error": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     }
   }
 }

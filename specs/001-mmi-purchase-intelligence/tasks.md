@@ -9,6 +9,7 @@
 **Organization**: Grouped by user story. Note: US5 (P1) depends on US3 and US4 (P2) for policies and costs, so phases run US1 → US2 → US3 → US4 → US5 → US6 → US7.
 
 ## Format: `- [ ] [ID] [P?] [Story] Description with file path`
+
 - **[P]**: parallelisable (different files, no dependency on incomplete tasks)
 - Real Siweb data is never used; all tests use synthetic fixtures.
 
@@ -22,7 +23,7 @@
 - [X] T002 Write AGENTS.md and CLAUDE.md at repo root (rules: synthetic data only, read-only Siweb except cost write, no real IDs, es-ES UI, contract-first)
 - [X] T003 [P] Configure Python workspace tooling (uv/pip-tools with hashed lockfiles, ruff, mypy, pytest) in pyproject.toml at repo root and per service services/*/pyproject.toml
 - [X] T004 [P] Configure web tooling (Vite, TypeScript strict, ESLint, Vitest, Playwright) in apps/web/package.json and apps/web/tsconfig.json
-- [X] T005 [P] Extend .gitignore to block real data and params: *.csv, *.xlsx, *.har, /data/, *.bicepparam, *.tfvars (allow packages/testing/**/fixtures/ and *.example) in .gitignore
+- [X] T005 [P] Extend .gitignore to block real data and params: *.csv,*.xlsx, *.har, /data/,*.bicepparam, *.tfvars (allow packages/testing/**/fixtures/ and*.example) in .gitignore
 - [X] T006 [P] Add Gitleaks config with custom rules (Siweb host + Bearer, Azure ID patterns) in .gitleaks.toml and a pre-commit config in .pre-commit-config.yaml
 - [X] T007 [P] Add PR template with data/security/cost/contract checklist in .github/pull_request_template.md and Dependabot config in .github/dependabot.yml
 - [X] T008 [P] Add security method docs (templates only, no findings): security/threat-model-template.md, security/data-classification.md

@@ -19,10 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "through_day",
-        "series_count"
-      ],
+      "required": ["through_day", "series_count"],
       "properties": {
         "through_day": {
           "type": "string",

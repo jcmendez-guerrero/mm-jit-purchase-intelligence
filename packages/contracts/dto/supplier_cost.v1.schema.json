@@ -55,11 +55,7 @@
       "type": "boolean"
     },
     "source": {
-      "enum": [
-        "siweb_product_supplier",
-        "csv_price_list",
-        "manual"
-      ]
+      "enum": ["siweb_product_supplier", "csv_price_list", "manual"]
     },
     "verified_at": {
       "type": "string",
@@ -72,16 +68,10 @@
       "type": "boolean"
     },
     "lead_time_days": {
-      "type": [
-        "integer",
-        "null"
-      ]
+      "type": ["integer", "null"]
     },
     "min_order_qty": {
-      "type": [
-        "integer",
-        "null"
-      ]
+      "type": ["integer", "null"]
     }
   }
 }

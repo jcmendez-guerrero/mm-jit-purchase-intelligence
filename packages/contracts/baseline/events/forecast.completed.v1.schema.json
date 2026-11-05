@@ -19,11 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "run_id",
-        "input_hash",
-        "eligible_count"
-      ],
+      "required": ["run_id", "input_hash", "eligible_count"],
       "properties": {
         "run_id": {
           "type": "string",

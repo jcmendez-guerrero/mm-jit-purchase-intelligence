@@ -10,6 +10,7 @@ Method only. Which concrete datasets sit in which class, and where they are stor
 | Secret | Grants access | Tokens, keys, connection strings | Azure Key Vault only; per-identity access; never logged |
 
 Rules:
+
 1. Data moves down a class (e.g. to a fixture) only as aggregate ratios, never as real rows or identifiers.
 2. Raw source payloads are Internal, stripped of Confidential fields first, and deleted after the retention period.
 3. Logs and metrics carry no Secret or Confidential data; correlation IDs only.

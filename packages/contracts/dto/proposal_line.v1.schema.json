@@ -38,18 +38,10 @@
       "minimum": 0
     },
     "risk": {
-      "enum": [
-        "low",
-        "medium",
-        "high"
-      ]
+      "enum": ["low", "medium", "high"]
     },
     "confidence": {
-      "enum": [
-        "low",
-        "medium",
-        "high"
-      ]
+      "enum": ["low", "medium", "high"]
     },
     "manual_override": {
       "type": "boolean"

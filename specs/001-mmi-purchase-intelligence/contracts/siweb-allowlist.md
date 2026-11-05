@@ -27,6 +27,7 @@ Controls: host allowlist (single approved Siweb host), token from Key Vault via 
 | PUT | `/api/public/inventory/products/{id}/suppliers/{contact_id}` | Existing supplier record with **only** `purchase_cost_cents` changed (read-modify-write; see research R4/V4) |
 
 Preconditions (all must hold or the call is not made):
+
 1. A `cost_write_request` exists in status `approved_by_buyer` (re-verified against procurement-service through the service identity), triggered by `missing_cost` or `order_confirmed`.
 2. The value is the cost **including recargo**, rounded per the documented rule, and differs from the current Siweb value read immediately before the call.
 3. The current Siweb record for the pair exists (known `contact_id` from the reader's supplier rows); no other field changes. If no record exists, no call is made: the request moves to `pending_link` and the buyer creates the link in the ERP. Creating a link through this PUT is out of scope unless open item V4 proves it works and the decision is recorded (with a constitution review).

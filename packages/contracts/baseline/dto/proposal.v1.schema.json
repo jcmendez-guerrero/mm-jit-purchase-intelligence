@@ -4,13 +4,7 @@
   "title": "Proposal",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "id",
-    "week",
-    "status",
-    "version",
-    "lines"
-  ],
+  "required": ["id", "week", "status", "version", "lines"],
   "properties": {
     "id": {
       "type": "string",
@@ -21,13 +15,7 @@
       "pattern": "^[0-9]{4}-W[0-9]{2}$"
     },
     "status": {
-      "enum": [
-        "draft",
-        "submitted",
-        "approved",
-        "exported",
-        "superseded"
-      ]
+      "enum": ["draft", "submitted", "approved", "exported", "superseded"]
     },
     "version": {
       "type": "integer",

@@ -19,9 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "cost_write_request_id"
-      ],
+      "required": ["cost_write_request_id"],
       "properties": {
         "cost_write_request_id": {
           "type": "string",

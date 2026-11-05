@@ -1,12 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
-  --color-primary: #016581;       /* Azul petróleo */
-  --color-primary-light: #2F8198; /* Azul medio */
-  --color-primary-dark: #002028;  /* Azul noche */
-  --color-accent: #60ABB8;        /* Turquesa */
-  --color-bg: #F2F8F9;            /* Blanco hielo */
-  --color-card-bg: #ffffff;
+  --color-primary: #016581; /* Azul petróleo */
+  --color-primary-light: #2f8198; /* Azul medio */
+  --color-primary-dark: #002028; /* Azul noche */
+  --color-accent: #60abb8; /* Turquesa */
+  --color-bg: #f2f8f9; /* Blanco hielo */
+  --color-card-bg: #fff;
   --color-text: #002028;
   --color-text-muted: #4e676e;
   --color-border: #d3e4e7;
@@ -17,18 +17,19 @@
   --color-warning-bg: #fff5e6;
   --color-success: #0d7849;
   --color-success-bg: #e6f6ee;
-
-  --font-heading: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  
+  --font-heading: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  --font-body:
+    "Inter", -apple-system, blinkmacsystemfont, "Segoe UI", roboto, sans-serif;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --shadow-sm: 0 1px 3px rgba(0, 32, 40, 0.06);
-  --shadow-md: 0 4px 12px rgba(1, 101, 129, 0.08);
+  --shadow-sm: 0 1px 3px rgb(0 32 40 / 6%);
+  --shadow-md: 0 4px 12px rgb(1 101 129 / 8%);
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -42,7 +43,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   color: var(--color-primary-dark);
   font-weight: 700;
@@ -55,7 +61,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .mmi-top-bar {
-  background-color: #ffffff;
+  background-color: #fff;
   padding: 0.6rem 2rem;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
@@ -77,7 +83,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .mmi-nav-bar {
   background-color: var(--color-primary);
-  color: #ffffff;
+  color: #fff;
   padding: 0.5rem 2rem;
   display: flex;
   align-items: center;
@@ -106,15 +112,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .mmi-tab-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
 }
 
 .mmi-tab-btn.active {
   background-color: var(--color-primary-light);
-  color: #ffffff;
+  color: #fff;
   font-weight: 700;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 15%);
 }
 
 .mmi-user-profile {
@@ -122,7 +128,7 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 1rem;
   font-size: 0.9rem;
-  color: #ffffff;
+  color: #fff;
 }
 
 .mmi-user-chip {
@@ -133,9 +139,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .mmi-logout-btn {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #ffffff;
+  background: rgb(255 255 255 / 15%);
+  border: 1px solid rgb(255 255 255 / 30%);
+  color: #fff;
   padding: 0.35rem 0.8rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -147,7 +153,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .mmi-logout-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgb(255 255 255 / 25%);
 }
 
 /* Page Container */
@@ -187,7 +193,9 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .mmi-stat-card:hover {
@@ -308,7 +316,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .mmi-btn-primary {
   background-color: var(--color-primary);
-  color: #ffffff;
+  color: #fff;
 }
 
 .mmi-btn-primary:hover {
@@ -316,7 +324,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .mmi-btn-secondary {
-  background-color: #ffffff;
+  background-color: #fff;
   color: var(--color-primary);
   border-color: var(--color-primary-light);
 }
@@ -360,18 +368,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Form controls */
-select, input {
+select,
+input {
   font-family: var(--font-body);
   font-size: 0.92rem;
   padding: 0.45rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   outline: none;
-  background-color: #ffffff;
+  background-color: #fff;
   color: var(--color-text);
 }
 
-select:focus, input:focus {
+select:focus,
+input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(1, 101, 129, 0.15);
+  box-shadow: 0 0 0 2px rgb(1 101 129 / 15%);
 }

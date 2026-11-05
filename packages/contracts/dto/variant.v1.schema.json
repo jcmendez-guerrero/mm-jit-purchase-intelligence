@@ -4,13 +4,7 @@
   "title": "Variant",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "id",
-    "external_id",
-    "product_id",
-    "pack_size",
-    "uom"
-  ],
+  "required": ["id", "external_id", "product_id", "pack_size", "uom"],
   "properties": {
     "id": {
       "type": "string",
@@ -24,10 +18,7 @@
       "minimum": 1
     },
     "sku": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "pack_size": {
       "type": "integer",
@@ -37,10 +28,7 @@
       "type": "string"
     },
     "reorder_point": {
-      "type": [
-        "integer",
-        "null"
-      ]
+      "type": ["integer", "null"]
     }
   }
 }

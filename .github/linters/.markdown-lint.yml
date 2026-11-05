@@ -1,0 +1,9 @@
+# markdownlint settings for super-linter. The project documents are long-form specs and ADRs, so line length,
+# repeated headings across sections, inline HTML and similar style rules are relaxed; structural rules stay on.
+default: true
+MD013: false   # line length
+MD024: false   # the same heading text under different parents (templates and per-story sections)
+MD033: false   # inline HTML in specs
+MD036: false   # bold text used as a label
+MD041: false   # first line need not be a top-level heading (templates, includes)
+MD060: false   # table column style

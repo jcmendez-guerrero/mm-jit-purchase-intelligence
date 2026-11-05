@@ -19,10 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "snapshot_date",
-        "variant_count"
-      ],
+      "required": ["snapshot_date", "variant_count"],
       "properties": {
         "snapshot_date": {
           "type": "string",

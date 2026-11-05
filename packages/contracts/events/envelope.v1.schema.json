@@ -41,10 +41,7 @@
     "payload_ref": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "uri",
-        "sha256"
-      ],
+      "required": ["uri", "sha256"],
       "properties": {
         "uri": {
           "type": "string",

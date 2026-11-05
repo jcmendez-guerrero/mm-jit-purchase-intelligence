@@ -15,6 +15,7 @@
 Chosen option, and why.
 
 ### Consequences
+
 - Good:
 - Bad / residual risk:
 

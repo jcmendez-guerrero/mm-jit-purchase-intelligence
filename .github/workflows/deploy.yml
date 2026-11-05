@@ -58,8 +58,10 @@ jobs:
             app_var: WEB_APP_NAME
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/login@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -67,32 +69,43 @@ jobs:
 
       - name: Build and push image, capture digest
         id: build
+        env:
+          ACR_NAME: ${{ vars.ACR_NAME }}
+          IMAGE_NAME: ${{ matrix.name }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          COMMIT: ${{ github.sha }}
         run: |
-          az acr login --name "${{ vars.ACR_NAME }}"
-          image="${{ vars.ACR_NAME }}.azurecr.io/mmi/${{ matrix.name }}"
-          docker build -f "${{ matrix.dockerfile }}" -t "$image:${{ github.sha }}" .
-          docker push "$image:${{ github.sha }}"
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$image:${{ github.sha }}")
+          az acr login --name "$ACR_NAME"
+          image="$ACR_NAME.azurecr.io/mmi/$IMAGE_NAME"
+          docker build -f "$DOCKERFILE" -t "$image:$COMMIT" .
+          docker push "$image:$COMMIT"
+          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$image:$COMMIT")
           echo "ref=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Update Container App Job (${{ matrix.name }})
         if: matrix.type == 'job'
+        env:
+          APP_NAME: ${{ vars[matrix.app_var] }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
-          app_name="${{ vars[matrix.app_var] }}"
-          if [ -n "$app_name" ]; then
+          if [ -n "$APP_NAME" ]; then
             az containerapp job update \
-              --name "$app_name" \
-              --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-              --image "${{ steps.build.outputs.ref }}"
+              --name "$APP_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "$IMAGE_REF"
           fi
 
       - name: Update Container App (${{ matrix.name }})
         if: matrix.type == 'app'
+        env:
+          APP_NAME: ${{ vars[matrix.app_var] }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          IMAGE_REF: ${{ steps.build.outputs.ref }}
         run: |
-          app_name="${{ vars[matrix.app_var] }}"
-          if [ -n "$app_name" ]; then
+          if [ -n "$APP_NAME" ]; then
             az containerapp update \
-              --name "$app_name" \
-              --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-              --image "${{ steps.build.outputs.ref }}"
+              --name "$APP_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "$IMAGE_REF"
           fi
