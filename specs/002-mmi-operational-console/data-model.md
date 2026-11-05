@@ -23,7 +23,7 @@ Conventions are those of 001: UUID `id`, UTC timestamps plus original strings wh
 | scenario_results | New | scenario_id, supplier_id, lines (variant, qty, unit_cost, discount, shipping), order_total, expected_delivery, budget_utilisation, binding_constraints (key + params) | Reproducible from `input_versions` |
 | scenario_sensitivity | New | scenario_id, constraint_key, delta, cost_impact | Top N binding constraints only |
 | lot_acquisition_costs | New | id, variant_id, lot (batch_number), received_at, quantity, unit_cost EUR, source (confirmed_order/receipt_correction), source_ref, recorded_by, revision | Append-only; unit_cost ≥ 0; never taken from ERP movement price (PVP); feeds inventory value and the median suggestion; changes emit `procurement.lot_cost.changed.v1` |
-| cost_write_requests | Extend | + median_cost, + median_lot_refs | The released value is always the median; release, fresh MFA and writer checks unchanged |
+| cost_write_requests | Extend | + median_cost, + median_lot_refs, + pvp_used, + margin_before, + margin_after, + rule_flags, + override_value, + override_reason, + override_by, + override_at | The released value is always the median; release, fresh MFA and writer checks unchanged |
 | user_roles | Existing | mirror of BFF roles | Written only through the internal endpoint |
 | proposals / proposal_lines | Extend | + scenario_id (nullable), + terms_version_ids, + policy_version_ids, + dataset_version_id | Every proposal records versions used (FR-026) |
 

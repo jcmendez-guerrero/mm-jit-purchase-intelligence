@@ -49,7 +49,7 @@ All items are decisions taken from the authoritative sources, the existing archi
 - **Decision**: procurement owns an append-only `lot_acquisition_costs` record; it emits an event that inventory projects for valuation; the median is computed in procurement and is always the value attached to the cost-write request.
 - **Rationale**: the ERP exposes PVP in movements and a single unit cost per supplier, so true per-lot acquisition cost exists nowhere else; procurement already owns cost versions, confirmed orders and receipt matching.
 - **Alternatives**: use ERP movement price (it is PVP, wrong); use the ERP supplier cost for all lots (loses lot differences); compute in inventory (cost data belongs to procurement).
-- **Decided 2026-11-05**: costs enter automatically from the confirmed order cost when the receipt is matched; the buyer may correct a lot cost on arrival (audited). No file import. The ERP value is always the median. Margin rules apply (pending clarification of their action).
+- **Decided 2026-11-05**: costs enter automatically from the confirmed order cost when the receipt is matched; the buyer may correct a lot cost on arrival (audited). No file import. The ERP value is always the median. Margin rules (FR-043) flag, and block below 15% unless an admin overrides with a reason (FR-044). **Verify**: the source and freshness of the selling price (PVP) in collected ERP data, and that stock-movement `unit_cost` from 001 is actually PVP; constitution Principle I names the buyer as the actor, so confirm in planning that an admin-set value inside the same review, MFA and audit chain is within it, or amend the principle.
 
 ## R8. Concurrency and versioning
 
