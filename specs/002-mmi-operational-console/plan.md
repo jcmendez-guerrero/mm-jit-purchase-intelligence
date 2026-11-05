@@ -7,7 +7,7 @@
 ## Summary
 
 Turn the 001 pipeline into a buyer-operated console without rewriting it. The work is mostly additive:
-(1) close the PR #1 approval and security blockers (durable roles mirrored to procurement, review of the
+(0) acquisition-cost basis: an MMI-owned per-lot cost ledger drives inventory value and the median cost sent to the ERP, with margin checks and an admin override; (1) close the PR #1 approval and security blockers (durable roles mirrored to procurement, review of the
 second-agent web/BFF code); (2) extend the data each service already owns: procurement gains the missing
 supplier terms, product-supplier overrides, purchase policies and scenarios; forecast gains seed datasets,
 the import pipeline and editable model parameters; inventory gains aggregate read models; (3) add
@@ -125,7 +125,7 @@ infra/                          ADD     storage container + lifecycle (Bicep), c
 |-------|-------|---------------|-----------|
 | 0 Blockers | Durable BFF roles in `bff` schema; mirror to procurement with outbox/retry; two-approver, separation and fresh-MFA proven in compose; review of commit 3a664a0 with findings fixed or recorded; track 001 gates (V6, V7, 429, threat model, cost review, smoke test) | US1; FR-001..004 | Full-stack approval survives BFF restart |
 | 1 Contracts and migrations | JSON Schemas, BFF OpenAPI delta, event and error-key catalogue, compatibility baseline; migrations (up/down) for all new tables; ADRs 018–020 | all; FR-036 | Contract and PG migration tests green |
-| 2 Supplier and policy CRUD | Terms and overrides services + routes + UI; policy sets + preview + revisions + UI; allocation consumes terms; audit | US3, US4; FR-010..019 | Edit → reload → next proposal uses it; ERP untouched |
+| 2 Supplier and policy CRUD | Terms and overrides services + routes + UI; lot-cost ledger, median cost request, margin evaluator and admin override (FR-040..044); policy sets + preview + revisions + UI; allocation consumes terms; audit | US3, US4; FR-010..019, FR-040..044 | Edit → reload → next proposal uses it; ERP untouched |
 | 3 Import pipeline | Upload hardening, parser, mapping, validation, quarantine, dry-run diff/backtest, activation/rollback, forecast run versioning, UI wizard | US5; FR-020..027 | Upload → activate → run → rollback end to end; malicious files refused |
 | 4 Analytics | Aggregate read models, dashboard endpoints, charts, filters, drill-down, product detail, accessible alternatives | US2; FR-005..009 | KPIs equal reference totals; a11y clean |
 | 5 Scenarios | Scenario engine, comparison, sensitivity, explanations, promotion, exports | US6; FR-028..032 | Constraint changes alter allocations with reasons |
