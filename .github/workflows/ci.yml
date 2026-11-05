@@ -128,7 +128,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: Decide whether this target is affected
         id: scope
         env:
@@ -214,7 +214,7 @@ jobs:
           output: sbom.cdx.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with: { name: sbom, path: sbom.cdx.json }
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: pip-audit on service dependencies
         run: |
           uv venv --python 3.12 && . .venv/bin/activate
@@ -237,7 +237,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: |
           uv venv --python 3.12 && . .venv/bin/activate
           uv pip install pytest pyyaml -e packages/contracts   # test_packaging validates an envelope from the built wheel
@@ -252,7 +252,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: Install
         run: |
           uv venv --python 3.12
@@ -279,6 +279,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - run: uv venv --python 3.12 && uv pip install pytest
       - run: . .venv/bin/activate && RUN_E2E=1 pytest -q infra/tests/test_pipeline_e2e.py
