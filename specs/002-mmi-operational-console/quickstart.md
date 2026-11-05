@@ -27,7 +27,8 @@ This loads the synthetic ERP mock and runs the existing pipeline.
 4. **Seed import (US5, SC-002/005)**: download the Spanish template; upload the synthetic valid CSV and XLSX from `packages/testing`; map, preview, validate; check that invalid rows are quarantined with Spanish reasons; view the dry-run; activate; see a forecast run referencing the dataset; roll back; confirm ERP movements are unchanged. Upload the hostile fixtures (macro workbook, wrong signature, oversized, formula cells) and confirm refusal or neutralisation.
 5. **Dashboard (US2, SC-003/004)**: open the dashboard; check KPI values against the reference totals, filters from live options, drill-down to a variant, loading/empty/error/stale states, and the table alternative of each chart.
 6. **Scenarios (US6, SC-008)**: create scenarios changing MOQ, lead time, shipping, pack multiple and budget; confirm allocations change with stated reasons; promote one and approve it; export CSV/XLSX and open it safely.
-7. **Admin and cost (US7, SC-011)**: view sync/import/model status, rerun a failed import idempotently, run the cost-guardrail test.
+7. **Cost update and margin (US3, SC-012)**: receive a synthetic order with lots at different costs, check the median and the lots behind it, a margin below 15% blocked, an admin override with tips and reason, and that the ERP mock receives only the allowed PUT.
+8. **Admin and cost (US7, SC-011)**: view sync/import/model status, rerun a failed import idempotently, run the cost-guardrail test.
 
 ## Automated suites
 

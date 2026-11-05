@@ -46,7 +46,7 @@ Technical approach and rejected alternatives are in [research.md](research.md). 
 
 | Principle | Gate | Status |
 |-----------|------|--------|
-| I. Least-privilege integrations | No new ERP call. Terms, policies, seeds, scenarios are local. The cost writer, its allowlist and MFA release are untouched. Tests prove no new path reaches the connector or writer. | PASS |
+| I. Least-privilege integrations | **Condition (task T148)**: the ERP value is now the median of lot costs, or an admin-set value, inside the same review, MFA, audit and writer chain; Principle I names the buyer as the one who enters or confirms the cost, so the wording must be reconciled in a separate reviewed change before implementation. No new ERP call. Terms, policies, seeds, scenarios are local. The cost writer, its allowlist and MFA release are untouched. Tests prove no new path reaches the connector or writer. | PASS |
 | II. Privacy & synthetic data | Seed templates and fixtures are synthetic; import ignores notes and tax identifiers and stores only `has_note`; no real files in the repository; retention for quarantined uploads defined. | PASS |
 | III. Explainable, human-controlled purchasing | Scenarios are computed, never auto-applied; promotion creates a normal proposal needing a different approver with fresh MFA; every run records dataset, policy and terms versions; Decimal money. | PASS |
 | IV. Contract-first | JSON Schemas and the BFF OpenAPI delta are written first; each service owns its tables and migrations; the BFF holds only identity data (roles) in its own schema and no business rules; role mirroring uses the authenticated internal endpoint with an outbox. | PASS |
@@ -97,10 +97,11 @@ services/api-bff/
 services/procurement-service/
 ├── src/terms/                  EXTEND  full terms, effective-dated versions, product overrides, precedence
 ├── src/allocation/             EXTEND  consume terms (lead time, pack multiples, discounts, validity, disable)
+├── src/costs/                  EXTEND  lot acquisition cost ledger, median, margin evaluator, admin override
 ├── src/policies/               NEW     purchase policy sets (service levels, budget, cadence, min/max)
 ├── src/scenarios/              NEW     what-if computation, comparison, sensitivity, promotion
 ├── src/users/                  REUSE   role mirror endpoint (already present)
-├── migrations/                 ADD     0005 terms+overrides, 0006 policies, 0007 scenarios
+├── migrations/                 ADD     0005 terms+overrides, 0006 policies, 0007 scenarios, 0008 lot acquisition costs and margin fields
 services/forecast-service/
 ├── src/seeds/                  NEW     datasets, parsing, mapping, validation, activation, rollback
 ├── src/api.py                  EXTEND  runs, variants, imports, parameters, accuracy

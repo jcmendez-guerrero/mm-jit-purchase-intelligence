@@ -15,5 +15,7 @@ The BFF only orchestrates. Each route below is owned by one service, uses audien
 | forecast | GET `/runs`, GET `/variants/{id}`, GET `/accuracy` | New/Extend | `/forecasts/latest` retained |
 | inventory | GET `/dashboard/{summary,demand-trend,abc-xyz,risks}`, GET `/filters/options` | New/Extend | `/dashboard/risk` retained |
 | inventory | GET/PUT `/config/demand-rules` | New | Exclusions and censoring rules |
+| procurement | GET/PUT `/costs/lots`, GET `/costs/{id}/median`, POST `/costs/{id}/override` | New | Lot-cost ledger and correction, median with its entries, margin check, admin override |
+| inventory | PUT `/products/{id}/criticality` | Existing | Reused by the policy console |
 | api-bff | all routes in `bff-api.delta.openapi.yaml` | New | Roles stored in `bff` schema |
 | siweb-connector, siweb-cost-writer | none | Unchanged | Tests assert no new path or method |

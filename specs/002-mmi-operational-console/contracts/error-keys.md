@@ -23,3 +23,9 @@ Keys are English identifiers; messages are Spanish in `apps/web` and service loc
 | import.mixed_origin | 409 | Synthetic and real data in one dataset |
 | import.duplicate_file | 409 | Same checksum already uploaded; explicit decision needed |
 | scenario.infeasible | 200 | Result explains shortfall causes |
+| margin.below_minimum | 409 | Margin after the update would be below 15%; release blocked unless an admin overrides |
+| margin.pvp_unavailable | 409 | Selling price missing or stale; margin check unavailable |
+| margin.above_maximum | 200 (flag) | Margin above its maximum; informational |
+| cost.no_entries_in_stock | 409 | No lot entry with remaining stock; no update request is created |
+| override.admin_required | 403 | Only an admin may replace the median |
+| override.reason_required | 422 | An override needs a reason |

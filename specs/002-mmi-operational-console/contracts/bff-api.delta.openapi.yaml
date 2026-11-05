@@ -68,6 +68,13 @@ paths:
     post: {tags: [procurement], summary: Create a draft proposal from the scenario; normal approval workflow follows}
   /procurement/scenarios/{id}/export:
     get: {tags: [procurement], summary: CSV or Excel export, Spanish, formula-injection safe, parameters: [{name: format, in: query, schema: {type: string, enum: [csv, xlsx]}}]}
+  /costs/lots:
+    get: {tags: [procurement], summary: Lot acquisition cost entries for a product-supplier pair with remaining quantity}
+    put: {tags: [procurement], summary: Buyer corrects a lot acquisition cost on arrival; audited; If-Match required}
+  /costs/{id}/median:
+    get: {tags: [procurement], summary: Median value, entries used, PVP, margin before/after and rule flags for a cost-update request}
+  /costs/{id}/override:
+    post: {tags: [procurement], summary: Admin sets a cost of their own with a reason; audited; still requires buyer review and fresh MFA}
   /admin/roles:
     get: {tags: [admin], summary: Roles and mirror status}
     put: {tags: [admin], summary: Change roles (admin only); audited; mirrored with visible retry}
