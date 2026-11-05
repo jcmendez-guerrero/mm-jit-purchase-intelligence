@@ -1,0 +1,284 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linting:
+    name: Linting
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # The web app uses npm (apps/web/package-lock.json) and is linted by the `web` job with its own ESLint config,
+      # so super-linter does not repeat that and no pnpm workspace is needed here.
+
+      - name: Super-linter
+        uses: super-linter/super-linter@2da136927bd4a73596db63044b504547c62cb854 # v9.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_ALL_CODEBASE: false
+          # Infrastructure is Bicep (checked by `az bicep build` and the infra tests); there is no Terraform in this repository.
+          VALIDATE_TERRAFORM_TFLINT: false
+          VALIDATE_TERRAFORM_FMT: false
+          VALIDATE_TERRAGRUNT: false
+          VALIDATE_JSCPD: false
+          VALIDATE_CHECKOV: false
+          VALIDATE_CLOUDFORMATION: false
+          VALIDATE_NATURAL_LANGUAGE: false
+          VALIDATE_MARKDOWN_PRETTIER: false
+          FIX_YAML_PRETTIER: true
+          VALIDATE_BIOME_LINT: false
+          VALIDATE_BIOME_FORMAT: false
+          VALIDATE_TRIVY: false
+          FILTER_REGEX_EXCLUDE: (.*github/linters.*|.*CHANGELOG.md.*|.*specify/.*|.*apps/api/openapi\.json|.*\.agents/.*|.*\.claude/.*|.*github/agents/.*|.*github/skills/.*|.*github/prompts/.*)
+          # Python is checked by ruff and the web app by its own ESLint config in the `python` and `web` jobs (line length 120,
+          # project rules); repeating them here with default settings only produces conflicting findings.
+          VALIDATE_PYTHON_BLACK: false
+          VALIDATE_PYTHON_FLAKE8: false
+          VALIDATE_PYTHON_ISORT: false
+          VALIDATE_PYTHON_MYPY: false
+          VALIDATE_PYTHON_PYLINT: false
+          VALIDATE_JAVASCRIPT_ES: false
+          VALIDATE_JAVASCRIPT_PRETTIER: false
+          VALIDATE_TYPESCRIPT_ES: false
+          VALIDATE_TYPESCRIPT_PRETTIER: false
+          VALIDATE_JSX: false
+          VALIDATE_TSX: false
+          VALIDATE_SPELL_CODESPELL: false
+          VALIDATE_PYTHON_RUFF: false
+          VALIDATE_PYTHON_RUFF_FORMAT: false
+          SAVE_SUPER_LINTER_SUMMARY: true
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      contracts: ${{ steps.f.outputs.contracts }}
+      testing: ${{ steps.f.outputs.testing }}
+      web: ${{ steps.f.outputs.web }}
+      infra: ${{ steps.f.outputs.infra }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: f
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
+        with:
+          filters: |
+            contracts: ['packages/contracts/**']
+            testing: ['packages/testing/**']
+            web: ['apps/web/**']
+            infra: ['infra/**', '.github/workflows/**']
+            siweb-connector: ['services/siweb-connector/**']
+            siweb-cost-writer: ['services/siweb-cost-writer/**']
+            inventory-service: ['services/inventory-service/**']
+            forecast-service: ['services/forecast-service/**']
+            procurement-service: ['services/procurement-service/**']
+            api-bff: ['services/api-bff/**']
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  python:
+    needs: changes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - packages/contracts
+          - packages/testing
+          - services/siweb-connector
+          - services/siweb-cost-writer
+          - services/inventory-service
+          - services/forecast-service
+          - services/procurement-service
+          - services/api-bff
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - name: Decide whether this target is affected
+        id: scope
+        env:
+          TARGET: ${{ matrix.target }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          base="$BASE_SHA"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then echo run=true >> "$GITHUB_OUTPUT"; exit 0; fi
+          changed=$(git diff --name-only "$base" HEAD || true)
+          # Own files, shared contracts (downstream validation) or shared tooling re-run the target.
+          if echo "$changed" | grep -qE "^($TARGET/|packages/contracts/|packages/testing/|pyproject.toml)"; then echo run=true >> "$GITHUB_OUTPUT"; else echo run=false >> "$GITHUB_OUTPUT"; fi
+        # shallow clones need history for the diff
+      - if: steps.scope.outputs.run == 'true'
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          uv venv --python 3.12
+          uv pip install -e packages/contracts -e packages/testing pytest pytest-asyncio hypothesis pyyaml openpyxl ruff mypy
+          if [ -f "$TARGET/pyproject.toml" ] && [[ "$TARGET" == services/* ]]; then uv pip install -r <(python3 - <<'EOF'
+          import os, tomllib
+          for d in tomllib.load(open(os.environ["TARGET"] + "/pyproject.toml","rb"))["project"]["dependencies"]:
+              if not d.startswith("mmi-"): print(d)
+          EOF
+          ); fi
+      - if: steps.scope.outputs.run == 'true'
+        run: |
+          . .venv/bin/activate
+          ruff check ${{ matrix.target }}
+          cd ${{ matrix.target }} && pytest -q
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/web } }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: { node-version: 20 }
+      - run: npm install --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test --if-present
+      - run: npm run build
+
+  bicep:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+
+  security-scans:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Trivy filesystem scan (vulnerabilities, misconfiguration)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: cyclonedx
+          output: sbom.cdx.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with: { name: sbom, path: sbom.cdx.json }
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - name: pip-audit on service dependencies
+        run: |
+          uv venv --python 3.12 && . .venv/bin/activate
+          uv pip install pip-audit
+          for f in services/*/pyproject.toml packages/*/pyproject.toml; do
+            python - "$f" <<'EOF' >> /tmp/reqs.txt
+          import sys, tomllib
+          for d in tomllib.load(open(sys.argv[1], "rb"))["project"]["dependencies"]:
+              if not d.startswith("mmi-"): print(d)
+          EOF
+          done
+          sort -u /tmp/reqs.txt > /tmp/reqs-unique.txt
+          pip-audit -r /tmp/reqs-unique.txt --no-deps --disable-pip || pip-audit -r /tmp/reqs-unique.txt
+
+  compose-smoke:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true' || needs.changes.outputs.contracts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - run: |
+          uv venv --python 3.12 && . .venv/bin/activate
+          uv pip install pytest pyyaml -e packages/contracts   # test_packaging validates an envelope from the built wheel
+          RUN_COMPOSE_SMOKE=1 pytest -q infra/tests
+
+  # T152 / T153: real PostgreSQL migrations (including the immutability triggers) and the Azure adapters against Azurite.
+  emulators:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true' || needs.changes.outputs.contracts == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - name: Install
+        run: |
+          uv venv --python 3.12
+          uv pip install -e packages/contracts -e packages/testing pytest pyyaml "psycopg[binary]" alembic sqlalchemy azure-storage-queue azure-storage-blob \
+            fastapi httpx pydantic hypothesis openpyxl
+      - name: Migrations on PostgreSQL
+        run: . .venv/bin/activate && RUN_PG_MIGRATIONS=1 pytest -q infra/tests/test_migrations_postgres.py
+      - name: Azure adapters on Azurite
+        run: |
+          . .venv/bin/activate
+          RUN_AZURITE=1 pytest -q packages/contracts/tests/test_azurite_bus.py
+          (cd services/siweb-connector && uv pip install -r <(python3 -c "import tomllib;print('\n'.join(d for d in tomllib.load(open('pyproject.toml','rb'))['project']['dependencies'] if not d.startswith('mmi-')))") && RUN_AZURITE=1 pytest -q tests/integration/test_azurite_blob.py)
+          (cd services/inventory-service && RUN_AZURITE=1 pytest -q tests/test_azurite_reader.py)
+      - name: Routing, error-code and storage-policy contract tests
+        run: . .venv/bin/activate && pytest -q infra/tests/test_event_routing.py infra/tests/test_error_codes.py infra/tests/test_storage_policy.py
+
+  # T146 / T152: the whole pipeline in containers (minutes, about 1.5 GiB): on pushes to main only.
+  pipeline-e2e:
+    needs: changes
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@b75a909f75acd358c2196fb9a5f1299a9a8868a4 # v6.7.0
+      - run: uv venv --python 3.12 && uv pip install pytest
+      - run: . .venv/bin/activate && RUN_E2E=1 pytest -q infra/tests/test_pipeline_e2e.py

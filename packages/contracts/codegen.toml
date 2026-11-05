@@ -1,0 +1,20 @@
+# Code generation from JSON Schema (single source of truth). Run: python packages/contracts/tools/codegen.py
+# Generated output is committed so services need no generator at build time; CI regenerates and diffs.
+
+[python]
+tool = "datamodel-code-generator"
+input_dirs = ["events", "dto"]
+output_dir = "python/mmi_models"
+args = [
+  "--input-file-type", "jsonschema",
+  "--output-model-type", "pydantic_v2.BaseModel",
+  "--target-python-version", "3.12",
+  "--use-annotated",
+  "--disable-timestamp",
+  "--use-standard-collections",
+]
+
+[typescript]
+tool = "json-schema-to-typescript"   # npm package, run from apps/web
+input_dirs = ["events", "dto"]
+output_dir = "../../apps/web/src/api/generated"

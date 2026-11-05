@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/supplier_cost.v1",
+  "title": "SupplierCost",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "product_id",
+    "supplier_id",
+    "version",
+    "cost_with_recargo",
+    "source",
+    "verified_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "product_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "supplier_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "variant_id": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "cost_net": {
+      "$ref": "money.v1.schema.json"
+    },
+    "recargo_rate": {
+      "type": "string",
+      "pattern": "^0(\\.[0-9]+)?$"
+    },
+    "cost_with_recargo": {
+      "$ref": "money.v1.schema.json"
+    },
+    "entered_includes_recargo": {
+      "type": "boolean"
+    },
+    "source": {
+      "enum": ["siweb_product_supplier", "csv_price_list", "manual"]
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "stale": {
+      "type": "boolean"
+    },
+    "blocked_jump": {
+      "type": "boolean"
+    },
+    "lead_time_days": {
+      "type": ["integer", "null"]
+    },
+    "min_order_qty": {
+      "type": ["integer", "null"]
+    }
+  }
+}

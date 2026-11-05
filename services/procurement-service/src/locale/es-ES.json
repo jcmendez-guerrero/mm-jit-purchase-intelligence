@@ -1,0 +1,13 @@
+{
+  "export.sheet": "Pedido",
+  "export.supplier": "Proveedor",
+  "export.sku": "Referencia",
+  "export.product": "Producto",
+  "export.variant": "Variante (ID Siweb)",
+  "export.qty": "Cantidad",
+  "export.unit_cost": "Coste unitario (EUR)",
+  "export.line_total": "Total línea (EUR)",
+  "export.expected_delivery": "Entrega prevista",
+  "export.supplier_total": "Total pedido (EUR)",
+  "export.delivery_charge": "Gastos de envío (EUR)"
+}

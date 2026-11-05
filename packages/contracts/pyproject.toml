@@ -1,0 +1,32 @@
+[project]
+name = "mmi-contracts"
+version = "0.1.0"
+description = "JSON Schema contracts, generated models and shared helpers (mmi_common)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "pydantic>=2.8",
+  "jsonschema>=4.23",
+  "referencing>=0.35",
+  "sqlalchemy>=2.0",
+  "PyJWT>=2.9",
+  "cryptography>=43",
+  "azure-storage-queue>=12.11",
+  "fastapi>=0.115",
+  "httpx>=0.27",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/mmi_common", "python/mmi_models"]
+
+# The event schemas are the runtime contract (envelope validation): they must travel with the installed package.
+[tool.hatch.build.targets.wheel.force-include]
+"events" = "mmi_common/schemas/events"
+"dto" = "mmi_common/schemas/dto"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["python"]

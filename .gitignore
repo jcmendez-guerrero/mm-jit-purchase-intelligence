@@ -3,6 +3,11 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Node / Frontend
+node_modules/
+.npm
+
+
 # C extensions
 *.so
 
@@ -218,3 +223,25 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Mundo Mascotix: real business data and secrets never enter this public repo ---
+# Real exports / samples stay on the local machine (synthetic fixtures live in packages/testing).
+*.csv
+*.xlsx
+*.xls
+*.har
+*.parquet
+*.duckdb
+/data/
+**/samples/real/
+!packages/testing/**/fixtures/**/*.csv
+!packages/testing/**/fixtures/**/*.xlsx
+!*.example
+# Environment-specific IaC parameters (commit only *.example)
+*.bicepparam
+!*.bicepparam.example
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+.env.*
+!.env.example

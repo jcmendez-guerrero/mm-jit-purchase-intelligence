@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/proposal_line.v1",
+  "title": "ProposalLine",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "variant_id",
+    "supplier_id",
+    "qty",
+    "unit_cost_with_recargo",
+    "explanation"
+  ],
+  "properties": {
+    "variant_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "supplier_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "qty": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unit_cost_with_recargo": {
+      "$ref": "money.v1.schema.json"
+    },
+    "line_total": {
+      "$ref": "money.v1.schema.json"
+    },
+    "policy_used": {
+      "type": "string"
+    },
+    "safety_stock": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "risk": {
+      "enum": ["low", "medium", "high"]
+    },
+    "confidence": {
+      "enum": ["low", "medium", "high"]
+    },
+    "manual_override": {
+      "type": "boolean"
+    },
+    "explanation": {
+      "type": "object",
+      "description": "Structured explanation; es-ES text is rendered from it"
+    }
+  }
+}

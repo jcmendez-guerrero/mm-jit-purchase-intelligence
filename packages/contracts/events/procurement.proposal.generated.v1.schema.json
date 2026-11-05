@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/procurement.proposal.generated.v1",
+  "title": "ProposalGenerated",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "procurement.proposal.generated.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_id", "week", "version"],
+      "properties": {
+        "proposal_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "week": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer"
+        }
+      },
+      "description": "Document stored at payload_ref.uri; the envelope sha256 covers its bytes."
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/proposal.v1",
+  "title": "Proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "week", "status", "version", "lines"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "week": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-W[0-9]{2}$"
+    },
+    "status": {
+      "enum": ["draft", "submitted", "approved", "exported", "superseded"]
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "inputs_hash": {
+      "type": "string"
+    },
+    "created_by": {
+      "type": "string"
+    },
+    "last_edited_by": {
+      "type": "string"
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "$ref": "proposal_line.v1.schema.json"
+      }
+    }
+  }
+}
