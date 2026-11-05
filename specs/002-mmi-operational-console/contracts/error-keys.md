@@ -29,3 +29,6 @@ Keys are English identifiers; messages are Spanish in `apps/web` and service loc
 | cost.no_entries_in_stock | 409 | No lot entry with remaining stock; no update request is created |
 | override.admin_required | 403 | Only an admin may replace the median |
 | override.reason_required | 422 | An override needs a reason |
+| policy.override_requires_approval | 202 | Override saved as pending; the recommendation stays in force |
+| policy.override_self_approval | 403 | The requester cannot approve their own override |
+| stocking.floor_required | 422 | An always-stocked product needs a floor of at least 1 |

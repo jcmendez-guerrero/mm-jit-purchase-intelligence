@@ -7,6 +7,8 @@ The BFF only orchestrates. Each route below is owned by one service, uses audien
 | procurement | GET/PUT `/suppliers/{id}/terms` | Extend | Add fields; If-Match; as_of |
 | procurement | GET/PUT `/product-suppliers/{variant}/{supplier}/terms` | New | Overrides, precedence, conflicts |
 | procurement | GET/PUT `/config/policies/purchase`, POST `.../preview` | New | Supersedes `/service-levels` ownership (ADR-018) |
+| procurement | GET/PUT `/config/stocking/{variant}`, GET/POST `/config/policy-overrides`, POST `.../{id}/{approve,reject,revert}` | New | Always-stocked floor; recommended vs effective safety stock; override requests with approval |
+| inventory | GET `/products/{variant}/segment-history` | New | Category change history with reasons |
 | procurement | GET/POST `/scenarios`, GET `/scenarios/{id}`, POST `.../promote`, GET `.../export` | New | Reuses allocation engine in no-write mode |
 | procurement | PUT `/internal/users/{id}/roles` | Existing | Called by the BFF relay |
 | procurement | GET `/summary/spend` | New | Proposed spend KPI |

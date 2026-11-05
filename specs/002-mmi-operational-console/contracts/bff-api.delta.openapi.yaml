@@ -36,6 +36,16 @@ paths:
   /config/policies:
     get: {tags: [config], summary: Policy sections (purchase, forecast, demand rules) each with its own revision}
     put: {tags: [config], summary: Save one section; If-Match required; supports valid_from}
+  /config/stocking/{variantId}:
+    get: {tags: [config], summary: Stocking mode, floor, recommended and effective safety stock for a product}
+    put: {tags: [config], summary: Set stocking mode and floor; If-Match required}
+  /config/policy-overrides:
+    get: {tags: [config], summary: Override requests with status}
+    post: {tags: [config], summary: Request an override of a recommended safety stock, min or max, with reason}
+  /config/policy-overrides/{id}/approve:
+    post: {tags: [config], summary: Approve (approver role, not the requester)}
+  /config/policy-overrides/{id}/reject:
+    post: {tags: [config], summary: Reject with reason}
   /config/policies/preview:
     post: {tags: [config], summary: Preview affected products and effect of a draft change without saving}
   /forecast/imports:

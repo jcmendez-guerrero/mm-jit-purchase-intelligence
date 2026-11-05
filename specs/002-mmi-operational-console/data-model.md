@@ -19,6 +19,8 @@ Conventions are those of 001: UUID `id`, UTC timestamps plus original strings wh
 | terms_conflicts | New (derived view/table) | variant_id, supplier_id, field, erp_value, local_value, winner, detected_at | Shown with conflict badge; no silent override |
 | (inventory) products.clinical_critical | Existing | variant/product flag set through `PUT /products/{id}/criticality` | Shown and edited in the policy console; stays in inventory |
 | policy_sets | New | id, scope (global/segment/product), key, service_level, safety_stock_units, min_units, max_units, replenishment_cadence_days, valid_from, valid_to, revision, changed_by | Ranges validated; supersedes `service-levels` ownership (R2) via migration |
+| stocking_settings | New | variant_id, stocking_mode (standard/always_stocked/on_request), min_floor_units, revision, changed_by, valid_from | Floor ≥ 0; always_stocked requires floor ≥ 1; audited |
+| policy_override_requests | New | id, variant_id, field (safety_stock/min/max), recommended_value, requested_value, reason, requested_by, status (pending/approved/rejected/reverted), decided_by, decided_at, recommendation_changed (bool) | decided_by must differ from requested_by and hold the approver role; value applies only when approved |
 | budget_caps | New | id, period (week/month), scope (global/supplier/category), amount EUR, valid_from, valid_to, revision | Clinical-critical needs shown if cap insufficient |
 | scenarios | New | id, name, base_run_ref, parameters (budget, disabled suppliers, terms deltas, service-level deltas), status (computing/ready/failed/promoted), created_by, input_versions (terms, policy, dataset ids), result_hash, created_at | Never writes live tables |
 | scenario_results | New | scenario_id, supplier_id, lines (variant, qty, unit_cost, discount, shipping), order_total, expected_delivery, budget_utilisation, binding_constraints (key + params) | Reproducible from `input_versions` |
@@ -48,6 +50,7 @@ Conventions are those of 001: UUID `id`, UTC timestamps plus original strings wh
 | demand_exclusions | New | id, variant_id (nullable = all), from_day, to_day, reason, revision, changed_by | Excluded days not used by forecast; reversible; audited |
 | censoring_rules | New | id, rule (e.g. min consecutive zero-stock days), value, valid_from, revision | Replaces fixed constants |
 | lot_cost_projection | New | variant_id, lot, unit_cost, source, updated_at | Read-only copy fed by procurement events; no cross-schema SQL |
+| segment_history | New | variant_id, changed_at, abc, xyz, pattern, critical, reason_key, run_id | Append-only; shown on product detail |
 | agg_daily_kpis | New | day, warehouse_id (nullable), category_id (nullable), supplier_id (nullable), inventory_value (quantity per lot × lot acquisition cost), valued_with_estimate_count, coverage_days_avg, stockout_risk_count, expiring_value, refreshed_at | Refreshed by existing worker pass |
 | agg_demand_trend | New | day, variant_id/segment key, actual_qty, forecast_mean, forecast_low, forecast_high | Actual from ERP only; estimates labelled separately |
 | agg_abc_xyz | New | day, abc, xyz, variant_count, value | Distribution chart |
