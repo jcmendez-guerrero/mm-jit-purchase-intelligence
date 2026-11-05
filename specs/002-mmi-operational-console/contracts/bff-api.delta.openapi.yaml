@@ -1,0 +1,87 @@
+openapi: 3.0.3
+info:
+  title: Mundo Mascotix Intelligence — BFF API delta for MMI 002
+  version: 0.2.0
+  description: >
+    Design-first delta over specs/001-mmi-purchase-intelligence/contracts/bff-api.openapi.yaml.
+    Logical contract: reconcile names with existing routes in Phase 1; do not duplicate them.
+    Cookie session; CSRF token on mutations; roles enforced at the BFF and again by the owning service.
+    Errors return stable keys (see error-keys.md); the SPA localises to es-ES.
+    Money is a decimal string; timestamps are UTC RFC 3339. Lists are paginated server-side (page, page_size, total).
+    Mutations on revisioned resources require If-Match with the revision; mismatch returns 412 with the current version.
+servers: [{url: /api}]
+security: [{session: []}]
+tags: [{name: dashboard}, {name: suppliers}, {name: config}, {name: forecast}, {name: procurement}, {name: admin}]
+paths:
+  /dashboard/summary:
+    get: {tags: [dashboard], summary: KPI cards (inventory value, coverage days, risk count/expiring value, proposed spend), parameters: [{$ref: '#/components/parameters/DateFrom'}, {$ref: '#/components/parameters/DateTo'}, {$ref: '#/components/parameters/WarehouseId'}, {$ref: '#/components/parameters/CategoryId'}, {$ref: '#/components/parameters/SupplierId'}], responses: {"200": {description: Summary with refreshed_at and per-card source}}}
+  /dashboard/demand-trend:
+    get: {tags: [dashboard], summary: Actual vs forecast with uncertainty band; actual ERP and imported estimates are separate series}
+  /dashboard/abc-xyz:
+    get: {tags: [dashboard], summary: ABC/XYZ distribution with drill-down keys}
+  /dashboard/risks:
+    get: {tags: [dashboard], summary: Stockout and expiry risks, paginated, drill-down to variant}
+  /dashboard/forecast-accuracy:
+    get: {tags: [dashboard], summary: Accuracy by segment and window}
+  /filters/options:
+    get: {tags: [dashboard], summary: Live warehouses, categories and suppliers; replaces any hard-coded list}
+  /suppliers:
+    get: {tags: [suppliers], summary: List/search suppliers with current terms summary (paginated)}
+  /suppliers/{supplierId}/terms:
+    get: {tags: [suppliers], summary: Current and historical term versions, parameters: [{name: as_of, in: query, schema: {type: string, format: date}}]}
+    put: {tags: [suppliers], summary: Save a new effective-dated terms version, description: Requires If-Match; roles buyer or admin; no ERP request}
+  /product-suppliers/{variantId}/{supplierId}/terms:
+    get: {tags: [suppliers], summary: Override versions and effective value with precedence and conflicts}
+    put: {tags: [suppliers], summary: Save an override version; nullable fields inherit}
+  /config/policies:
+    get: {tags: [config], summary: Policy sections (purchase, forecast, demand rules) each with its own revision}
+    put: {tags: [config], summary: Save one section; If-Match required; supports valid_from}
+  /config/policies/preview:
+    post: {tags: [config], summary: Preview affected products and effect of a draft change without saving}
+  /forecast/imports:
+    get: {tags: [forecast], summary: List import datasets with status}
+    post: {tags: [forecast], summary: Multipart upload (CSV/XLSX); size and signature enforced; creates dataset in uploaded state}
+  /forecast/imports/template:
+    get: {tags: [forecast], summary: Download Spanish template (CSV or XLSX)}
+  /forecast/imports/{id}/preview:
+    get: {tags: [forecast], summary: First rows, detected columns and suggested mapping}
+  /forecast/imports/{id}/mapping:
+    put: {tags: [forecast], summary: Save column mapping (optionally as a reusable named mapping)}
+  /forecast/imports/{id}/validate:
+    post: {tags: [forecast], summary: Run row-level validation; returns counts and quarantine page, idempotent}
+  /forecast/imports/{id}/dry-run:
+    get: {tags: [forecast], summary: Diff against active dataset and backtest comparison}
+  /forecast/imports/{id}/activate:
+    post: {tags: [forecast], summary: Atomic activation; buyer or admin; enqueues versioned forecast run}
+  /forecast/imports/{id}/rollback:
+    post: {tags: [forecast], summary: Restore previous active version atomically}
+  /forecast/runs:
+    get: {tags: [forecast], summary: Runs with dataset, parameter and policy versions}
+  /forecast/variants/{variantId}:
+    get: {tags: [forecast], summary: Forecast, uncertainty, and data used for one variant}
+  /procurement/scenarios:
+    get: {tags: [procurement], summary: List scenarios}
+    post: {tags: [procurement], summary: Create and compute a scenario; Idempotency-Key header required}
+  /procurement/scenarios/{id}:
+    get: {tags: [procurement], summary: Result per supplier, binding constraints, sensitivity, versions used}
+  /procurement/scenarios/{id}/promote:
+    post: {tags: [procurement], summary: Create a draft proposal from the scenario; normal approval workflow follows}
+  /procurement/scenarios/{id}/export:
+    get: {tags: [procurement], summary: CSV or Excel export, Spanish, formula-injection safe, parameters: [{name: format, in: query, schema: {type: string, enum: [csv, xlsx]}}]}
+  /admin/roles:
+    get: {tags: [admin], summary: Roles and mirror status}
+    put: {tags: [admin], summary: Change roles (admin only); audited; mirrored with visible retry}
+  /admin/status:
+    get: {tags: [admin], summary: Sync freshness, import jobs, model runs, role-mirror lag, cost indicators}
+  /admin/jobs/{kind}/rerun:
+    post: {tags: [admin], summary: Idempotent re-run of a permitted job; admin only}
+components:
+  parameters:
+    DateFrom: {name: date_from, in: query, schema: {type: string, format: date}}
+    DateTo: {name: date_to, in: query, schema: {type: string, format: date}}
+    WarehouseId: {name: warehouse_id, in: query, schema: {type: string}}
+    CategoryId: {name: category_id, in: query, schema: {type: string}}
+    SupplierId: {name: supplier_id, in: query, schema: {type: string}}
+  schemas:
+    Error: {type: object, required: [key], properties: {key: {type: string}, params: {type: object}, current: {type: object, description: Present on 412 conflicts}}}
+    Money: {type: string, pattern: '^-?\d+(\.\d{1,4})?$'}
