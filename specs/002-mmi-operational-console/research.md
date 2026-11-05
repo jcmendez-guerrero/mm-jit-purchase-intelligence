@@ -77,4 +77,4 @@ All items are decisions taken from the authoritative sources, the existing archi
 
 ## Open items carried from 001 (tracked, not decided here)
 
-V6 request-budget split, V7 loss-reason cutover, 429 behaviour, real lots/supplier-list shapes, threat model (T130), regional cost review (T133), compose smoke test (T152). Owner decisions are needed; defaults from 001 remain.
+V6 request-budget split, V7 loss-reason cutover, 429 behaviour, real lots/supplier-list shapes, threat model (001-T130), regional cost review (001-T133), compose smoke test (001-T152). Owner decisions are needed; defaults from 001 remain.
