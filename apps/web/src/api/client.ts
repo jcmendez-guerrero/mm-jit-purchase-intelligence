@@ -1,3 +1,4 @@
+import i18n from "../i18n";
 /**
  * Frontend API client communicating with api-bff.
  * Handles cookie session and passes X-CSRF-Token on mutating requests.
@@ -53,14 +54,44 @@ export interface ServiceLevelEntry {
   updated_by?: string;
 }
 
+export interface RolesListing {
+  users: Array<UserRoles & { active: boolean; revision: number }>;
+  eligible_approvers_count: number;
+  valid_roles: string[];
+}
+
+export interface RoleMirrorStatus {
+  pending: number;
+  failed: number;
+  sent: number;
+  oldest_pending_seconds: number;
+  items: Array<{ id: number; user_id: string; status: string; attempts: number; last_error_key: string | null }>;
+}
+
 export interface UserRoles {
   user_id: string;
   roles: string[];
 }
 
 /** The message of a caught value, or the fallback when it is not an Error. */
+/** An API refusal. ``code`` is the stable snake_case code services return; it is never shown to the user as it is. */
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+  ) {
+    super(code);
+    this.name = "ApiError";
+  }
+}
+
+/** The Spanish message for an error. Unknown codes and technical errors fall back to the generic message, never to raw text. */
 export function errorMessage(err: unknown, fallback: string): string {
-  return err instanceof Error && err.message ? err.message : fallback;
+  if (err instanceof ApiError) {
+    const key = `errors.${err.code}`;
+    if (i18n.exists(key)) return i18n.t(key);
+  }
+  return fallback;
 }
 
 export interface RiskItem {
@@ -148,8 +179,10 @@ export class ApiClient {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: response.statusText }));
-      throw new Error(err.detail || `Error HTTP ${response.status}`);
+      const err = await response.json().catch(() => ({}) as { detail?: unknown });
+      const detail = (err as { detail?: unknown }).detail;
+      const code = typeof detail === "string" && /^[a-z][a-z0-9_:]*$/.test(detail) ? detail : Array.isArray(detail) ? "request_invalid" : "unknown";
+      throw new ApiError(response.status, code);
     }
 
     if (response.status === 204) {
@@ -244,14 +277,22 @@ export class ApiClient {
     return this.request<{ history?: ServiceLevelEntry[] }>("/config/service-levels");
   }
 
-  async getRoles(): Promise<{ users?: UserRoles[] }> {
-    return this.request<{ users?: UserRoles[] }>("/admin/roles");
+  async getRoles(): Promise<RolesListing> {
+    return this.request<RolesListing>("/admin/roles");
   }
 
-  async updateRoles(userId: string, roles: string[]): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/admin/roles/${userId}`, {
+  async getRoleMirror(): Promise<RoleMirrorStatus> {
+    return this.request<RoleMirrorStatus>("/admin/roles/mirror");
+  }
+
+  async retryRoleMirror(): Promise<{ requeued: number }> {
+    return this.request<{ requeued: number }>("/admin/roles/mirror/retry", { method: "POST" });
+  }
+
+  async updateRoles(userId: string, roles: string[], active = true): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/admin/roles/${encodeURIComponent(userId)}`, {
       method: "PUT",
-      body: JSON.stringify({ roles }),
+      body: JSON.stringify({ roles, active }),
     });
   }
 }

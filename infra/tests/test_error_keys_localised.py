@@ -39,3 +39,15 @@ def test_messages_are_spanish_sentences():
         msg = WEB[f"errors.{code}"]
         assert msg[0].isupper() and msg.rstrip().endswith("."), code
         assert not re.search(r"\b(the|cannot|must|not allowed)\b", msg, re.I), f"English text in {code}"
+
+
+def test_every_code_procurement_emits_for_approvals_and_proposals_has_a_message():
+    """The codes services return are what users see (translated); a code missing from the catalogue would show the generic text."""
+    emitted: set[str] = set()
+    for path in (ROOT / "services/procurement-service/src").rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        emitted |= set(re.findall(r'ApprovalError\("([a-z_]+)"\)', text))
+        emitted |= set(re.findall(r'^\s+code = "([a-z_]+)"', text, re.M))
+    assert {"separation_of_duties", "no_eligible_approver", "mfa_required", "not_an_approver"} <= emitted
+    missing = sorted(c for c in emitted if c not in CODES)
+    assert not missing, f"emitted by procurement-service but not in the catalogue: {missing}"

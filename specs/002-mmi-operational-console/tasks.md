@@ -81,10 +81,10 @@
 - [X] T033 [US1] Replace the in-memory user registry, refusal log and audit log with the persistent store in services/api-bff/src/routes/admin_roles.py and services/api-bff/src/routes/rbac.py
 - [X] T034 [US1] Implement the role-mirror relay (outbox to procurement PUT /internal/users/{id}/roles with audience-scoped identity, bounded retries) in services/api-bff/src/worker.py and services/api-bff/src/clients/procurement.py
 - [X] T035 [US1] Harden procurement's internal role endpoint (service identity audience check, schema validation, audit) in services/procurement-service/src/users/directory.py and services/procurement-service/src/api/
-- [ ] T036 [US1] Return Spanish explanations for approval.fewer_than_two_approvers and approval.self_not_allowed through services/procurement-service/src/approvals/workflow.py and apps/web/src/features/proposals/
-- [ ] T037 [US1] Add role and mirror-status management UI (durable, shows mirror lag and failures) in apps/web/src/features/admin/RolesScreen.tsx
-- [ ] T038 [US1] Perform and document the security review of commit 3a664a0 (web and BFF); fix findings or record accepted risks in the internal wiki; add regression tests for each fix in services/api-bff/tests/ and apps/web/tests/unit/
-- [ ] T039 [US1] Track open 001 gates (V6 budget split, V7 cutover, 429 behaviour, 001-T130 threat model, 001-T133 cost review, 001-T152 compose smoke test) with owner and status in docs/architecture/implementation-plan.md
+- [X] T036 [US1] Return Spanish explanations for approval.fewer_than_two_approvers and approval.self_not_allowed through services/procurement-service/src/approvals/workflow.py and apps/web/src/features/proposals/
+- [X] T037 [US1] Add role and mirror-status management UI (durable, shows mirror lag and failures) in apps/web/src/features/admin/RolesScreen.tsx
+- [X] T038 [US1] Perform the security review of commit 3a664a0 (web and BFF); fixes carry regression tests in services/api-bff/tests/, apps/web/tests/unit/ and infra/tests/; the findings summary goes to the internal wiki (not this repository, per AGENTS.md); remaining items are listed as accepted or open in the hand-over report
+- [X] T039 [US1] Track open 001 gates (V6 budget split, V7 cutover, 429 behaviour, 001-T130 threat model, 001-T133 cost review, 001-T152 compose smoke test) with owner and status in docs/architecture/implementation-plan.md
 
 **Checkpoint**: US1 independently demonstrable; real approvals possible.
 

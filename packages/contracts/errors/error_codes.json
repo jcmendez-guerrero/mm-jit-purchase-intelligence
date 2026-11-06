@@ -11,11 +11,6 @@
       "kind": "request",
       "meaning": "Second factor older than 5 minutes"
     },
-    "approval_self_not_allowed": {
-      "http": 403,
-      "kind": "request",
-      "meaning": "Creator/last editor cannot approve"
-    },
     "approval_fewer_than_two_approvers": {
       "http": 409,
       "kind": "request",
@@ -205,6 +200,66 @@
       "http": 503,
       "kind": "request",
       "meaning": "Service identity could not be obtained"
+    },
+    "request_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The request body or parameters are not valid"
+    },
+    "separation_of_duties": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "The creator or last editor cannot approve"
+    },
+    "no_eligible_approver": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Submission needs another eligible approver"
+    },
+    "not_an_approver": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "Only users with the approver role can decide"
+    },
+    "mfa_required": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "A recent second factor is required"
+    },
+    "version_conflict": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The record changed since it was read"
+    },
+    "invalid_proposal_state": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The proposal state does not allow this action"
+    },
+    "proposal_conflict": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "This week already has an approved proposal"
+    },
+    "unknown_role": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A role is not valid"
+    },
+    "invalid_cost": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A cost value is not valid"
+    },
+    "invalid_user_id": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A user id is not valid"
+    },
+    "invalid_terms": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "Supplier order terms are not valid"
     }
   }
 }

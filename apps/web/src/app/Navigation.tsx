@@ -19,6 +19,7 @@ export const Navigation: React.FC<Props> = ({ currentTab, onSelectTab, session, 
     { id: "costs", label: t("nav.costs") },
     { id: "proposals", label: t("nav.proposals") },
     { id: "config", label: t("nav.config") },
+    ...((session?.roles ?? []).includes("admin") ? [{ id: "admin", label: t("nav.admin") }] : []),
   ];
 
   return (

@@ -241,3 +241,21 @@ All of this fits in a nightly window under an MMI budget of ~500 requests/hour (
 5. Where do pack sizes, discounts and current price lists live today?
 6. Tax regime for purchases?
 7. Who approves proposals, and must it be a different person from the buyer?
+
+## 9. Open gates carried into MMI 002 (tracked, T039)
+
+Owners are roles, not people. "Decision" means the business must choose before the item can close; defaults from 001 stay in force until then. Findings about security posture are kept in the internal wiki, not here.
+
+| Gate | What is open | Owner | Status |
+|---|---|---|---|
+| V6 | Split of the shared Siweb request budget with the other application (default: at most 500 requests per hour in a night window) | Product owner | Decision |
+| V7 | Loss-reason cutover date (default 2026-09-19) | Product owner | Decision |
+| 429 | Behaviour of the ERP when the limit is exceeded; provoke and record in a controlled window | Operator | Open |
+| Lots / supplier list shapes | Real response shapes of the per-variant lots endpoint and the per-product supplier list under load (parsers are tolerant but unconfirmed); the median-cost lookup depends on lot data | Engineering with operator | Open |
+| 001-T130 | Threat model | Engineering | Open |
+| 001-T133 | Cost review with real regional prices | Product owner | Open |
+| 001-T152 | Compose smoke test on a machine with enough memory | Engineering | Open |
+| MMI-002 T063 | Source and freshness of the selling price (PVP) in collected ERP data, and whether it includes VAT; needed by the margin check | Operator | Open |
+| MMI-002 T064 | Constitution v1.2.0 (median value, margin check, admin override) reviewed and merged; then update ADR-006 | Product owner | Decision |
+| MMI-002 T006 | Single owner of service levels (inventory and procurement both hold them today) | Product owner | Decision |
+

@@ -6,7 +6,6 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 |---|---|---|
 | auth_forbidden_role | 403 | Role does not allow the action (refusal recorded) |
 | auth_mfa_stale | 403 | Second factor older than 5 minutes |
-| approval_self_not_allowed | 403 | Creator/last editor cannot approve |
 | approval_fewer_than_two_approvers | 409 | Submission needs two eligible users |
 | revision_conflict | 412 | Stale If-Match; body returns current version |
 | terms_negative_amount | 422 | Negative money or quantity |
@@ -45,3 +44,15 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | downstream_refused | 400 | A downstream service refused the request |
 | downstream_unavailable | 502 | A downstream service is unavailable |
 | authentication_unavailable | 503 | Service identity could not be obtained |
+| request_invalid | 422 | The request body or parameters are not valid |
+| separation_of_duties | 403 | The creator or last editor cannot approve |
+| no_eligible_approver | 409 | Submission needs another eligible approver |
+| not_an_approver | 403 | Only users with the approver role can decide |
+| mfa_required | 403 | A recent second factor is required |
+| version_conflict | 409 | The record changed since it was read |
+| invalid_proposal_state | 409 | The proposal state does not allow this action |
+| proposal_conflict | 409 | This week already has an approved proposal |
+| unknown_role | 422 | A role is not valid |
+| invalid_cost | 422 | A cost value is not valid |
+| invalid_user_id | 422 | A user id is not valid |
+| invalid_terms | 422 | Supplier order terms are not valid |
