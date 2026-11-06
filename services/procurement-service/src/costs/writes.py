@@ -28,7 +28,7 @@ from costs.store import get as get_cost
 
 MFA_MAX_AGE = timedelta(minutes=5)
 OPEN_STATES = ("pending_review", "pending_link", "approved_by_buyer", "sent", "retrying", "failed")
-TRIGGERS = ("missing_cost", "order_confirmed")
+TRIGGERS = ("missing_cost", "order_confirmed", "receipt_matched", "buyer_entry")
 
 
 class WriteError(Exception):
@@ -68,7 +68,8 @@ def _variant_conflict(conn: Connection, product_id: int, variant_id: int | None)
     return bool(n > 1)
 
 
-def request_write(conn: Connection, cost_id: str, trigger: str, actor: str, now: datetime | None = None) -> WriteRequestResult:
+def request_write(conn: Connection, cost_id: str, trigger: str, actor: str, now: datetime | None = None, *, median_lot_refs: list[dict[str, Any]] | None = None,
+                  median_cost: Decimal | None = None) -> WriteRequestResult:
     if trigger not in TRIGGERS:
         raise WriteError("invalid_trigger")
     now = now or datetime.now(UTC)
@@ -91,7 +92,8 @@ def request_write(conn: Connection, cost_id: str, trigger: str, actor: str, now:
     rid = str(uuid.uuid4())
     conn.execute(insert(cost_write_requests).values(
         id=rid, cost_id=cost_id, product_id=cost.product_id, supplier_id=cost.supplier_id, trigger=trigger, proposed_value=proposed,
-        previous_siweb_value=previous, status=status, attempts=0, requested_by=actor, idempotency_key=key, created_at=now, updated_at=now))
+        previous_siweb_value=previous, status=status, attempts=0, requested_by=actor, idempotency_key=key, created_at=now, updated_at=now,
+        median_cost=median_cost if median_cost is not None else proposed, median_lot_refs=median_lot_refs))
     audit(conn, actor, "cost_write.requested", "cost_write", rid, after={"status": status, "trigger": trigger, "cents": erp_cents(proposed)}, now=now)
     return WriteRequestResult(conn.execute(select(cost_write_requests).where(cost_write_requests.c.id == rid)).one(), status, warnings)
 
@@ -113,6 +115,8 @@ def approve_write(conn: Connection, request_id: str, principal: Principal, write
     r = _req(conn, request_id)
     if r.status not in ("pending_review", "pending_link", "failed"):
         raise WriteError(f"cannot_release_from_{r.status}")
+    if r.median_cost is None or Decimal(str(r.median_cost)) != Decimal(str(r.proposed_value)):
+        raise WriteError("median_required")          # the released value is always the median of the lot costs (FR-042)
     cost = get_cost(conn, r.cost_id)
     if cost.superseded_by is not None:
         raise WriteError("cost_superseded")

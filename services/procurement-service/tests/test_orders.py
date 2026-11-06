@@ -67,13 +67,12 @@ def test_confirming_records_actual_quantities_and_costs_and_announces_the_inboun
     assert env["type"] == "procurement.order.confirmed.v1" and env["resource_id"] == res.order_id
 
 
-def test_a_different_cost_creates_a_new_version_and_a_write_request_for_review(conn, approved, tmp_path):
+def test_a_different_cost_creates_a_new_version_but_no_erp_request_until_the_receipt_is_matched(conn, approved, tmp_path):
     pid, sa, _sb = approved
     res = confirm_order(conn, pid, sa, [ConfirmLine(1, 10, D("1.10"))], "buyer-1", Blob(tmp_path), NOW)
-    assert len(res.cost_writes) == 1 and res.cost_writes[0].status == "pending_review"
+    assert res.cost_writes == []
     cur = current(conn, 10, sa)
     assert cur.source == "manual" and D(str(cur.cost_with_recargo)) == D("1.1000") and cur.version == 2
-    assert D(str(res.cost_writes[0].request.previous_siweb_value)) == D("1.0000") and "pending_review" not in res.warnings
 
 
 def test_a_confirmed_price_that_looks_like_a_jump_is_accepted_because_the_buyer_agreed_it(conn, approved, tmp_path):

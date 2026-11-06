@@ -21,23 +21,17 @@ app.include_router(build_proposal_router(app))
 def configure() -> None:
     if not os.environ.get("MMI_DATABASE_URL"):
         return
+    from proposals.blob_store import FileWriter
     from proposals.inputs import HttpJsonSource, InputsProvider
     from users.directory import DbUserDirectory
 
-    class FileWriter:
-        def __init__(self, root: Path) -> None:
-            self.root = root
-
-        def put(self, name: str, data: bytes) -> str:
-            p = (self.root / name).resolve()
-            if self.root.resolve() not in p.parents:
-                raise ValueError("blob name escapes the store")
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_bytes(data)
-            return p.as_uri()
-
     app.state.user_directory = DbUserDirectory(get_engine())
     app.state.blob_writer = FileWriter(Path(os.environ.get("MMI_BLOB_ROOT", "/tmp/mmi-procurement")))  # noqa: S108 - local default only
+    if os.environ.get("MMI_INVENTORY_URL"):
+        from costs.lot_lookup import HttpLotsSource
+
+        lot_token = os.environ.get("MMI_UPSTREAM_TOKEN") or (lambda: service_token("api://mmi-inventory-service", "svc-procurement", ["viewer"]))
+        app.state.lots_source = HttpLotsSource(os.environ["MMI_INVENTORY_URL"], lot_token)
     if os.environ.get("MMI_INVENTORY_URL") and os.environ.get("MMI_FORECAST_URL"):
         static = os.environ.get("MMI_UPSTREAM_TOKEN")
 

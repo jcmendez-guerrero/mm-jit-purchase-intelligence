@@ -218,7 +218,8 @@ def build_router(app: FastAPI) -> APIRouter:
     def write_json(r: Any) -> dict[str, Any]:
         return {"id": r.id, "cost_id": r.cost_id, "product_id": r.product_id, "supplier_id": r.supplier_id, "trigger": r.trigger,
                 "proposed_value": str(Decimal(str(r.proposed_value))), "previous_siweb_value": None if r.previous_siweb_value is None else str(Decimal(str(r.previous_siweb_value))),
-                "status": r.status, "attempts": r.attempts, "last_error": r.last_error}
+                "status": r.status, "attempts": r.attempts, "last_error": r.last_error,
+                "median_cost": None if r.median_cost is None else str(Decimal(str(r.median_cost)).quantize(Decimal("0.01"))), "lots": r.median_lot_refs or []}
 
     @router.get("/cost-writes")
     def cost_writes(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:

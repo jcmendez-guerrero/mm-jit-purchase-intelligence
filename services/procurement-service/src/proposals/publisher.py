@@ -14,6 +14,7 @@ PROPOSAL_GENERATED = "procurement.proposal.generated.v1"
 ORDER_CONFIRMED = "procurement.order.confirmed.v1"
 WRITE_REQUESTED = "procurement.cost.write_requested.v1"
 TERMS_CHANGED = "procurement.terms.changed.v1"
+LOT_COST_CHANGED = "procurement.lot_cost.changed.v1"   # inventory subscribes when its valuation projection lands (US2)
 SUBSCRIPTIONS = {PROPOSAL_GENERATED: ["bff-notifications"], ORDER_CONFIRMED: ["inventory-in"], WRITE_REQUESTED: ["costwriter-in"], TERMS_CHANGED: ["bff-notifications"]}
 
 
@@ -42,3 +43,9 @@ def terms_changed(conn: Connection, writer: BlobWriter, scope: str, key: str, ve
     """A terms or override version was saved. The event carries references only (scope, key, version), never the values."""
     resource = f"{scope}.{key}.{version}".replace(":", "_")
     return publish(conn, writer, TERMS_CHANGED, resource, {"scope": scope, "key": key, "version": version}, correlation_id)
+
+
+def lot_cost_changed(conn: Connection, writer: BlobWriter, variant_id: int, supplier_id: str, lot: str, version: str, correlation_id: str) -> dict[str, Any]:
+    """References only (variant, supplier, lot): consumers read the cost through the API, never from the event."""
+    return publish(conn, writer, LOT_COST_CHANGED, f"{variant_id}.{supplier_id}.{lot}.{version}".replace(":", "_").replace("/", "_"),
+                   {"variant_id": variant_id, "supplier_id": supplier_id, "lot": lot}, correlation_id)

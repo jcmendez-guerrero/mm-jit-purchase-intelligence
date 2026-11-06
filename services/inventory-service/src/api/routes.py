@@ -187,6 +187,10 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
                                                           stock_movements.c.external_id > after_id, stock_movements.c.quarantined.is_(False))
                             .order_by(stock_movements.c.external_id).limit(min(limit, 5000))).all()
         return {"receipts": [{"movement_id": r.external_id, "variant_id": r.variant_id, "qty": r.quantity,
-                              "reference": r.reference_number if r.reference_number is not None else r.reference_id} for r in rows]}
+                              "reference": r.reference_number if r.reference_number is not None else r.reference_id,
+                              "batch_number": r.batch_number} for r in rows]}
 
+    from api.lots import build_lots_router
+
+    router.include_router(build_lots_router(app, conn_dep))
     return router
