@@ -36,6 +36,7 @@ Out of scope: any ERP write other than the existing buyer-released, fresh-MFA su
 
 ### Session 2026-11-06
 
+- Q: Which chart technology does the dashboard use? → A: Recharts (SVG) inside the existing React SPA, each chart with a data-table alternative, keyboard focus and a text summary. Python dashboard servers (Streamlit, Dash, HoloViz) were assessed and rejected for the buyer console because they add a second web stack, a second login and an always-on container. If richer interactions are needed later, Plotly.js inside the SPA is the contained alternative.
 - Q: Is the constitution amendment v1.2.0 (median value, margin check, admin override inside the single permitted write) accepted as drafted? → A: Yes. ADR-006 and the implementation plan are updated to match; the formal ratification date is set when the amendment is merged.
 - Q: What margin cap applies to a product whose cost is exactly EUR 50.00? → A: 20 %. A Recargo-inclusive cost below EUR 50.00 has the 30 % cap; EUR 50.00 and above has the 20 % cap.
 - Q: May seed data make a "new" product forecastable, and under what condition? → A: Yes, only when the product's sole reason for being ineligible is "new", the seed rows cover at least half of the days in their span, and the combined history (seed plus actual) reaches the 56-day minimum. Actual ERP demand always prevails on any day it covers. The forecast is flagged `seed_used` and the proposal line says so.
