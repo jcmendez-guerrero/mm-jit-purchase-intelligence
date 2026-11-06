@@ -75,3 +75,14 @@ def test_the_censoring_rule_replaces_a_fixed_constant(client, engine):
     assert client.put("/demand-rules/rules/unknown", json={"value": 2}, headers=auth("buyer")).status_code == 422
     assert client.put("/demand-rules/rules/min_zero_stock_days", json={"value": 1}, headers=auth("buyer")).json()["revision"] == 2
     assert censored_days() != []
+
+
+def test_a_rule_change_announces_demand_updated_so_the_forecast_is_recomputed(client, engine, tmp_path):
+    from db.tables import outbox
+    from demand.publisher import LocalBlobWriter
+
+    seed(engine)
+    client.app.state.blob_writer = LocalBlobWriter(tmp_path)
+    client.post("/demand-rules/exclusions", json={"variant_id": 1, "from_day": "2026-10-03", "to_day": "2026-10-03", "reason": "promoción"}, headers=auth("buyer"))
+    with engine.connect() as c:
+        assert [e.type for e in c.execute(select(outbox)).all()] == ["inventory.demand.updated.v1"]

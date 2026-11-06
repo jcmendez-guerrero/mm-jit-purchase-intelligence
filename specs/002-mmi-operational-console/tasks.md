@@ -171,7 +171,7 @@
 - [X] T091 [US4] Add BFF routes and screens for category history, recommended versus effective safety stock, override requests, the approval queue and the always-stocked setting in services/api-bff/src/routes/policies.py and apps/web/src/features/policies/ with es-ES strings
 - [X] T092 [US4] Implement forecast parameters with validation and routes in services/forecast-service/src/parameters.py and services/forecast-service/src/api.py
 - [X] T093 [US4] Make runs read policy and parameter versions and record them in services/forecast-service/src/runs/runner.py and services/procurement-service/src/proposals/
-- [ ] T094 [US4] Add on-request re-forecast and re-proposal trigger via events in services/inventory-service/src/projections/rules.py and services/forecast-service/src/runs/consumer.py
+- [X] T094 [US4] Add on-request re-forecast and re-proposal trigger via events in services/inventory-service/src/projections/rules.py and services/forecast-service/src/runs/consumer.py
 - [X] T095 [US4] Add BFF aggregation routes for the three policy sections (each with its own revision) in services/api-bff/src/routes/policies.py
 - [X] T096 [US4] Build the policy console (sections, preview, effective date, audit view) replacing the read-only config screen in apps/web/src/features/policies/ with es-ES strings
 

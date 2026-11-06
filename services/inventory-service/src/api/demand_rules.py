@@ -8,9 +8,11 @@ from typing import Any
 
 from classification.run import compute_segments, history_for
 from db.tables import products, variants
+from demand.publisher import publish_demand_updated
 from demand.rebuild import rebuild
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from mmi_common.errors import error_code
+from mmi_common.time import get_correlation_id, set_correlation_id
 from projections.rules import (
     RuleError,
     add_exclusion,
@@ -45,8 +47,11 @@ def build_rules_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> API
 
     def refresh(conn: Connection) -> None:
         """A rule change takes effect on the next forecast input: rebuild the series and re-evaluate categories now (history keeps the reason)."""
-        rebuild(conn)
+        result = rebuild(conn)
         compute_segments(conn)
+        writer = getattr(app.state, "blob_writer", None)
+        if writer is not None and result.through_day is not None:           # tells forecast-service to re-forecast now (unchanged inputs are reused there)
+            publish_demand_updated(conn, writer, result.through_day, result.demand_rows, get_correlation_id() or set_correlation_id())
 
     @router.get("/demand-rules")
     def read_rules(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
