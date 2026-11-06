@@ -73,6 +73,12 @@ class VariantInput:
     expiring_qty: int = 0                         # units that expire before the end of the horizon
     clinical_critical: bool = False
     soon_need: int = 0                            # units needed in the following review period (top-up candidate)
+    safety_override: int | None = None            # approved safety-stock override (units); None = the engine's recommendation
+    min_units: int | None = None                  # policy minimum on-hand position
+    max_units: int | None = None                  # policy cap on the order-up-to level
+    floor_units: int = 0                          # always-stocked floor
+    monthly_check: bool = False                   # always-stocked and nothing bought for 30 days: at least one unit
+    policy_info: tuple[tuple[str, Any], ...] = () # which policy fields and revisions applied (for the explanation)
 
 
 @dataclass(frozen=True)
@@ -105,6 +111,7 @@ class ProposalInputs:
     max_lead_days: int = 21
     risk_penalty_ticks_per_unit_day: int = 100         # 0.01 EUR per unit per extra day of lead time
     terms_versions: dict[str, Any] = field(default_factory=dict)   # supplier_id -> {"supplier": n, "overrides": {variant_id: n}} (FR-026)
+    policy_versions: dict[str, Any] = field(default_factory=dict)  # "scope:key" -> revision used (FR-026)
 
 
 def canonical(obj: Any) -> str:

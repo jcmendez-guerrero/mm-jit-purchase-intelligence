@@ -9,6 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from api.costs import build_router, get_engine
+from api.policies import build_router as build_policy_router
 from api.proposals import build_router as build_proposal_router
 from mmi_common.service import create_service_app
 from mmi_common.servicetoken import service_token
@@ -16,6 +17,7 @@ from mmi_common.servicetoken import service_token
 app = create_service_app("procurement-service")
 app.include_router(build_router(app))
 app.include_router(build_proposal_router(app))
+app.include_router(build_policy_router(app))
 
 
 def configure() -> None:

@@ -18,7 +18,7 @@ def upgrade() -> None:
                     sa.Column("min_units", sa.Integer), sa.Column("max_units", sa.Integer), sa.Column("replenishment_cadence_days", sa.Integer),
                     sa.Column("valid_from", sa.Date, nullable=False), sa.Column("valid_to", sa.Date),
                     sa.Column("revision", sa.Integer, nullable=False, server_default="1"), sa.Column("changed_by", sa.String(120), nullable=False),
-                    sa.UniqueConstraint("scope", "key", "valid_from", name="uq_policy_sets_effective"))
+                    sa.UniqueConstraint("scope", "key", "valid_from", "revision", name="uq_policy_sets_effective"))
     op.create_table("budget_caps", sa.Column("id", sa.String(36), primary_key=True), sa.Column("period", sa.String(5), nullable=False),
                     sa.Column("scope", sa.String(10), nullable=False), sa.Column("scope_key", sa.String(40)), sa.Column("amount", sa.Numeric(18, 4), nullable=False),
                     sa.Column("valid_from", sa.Date, nullable=False), sa.Column("valid_to", sa.Date),

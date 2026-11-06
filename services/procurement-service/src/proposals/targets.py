@@ -34,6 +34,7 @@ class Target:
     policy: str
     fallback: bool
     service_level: Decimal
+    floor_reason: str | None = None
 
 
 def _interp(points: list[tuple[int, float]], h: float) -> float:
@@ -76,12 +77,26 @@ def compute_target(v: VariantInput, lead_time_days: int) -> Target:
     reorder = min(math.ceil(_reorder_at(fc, horizon, lead_time_days, v.service_level) - 1e-9), up_to)
     mean_pts = [(h, hf.mean) for h, hf in fc.horizons.items() if hf.mean is not None]
     mean = _interp([(h, float(m)) for h, m in mean_pts], horizon) if fc.eligible and mean_pts else None
+    mean_ceil = None if mean is None else math.ceil(mean - 1e-9)
+    if v.safety_override is not None:                      # approved override replaces the recommended safety stock
+        up_to = (mean_ceil + v.safety_override) if mean_ceil is not None else max(up_to, v.safety_override)
+        reorder = min(reorder, up_to)
+    if v.min_units:
+        up_to, reorder = max(up_to, v.min_units), max(reorder, v.min_units)
+    if v.max_units is not None:
+        up_to = min(up_to, v.max_units)
+        reorder = min(reorder, up_to)
     usable = max(v.on_hand - v.expiring_qty, 0)
     inbound = sum(q for q, eta in v.inbound if eta <= horizon)
     position = usable + inbound
     need = max(up_to - position, 0) if position <= reorder else 0
     if v.clinical_critical and position < 1 and up_to >= 1:
         need = max(need, 1)
+    floor_reason = None
+    if v.floor_units > 0 and position + need < v.floor_units:       # always-stocked: never below the floor, whatever the demand
+        need, floor_reason = v.floor_units - position, "always_stocked_floor"
+    elif v.monthly_check and need == 0:                               # nothing bought for a month: at least one unit
+        need, floor_reason = 1, "always_stocked_monthly"
     return Target(
         v.variant_id, horizon, lead_time_days, mean, up_to, reorder, None if mean is None else max(0, up_to - math.ceil(mean)),
-        v.on_hand, v.expiring_qty, usable, inbound, position, need, fc.policy, not fc.eligible, v.service_level)
+        v.on_hand, v.expiring_qty, usable, inbound, position, need, fc.policy, not fc.eligible, v.service_level, floor_reason)

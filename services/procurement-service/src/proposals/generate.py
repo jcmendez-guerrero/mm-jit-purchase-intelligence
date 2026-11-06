@@ -77,6 +77,7 @@ class Draft:
     over_budget: Decimal
     notes: tuple[str, ...] = field(default_factory=tuple)
     terms_versions: dict[str, Any] = field(default_factory=dict)
+    policy_versions: dict[str, Any] = field(default_factory=dict)
 
 
 def _risk(t: Target, shortfall: bool) -> str:
@@ -155,6 +156,7 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
             "cost": {"unit": str(money(c.unit_ticks)), "source": cand.offer.source, "status": cand.offer.cost_status, "cost_id": cand.offer.cost_id},
             "constraints": constraints,
             "terms": _terms_explanation(cand.offer, g),
+            "floor_reason": t.floor_reason, "policy_applied": {k: v2 for k, v2 in v.policy_info},
         }
         out_lines.append(DraftLine(
             c.variant_id, v.product_id, c.supplier_id, c.qty, money(c.unit_ticks), money(c.line_ticks), t.policy, t.safety_stock, tuple(constraints),
@@ -167,7 +169,7 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
         g.supplier_id, money(g.subtotal_ticks), money(g.delivery_charge_ticks), money(g.total_ticks), inputs.today + timedelta(days=max_lead[g.supplier_id]),
         g.minimum_status, g.free_delivery, tuple(opts_by_supplier.get(g.supplier_id, ())), money(g.discount_ticks)) for g in alloc.groups)
     return Draft(tuple(out_lines), out_groups, tuple(targets), alloc.solver_status, inputs_hash(inputs, RULE_VERSIONS), dict(RULE_VERSIONS),
-                 money(greedy.total_ticks), money(alloc.total_ticks), money(alloc.over_budget_ticks), tuple(alloc.notes), dict(inputs.terms_versions))
+                 money(greedy.total_ticks), money(alloc.total_ticks), money(alloc.over_budget_ticks), tuple(alloc.notes), dict(inputs.terms_versions), dict(inputs.policy_versions))
 
 
 def store(conn: Connection, draft: Draft, created_by: str, week: str, budget: Decimal | None = None, now: datetime | None = None) -> str:
@@ -186,7 +188,7 @@ def store(conn: Connection, draft: Draft, created_by: str, week: str, budget: De
     conn.execute(insert(proposals).values(
         id=pid, week=week, status="draft", created_by=created_by, last_edited_by=created_by, version=1, inputs_hash=draft.inputs_hash,
         rule_versions=draft.rule_versions, solver_status=draft.solver_status, budget=budget, created_at=now, updated_at=now,
-        terms_version_ids=draft.terms_versions or None,
+        terms_version_ids=draft.terms_versions or None, policy_version_ids=draft.policy_versions or None,
         flags={"greedy_total": str(draft.greedy_total), "optimized_total": str(draft.optimized_total), "over_budget": str(draft.over_budget), "notes": list(draft.notes)}))
     for ln in draft.lines:
         conn.execute(insert(proposal_lines).values(

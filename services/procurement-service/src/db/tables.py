@@ -333,7 +333,7 @@ policy_sets = Table(
     Column("valid_to", Date),
     Column("revision", Integer, nullable=False, default=1),
     Column("changed_by", String(120), nullable=False),
-    UniqueConstraint("scope", "key", "valid_from", name="uq_policy_sets_effective"),
+    UniqueConstraint("scope", "key", "valid_from", "revision", name="uq_policy_sets_effective"),
 )
 budget_caps = Table(
     "budget_caps", metadata,
