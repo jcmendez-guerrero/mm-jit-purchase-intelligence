@@ -104,6 +104,117 @@ export interface RoleMirrorStatus {
   items: Array<{ id: number; user_id: string; status: string; attempts: number; last_error_key: string | null }>;
 }
 
+
+export interface PolicyFields {
+  service_level: string | null;
+  safety_stock_units: string | null;
+  min_units: string | null;
+  max_units: string | null;
+  replenishment_cadence_days: string | null;
+}
+
+export interface PolicySummary {
+  scope: string;
+  key: string;
+  revision: number;
+  in_force: (PolicyFields & { valid_from: string }) | null;
+}
+
+export interface PolicyDetail {
+  scope: string;
+  key: string;
+  revision: number;
+  current: (PolicyFields & { valid_from: string; revision: number; changed_by: string }) | null;
+  history: Array<PolicyFields & { revision: number; valid_from: string; changed_by: string }>;
+}
+
+export interface PolicyPreview {
+  as_of: string;
+  affected_count: number;
+  affected: Array<{ variant_id: number; qty_before: number; qty_after: number }>;
+  spend_before: string;
+  spend_after: string;
+  spend_delta: string;
+  saved: false;
+}
+
+export interface DemandExclusion {
+  id: number;
+  variant_id: number | null;
+  from_day: string;
+  to_day: string;
+  reason: string;
+  active: boolean;
+  revision: number;
+}
+
+export interface CensoringRule {
+  rule: string;
+  value: number;
+  min: number;
+  max: number;
+  default: number;
+}
+
+export interface ForecastParameter {
+  key: string;
+  value: string;
+  default: string;
+  min: string;
+  max: string;
+  kind: string;
+  revision: number;
+  in_force_revision: number | null;
+}
+
+export interface Section<T> {
+  ok: boolean;
+  data?: T;
+  error?: string;
+}
+
+export interface PolicyConsole {
+  purchasing: Section<{ as_of: string; policies: PolicySummary[]; weekly_budget: string | null }>;
+  demand: Section<{ exclusions: DemandExclusion[]; rules: CensoringRule[] }>;
+  forecast: Section<{ as_of: string; parameters: ForecastParameter[] }>;
+}
+
+export interface StockingSetting {
+  variant_id: number;
+  stocking_mode: "standard" | "always_stocked" | "on_request";
+  min_floor_units: number;
+  revision: number;
+}
+
+export interface OverrideRequest {
+  id: string;
+  variant_id: number;
+  field: "safety_stock" | "min" | "max";
+  recommended_value: number;
+  requested_value: number;
+  reason: string;
+  status: "pending" | "approved" | "rejected" | "reverted";
+  requested_by: string;
+  decided_by: string | null;
+  recommendation_changed: boolean;
+}
+
+export interface CriticalProduct {
+  product_id: number;
+  name: string;
+  clinical_critical: boolean;
+  variants: number;
+}
+
+export interface SegmentHistoryRow {
+  changed_at: string;
+  abc: string;
+  xyz: string;
+  pattern: string;
+  critical: boolean;
+  reason_key: string;
+}
+
 export interface DiscountDoc {
   kind: "percent" | "amount";
   basis: "order_value" | "order_units";
@@ -459,6 +570,95 @@ export class ApiClient {
 
   async approveProposal(proposalId: string, version: number): Promise<JsonRecord> {
     return this.request<JsonRecord>(`/proposals/${proposalId}/approve`, { method: "POST", headers: { "If-Match": `"${version}"` } });
+  }
+
+
+  async getPolicyConsole(): Promise<PolicyConsole> {
+    return this.request<PolicyConsole>("/policy-console");
+  }
+
+  async getPolicy(scope: string, key: string): Promise<PolicyDetail> {
+    return this.request<PolicyDetail>(`/policies/${scope}/${encodeURIComponent(key)}`);
+  }
+
+  async putPolicy(scope: string, key: string, body: Record<string, unknown>, version: number): Promise<{ revision: number }> {
+    return this.request<{ revision: number }>(`/policies/${scope}/${encodeURIComponent(key)}`, {
+      method: "PUT",
+      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      body: JSON.stringify(body),
+    });
+  }
+
+  async previewPolicy(scope: string, key: string, body: Record<string, unknown>): Promise<PolicyPreview> {
+    return this.request<PolicyPreview>(`/policies/${scope}/${encodeURIComponent(key)}/preview`, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  async putBudgetCap(body: Record<string, unknown>): Promise<{ weekly_budget: string | null }> {
+    return this.request<{ weekly_budget: string | null }>("/budget-caps", { method: "PUT", body: JSON.stringify(body) });
+  }
+
+  async getStocking(variantId: number): Promise<StockingSetting> {
+    return this.request<StockingSetting>(`/stocking/${variantId}`);
+  }
+
+  async putStocking(variantId: number, body: { stocking_mode: string; min_floor_units: number }, version: number): Promise<{ revision: number }> {
+    return this.request<{ revision: number }>(`/stocking/${variantId}`, {
+      method: "PUT",
+      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      body: JSON.stringify(body),
+    });
+  }
+
+  async getOverrides(status: string = "pending"): Promise<OverrideRequest[]> {
+    return this.request<OverrideRequest[]>(`/policy-overrides?status=${status}`);
+  }
+
+  async getRecommendation(variantId: number): Promise<{ variant_id: number; safety_stock: number | null }> {
+    return this.request<{ variant_id: number; safety_stock: number | null }>(`/policy-overrides/recommendation/${variantId}`);
+  }
+
+  async createOverride(body: { variant_id: number; field: string; requested_value: number; reason: string }): Promise<OverrideRequest> {
+    return this.request<OverrideRequest>("/policy-overrides", { method: "POST", body: JSON.stringify(body) });
+  }
+
+  async decideOverride(id: string, action: "approve" | "reject" | "revert"): Promise<OverrideRequest> {
+    return this.request<OverrideRequest>(`/policy-overrides/${id}/${action}`, { method: "POST", body: JSON.stringify({}) });
+  }
+
+  async getCriticality(): Promise<{ products: CriticalProduct[] }> {
+    return this.request<{ products: CriticalProduct[] }>("/criticality");
+  }
+
+  async setCriticality(productId: number, critical: boolean): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/products/${productId}/criticality`, { method: "PUT", body: JSON.stringify({ critical }) });
+  }
+
+  async addExclusion(body: { variant_id: number | null; from_day: string; to_day: string; reason: string }): Promise<{ id: number }> {
+    return this.request<{ id: number }>("/demand-rules/exclusions", { method: "POST", body: JSON.stringify(body) });
+  }
+
+  async toggleExclusion(id: number, active: boolean): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/demand-rules/exclusions/${id}`, { method: "PUT", body: JSON.stringify({ active }) });
+  }
+
+  async putCensoringRule(rule: string, value: number): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/demand-rules/rules/${rule}`, { method: "PUT", body: JSON.stringify({ value }) });
+  }
+
+  async getSegmentHistory(variantId: number): Promise<{ variant_id: number; history: SegmentHistoryRow[] }> {
+    return this.request<{ variant_id: number; history: SegmentHistoryRow[] }>(`/segments/${variantId}/history`);
+  }
+
+  async putParameter(key: string, value: string, version: number): Promise<{ revision: number }> {
+    return this.request<{ revision: number }>(`/parameters/${encodeURIComponent(key)}`, {
+      method: "PUT",
+      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      body: JSON.stringify({ value }),
+    });
+  }
+
+  async requestForecast(): Promise<{ run_id: string; reused: boolean }> {
+    return this.request<{ run_id: string; reused: boolean }>("/forecast/runs", { method: "POST", body: JSON.stringify({}) });
   }
 
   async getServiceLevels(): Promise<{ history?: ServiceLevelEntry[] }> {

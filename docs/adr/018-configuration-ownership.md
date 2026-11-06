@@ -16,6 +16,15 @@ MMI 002 adds buyer-editable supplier terms, policies, forecast parameters, seed 
 - api-bff owns only identity data in a new `bff` schema (user roles, role audit, role-mirror outbox) and mirrors roles to procurement through its authenticated internal endpoint. Procurement remains the authority for approval eligibility.
 - The policy console is one screen over three independently revisioned sections; there is no cross-service transaction. Service levels currently exist in inventory and procurement; Phase 1 designates one owner (proposed: procurement) and migrates the other.
 
+### Service-level ownership (T006 / T085) — provisional default, owner confirmation pending
+
+The proposed owner is **procurement-service**, applied as follows until the product owner decides otherwise:
+
+- Editing moves to procurement `policy_sets` (effective-dated, revisioned, audited; scopes product > segment > global).
+- The proposal builder uses the procurement value when one is in force on the run date and otherwise the inventory-computed target (clinical-critical 99 %, ABC A/B/C 97/95/90 %, sparse 85 %), which stays as the **default**, not as an editable source.
+- Inventory's `service_level_config` and `PUT /service-levels` are left in place, read-only in the UI, so earlier proposals keep reproducing; no data is copied or deleted. A later migration can import its history into `policy_sets` once the owner confirms.
+- Rolling back is a matter of deleting the procurement policy rows; nothing in inventory was changed.
+
 ### Consequences
 
 - Good: no new deployable or Azure cost; rules stay beside their data; restart-safe roles.
