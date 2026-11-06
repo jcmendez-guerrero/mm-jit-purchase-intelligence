@@ -14,7 +14,7 @@ from auth.session import (
 )
 from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 from routes.admin_roles import has_at_least_two_eligible_approvers
 from routes.rbac import require_fresh_mfa, require_roles, require_session
@@ -138,14 +138,48 @@ async def list_suppliers(
     return await client.get_suppliers(roles=session.roles)
 
 
+@router.get("/suppliers/{supplier_id}/terms")
+async def get_supplier_terms(
+    supplier_id: str,
+    as_of: str | None = Query(default=None),
+    session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
+    client: ProcurementClient = Depends(get_procurement_client),
+) -> dict[str, Any]:
+    return await client.get_supplier_terms(supplier_id, as_of=as_of, roles=session.roles)
+
+
 @router.put("/suppliers/{supplier_id}/terms")
 async def update_supplier_terms(
     supplier_id: str,
     terms: dict[str, Any],
-    session: SessionData = Depends(require_roles("buyer", "admin")),
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    return await client.put_supplier_terms(supplier_id=supplier_id, terms=terms, user_id=session.user_id, roles=session.roles)
+    return await client.put_supplier_terms(supplier_id=supplier_id, terms=terms, user_id=session.user_id, roles=session.roles, if_match=if_match)
+
+
+@router.get("/product-suppliers/{variant_id}/{supplier_id}/terms")
+async def get_override_terms(
+    variant_id: int,
+    supplier_id: str,
+    as_of: str | None = Query(default=None),
+    session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
+    client: ProcurementClient = Depends(get_procurement_client),
+) -> dict[str, Any]:
+    return await client.get_override_terms(variant_id, supplier_id, as_of=as_of, roles=session.roles)
+
+
+@router.put("/product-suppliers/{variant_id}/{supplier_id}/terms")
+async def update_override_terms(
+    variant_id: int,
+    supplier_id: str,
+    body: dict[str, Any],
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("buyer")),
+    client: ProcurementClient = Depends(get_procurement_client),
+) -> dict[str, Any]:
+    return await client.put_override_terms(variant_id=variant_id, supplier_id=supplier_id, body=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.get("/costs")

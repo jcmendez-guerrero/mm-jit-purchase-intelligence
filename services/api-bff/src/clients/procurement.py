@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from urllib.parse import quote
 
 from .base import DownstreamClient
 
@@ -18,8 +19,27 @@ class ProcurementClient(DownstreamClient):
         res.raise_for_status()
         return res.json()
 
-    async def put_supplier_terms(self, supplier_id: str, terms: dict[str, Any], user_id: str, roles: list[str] | None = None) -> dict[str, Any]:
-        res = await self.put(f"/suppliers/{supplier_id}/terms", json=terms, user_id=user_id, roles=roles)
+    async def put_supplier_terms(self, supplier_id: str, terms: dict[str, Any], user_id: str, roles: list[str] | None = None,
+                                 if_match: str | None = None) -> dict[str, Any]:
+        res = await self.put(f"/suppliers/{quote(supplier_id, safe='')}/terms", json=terms, user_id=user_id, roles=roles,
+                             extra_headers={"If-Match": if_match} if if_match else None)
+        res.raise_for_status()
+        return res.json()
+
+    async def get_supplier_terms(self, supplier_id: str, as_of: str | None = None, roles: list[str] | None = None) -> dict[str, Any]:
+        res = await self.get(f"/suppliers/{quote(supplier_id, safe='')}/terms", params={"as_of": as_of} if as_of else None, roles=roles)
+        res.raise_for_status()
+        return res.json()
+
+    async def get_override_terms(self, variant_id: int, supplier_id: str, as_of: str | None = None, roles: list[str] | None = None) -> dict[str, Any]:
+        res = await self.get(f"/product-suppliers/{variant_id}/{quote(supplier_id, safe='')}/terms", params={"as_of": as_of} if as_of else None, roles=roles)
+        res.raise_for_status()
+        return res.json()
+
+    async def put_override_terms(self, variant_id: int, supplier_id: str, body: dict[str, Any], user_id: str, roles: list[str] | None = None,
+                                 if_match: str | None = None) -> dict[str, Any]:
+        res = await self.put(f"/product-suppliers/{variant_id}/{quote(supplier_id, safe='')}/terms", json=body, user_id=user_id, roles=roles,
+                             extra_headers={"If-Match": if_match} if if_match else None)
         res.raise_for_status()
         return res.json()
 

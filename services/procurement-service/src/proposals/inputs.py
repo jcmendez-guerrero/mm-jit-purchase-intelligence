@@ -22,10 +22,10 @@ from db.tables import product_refs, supplier_costs, suppliers
 from orders.confirm import open_inbound
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
-from terms.service import current_terms
+from terms.resolve import resolve_effective
+from terms.service import current_row, row_to_terms
 
 from proposals.model import (
-    DEFAULT_LEAD_DAYS,
     Forecast,
     HorizonForecast,
     Offer,
@@ -90,6 +90,7 @@ class InputsReport:
     variants: int = 0
     without_forecast: list[int] = field(default_factory=list)
     without_cost: list[int] = field(default_factory=list)
+    disabled_pairs: list[tuple[int, str]] = field(default_factory=list)      # (variant_id, supplier_id) removed by a manual disable
 
 
 @dataclass
@@ -111,6 +112,7 @@ class InputsProvider:
         report = InputsReport(variants=len(stock["variants"]))
         out: list[VariantInput] = []
         used_suppliers: set[str] = set()
+        overrides_used: dict[str, dict[str, int]] = {}
         for v in stock["variants"]:
             vid, pid = int(v["variant_id"]), v.get("product_id")
             if pid is None:
@@ -127,9 +129,18 @@ class InputsProvider:
                 if res.cost is None:
                     continue
                 c = res.cost
-                offers.append(Offer(sid, Decimal(str(c.cost_with_recargo)), c.id, c.source, res.status, c.pack_size or 1,
-                                    c.lead_time_days if c.lead_time_days is not None else DEFAULT_LEAD_DAYS, c.min_order_qty or 0))
+                eff = resolve_effective(conn, sid, vid, now, erp={"source": c.source, "lead_time_days": c.lead_time_days, "pack_size": c.pack_size,
+                                                                  "min_order_qty": c.min_order_qty})
+                if eff.disabled:                                    # a manual disable removes the offer; the report says so
+                    report.disabled_pairs.append((vid, sid))
+                    continue
+                info = (("supplier_version", eff.supplier_version), ("override_version", eff.override_version), ("sources", tuple(sorted(eff.sources.items()))),
+                        ("conflicts", tuple(tuple(sorted(x.items())) for x in eff.conflicts)))
+                offers.append(Offer(sid, Decimal(str(c.cost_with_recargo)), c.id, c.source, res.status, eff.pack_multiple or 1, eff.lead_time_days,
+                                    eff.min_qty_units or 0, eff.preferred, info))
                 used_suppliers.add(sid)
+                if eff.override_version is not None:
+                    overrides_used.setdefault(sid, {})[str(vid)] = eff.override_version
             if not offers:
                 report.without_cost.append(vid)
                 continue
@@ -141,9 +152,12 @@ class InputsProvider:
             out.append(VariantInput(vid, int(pid), int(v.get("on_hand", 0)), forecast, Decimal(str(v["service_level"])), tuple(offers),
                                     tuple(inbound.get(vid, ())), expiring, bool(v.get("clinical_critical")), soon))
         terms: dict[str, SupplierTermsIn] = {}
+        versions_used: dict[str, Any] = {}
         for sid in sorted(used_suppliers):
-            t = current_terms(conn, sid, now)
+            row = current_row(conn, sid, now)
+            t = None if row is None else row_to_terms(row)
             terms[sid] = SupplierTermsIn(sid) if t is None else SupplierTermsIn(
-                sid, t.min_order_value, t.min_qty_for_delivery, t.free_delivery_threshold, t.delivery_charge)
+                sid, t.min_order_value, t.min_qty_for_delivery, t.free_delivery_threshold, t.delivery_charge, t.discounts, t.preferred, t.disabled, int(row.version))
+            versions_used[sid] = {"supplier": None if row is None else int(row.version), "overrides": overrides_used.get(sid, {})}
         self.report = report
-        return ProposalInputs(today, tuple(out), terms, self.budget)
+        return ProposalInputs(today, tuple(out), terms, self.budget, terms_versions=versions_used)

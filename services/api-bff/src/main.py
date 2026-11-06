@@ -39,7 +39,14 @@ async def downstream_status(_: Request, exc: httpx.HTTPStatusError) -> JSONRespo
             detail = exc.response.json().get("detail")
         except Exception:
             detail = None
-        return JSONResponse({"detail": detail if isinstance(detail, str) and CODE.fullmatch(detail) else "downstream_refused"}, status_code=status)
+        body: dict[str, object] = {"detail": detail if isinstance(detail, str) and CODE.fullmatch(detail) else "downstream_refused"}
+        try:
+            current = exc.response.json().get("current_version")
+        except Exception:
+            current = None
+        if status == 412 and isinstance(current, int) and not isinstance(current, bool):
+            body["current_version"] = current              # a stale editor learns which version is in force
+        return JSONResponse(body, status_code=status)
     return JSONResponse({"detail": "downstream_unavailable"}, status_code=502)
 
 

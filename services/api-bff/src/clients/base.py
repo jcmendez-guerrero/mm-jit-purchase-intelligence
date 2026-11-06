@@ -79,6 +79,7 @@ class DownstreamClient:
         async with httpx.AsyncClient(base_url=self.base_url, timeout=10.0) as client:
             return await client.post(path, json=json, headers=self._headers(user_id, roles))
 
-    async def put(self, path: str, json: Any = None, user_id: str | None = None, roles: list[str] | None = None) -> httpx.Response:
+    async def put(self, path: str, json: Any = None, user_id: str | None = None, roles: list[str] | None = None,
+                  extra_headers: dict[str, str] | None = None) -> httpx.Response:
         async with httpx.AsyncClient(base_url=self.base_url, timeout=10.0) as client:
-            return await client.put(path, json=json, headers=self._headers(user_id, roles))
+            return await client.put(path, json=json, headers={**self._headers(user_id, roles), **(extra_headers or {})})

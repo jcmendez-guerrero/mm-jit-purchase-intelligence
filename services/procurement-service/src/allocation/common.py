@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
-from proposals.model import Offer, ProposalInputs, SupplierTermsIn, ticks
+from proposals.model import Discount, Offer, ProposalInputs, SupplierTermsIn, ticks
 from proposals.targets import Target, compute_target
 
 
@@ -54,6 +55,7 @@ class Group:
     shortfall_value_ticks: int = 0
     shortfall_qty: int = 0
     free_delivery: bool = False
+    discount_ticks: int = 0
 
 
 @dataclass
@@ -64,6 +66,31 @@ class Allocation:
     total_ticks: int
     over_budget_ticks: int = 0
     notes: list[str] = field(default_factory=list)
+
+
+def percent_basis_points(value: Decimal) -> int:
+    return int((value * 100).to_integral_value(rounding=ROUND_HALF_UP))
+
+
+def threshold_units(d: Discount) -> int:
+    return math.ceil(d.threshold)
+
+
+def discount_ticks_for(d: Discount, sub_ticks: int) -> int:
+    """What one tier takes off a subtotal (never more than the subtotal)."""
+    if d.kind == "percent":
+        return sub_ticks * percent_basis_points(d.value) // 10_000
+    return min(ticks(d.value), sub_ticks)
+
+
+def best_discount_ticks(t: SupplierTermsIn, sub_ticks: int, qty: int) -> int:
+    """The best qualifying tier applies. Thresholds are judged on the list subtotal and the units, before any discount."""
+    best = 0
+    for d in t.discounts:
+        met = sub_ticks >= ticks(d.threshold) if d.basis == "order_value" else qty >= threshold_units(d)
+        if met:
+            best = max(best, discount_ticks_for(d, sub_ticks))
+    return best
 
 
 def round_up(qty: int, pack: int) -> int:
@@ -84,6 +111,8 @@ def build_lines(inputs: ProposalInputs) -> list[LineSpec]:
                 rejected.append((o.supplier_id, "lead_time_too_long"))
             elif o.supplier_id in ov.excluded.get(v.variant_id, frozenset()):
                 rejected.append((o.supplier_id, "excluded_by_buyer"))
+            elif inputs.suppliers.get(o.supplier_id, SupplierTermsIn(o.supplier_id)).disabled:
+                rejected.append((o.supplier_id, "supplier_disabled"))
             else:
                 usable.append(o)
         if not usable:
@@ -106,6 +135,8 @@ def build_lines(inputs: ProposalInputs) -> list[LineSpec]:
                 continue
             unit = ticks(o.unit_cost)
             risk = (o.lead_time_days - fastest) * inputs.risk_penalty_ticks_per_unit_day * qty
+            preferred = o.preferred if o.preferred is not None else inputs.suppliers.get(o.supplier_id, SupplierTermsIn(o.supplier_id)).preferred
+            risk -= 1 if preferred else 0          # a preferred supplier wins a tie, and only a tie (1 tick = 0.0001 EUR)
             cands.append(Cand(v.variant_id, o.supplier_id, qty, unit, unit * qty, o.lead_time_days, risk, o, tgt))
         lines.append(LineSpec(v.variant_id, mandatory, tuple(cands), ov.fixed_supplier.get(v.variant_id), fixed_qty, tuple(rejected)))
     return lines
@@ -124,7 +155,8 @@ def summarise(chosen: list[Chosen], suppliers: dict[str, SupplierTermsIn]) -> li
         charge = 0 if free or t.delivery_charge is None else ticks(t.delivery_charge)
         short_v = max(ticks(t.min_order_value) - sub, 0) if t.min_order_value is not None else 0
         short_q = max((t.min_qty_for_delivery or 0) - qty, 0)
-        groups.append(Group(sid, sub, charge, sub + charge, qty, "shortfall" if short_v or short_q else "met", short_v, short_q, free))
+        disc = best_discount_ticks(t, sub, qty)
+        groups.append(Group(sid, sub, charge, sub - disc + charge, qty, "shortfall" if short_v or short_q else "met", short_v, short_q, free, disc))
     return groups
 
 

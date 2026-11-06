@@ -76,7 +76,7 @@ def test_terms_are_versioned_and_validated(client, engine):
     sid = seed(engine)
     body = {"min_order_value": "150.00", "min_qty_for_delivery": 5, "free_delivery_threshold": "300", "delivery_charge": "9.5", "order_days": [1, 3], "delivery_schedule": "48 h"}
     assert client.put(f"/suppliers/{sid}/terms", json=body, headers=auth("buyer")).json() == {"version": 1}
-    assert client.put(f"/suppliers/{sid}/terms", json={**body, "delivery_charge": "12"}, headers=auth("buyer")).json() == {"version": 2}
+    assert client.put(f"/suppliers/{sid}/terms", json={**body, "delivery_charge": "12"}, headers={**auth("buyer"), "If-Match": '"1"'}).json() == {"version": 2}
     s = client.get("/suppliers", headers=auth()).json()[0]
     assert s["terms"]["delivery_charge"] == "12.0000" and s["terms"]["order_days"] == [1, 3]
     for bad in [{**body, "order_days": [0]}, {**body, "order_days": [1, 1]}, {**body, "min_order_value": "-1"}, {**body, "free_delivery_threshold": "10"}]:

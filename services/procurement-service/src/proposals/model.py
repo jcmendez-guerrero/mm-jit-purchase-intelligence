@@ -38,6 +38,16 @@ class Forecast:
 
 
 @dataclass(frozen=True)
+class Discount:
+    """A supplier order discount. ``basis`` is what the threshold measures (order value in EUR, or units on the order);
+    ``kind`` percent takes ``value`` percent off the subtotal, amount takes ``value`` EUR. The best qualifying tier applies."""
+    kind: str                          # percent / amount
+    basis: str                         # order_value / order_units
+    threshold: Decimal
+    value: Decimal
+
+
+@dataclass(frozen=True)
 class Offer:
     supplier_id: str
     unit_cost: Decimal                 # with recargo
@@ -47,6 +57,8 @@ class Offer:
     pack_size: int = 1
     lead_time_days: int = DEFAULT_LEAD_DAYS
     min_order_qty: int = 0
+    preferred: bool | None = None      # None = inherit the supplier's preference
+    terms_info: tuple[tuple[str, Any], ...] = ()   # which terms versions and sources produced this offer's values (for the explanation)
 
 
 @dataclass(frozen=True)
@@ -70,6 +82,10 @@ class SupplierTermsIn:
     min_qty_for_delivery: int | None = None
     free_delivery_threshold: Decimal | None = None
     delivery_charge: Decimal | None = None
+    discounts: tuple[Discount, ...] = ()
+    preferred: bool = False
+    disabled: bool = False
+    version: int | None = None
 
 
 @dataclass(frozen=True)
@@ -88,6 +104,7 @@ class ProposalInputs:
     overrides: Overrides = field(default_factory=Overrides)
     max_lead_days: int = 21
     risk_penalty_ticks_per_unit_day: int = 100         # 0.01 EUR per unit per extra day of lead time
+    terms_versions: dict[str, Any] = field(default_factory=dict)   # supplier_id -> {"supplier": n, "overrides": {variant_id: n}} (FR-026)
 
 
 def canonical(obj: Any) -> str:

@@ -260,6 +260,16 @@
       "http": 422,
       "kind": "request",
       "meaning": "Supplier order terms are not valid"
+    },
+    "revision_required": {
+      "http": 428,
+      "kind": "request",
+      "meaning": "The caller must say which version it edited (If-Match)"
+    },
+    "terms_invalid_value": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A terms value is out of range or malformed"
     }
   }
 }

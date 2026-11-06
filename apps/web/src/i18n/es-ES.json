@@ -144,5 +144,7 @@
   "errors.unknown_role": "Algún rol no es válido.",
   "errors.invalid_cost": "El coste indicado no es válido.",
   "errors.invalid_user_id": "El identificador de usuario no es válido.",
-  "errors.invalid_terms": "Las condiciones del proveedor no son válidas. Revise los importes, plazos y días de la semana."
+  "errors.invalid_terms": "Las condiciones del proveedor no son válidas. Revise los importes, plazos y días de la semana.",
+  "errors.revision_required": "Falta indicar qué versión se está editando. Recargue la página e inténtelo de nuevo.",
+  "errors.terms_invalid_value": "Algún valor de las condiciones no es válido (plazo, horario, descuento, fiabilidad o múltiplo)."
 }

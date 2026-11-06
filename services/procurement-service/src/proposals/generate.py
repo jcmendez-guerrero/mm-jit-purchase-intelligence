@@ -22,7 +22,7 @@ from db.tables import proposal_lines, proposals, replenishment_targets, supplier
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
 
-from proposals.model import RULES_VERSION, ProposalInputs, inputs_hash, money
+from proposals.model import RULES_VERSION, Offer, ProposalInputs, inputs_hash, money
 from proposals.targets import Target
 
 RULE_VERSIONS = {"targets": RULES_VERSION, "allocation": RULES_VERSION, "explanation": RULES_VERSION, "solver": "cp-sat"}
@@ -61,6 +61,7 @@ class DraftGroup:
     minimum_status: str
     free_delivery: bool
     options: tuple[dict[str, Any], ...]
+    discount: Decimal = Decimal(0)
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,7 @@ class Draft:
     optimized_total: Decimal
     over_budget: Decimal
     notes: tuple[str, ...] = field(default_factory=tuple)
+    terms_versions: dict[str, Any] = field(default_factory=dict)
 
 
 def _risk(t: Target, shortfall: bool) -> str:
@@ -87,6 +89,14 @@ def _confidence(t: Target, cost_status: str, topup: bool) -> str:
     if t.fallback:
         return "low"
     return "medium" if cost_status != "ok" or topup else "high"
+
+
+def _terms_explanation(offer: Offer, group: Group) -> dict[str, Any]:
+    """Which saved terms produced this line's values (FR-014): versions, where each value came from, conflicts with the ERP, discount."""
+    info = dict(offer.terms_info)
+    return {"supplier_version": info.get("supplier_version"), "override_version": info.get("override_version"),
+            "sources": dict(info.get("sources", ())), "conflicts": [dict(c) for c in info.get("conflicts", ())],
+            "preferred": offer.preferred, "supplier_discount": str(money(group.discount_ticks))}
 
 
 def _reason(line: LineSpec, chosen: Chosen, greedy: dict[int, Chosen], group: Group) -> str:
@@ -144,6 +154,7 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
                          "rejected": [{"supplier_id": s, "reason": r} for s, r in ln.rejected]},
             "cost": {"unit": str(money(c.unit_ticks)), "source": cand.offer.source, "status": cand.offer.cost_status, "cost_id": cand.offer.cost_id},
             "constraints": constraints,
+            "terms": _terms_explanation(cand.offer, g),
         }
         out_lines.append(DraftLine(
             c.variant_id, v.product_id, c.supplier_id, c.qty, money(c.unit_ticks), money(c.line_ticks), t.policy, t.safety_stock, tuple(constraints),
@@ -154,9 +165,9 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
     max_lead = {sid: max((c.lead for c in alloc.chosen if c.supplier_id == sid), default=0) for sid in groups}
     out_groups = tuple(DraftGroup(
         g.supplier_id, money(g.subtotal_ticks), money(g.delivery_charge_ticks), money(g.total_ticks), inputs.today + timedelta(days=max_lead[g.supplier_id]),
-        g.minimum_status, g.free_delivery, tuple(opts_by_supplier.get(g.supplier_id, ()))) for g in alloc.groups)
+        g.minimum_status, g.free_delivery, tuple(opts_by_supplier.get(g.supplier_id, ())), money(g.discount_ticks)) for g in alloc.groups)
     return Draft(tuple(out_lines), out_groups, tuple(targets), alloc.solver_status, inputs_hash(inputs, RULE_VERSIONS), dict(RULE_VERSIONS),
-                 money(greedy.total_ticks), money(alloc.total_ticks), money(alloc.over_budget_ticks), tuple(alloc.notes))
+                 money(greedy.total_ticks), money(alloc.total_ticks), money(alloc.over_budget_ticks), tuple(alloc.notes), dict(inputs.terms_versions))
 
 
 def store(conn: Connection, draft: Draft, created_by: str, week: str, budget: Decimal | None = None, now: datetime | None = None) -> str:
@@ -175,6 +186,7 @@ def store(conn: Connection, draft: Draft, created_by: str, week: str, budget: De
     conn.execute(insert(proposals).values(
         id=pid, week=week, status="draft", created_by=created_by, last_edited_by=created_by, version=1, inputs_hash=draft.inputs_hash,
         rule_versions=draft.rule_versions, solver_status=draft.solver_status, budget=budget, created_at=now, updated_at=now,
+        terms_version_ids=draft.terms_versions or None,
         flags={"greedy_total": str(draft.greedy_total), "optimized_total": str(draft.optimized_total), "over_budget": str(draft.over_budget), "notes": list(draft.notes)}))
     for ln in draft.lines:
         conn.execute(insert(proposal_lines).values(
@@ -189,6 +201,6 @@ def store(conn: Connection, draft: Draft, created_by: str, week: str, budget: De
     for g in draft.groups:
         conn.execute(insert(supplier_order_groups).values(
             proposal_id=pid, supplier_id=g.supplier_id, subtotal=g.subtotal, delivery_charge=g.delivery_charge, total_cost=g.total, expected_delivery_date=g.expected_delivery,
-            minimum_status=g.minimum_status, free_delivery=g.free_delivery, shortfall_options=list(g.options)))
+            minimum_status=g.minimum_status, free_delivery=g.free_delivery, shortfall_options=list(g.options), discount=g.discount))
     audit(conn, created_by, "proposal.generated", "proposal", pid, after={"week": week, "lines": len(draft.lines), "inputs_hash": draft.inputs_hash}, now=now)
     return pid

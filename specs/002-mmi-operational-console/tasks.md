@@ -98,13 +98,13 @@
 
 ### Tests first
 
-- [ ] T040 [P] [US3] Test validation rules (negative amounts, threshold below minimum, overlapping windows, invalid weekdays, impossible lead time) in services/procurement-service/tests/test_terms_validation.py
-- [ ] T041 [P] [US3] Test effective-dated append-only versions, as_of resolution and history in services/procurement-service/tests/test_terms_versions.py
-- [ ] T042 [P] [US3] Test product override precedence over supplier terms and conflict indication with ERP values in services/procurement-service/tests/test_terms_precedence.py
-- [ ] T043 [P] [US3] Test optimistic concurrency (If-Match, 412 with current version) in services/procurement-service/tests/test_terms_concurrency.py
-- [ ] T044 [P] [US3] Test allocation uses lead time, pack multiples, discounts, validity windows, preferred flag and manual disable, and cites terms in the explanation in services/procurement-service/tests/test_allocation_terms.py
-- [ ] T045 [P] [US3] Test no request is built for any ERP path or method when terms change (connector and writer allowlist tests unchanged) in services/siweb-connector/tests/ and services/siweb-cost-writer/tests/
-- [ ] T046 [P] [US3] Test viewer cannot edit and refusal is audited in services/api-bff/tests/test_suppliers_rbac.py
+- [X] T040 [P] [US3] Test validation rules (negative amounts, threshold below minimum, overlapping windows, invalid weekdays, impossible lead time) in services/procurement-service/tests/test_terms_validation.py
+- [X] T041 [P] [US3] Test effective-dated append-only versions, as_of resolution and history in services/procurement-service/tests/test_terms_versions.py
+- [X] T042 [P] [US3] Test product override precedence over supplier terms and conflict indication with ERP values in services/procurement-service/tests/test_terms_precedence.py
+- [X] T043 [P] [US3] Test optimistic concurrency (If-Match, 412 with current version) in services/procurement-service/tests/test_terms_concurrency.py
+- [X] T044 [P] [US3] Test allocation uses lead time, pack multiples, discounts, validity windows, preferred flag and manual disable, and cites terms in the explanation in services/procurement-service/tests/test_allocation_terms.py
+- [X] T045 [P] [US3] Test no request is built for any ERP path or method when terms change (connector and writer allowlist tests unchanged) in services/siweb-connector/tests/ and services/siweb-cost-writer/tests/
+- [X] T046 [P] [US3] Test viewer cannot edit and refusal is audited in services/api-bff/tests/test_suppliers_rbac.py
 - [ ] T047 [P] [US3] Test lot acquisition costs are stored Recargo-inclusive (net costs converted), append-only, non-negative, never taken from ERP movement price, and emit lot_cost.changed in services/procurement-service/tests/test_lot_costs.py
 - [ ] T048 [P] [US3] Test the median cost (odd, even and single entry; rounding half-up to cents; entries with zero remaining quantity or no cost excluded; no entry in stock creates no request; buyer-entered opening entry when the ERP has no cost; Recargo-inclusive storage) shows the lots used, is the only value that can be released, and the cost write still needs buyer release, fresh MFA and writer re-check in services/procurement-service/tests/test_median_cost_suggestion.py
 - [ ] T049 [P] [US3] Test the lot lookup: lots in stock fetched with an audience-scoped identity when the request is built, lots and quantities stored with the request, inventory unavailable fails visibly and retries, no stale stock used in services/procurement-service/tests/test_lot_lookup.py
@@ -112,11 +112,11 @@
 
 ### Implementation
 
-- [ ] T051 [US3] Extend terms model, validation and versioned save (lead time, cut-off, delivery weekdays, discounts, payment terms, preference, validity, reliability, disabled, source, reason) in services/procurement-service/src/terms/service.py and services/procurement-service/src/db/tables.py
-- [ ] T052 [US3] Implement product-supplier overrides with most-specific-wins resolution and conflict detection in services/procurement-service/src/terms/overrides.py
-- [ ] T053 [US3] Add revision and If-Match handling to terms routes (GET/PUT /suppliers/{id}/terms, /product-suppliers/{variant}/{supplier}/terms) in services/procurement-service/src/api/terms.py
-- [ ] T054 [US3] Make the allocation engine read effective terms for the run date and record terms version ids on proposals in services/procurement-service/src/allocation/ and services/procurement-service/src/proposals/
-- [ ] T055 [US3] Emit procurement.terms.changed.v1 through the outbox in services/procurement-service/src/terms/service.py
+- [X] T051 [US3] Extend terms model, validation and versioned save (lead time, cut-off, delivery weekdays, discounts, payment terms, preference, validity, reliability, disabled, source, reason) in services/procurement-service/src/terms/service.py and services/procurement-service/src/db/tables.py
+- [X] T052 [US3] Implement product-supplier overrides with most-specific-wins resolution and conflict detection in services/procurement-service/src/terms/overrides.py
+- [X] T053 [US3] Add revision and If-Match handling to terms routes (GET/PUT /suppliers/{id}/terms, /product-suppliers/{variant}/{supplier}/terms) in services/procurement-service/src/api/terms.py
+- [X] T054 [US3] Make the allocation engine read effective terms for the run date and record terms version ids on proposals in services/procurement-service/src/allocation/ and services/procurement-service/src/proposals/
+- [X] T055 [US3] Emit procurement.terms.changed.v1 through the outbox in services/procurement-service/src/terms/service.py
 - [ ] T056 [US3] Implement the lot acquisition cost ledger (record automatically from confirmed order costs at receipt matching, buyer-entered opening entry when the ERP has no cost, buyer correction on arrival with audit) and emit procurement.lot_cost.changed.v1 in services/procurement-service/src/costs/lot_costs.py and services/procurement-service/src/orders/
 - [ ] T057 [US3] Compute the median cost and attach it, with its lot references, as the only value of the cost-write request, creating the request at receipt matching or at buyer entry for a pair with no ERP cost in services/procurement-service/src/costs/median_suggestion.py and services/procurement-service/src/api/costs.py
 - [ ] T058 [US3] Implement the inventory lots-in-stock lookup route returning remaining quantity per lot in services/inventory-service/src/api/lots.py
@@ -130,7 +130,7 @@
 - [ ] T066 [US3] Verify with the owner the source and freshness of PVP in collected ERP data whether stock-movement unit_cost is PVP, and whether the ERP PVP includes VAT (the business formula is applied as stated); adjust services/siweb-connector/src/mapping/ and services/inventory-service/src/ naming and the contract in packages/contracts/dto/ accordingly
 - [ ] T067 [US3] Confirm in planning that writing the median, or an admin-set cost, inside the same review, MFA, audit and writer chain is within constitution Principle I (which names the buyer as the one who enters or confirms the cost), or propose an amendment in .specify/memory/constitution.md via a separate reviewed change
 - [ ] T068 [P] [US3] Test the cost-update request timing and no-lots cases (request created at receipt match, opening entry when the ERP has no cost, no request when nothing is in stock) in services/procurement-service/tests/test_cost_update_timing.py
-- [ ] T069 [US3] Add BFF client methods and routes for supplier list/search, terms and overrides with role checks in services/api-bff/src/clients/procurement.py and services/api-bff/src/routes/suppliers.py
+- [X] T069 [US3] Add BFF client methods and routes for supplier list/search, terms and overrides with role checks in services/api-bff/src/clients/procurement.py and services/api-bff/src/routes/suppliers.py
 - [ ] T070 [US3] Build supplier list, terms editor, override editor, history and source badges in apps/web/src/features/suppliers/ with es-ES strings in apps/web/src/i18n/es-ES/suppliers.json
 - [ ] T071 [US3] Show terms used and precedence in proposal line explanations in apps/web/src/features/proposals/
 

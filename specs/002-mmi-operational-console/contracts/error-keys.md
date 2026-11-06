@@ -56,3 +56,5 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | invalid_cost | 422 | A cost value is not valid |
 | invalid_user_id | 422 | A user id is not valid |
 | invalid_terms | 422 | Supplier order terms are not valid |
+| revision_required | 428 | The caller must say which version it edited (If-Match) |
+| terms_invalid_value | 422 | A terms value is out of range or malformed |

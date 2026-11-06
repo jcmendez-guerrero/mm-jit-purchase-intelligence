@@ -194,6 +194,7 @@ supplier_order_groups = Table(
     Column("minimum_status", String(10), nullable=False),                # met / topped_up / shortfall
     Column("free_delivery", Boolean, nullable=False, default=False),
     Column("shortfall_options", JSON, nullable=False),
+    Column("discount", MONEY, nullable=False, default=0, server_default="0"),         # MMI 002: supplier order discount applied (migration 0010)
 )
 approvals = Table(
     "approvals", metadata,

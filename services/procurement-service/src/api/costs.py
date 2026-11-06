@@ -21,7 +21,10 @@ from mmi_common.errors import error_code
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
-from terms.service import Terms, TermsError, current_terms, save_terms
+from terms.service import current_terms, current_version
+
+from api.terms import register as register_terms_routes
+from api.terms import terms_json
 
 _engine: Engine | None = None
 DISPLAY = Decimal("0.01")
@@ -43,15 +46,6 @@ class CostEntry(BaseModel):
     lead_time_days: int | None = Field(default=None, ge=0)
     min_order_qty: int | None = Field(default=None, ge=0)
     pack_size: int | None = Field(default=None, ge=1)
-
-
-class TermsBody(BaseModel):
-    min_order_value: Decimal | None = None
-    min_qty_for_delivery: int | None = None
-    free_delivery_threshold: Decimal | None = None
-    delivery_charge: Decimal | None = None
-    order_days: list[int] = []
-    delivery_schedule: str | None = None
 
 
 class VatBody(BaseModel):
@@ -76,26 +70,15 @@ def build_router(app: FastAPI) -> APIRouter:
         with engine.begin() as conn:
             yield conn
 
+    register_terms_routes(router, conn_dep, require, app)
+
     @router.get("/suppliers")
     def list_suppliers(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
         out = []
         for s in conn.execute(select(suppliers).order_by(suppliers.c.name)).all():
             t = current_terms(conn, s.id)
-            out.append({"id": s.id, "name": s.name, "terms": None if t is None else {
-                "min_order_value": None if t.min_order_value is None else str(t.min_order_value), "min_qty_for_delivery": t.min_qty_for_delivery,
-                "free_delivery_threshold": None if t.free_delivery_threshold is None else str(t.free_delivery_threshold),
-                "delivery_charge": None if t.delivery_charge is None else str(t.delivery_charge), "order_days": list(t.order_days),
-                "delivery_schedule": t.delivery_schedule}})
+            out.append({"id": s.id, "name": s.name, "terms": None if t is None else terms_json(t), "version": current_version(conn, s.id)})
         return out
-
-    @router.put("/suppliers/{supplier_id}/terms")
-    def put_terms(supplier_id: str, body: TermsBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
-        try:
-            version = save_terms(conn, supplier_id, Terms(body.min_order_value, body.min_qty_for_delivery, body.free_delivery_threshold,
-                                                          body.delivery_charge, tuple(body.order_days), body.delivery_schedule), principal.subject)
-        except TermsError as exc:
-            raise HTTPException(422, error_code(exc)) from exc
-        return {"version": version}
 
     @router.get("/costs")
     def list_costs(product_id: int | None = None, supplier_id: str | None = None, only_issues: bool = False,
