@@ -469,5 +469,14 @@
   "forecast.rerun_done": "Previsión solicitada; si nada ha cambiado se reutiliza la anterior.",
   "forecast.revision": "Versión {{revision}}",
   "policies.working": "Trabajando…",
-  "errors.margin_unavailable": "No hay precio de venta para esta variante, así que no se puede comprobar el margen. Un administrador puede fijar un valor o puede completarse el precio en el ERP."
+  "errors.margin_unavailable": "No hay precio de venta para esta variante, así que no se puede comprobar el margen. Un administrador puede fijar un valor o puede completarse el precio en el ERP.",
+  "errors.import_decompression_limit": "El archivo se expande por encima del tamaño permitido y se ha rechazado.",
+  "errors.import_too_many_rows": "El archivo tiene más filas, columnas u hojas de las permitidas.",
+  "errors.import_missing_column": "Falta una columna obligatoria o el archivo está vacío.",
+  "errors.import_unknown_kind": "El tipo de dato no es válido: use observado_externo, estimado o previsión_manual.",
+  "errors.import_ambiguous_time": "La hora local es ambigua por el cambio de horario; indique solo la fecha.",
+  "errors.import_dataset_state": "El conjunto de datos no está en un estado que permita esta acción.",
+  "errors.import_unknown_dataset": "El conjunto de datos no existe.",
+  "errors.import_nothing_to_activate": "El conjunto de datos no tiene filas aceptadas, no se puede activar.",
+  "errors.import_mapping_name_taken": "Ya existe una correspondencia de columnas con ese nombre."
 }

@@ -187,28 +187,28 @@
 
 ### Tests first
 
-- [ ] T097 [P] [US5] Test upload limits, file-signature mismatch, macro workbook, decompression bomb and CSRF/role enforcement in services/api-bff/tests/test_upload_security.py and services/forecast-service/tests/test_upload_hardening.py
-- [ ] T098 [P] [US5] Test CSV parsing (delimiter, encoding, decimal comma) and XLSX parsing (multi-sheet, merged cells, formulas not evaluated) in services/forecast-service/tests/test_seed_parsing.py
-- [ ] T099 [P] [US5] Test row validation: unknown variant, negative quantity, date range, duplicates, DST-ambiguous times, mixed origin, notes ignored, nothing silently dropped in services/forecast-service/tests/test_seed_validation.py
-- [ ] T100 [P] [US5] Test activation is atomic, audited, needs buyer/admin, enqueues a versioned run, and failure leaves the previous version active in services/forecast-service/tests/test_seed_activation.py
-- [ ] T101 [P] [US5] Test rollback restores the prior version without deleting data and actuals prevail over seeds in overlapping periods in services/forecast-service/tests/test_seed_rollback.py
-- [ ] T102 [P] [US5] Test imported data never appears in ERP-derived demand series or any ERP request in services/forecast-service/tests/test_seed_isolation.py and services/inventory-service/tests/test_demand_unaffected.py
-- [ ] T103 [P] [US5] Test formula-injection neutralisation on CSV and XLSX output in services/forecast-service/tests/test_formula_safe_export.py
-- [ ] T104 [P] [US5] Test duplicate file detection requires an explicit buyer decision in services/forecast-service/tests/test_seed_duplicates.py
+- [X] T097 [P] [US5] Test upload limits, file-signature mismatch, macro workbook, decompression bomb and CSRF/role enforcement in services/api-bff/tests/test_upload_security.py and services/forecast-service/tests/test_upload_hardening.py
+- [X] T098 [P] [US5] Test CSV parsing (delimiter, encoding, decimal comma) and XLSX parsing (multi-sheet, merged cells, formulas not evaluated) in services/forecast-service/tests/test_seed_parsing.py
+- [X] T099 [P] [US5] Test row validation: unknown variant, negative quantity, date range, duplicates, DST-ambiguous times, mixed origin, notes ignored, nothing silently dropped in services/forecast-service/tests/test_seed_validation.py
+- [X] T100 [P] [US5] Test activation is atomic, audited, needs buyer/admin, enqueues a versioned run, and failure leaves the previous version active in services/forecast-service/tests/test_seed_activation.py
+- [X] T101 [P] [US5] Test rollback restores the prior version without deleting data and actuals prevail over seeds in overlapping periods in services/forecast-service/tests/test_seed_rollback.py
+- [X] T102 [P] [US5] Test imported data never appears in ERP-derived demand series or any ERP request in services/forecast-service/tests/test_seed_isolation.py and services/inventory-service/tests/test_demand_unaffected.py
+- [X] T103 [P] [US5] Test formula-injection neutralisation on CSV and XLSX output in services/forecast-service/tests/test_formula_safe_export.py
+- [X] T104 [P] [US5] Test duplicate file detection requires an explicit buyer decision in services/forecast-service/tests/test_seed_duplicates.py
 - [ ] T105 [US5] Write Spanish browser test of the full wizard with valid and hostile fixtures in apps/web/tests/e2e/import.spec.ts
 
 ### Implementation
 
 - [ ] T106 [US5] Implement BFF upload endpoint (session, CSRF, role, content-length cap, streaming to forecast-service) in services/api-bff/src/routes/imports.py and services/api-bff/src/clients/forecast.py
-- [ ] T107 [US5] Implement dataset storage, signature verification and private blob quarantine with retention in services/forecast-service/src/seeds/storage.py
-- [ ] T108 [US5] Implement streaming CSV/XLSX parsers with limits in services/forecast-service/src/seeds/parsers.py
-- [ ] T109 [US5] Implement mapping suggestion, saved mappings and preview in services/forecast-service/src/seeds/mapping.py
-- [ ] T110 [US5] Implement row validation, quarantine records and Spanish reason keys in services/forecast-service/src/seeds/validation.py
-- [ ] T111 [US5] Implement dry-run diff and backtest comparison against the active dataset in services/forecast-service/src/seeds/dryrun.py (reuse services/forecast-service/src/backtest/)
-- [ ] T112 [US5] Implement activation and rollback transactions and forecast.seed.activated.v1 outbox event in services/forecast-service/src/seeds/lifecycle.py
-- [ ] T113 [US5] Make forecast runs read the active dataset, fill only insufficient-history variants, flag seeded values and record dataset version in services/forecast-service/src/runs/sources.py and services/forecast-service/src/runs/runner.py
+- [X] T107 [US5] Implement dataset storage, signature verification and private blob quarantine with retention in services/forecast-service/src/seeds/storage.py
+- [X] T108 [US5] Implement streaming CSV/XLSX parsers with limits in services/forecast-service/src/seeds/parsers.py
+- [X] T109 [US5] Implement mapping suggestion, saved mappings and preview in services/forecast-service/src/seeds/mapping.py
+- [X] T110 [US5] Implement row validation, quarantine records and Spanish reason keys in services/forecast-service/src/seeds/validation.py
+- [X] T111 [US5] Implement dry-run diff and backtest comparison against the active dataset in services/forecast-service/src/seeds/dryrun.py (reuse services/forecast-service/src/backtest/)
+- [X] T112 [US5] Implement activation and rollback transactions and forecast.seed.activated.v1 outbox event in services/forecast-service/src/seeds/lifecycle.py
+- [X] T113 [US5] Make forecast runs read the active dataset, fill only insufficient-history variants, flag seeded values and record dataset version in services/forecast-service/src/runs/sources.py and services/forecast-service/src/runs/runner.py
 - [ ] T114 [US5] Implement import job processing in the scale-to-zero worker with idempotent re-run in services/forecast-service/src/worker.py and services/forecast-service/src/job.py
-- [ ] T115 [US5] Implement Spanish template download (CSV and XLSX) from contracts/import-template.md in services/forecast-service/src/seeds/template.py
+- [X] T115 [US5] Implement Spanish template download (CSV and XLSX) from contracts/import-template.md in services/forecast-service/src/seeds/template.py
 - [ ] T116 [US5] Add remaining BFF import routes (list, preview, mapping, validate, dry-run, activate, rollback, template) in services/api-bff/src/routes/imports.py
 - [ ] T117 [US5] Build the import wizard (template, upload, mapping, preview, validation results, quarantine, dry-run, activation, rollback) in apps/web/src/features/imports/ with es-ES strings
 

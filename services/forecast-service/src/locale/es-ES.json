@@ -15,5 +15,16 @@
   "origin.real": "real",
   "quarantine.sheet": "Filas en cuarentena",
   "quarantine.row": "Fila",
-  "quarantine.reason": "Motivo"
+  "quarantine.reason": "Motivo",
+  "reason.import_unknown_variant": "La variante no existe en el ERP.",
+  "reason.import_negative_quantity": "La cantidad es negativa.",
+  "reason.import_invalid_quantity": "La cantidad no es un número.",
+  "reason.import_invalid_date": "La fecha no es válida.",
+  "reason.import_date_out_of_range": "La fecha está fuera del rango permitido.",
+  "reason.import_duplicate_row": "Fila repetida para la misma variante, fecha y tipo.",
+  "reason.import_unknown_kind": "El tipo de dato no es válido.",
+  "reason.import_missing_provenance": "Falta el origen del dato.",
+  "reason.import_missing_column": "Falta un campo obligatorio.",
+  "reason.import_ambiguous_time": "La hora local es ambigua por el cambio de horario.",
+  "reason.import_mixed_origin": "El archivo mezcla datos sintéticos y reales."
 }

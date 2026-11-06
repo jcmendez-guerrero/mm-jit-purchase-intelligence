@@ -71,6 +71,15 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | policy_override_not_found | 404 | The override request does not exist |
 | policy_override_not_pending | 409 | The override request is not in a state that allows this |
 | margin_unavailable | 409 | There is no selling price, so the margin cannot be checked |
+| import_decompression_limit | 413 | The workbook expands beyond the allowed size |
+| import_too_many_rows | 413 | The file has more rows, columns or sheets than allowed |
+| import_missing_column | 422 | A required column is missing or the file is empty |
+| import_unknown_kind | 422 | The data type is not one of the allowed values |
+| import_ambiguous_time | 422 | The local time is ambiguous because of the clock change |
+| import_dataset_state | 409 | The dataset is not in a state that allows this |
+| import_unknown_dataset | 404 | The dataset does not exist |
+| import_nothing_to_activate | 409 | The dataset has no accepted rows |
+| import_mapping_name_taken | 409 | A mapping with that name already exists |
 | proposal_conflict | 409 | This week already has an approved proposal |
 | unknown_role | 422 | A role is not valid |
 | invalid_cost | 422 | A cost value is not valid |
