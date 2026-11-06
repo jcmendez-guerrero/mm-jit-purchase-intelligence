@@ -80,8 +80,7 @@ def build_router(app: FastAPI) -> APIRouter:
         return {int(s["variant_id"]) for s in series}, series
 
     def refuse(exc: Exception) -> HTTPException:
-        code = error_code(exc)
-        return HTTPException(HTTP.get(code, 422), code)
+        return HTTPException(HTTP.get(error_code(exc), 422), error_code(exc))
 
     @router.get("/template")
     def template(format: str = Query(default="csv", pattern="^(csv|xlsx)$"), _p: Any = Depends(require())) -> Response:
