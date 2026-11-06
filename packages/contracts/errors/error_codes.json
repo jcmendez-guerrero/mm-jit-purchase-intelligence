@@ -340,6 +340,31 @@
       "http": 403,
       "kind": "request",
       "meaning": "Only buyers can do this"
+    },
+    "unknown_parameter": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The forecast parameter is not on the approved list"
+    },
+    "unknown_exclusion": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The demand exclusion does not exist"
+    },
+    "policy_override_pending": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "A request for that field is already pending"
+    },
+    "policy_override_not_found": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The override request does not exist"
+    },
+    "policy_override_not_pending": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The override request is not in a state that allows this"
     }
   }
 }

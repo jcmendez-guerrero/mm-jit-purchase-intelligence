@@ -347,5 +347,10 @@
   "costs.status.retrying": "Reintentando",
   "costs.status.failed": "Con error",
   "costs.status.succeeded": "Completada",
-  "costs.status.cancelled": "Cancelada"
+  "costs.status.cancelled": "Cancelada",
+  "errors.unknown_parameter": "Ese parámetro de previsión no está entre los permitidos.",
+  "errors.unknown_exclusion": "La exclusión de demanda no existe.",
+  "errors.policy_override_pending": "Ya hay una solicitud pendiente para ese valor; resuélvala antes de crear otra.",
+  "errors.policy_override_not_found": "La solicitud de cambio no existe.",
+  "errors.policy_override_not_pending": "La solicitud ya no está pendiente y no admite esta acción."
 }

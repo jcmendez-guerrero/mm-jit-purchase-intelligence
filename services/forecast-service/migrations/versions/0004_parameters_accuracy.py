@@ -17,7 +17,7 @@ def upgrade() -> None:
                     sa.Column("key", sa.String(60), nullable=False), sa.Column("value", sa.JSON, nullable=False), sa.Column("valid_from", sa.Date, nullable=False),
                     sa.Column("valid_to", sa.Date), sa.Column("revision", sa.Integer, nullable=False, server_default="1"),
                     sa.Column("changed_by", sa.String(120), nullable=False),
-                    sa.UniqueConstraint("scope", "key", "valid_from", name="uq_forecast_parameters_effective"))
+                    sa.UniqueConstraint("scope", "key", "valid_from", "revision", name="uq_forecast_parameters_effective"))
     op.create_table("forecast_accuracy", sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
                     sa.Column("run_id", sa.String(36), sa.ForeignKey("forecast_runs.id"), nullable=False), sa.Column("segment", sa.String(20), nullable=False),
                     sa.Column("metric", sa.String(20), nullable=False), sa.Column("value", sa.Numeric(12, 6), nullable=False), sa.Column("window_days", sa.Integer),

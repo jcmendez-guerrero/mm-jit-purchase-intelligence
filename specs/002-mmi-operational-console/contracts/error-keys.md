@@ -65,6 +65,11 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | unknown_variant | 422 | The variant is not known |
 | unknown_supplier | 422 | The supplier is not known |
 | not_a_buyer | 403 | Only buyers can do this |
+| unknown_parameter | 422 | The forecast parameter is not on the approved list |
+| unknown_exclusion | 404 | The demand exclusion does not exist |
+| policy_override_pending | 409 | A request for that field is already pending |
+| policy_override_not_found | 404 | The override request does not exist |
+| policy_override_not_pending | 409 | The override request is not in a state that allows this |
 | proposal_conflict | 409 | This week already has an approved proposal |
 | unknown_role | 422 | A role is not valid |
 | invalid_cost | 422 | A cost value is not valid |

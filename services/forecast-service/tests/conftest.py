@@ -62,3 +62,9 @@ class Fixed:
 
 
 D = Decimal
+
+
+@pytest.fixture
+def conn(engine):
+    with engine.begin() as c:
+        yield c

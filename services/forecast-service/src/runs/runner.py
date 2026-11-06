@@ -86,7 +86,11 @@ def run_forecast(engine: Engine, source: SeriesSource, writer: BlobWriter, cfg: 
 def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter, cfg: RunConfig | None = None,
                       clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> RunResult:
     """One run inside the caller's transaction (the queue consumer's, so the inbox row and the run commit together)."""
-    cfg = cfg or RunConfig()
+    versions: dict[str, int] | None = None
+    if cfg is None:                              # parameters in force today (FR-016); an explicit config is used as given
+        from parameters import config_from_parameters
+
+        cfg, versions = config_from_parameters(conn, clock().date())
     export = source.fetch()
     digest = input_hash(export, cfg)
     done = conn.execute(select(forecast_runs).where(forecast_runs.c.input_hash == digest, forecast_runs.c.status == "completed")).first()
@@ -128,7 +132,8 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     cid = get_correlation_id() or set_correlation_id()
     conn.execute(insert(forecast_runs).values(
         id=run_id, started_at=started, through_day=export.get("through_day"), model_versions=model_versions(), input_hash=digest,
-        config=cfg.as_json(), status="running", total_count=len(series), eligible_count=eligible))
+        config=cfg.as_json(), status="running", total_count=len(series), eligible_count=eligible,
+        parameter_version_ids=versions or None))
     if rows:
         conn.execute(insert(forecast_values), rows)
     _store_backtests(conn, run_id, results, adopted)

@@ -148,7 +148,7 @@ forecast_parameters = Table(
     Column("valid_to", Date),
     Column("revision", Integer, nullable=False, default=1),
     Column("changed_by", String(120), nullable=False),
-    UniqueConstraint("scope", "key", "valid_from", name="uq_forecast_parameters_effective"),
+    UniqueConstraint("scope", "key", "valid_from", "revision", name="uq_forecast_parameters_effective"),
 )
 forecast_accuracy = Table(
     "forecast_accuracy", metadata,
