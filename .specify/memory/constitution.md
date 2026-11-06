@@ -18,9 +18,9 @@ Rationale: feature MMI 002 (specs/002-mmi-operational-console, FR-040 to FR-044,
   stock movements carry the retail price (PVP), not cost. MMI keeps its own per-lot acquisition
   cost record, and the value sent to the ERP is the median of those lot costs.
 Follow-up TODOs:
-  - TODO(RATIFICATION_DATE): confirm formal adoption date (still open)
+  - TODO(RATIFICATION_DATE): confirm formal adoption date (still open; the owner accepted the text as drafted on 2026-11-06, the formal merge date is set when the pull request is merged)
   - Resolved 2026-11-05 (owner): the admin who sets an override MUST NOT release it
-  - Update ADR-006 and docs/architecture/implementation-plan.md to describe the median value,
+  - Done 2026-11-06: ADR-006 and docs/architecture/implementation-plan.md describe the median value,
     margin check and admin override
   - Note in specs/002-mmi-operational-console that scenarios 4c and 4d of
     specs/001-mmi-purchase-intelligence are superseded for the cost value and timing

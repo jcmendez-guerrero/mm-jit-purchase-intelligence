@@ -1,6 +1,6 @@
 # ADR-006: Siweb access control on our side
 
-- Status: proposed (amended 2026-11-04)
+- Status: proposed (amended 2026-11-04; amended 2026-11-06 for MMI 002, constitution v1.2.0 accepted by the owner)
 
 ## Context and problem statement
 
@@ -9,7 +9,7 @@ Siweb issues one full-scope token per company, so read-only behaviour cannot be 
 ## Decision outcome
 
 - Reader (`siweb-connector`): compiled-in closed list of GET paths, single approved host, no redirects, token from Key Vault only.
-- **One permitted write**, `PUT /inventory/products/{id}/suppliers/{contact_id}` (supplier cost), only in `siweb-cost-writer`, only when the buyer enters a missing cost or confirms an order at a different cost. It has its own identity and Key Vault access, a closed allowlist containing only that operation, buyer review with fresh MFA before sending, read-modify-write of the cost field only, read-after-write verification, hash-chained audit (who, when, previous, new, outcome) and visible bounded retries.
+- **One permitted write**, `PUT /inventory/products/{id}/suppliers/{contact_id}` (supplier cost), only in `siweb-cost-writer`, only when goods are received and matched to a confirmed order, or when the buyer enters a cost for a pair that has none in Siweb (MMI 002: the value is the median of the Recargo-inclusive lot acquisition costs with stock remaining; margin below 15 % blocks the release unless an admin sets a value with a reason; the admin who sets it cannot release it; a different buyer releases it with a fresh second factor; the writer's own checks and this allowlist are unchanged). It has its own identity and Key Vault access, a closed allowlist containing only that operation, buyer review with fresh MFA before sending, read-modify-write of the cost field only, read-after-write verification, hash-chained audit (who, when, previous, new, outcome) and visible bounded retries.
 - If Siweb has no product-supplier record, no call is made (`pending_link`).
 - Everything else is refused before a request is built and counted as a security event.
 

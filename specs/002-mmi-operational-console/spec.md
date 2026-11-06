@@ -36,6 +36,7 @@ Out of scope: any ERP write other than the existing buyer-released, fresh-MFA su
 
 ### Session 2026-11-06
 
+- Q: Is the constitution amendment v1.2.0 (median value, margin check, admin override inside the single permitted write) accepted as drafted? → A: Yes. ADR-006 and the implementation plan are updated to match; the formal ratification date is set when the amendment is merged.
 - Q: What margin cap applies to a product whose cost is exactly EUR 50.00? → A: 20 %. A Recargo-inclusive cost below EUR 50.00 has the 30 % cap; EUR 50.00 and above has the 20 % cap.
 - Q: May seed data make a "new" product forecastable, and under what condition? → A: Yes, only when the product's sole reason for being ineligible is "new", the seed rows cover at least half of the days in their span, and the combined history (seed plus actual) reaches the 56-day minimum. Actual ERP demand always prevails on any day it covers. The forecast is flagged `seed_used` and the proposal line says so.
 - Q: Does the seed import run inside the upload request or as a background job? → A: Hybrid. A file of up to 10,000 rows is parsed and validated inside the request. A larger one (up to the 50,000-row cap) is queued for the worker; the buyer is told at once that it has been sent to the background, and an import status section lists every import with its stage (queued, parsing, validating, ready, failed), timings and any error, so the buyer can check it later. Re-running a stage is safe (idempotent).
