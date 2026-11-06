@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/procurement.lot_cost.changed.v1",
+  "title": "ProcurementLotCostChanged",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "procurement.lot_cost.changed.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variant_id",
+        "supplier_id",
+        "lot"
+      ],
+      "properties": {
+        "variant_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "supplier_id": {
+          "type": "string"
+        },
+        "lot": {
+          "type": "string"
+        }
+      },
+      "description": "A lot acquisition cost was recorded or corrected; inventory projects it for valuation."
+    }
+  }
+}

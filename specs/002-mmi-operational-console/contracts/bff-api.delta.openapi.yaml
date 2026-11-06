@@ -19,8 +19,8 @@ paths:
     get: {tags: [dashboard], summary: Actual vs forecast with uncertainty band; actual ERP and imported estimates are separate series}
   /dashboard/abc-xyz:
     get: {tags: [dashboard], summary: ABC/XYZ distribution with drill-down keys}
-  /dashboard/risks:
-    get: {tags: [dashboard], summary: Stockout and expiry risks, paginated, drill-down to variant}
+  /dashboard/risk:
+    get: {tags: [dashboard], summary: EXISTING route, extended with server-side pagination, the shared filters and drill-down keys (replaces the proposed /dashboard/risks)}
   /dashboard/forecast-accuracy:
     get: {tags: [dashboard], summary: Accuracy by segment and window}
   /filters/options:

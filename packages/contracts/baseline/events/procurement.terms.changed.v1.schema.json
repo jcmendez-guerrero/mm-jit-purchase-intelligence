@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/procurement.terms.changed.v1",
+  "title": "ProcurementTermsChanged",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "procurement.terms.changed.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "key",
+        "version"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "supplier_terms",
+            "product_supplier_terms",
+            "policy_set",
+            "budget_cap",
+            "stocking_setting"
+          ]
+        },
+        "key": {
+          "type": "string"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "description": "A terms or policy version was saved; references only, no values."
+    }
+  }
+}

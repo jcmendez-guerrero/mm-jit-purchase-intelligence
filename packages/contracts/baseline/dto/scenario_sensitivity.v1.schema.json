@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/scenario_sensitivity.v1",
+  "title": "ScenarioSensitivity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario_id",
+    "constraint_key",
+    "delta",
+    "cost_impact"
+  ],
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "constraint_key": {
+      "type": "string"
+    },
+    "delta": {
+      "type": "string"
+    },
+    "cost_impact": {
+      "$ref": "money.v1.schema.json"
+    }
+  }
+}

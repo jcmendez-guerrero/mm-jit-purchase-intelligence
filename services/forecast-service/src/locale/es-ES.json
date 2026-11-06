@@ -1,0 +1,19 @@
+{
+  "template.sheet": "Plantilla de datos predictivos",
+  "template.col.variant_id": "ID de variante Siweb",
+  "template.col.sku": "SKU",
+  "template.col.day": "Fecha",
+  "template.col.quantity": "Cantidad",
+  "template.col.warehouse": "Almacén",
+  "template.col.kind": "Tipo de dato",
+  "template.col.provenance": "Origen",
+  "template.col.origin": "Sintético/Real",
+  "kind.observed_external": "observado_externo",
+  "kind.estimated": "estimado",
+  "kind.manual_forecast": "previsión_manual",
+  "origin.synthetic": "sintético",
+  "origin.real": "real",
+  "quarantine.sheet": "Filas en cuarentena",
+  "quarantine.row": "Fila",
+  "quarantine.reason": "Motivo"
+}

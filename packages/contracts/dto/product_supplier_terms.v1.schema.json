@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/product_supplier_terms.v1",
+  "title": "ProductSupplierTerms",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "variant_id",
+    "supplier_id",
+    "version",
+    "valid_from",
+    "source",
+    "revision"
+  ],
+  "properties": {
+    "variant_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "valid_to": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lead_time_days": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 365
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "order_days": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 7
+      },
+      "uniqueItems": true,
+      "description": "ISO weekdays 1..7"
+    },
+    "order_cutoff_time": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "delivery_weekdays": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 7
+      },
+      "uniqueItems": true,
+      "description": "ISO weekdays 1..7"
+    },
+    "min_order_value": {
+      "oneOf": [
+        {
+          "$ref": "money.v1.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "min_qty_for_delivery": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "free_delivery_threshold": {
+      "oneOf": [
+        {
+          "$ref": "money.v1.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "delivery_charge": {
+      "oneOf": [
+        {
+          "$ref": "money.v1.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "discounts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/discount"
+      }
+    },
+    "payment_terms_days": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 365
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "preferred": {
+      "type": "boolean"
+    },
+    "reliability": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "disabled": {
+      "type": "boolean"
+    },
+    "source": {
+      "enum": [
+        "erp",
+        "import",
+        "manual"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "changed_by": {
+      "type": "string"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optimistic-concurrency revision; PUT requires If-Match with this value"
+    },
+    "pack_multiple": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "min_qty_units": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "description": "Override of supplier terms for one product-supplier pair; null fields inherit the supplier value (ADR-019).",
+  "$defs": {
+    "discount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "basis",
+        "threshold",
+        "value"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "percent",
+            "amount"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "order_value",
+            "order_units"
+          ]
+        },
+        "threshold": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]{1,4})?$"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]{1,4})?$"
+        }
+      }
+    }
+  }
+}

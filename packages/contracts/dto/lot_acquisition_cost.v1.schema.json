@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/lot_acquisition_cost.v1",
+  "title": "LotAcquisitionCost",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "variant_id",
+    "supplier_id",
+    "lot",
+    "unit_cost",
+    "source"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "variant_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "order_ref": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lot": {
+      "type": "string"
+    },
+    "received_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unit_cost": {
+      "$ref": "money.v1.schema.json",
+      "description": "Recargo-inclusive acquisition cost (never the ERP movement price, which is PVP)"
+    },
+    "source": {
+      "enum": [
+        "confirmed_order",
+        "receipt_correction",
+        "buyer_entry"
+      ]
+    },
+    "recorded_by": {
+      "type": "string"
+    }
+  },
+  "description": "Append-only entry per (variant, supplier, lot). Remaining stock is looked up from inventory, not stored here."
+}

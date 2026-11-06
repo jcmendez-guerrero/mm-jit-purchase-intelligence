@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/budget_cap.v1",
+  "title": "BudgetCap",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "period",
+    "scope",
+    "amount",
+    "valid_from",
+    "revision"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "period": {
+      "enum": [
+        "week",
+        "month"
+      ]
+    },
+    "scope": {
+      "enum": [
+        "global",
+        "supplier",
+        "category"
+      ]
+    },
+    "scope_key": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "amount": {
+      "$ref": "money.v1.schema.json"
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "valid_to": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optimistic-concurrency revision; PUT requires If-Match with this value"
+    }
+  }
+}

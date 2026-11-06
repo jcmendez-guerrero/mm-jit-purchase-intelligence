@@ -25,3 +25,5 @@ class Payload(BaseModel):
     run_id: UUID
     input_hash: str
     eligible_count: int
+    dataset_version_id: UUID | None = None
+    parameter_version_ids: list[UUID] | None = None

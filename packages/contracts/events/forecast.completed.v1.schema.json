@@ -19,7 +19,11 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["run_id", "input_hash", "eligible_count"],
+      "required": [
+        "run_id",
+        "input_hash",
+        "eligible_count"
+      ],
       "properties": {
         "run_id": {
           "type": "string",
@@ -30,6 +34,24 @@
         },
         "eligible_count": {
           "type": "integer"
+        },
+        "dataset_version_id": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parameter_version_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
         }
       },
       "description": "Document stored at payload_ref.uri; the envelope sha256 covers its bytes."

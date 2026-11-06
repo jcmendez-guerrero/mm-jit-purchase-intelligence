@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/forecast_parameter.v1",
+  "title": "ForecastParameter",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scope",
+    "key",
+    "value",
+    "valid_from",
+    "revision"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "scope": {
+      "type": "string"
+    },
+    "key": {
+      "type": "string"
+    },
+    "value": {
+      "type": [
+        "number",
+        "string",
+        "boolean"
+      ]
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "valid_to": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optimistic-concurrency revision; PUT requires If-Match with this value"
+    },
+    "changed_by": {
+      "type": "string"
+    }
+  },
+  "description": "Only keys and ranges on the approved list are accepted."
+}

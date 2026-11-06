@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/forecast_accuracy.v1",
+  "title": "ForecastAccuracy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "segment",
+    "metric",
+    "value"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "segment": {
+      "type": "string"
+    },
+    "metric": {
+      "enum": [
+        "wape",
+        "bias",
+        "stockout_rate"
+      ]
+    },
+    "value": {
+      "type": "string",
+      "pattern": "^-?[0-9]+(\\.[0-9]{1,6})?$"
+    },
+    "window_days": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

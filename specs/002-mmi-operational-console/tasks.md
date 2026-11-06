@@ -36,18 +36,18 @@
 **Purpose**: Contracts, migrations, ownership decisions and localisation keys. Contract-first (AGENTS rule 9).
 
 - [ ] T006 DECISION REQUIRED (owner: product owner) Resolve duplicated service-level ownership: read services/inventory-service/src (service_level_config) and services/procurement-service/src (service-levels), decide single owner, and update docs/adr/018-configuration-ownership.md with the migration path
-- [ ] T007 [P] Add JSON Schemas for supplier terms, product-supplier terms, policy sets, budget caps, demand rules in packages/contracts/dto/
-- [ ] T008 [P] Add JSON Schemas for seed datasets, mappings, validation results, forecast parameters, accuracy in packages/contracts/dto/
-- [ ] T009 [P] Add JSON Schemas for scenarios, results, sensitivity and dashboard aggregates in packages/contracts/dto/
-- [ ] T010 [P] Add event schemas forecast.seed.activated.v1, procurement.terms.changed.v1, procurement.scenario.ready.v1, inventory.rules.changed.v1 and the additive forecast.completed.v1 fields in packages/contracts/events/
-- [ ] T011 Regenerate Pydantic and TypeScript types and update the compatibility baseline in packages/contracts/ (codegen.toml, baseline/, python/, apps/web/src/api/generated)
-- [ ] T012 [P] Write contract tests (schema validity, additive compatibility of forecast.completed, example payloads) in packages/contracts/tests/test_mmi002_contracts.py
-- [ ] T013 Reconcile new BFF routes with existing ones (no duplicates) and finalise specs/002-mmi-operational-console/contracts/bff-api.delta.openapi.yaml and contracts/service-apis.md
-- [ ] T014 [P] Add stable error-key catalogue and es-ES messages in services/procurement-service/src/locale/, services/forecast-service/src/locale/, services/inventory-service/src/locale/, services/api-bff/src/locale/ and apps/web/src/i18n/es-ES/
-- [ ] T015 [P] Add localisation check that fails on hard-coded user-facing strings or error keys without an es-ES message in apps/web/tests/unit/i18n-coverage.test.ts and infra/tests/test_error_keys_localised.py
+- [X] T007 [P] Add JSON Schemas for supplier terms, product-supplier terms, policy sets, budget caps, demand rules in packages/contracts/dto/
+- [X] T008 [P] Add JSON Schemas for seed datasets, mappings, validation results, forecast parameters, accuracy in packages/contracts/dto/
+- [X] T009 [P] Add JSON Schemas for scenarios, results, sensitivity and dashboard aggregates in packages/contracts/dto/
+- [X] T010 [P] Add event schemas forecast.seed.activated.v1, procurement.terms.changed.v1, procurement.scenario.ready.v1, inventory.rules.changed.v1 and the additive forecast.completed.v1 fields in packages/contracts/events/
+- [X] T011 Regenerate Pydantic and TypeScript types and update the compatibility baseline in packages/contracts/ (codegen.toml, baseline/, python/, apps/web/src/api/generated)
+- [X] T012 [P] Write contract tests (schema validity, additive compatibility of forecast.completed, example payloads) in packages/contracts/tests/test_mmi002_contracts.py
+- [X] T013 Reconcile new BFF routes with existing ones (no duplicates) and finalise specs/002-mmi-operational-console/contracts/bff-api.delta.openapi.yaml and contracts/service-apis.md
+- [X] T014 [P] Add stable error-key catalogue (machine-readable in packages/contracts/errors/error_codes.json; services return codes only) and es-ES messages (web catalogue for errors; forecast-service catalogue for the import template; other services get a catalogue when they render artifacts) in services/procurement-service/src/locale/, services/forecast-service/src/locale/, services/inventory-service/src/locale/, services/api-bff/src/locale/ and apps/web/src/i18n/es-ES/
+- [X] T015 [P] Add localisation check that fails on hard-coded user-facing strings or error keys without an es-ES message in apps/web/tests/unit/i18n-coverage.test.ts and infra/tests/test_error_keys_localised.py
 - [ ] T016 Write migration for schema bff (user_roles, role_audit, role_mirror_outbox) in services/api-bff/migrations/ with alembic.ini and a bff database role in infra/compose.yaml and infra/bicep/modules/
 - [ ] T017 Write procurement migrations 0005 (extended supplier_terms, product_supplier_terms), 0006 (policy_sets, budget_caps, stocking_settings, policy_override_requests), 0007 (scenarios, results, sensitivity, version columns on proposals) in services/procurement-service/migrations/versions/
-- [ ] T018 [P] Add JSON Schema lot-acquisition-cost and event procurement.lot_cost.changed.v1 in packages/contracts/dto/ and packages/contracts/events/
+- [X] T018 [P] Add JSON Schema lot-acquisition-cost and event procurement.lot_cost.changed.v1 in packages/contracts/dto/ and packages/contracts/events/
 - [ ] T019 Write forecast migrations 0003 (seed_datasets, seed_mappings, seed_rows, seed_quarantine, import_jobs) and 0004 (forecast_parameters, forecast_accuracy, version columns on forecast_runs) in services/forecast-service/migrations/versions/
 - [ ] T020 Write inventory migration 0003 (segment_history, demand_exclusions, censoring_rules, agg_daily_kpis, agg_demand_trend, agg_abc_xyz) in services/inventory-service/migrations/versions/
 - [ ] T021 Extend the PostgreSQL migration test to cover upgrade and downgrade of every new migration and schema-versus-definition parity in infra/tests/test_migrations_postgres.py

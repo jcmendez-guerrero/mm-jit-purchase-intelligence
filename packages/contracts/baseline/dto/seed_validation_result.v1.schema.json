@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/seed_validation_result.v1",
+  "title": "SeedValidationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dataset_id",
+    "accepted",
+    "quarantined"
+  ],
+  "properties": {
+    "dataset_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "accepted": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "quarantined": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row_no",
+          "reason_key"
+        ],
+        "properties": {
+          "row_no": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reason_key": {
+            "type": "string"
+          },
+          "reason_params": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "description": "Row-level results. Reason keys are stable (see contracts/error-keys.md); the SPA renders Spanish text."
+}

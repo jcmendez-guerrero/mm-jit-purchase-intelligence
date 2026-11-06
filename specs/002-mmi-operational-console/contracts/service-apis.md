@@ -22,3 +22,15 @@ The BFF only orchestrates. Each route below is owned by one service, uses audien
 | inventory | PUT `/products/{id}/criticality` | Existing | Reused by the policy console |
 | api-bff | all routes in `bff-api.delta.openapi.yaml` | New | Roles stored in `bff` schema |
 | siweb-connector, siweb-cost-writer | none | Unchanged | Tests assert no new path or method |
+
+## Reconciliation with existing BFF routes (T013)
+
+| Existing route (PR #1) | Decision |
+|---|---|
+| `GET /dashboard/risk` | Kept and extended (pagination, shared filters, drill-down keys). The proposed `/dashboard/risks` is dropped to avoid a duplicate. |
+| `GET /suppliers`, `PUT /suppliers/{id}/terms` | Kept. PUT gains the extra term fields and `If-Match`; `GET /suppliers/{id}/terms` is new. |
+| `GET/PUT /config/service-levels` | Kept as a compatibility alias; the policy console's purchase section absorbs it once the single owner is decided (T006). |
+| `PUT /config/loss-cutover` | Unchanged. |
+| `GET /costs`, `POST /costs/import`, `GET /cost-writes`, `POST /cost-writes/{id}/approve` | Unchanged; the cost-write review screen gains the median, lots and margin data (US3). |
+| `/admin/roles` (`admin_roles.py`) | Kept; storage moves to the `bff` schema (US1), routes unchanged. |
+| `GET/PUT/POST /proposals...` | Unchanged; proposals gain version references and the scenario link. |

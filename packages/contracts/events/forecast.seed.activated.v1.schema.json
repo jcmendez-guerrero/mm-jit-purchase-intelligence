@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/forecast.seed.activated.v1",
+  "title": "ForecastSeedActivated",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "forecast.seed.activated.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "version",
+        "action"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action": {
+          "enum": [
+            "activated",
+            "rolled_back"
+          ]
+        }
+      },
+      "description": "Dataset activated or rolled back; requests a versioned forecast run."
+    }
+  }
+}
