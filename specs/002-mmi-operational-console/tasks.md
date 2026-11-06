@@ -195,7 +195,7 @@
 - [X] T102 [P] [US5] Test imported data never appears in ERP-derived demand series or any ERP request in services/forecast-service/tests/test_seed_isolation.py and services/inventory-service/tests/test_demand_unaffected.py
 - [X] T103 [P] [US5] Test formula-injection neutralisation on CSV and XLSX output in services/forecast-service/tests/test_formula_safe_export.py
 - [X] T104 [P] [US5] Test duplicate file detection requires an explicit buyer decision in services/forecast-service/tests/test_seed_duplicates.py
-- [ ] T105 [US5] Write Spanish browser test of the full wizard with valid and hostile fixtures in apps/web/tests/e2e/import.spec.ts
+- [X] T105 [US5] Write Spanish browser test of the full wizard with valid and hostile fixtures in apps/web/tests/e2e/import.spec.ts
 
 ### Implementation
 
@@ -210,7 +210,7 @@
 - [ ] T114 [US5] Implement import job processing in the scale-to-zero worker with idempotent re-run in services/forecast-service/src/worker.py and services/forecast-service/src/job.py
 - [X] T115 [US5] Implement Spanish template download (CSV and XLSX) from contracts/import-template.md in services/forecast-service/src/seeds/template.py
 - [X] T116 [US5] Add remaining BFF import routes (list, preview, mapping, validate, dry-run, activate, rollback, template) in services/api-bff/src/routes/imports.py
-- [ ] T117 [US5] Build the import wizard (template, upload, mapping, preview, validation results, quarantine, dry-run, activation, rollback) in apps/web/src/features/imports/ with es-ES strings
+- [X] T117 [US5] Build the import wizard (template, upload, mapping, preview, validation results, quarantine, dry-run, activation, rollback) in apps/web/src/features/imports/ with es-ES strings
 
 **Checkpoint**: US5 demonstrable end to end; hostile files refused.
 

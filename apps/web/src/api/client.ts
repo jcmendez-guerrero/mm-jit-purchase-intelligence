@@ -215,6 +215,64 @@ export interface SegmentHistoryRow {
   reason_key: string;
 }
 
+
+export interface SeedDataset {
+  id: string;
+  version: number;
+  name: string;
+  status: "uploaded" | "validated" | "active" | "superseded" | "rolled_back" | "rejected";
+  origin: "synthetic" | "real";
+  uploader: string;
+  uploaded_at: string;
+  activated_by: string | null;
+  activated_at: string | null;
+  accepted: number;
+  quarantined: number;
+  kinds: Record<string, number>;
+}
+
+export interface SeedUpload {
+  id: string;
+  version: number;
+  format: string;
+  headers: string[];
+  row_count: number;
+  suggested_mapping: Record<string, string>;
+  missing: string[];
+  preview: Array<Record<string, string>>;
+  duplicate_of: string | null;
+}
+
+export interface SeedValidation {
+  id: string;
+  origin: string;
+  accepted: number;
+  quarantined: number;
+  kinds: Record<string, number>;
+}
+
+export interface SeedQuarantineRow {
+  row_no: number;
+  reason_key: string;
+  params: Record<string, unknown>;
+}
+
+export interface SeedDryRun {
+  dataset_id: string;
+  compared_with: string | null;
+  rows: { added: number; removed: number; changed: number; unchanged: number };
+  variants_gaining_history: number[];
+  variants_losing_history: number[];
+  skipped_sparse: number[];
+  backtest: string;
+}
+
+export interface MappingInfo {
+  mappings: Array<{ id: string; name: string; column_map: Record<string, string> }>;
+  fields: string[];
+  required: string[];
+}
+
 export interface DiscountDoc {
   kind: "percent" | "amount";
   basis: "order_value" | "order_units";
@@ -659,6 +717,50 @@ export class ApiClient {
 
   async requestForecast(): Promise<{ run_id: string; reused: boolean }> {
     return this.request<{ run_id: string; reused: boolean }>("/forecast/runs", { method: "POST", body: JSON.stringify({}) });
+  }
+
+
+  async getSeedDatasets(): Promise<{ datasets: SeedDataset[] }> {
+    return this.request<{ datasets: SeedDataset[] }>("/imports");
+  }
+
+  async getMappings(): Promise<MappingInfo> {
+    return this.request<MappingInfo>("/imports/mappings");
+  }
+
+  async saveMapping(name: string, columnMap: Record<string, string>): Promise<{ id: string }> {
+    return this.request<{ id: string }>("/imports/mappings", { method: "POST", body: JSON.stringify({ name, column_map: columnMap }) });
+  }
+
+  async uploadSeed(file: File, name: string): Promise<SeedUpload> {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("name", name);
+    return this.request<SeedUpload>("/imports", { method: "POST", body: form });
+  }
+
+  async validateSeed(id: string, columnMap: Record<string, string>): Promise<SeedValidation> {
+    return this.request<SeedValidation>(`/imports/${id}/validate`, { method: "POST", body: JSON.stringify({ column_map: columnMap }) });
+  }
+
+  async getSeedQuarantine(id: string): Promise<{ rows: SeedQuarantineRow[] }> {
+    return this.request<{ rows: SeedQuarantineRow[] }>(`/imports/${id}/quarantine`);
+  }
+
+  async dryRunSeed(id: string): Promise<SeedDryRun> {
+    return this.request<SeedDryRun>(`/imports/${id}/dry-run`, { method: "POST", body: JSON.stringify({}) });
+  }
+
+  async activateSeed(id: string, acknowledgeDuplicate: boolean): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/imports/${id}/activate`, { method: "POST", body: JSON.stringify({ acknowledge_duplicate: acknowledgeDuplicate }) });
+  }
+
+  async rollbackSeed(): Promise<JsonRecord> {
+    return this.request<JsonRecord>("/imports/rollback", { method: "POST", body: JSON.stringify({}) });
+  }
+
+  async rejectSeed(id: string): Promise<void> {
+    await this.request<void>(`/imports/${id}/reject`, { method: "POST", body: JSON.stringify({}) });
   }
 
   async getServiceLevels(): Promise<{ history?: ServiceLevelEntry[] }> {
