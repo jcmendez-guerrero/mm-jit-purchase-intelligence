@@ -25,18 +25,54 @@ export interface UserSession {
 export type JsonRecord = Record<string, unknown>;
 
 export interface CostRecord {
-  variant_id: number;
-  supplier_contact_id: number;
-  net_cost: number | string;
-  applies_recargo?: boolean;
+  id: string;
+  product_id: number;
+  supplier_id: string;
+  variant_id: number | null;
+  version: number;
+  cost_net: string | null;
+  cost_with_recargo: string;
+  recargo_rate: string | null;
+  source: string;
   verified_at: string;
+  status: string;
+}
+
+export interface CostWriteLot {
+  variant_id: number;
+  lot: string;
+  quantity: number;
+  unit_cost: string;
 }
 
 export interface CostWriteRecord {
   id: string;
-  variant_id: number;
-  new_cost: number | string;
+  product_id: number;
+  supplier_id: string;
+  trigger: string;
+  proposed_value: string;
+  previous_siweb_value: string | null;
   status: string;
+  attempts: number;
+  last_error: string | null;
+  median_cost: string | null;
+  lots: CostWriteLot[];
+  pvp_used: string | null;
+  pvp_source: string;
+  margin_before: string | null;
+  margin_after: string | null;
+  rule_flags: string[];
+  tips: { cap: string; cost_at_minimum: string; cost_at_cap: string } | null;
+  override: { value: string; reason: string; by: string; at: string | null } | null;
+}
+
+export interface LotCostCorrection {
+  variant_id: number;
+  supplier_id: string;
+  lot: string;
+  amount: string;
+  includes_recargo: boolean;
+  source: "receipt_correction" | "buyer_entry";
 }
 
 export interface ImportErrorItem {
@@ -388,6 +424,16 @@ export class ApiClient {
 
   async approveCostWrite(writeId: string): Promise<JsonRecord> {
     return this.request<JsonRecord>(`/cost-writes/${writeId}/approve`, { method: "POST" });
+  }
+
+  /** Admin only: replaces the median with their own value. It still has to be released by a different buyer. */
+  async overrideCostWrite(writeId: string, value: string, reason: string): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/cost-writes/${writeId}/override`, { method: "POST", body: JSON.stringify({ value, reason }) });
+  }
+
+  /** Correction of what a lot cost, on arrival of the goods. There is no way to type a free supplier cost. */
+  async correctLotCost(body: LotCostCorrection): Promise<JsonRecord> {
+    return this.request<JsonRecord>("/lot-costs", { method: "POST", body: JSON.stringify(body) });
   }
 
   async getProposals(): Promise<ProposalSummary[]> {

@@ -9,7 +9,16 @@ from decimal import Decimal
 from typing import Any, Protocol
 
 from approvals.workflow import ApprovalError, UserDirectory, decide, is_approval_valid, submit
-from costs.writes import WriteError, approve_write, cancel_write, list_visible, writer_view
+from costs.margin import evaluate
+from costs.writes import (
+    WriteError,
+    approve_write,
+    awaiting_other_buyer,
+    cancel_write,
+    list_visible,
+    set_override,
+    writer_view,
+)
 from db.tables import approvals, product_refs, proposal_lines, proposals, supplier_order_groups, suppliers
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Response
 from mmi_common.errors import error_code
@@ -56,6 +65,11 @@ class RolesBody(BaseModel):
     roles: list[str] = Field(max_length=8)
     active: bool = True
     revision: int | None = Field(default=None, ge=0)        # the BFF role revision; stale mirrors are ignored
+
+
+class OverrideBody(BaseModel):
+    value: Decimal = Field(ge=0, max_digits=14, decimal_places=4)
+    reason: str = Field(min_length=1, max_length=500)
 
 
 class WriteApproval(BaseModel):
@@ -215,11 +229,25 @@ def build_router(app: FastAPI) -> APIRouter:
         return {"order_id": res.order_id, "warnings": res.warnings,
                 "cost_writes": [{"id": w.request.id, "status": w.status, "warnings": w.warnings} for w in res.cost_writes if w.request is not None]}
 
+    def tips_for(r: Any) -> dict[str, Any] | None:
+        """Explanatory tips for the admin (FR-044): the cost that yields exactly 15 % and the cap, and the cap that applies."""
+        if r.pvp_used is None:
+            return None
+        ev = evaluate(Decimal(str(r.proposed_value)), None if r.previous_siweb_value is None else Decimal(str(r.previous_siweb_value)), Decimal(str(r.pvp_used)))
+        q = lambda v: str(v.quantize(Decimal("0.01")))  # noqa: E731
+        return {"cap": str(ev.cap), "cost_at_minimum": q(ev.cost_at_minimum), "cost_at_cap": q(ev.cost_at_cap)}  # type: ignore[arg-type]
+
     def write_json(r: Any) -> dict[str, Any]:
         return {"id": r.id, "cost_id": r.cost_id, "product_id": r.product_id, "supplier_id": r.supplier_id, "trigger": r.trigger,
                 "proposed_value": str(Decimal(str(r.proposed_value))), "previous_siweb_value": None if r.previous_siweb_value is None else str(Decimal(str(r.previous_siweb_value))),
                 "status": r.status, "attempts": r.attempts, "last_error": r.last_error,
-                "median_cost": None if r.median_cost is None else str(Decimal(str(r.median_cost)).quantize(Decimal("0.01"))), "lots": r.median_lot_refs or []}
+                "median_cost": None if r.median_cost is None else str(Decimal(str(r.median_cost)).quantize(Decimal("0.01"))), "lots": r.median_lot_refs or [],
+                "pvp_used": None if r.pvp_used is None else str(Decimal(str(r.pvp_used)).quantize(Decimal("0.01"))), "pvp_source": "stock_movement_price",
+                "margin_before": None if r.margin_before is None else str(Decimal(str(r.margin_before))),
+                "margin_after": None if r.margin_after is None else str(Decimal(str(r.margin_after))), "rule_flags": r.rule_flags or [],
+                "tips": tips_for(r), "override": None if r.override_value is None else {
+                    "value": str(Decimal(str(r.override_value)).quantize(Decimal("0.01"))), "reason": r.override_reason, "by": r.override_by,
+                    "at": r.override_at.isoformat() if r.override_at else None}}
 
     @router.get("/cost-writes")
     def cost_writes(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
@@ -232,8 +260,16 @@ def build_router(app: FastAPI) -> APIRouter:
         try:
             r = approve_write(conn, request_id, principal, writer, bool(body and body.acknowledge_variant_conflict))
         except WriteError as exc:
-            raise HTTPException(403 if exc.code in ("mfa_required", "not_a_buyer") else 409, exc.code) from exc
+            raise HTTPException(403 if exc.code in ("mfa_required", "not_a_buyer", "override_release_same_person") else 409, exc.code) from exc
         return write_json(r)
+
+    @router.post("/cost-writes/{request_id}/override")
+    def override_cost_write(request_id: str, body: OverrideBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("admin"))) -> dict[str, Any]:
+        try:
+            r = set_override(conn, request_id, principal, body.value, body.reason)
+        except WriteError as exc:
+            raise HTTPException(404 if exc.code == "unknown_request" else 409 if exc.code.startswith("cannot_") else 422, exc.code) from exc
+        return {**write_json(r), "awaiting_other_buyer": awaiting_other_buyer(conn, request_id)}
 
     @router.post("/cost-writes/{request_id}/cancel", status_code=204)
     def cancel(request_id: str, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> None:

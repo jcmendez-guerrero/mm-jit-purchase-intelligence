@@ -44,7 +44,7 @@
     "policy_out_of_range": {
       "http": 422,
       "kind": "request",
-      "meaning": "Service level outside 0–100 or max below min"
+      "meaning": "Service level outside 0\u2013100 or max below min"
     },
     "import_file_too_large": {
       "http": 413,
@@ -275,6 +275,71 @@
       "http": 422,
       "kind": "request",
       "meaning": "A terms value is out of range or malformed"
+    },
+    "override_release_same_person": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "The admin who set an override cannot release it"
+    },
+    "median_required": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The released value must be the lot median or the admin override"
+    },
+    "not_an_admin": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "Only an admin can set a cost override"
+    },
+    "negative_value": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A value must not be negative"
+    },
+    "inventory_unavailable": {
+      "http": 503,
+      "kind": "request",
+      "meaning": "Inventory could not be queried for the lots in stock"
+    },
+    "pvp_unavailable": {
+      "http": 503,
+      "kind": "request",
+      "meaning": "The selling price (PVP) could not be queried"
+    },
+    "vat_unknown": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The product VAT is unknown, so a net cost cannot be converted"
+    },
+    "negative_cost": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A cost must not be negative"
+    },
+    "invalid_source": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The cost source is not allowed"
+    },
+    "invalid_lot": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The lot identifier is missing or too long"
+    },
+    "unknown_variant": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The variant is not known"
+    },
+    "unknown_supplier": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The supplier is not known"
+    },
+    "not_a_buyer": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "Only buyers can do this"
     }
   }
 }

@@ -58,8 +58,28 @@ class ProcurementClient(DownstreamClient):
         res.raise_for_status()
         return res.json()
 
-    async def approve_cost_write(self, write_id: str, user_id: str, roles: list[str] | None = None) -> dict[str, Any]:
-        res = await self.post(f"/cost-writes/{write_id}/approve", json={}, user_id=user_id, roles=roles)
+    async def approve_cost_write(self, write_id: str, user_id: str, roles: list[str] | None = None, body: dict[str, Any] | None = None) -> dict[str, Any]:
+        res = await self.post(f"/cost-writes/{write_id}/approve", json=body or {}, user_id=user_id, roles=roles)
+        res.raise_for_status()
+        return res.json()
+
+    async def override_cost_write(self, write_id: str, body: dict[str, Any], user_id: str, roles: list[str] | None = None) -> dict[str, Any]:
+        res = await self.post(f"/cost-writes/{write_id}/override", json=body, user_id=user_id, roles=roles)
+        res.raise_for_status()
+        return res.json()
+
+    async def get_lot_costs(self, variant_id: int, supplier_id: str, roles: list[str] | None = None) -> list[dict[str, Any]]:
+        res = await self.get("/lot-costs", params={"variant_id": variant_id, "supplier_id": supplier_id}, roles=roles)
+        res.raise_for_status()
+        return res.json()
+
+    async def add_lot_cost(self, body: dict[str, Any], user_id: str, roles: list[str] | None = None) -> dict[str, Any]:
+        res = await self.post("/lot-costs", json=body, user_id=user_id, roles=roles)
+        res.raise_for_status()
+        return res.json()
+
+    async def request_cost_update(self, body: dict[str, Any], user_id: str, roles: list[str] | None = None) -> dict[str, Any]:
+        res = await self.post("/cost-updates", json=body, user_id=user_id, roles=roles)
         res.raise_for_status()
         return res.json()
 

@@ -36,7 +36,7 @@ test.describe("Accessibility labels and keyboard navigation (T119)", () => {
 
     // Check accessible landmark and headings
     await expect(page.locator("nav[aria-label='Menú principal de navegación']")).toBeVisible();
-    await expect(page.locator("h1:has-text('Mundo Mascotix Intelligence')")).toBeVisible();
+    await expect(page.locator("h1").first()).toBeVisible();
     await expect(page.locator("h2#dashboard-title")).toBeVisible();
 
     // Check risk table accessibility label

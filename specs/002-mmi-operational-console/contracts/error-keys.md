@@ -52,6 +52,19 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | version_conflict | 409 | The record changed since it was read |
 | invalid_proposal_state | 409 | The proposal state does not allow this action |
 | invalid_quantity | 422 | A quantity must be a whole number of zero or more |
+| override_release_same_person | 403 | The admin who set an override cannot release it |
+| median_required | 409 | The released value must be the lot median or the admin override |
+| not_an_admin | 403 | Only an admin can set a cost override |
+| negative_value | 422 | A value must not be negative |
+| inventory_unavailable | 503 | Inventory could not be queried for the lots in stock |
+| pvp_unavailable | 503 | The selling price (PVP) could not be queried |
+| vat_unknown | 422 | The product VAT is unknown, so a net cost cannot be converted |
+| negative_cost | 422 | A cost must not be negative |
+| invalid_source | 422 | The cost source is not allowed |
+| invalid_lot | 422 | The lot identifier is missing or too long |
+| unknown_variant | 422 | The variant is not known |
+| unknown_supplier | 422 | The supplier is not known |
+| not_a_buyer | 403 | Only buyers can do this |
 | proposal_conflict | 409 | This week already has an approved proposal |
 | unknown_role | 422 | A role is not valid |
 | invalid_cost | 422 | A cost value is not valid |

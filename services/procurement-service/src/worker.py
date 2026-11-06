@@ -15,6 +15,7 @@ from typing import Any
 import httpx
 from consumer import ReceiptSource, consume_once, sync_receipts
 from costs.lot_lookup import HttpLotsSource, LotsSource
+from costs.pvp import HttpPvpSource, PvpSource
 from db.tables import outbox
 from mmi_common.busfactory import bus_from_env
 from mmi_common.logging import configure_logging
@@ -50,12 +51,12 @@ class FileBlobs:
         return Path(uri.removeprefix("file://")).read_bytes()
 
 
-def run_once(engine: Engine, bus, blobs, receipts: ReceiptSource | None, writer: BlobWriter | None = None, lots: LotsSource | None = None) -> dict[str, Any]:  # type: ignore[no-untyped-def]
+def run_once(engine: Engine, bus, blobs, receipts: ReceiptSource | None, writer: BlobWriter | None = None, lots: LotsSource | None = None, pvp: PvpSource | None = None) -> dict[str, Any]:  # type: ignore[no-untyped-def]
     stats = consume_once(engine, bus, blobs)
     receipt_stats: dict[str, int] = {}
     if receipts is not None:
         with engine.begin() as conn:
-            receipt_stats = sync_receipts(conn, receipts, writer=writer, lots=lots)
+            receipt_stats = sync_receipts(conn, receipts, writer=writer, lots=lots, pvp=pvp)
     with engine.begin() as conn:
         sent = relay_once(conn, outbox, bus, SUBSCRIPTIONS)
     return {"applied": stats.applied, "duplicates": stats.duplicates, "rejected": stats.rejected, "failed": stats.failed, "relayed": sent, "receipts": receipt_stats}
@@ -70,7 +71,7 @@ def main() -> int:
         src = HttpReceiptSource(url, token) if url else None
         lots = HttpLotsSource(url, token) if url else None
         writer = FileWriter(Path(os.environ.get("MMI_BLOB_ROOT", "/tmp/mmi-procurement")))  # noqa: S108 - local default only
-        result = run_once(engine, bus_from_env(), FileBlobs(), src, writer, lots)
+        result = run_once(engine, bus_from_env(), FileBlobs(), src, writer, lots, HttpPvpSource(url, token) if url else None)
     except Exception:
         log.exception("WORKER_FAILED")
         return 1

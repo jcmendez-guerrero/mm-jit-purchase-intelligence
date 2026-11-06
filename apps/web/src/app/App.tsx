@@ -68,7 +68,7 @@ export const App: React.FC = () => {
         )}
         {currentTab === "quality" && <QualityScreen userRoles={userRoles} />}
         {currentTab === "suppliers" && <SuppliersScreen userRoles={userRoles} />}
-        {currentTab === "costs" && <CostsScreen userRoles={userRoles} />}
+        {currentTab === "costs" && <CostsScreen userRoles={userRoles} userId={session?.user_id} />}
         {currentTab === "proposals" && <ProposalsScreen userRoles={userRoles} />}
         {currentTab === "config" && <ConfigScreen userRoles={userRoles} />}
         {currentTab === "admin" && userRoles.includes("admin") && <RolesScreen />}

@@ -32,6 +32,9 @@ def configure() -> None:
 
         lot_token = os.environ.get("MMI_UPSTREAM_TOKEN") or (lambda: service_token("api://mmi-inventory-service", "svc-procurement", ["viewer"]))
         app.state.lots_source = HttpLotsSource(os.environ["MMI_INVENTORY_URL"], lot_token)
+        from costs.pvp import HttpPvpSource
+
+        app.state.pvp_source = HttpPvpSource(os.environ["MMI_INVENTORY_URL"], lot_token)
     if os.environ.get("MMI_INVENTORY_URL") and os.environ.get("MMI_FORECAST_URL"):
         static = os.environ.get("MMI_UPSTREAM_TOKEN")
 

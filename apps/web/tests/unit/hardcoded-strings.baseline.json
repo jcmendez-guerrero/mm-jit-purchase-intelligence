@@ -1,7 +1,6 @@
 {
   "src/app/Navigation.tsx": 6,
   "src/features/config/ConfigScreen.tsx": 5,
-  "src/features/costs/CostsScreen.tsx": 6,
   "src/features/dashboard/DashboardScreen.tsx": 8,
   "src/features/quality/QualityScreen.tsx": 1
 }

@@ -16,6 +16,7 @@ from typing import Any, Protocol
 
 from costs.lot_lookup import LotsSource
 from costs.median_suggestion import request_median_write
+from costs.pvp import PvpSource
 from costs.recargo import load_table
 from costs.rules import load_rules
 from costs.siweb_import import import_supplier_rows
@@ -85,7 +86,7 @@ class ReceiptSource(Protocol):
 
 
 def sync_receipts(conn: Connection, source: ReceiptSource, now: datetime | None = None, writer: BlobWriter | None = None,
-                  lots: LotsSource | None = None) -> dict[str, int]:
+                  lots: LotsSource | None = None, pvp: PvpSource | None = None) -> dict[str, int]:
     """Poll inventory-service for supplier receipts after the cursor, match them to confirmed orders, advance the cursor."""
     row = conn.execute(select(receipt_cursor.c.last_movement_id).where(receipt_cursor.c.id == 1)).first()
     after = int(row.last_movement_id) if row else 0
@@ -102,7 +103,7 @@ def sync_receipts(conn: Connection, source: ReceiptSource, now: datetime | None 
             if pid is None or (pid, supplier_id) in done:
                 continue
             done.add((pid, supplier_id))
-            out = request_median_write(conn, lots, int(pid), supplier_id, "receipt_matched", "system:receipt-match", now)
+            out = request_median_write(conn, lots, int(pid), supplier_id, "receipt_matched", "system:receipt-match", now, pvp)
             requests += 1 if out.request is not None else 0
     newest = max(int(x["movement_id"]) for x in items)
     if row is None:

@@ -23,6 +23,7 @@ from proposals.publisher import WRITE_REQUESTED, BlobWriter, publish
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.engine import Connection, Row
 
+from costs.margin import BELOW_MINIMUM, Evaluation, evaluate
 from costs.recargo import erp_cents
 from costs.store import get as get_cost
 
@@ -69,7 +70,7 @@ def _variant_conflict(conn: Connection, product_id: int, variant_id: int | None)
 
 
 def request_write(conn: Connection, cost_id: str, trigger: str, actor: str, now: datetime | None = None, *, median_lot_refs: list[dict[str, Any]] | None = None,
-                  median_cost: Decimal | None = None) -> WriteRequestResult:
+                  median_cost: Decimal | None = None, margin: Evaluation | None = None) -> WriteRequestResult:
     if trigger not in TRIGGERS:
         raise WriteError("invalid_trigger")
     now = now or datetime.now(UTC)
@@ -93,7 +94,9 @@ def request_write(conn: Connection, cost_id: str, trigger: str, actor: str, now:
     conn.execute(insert(cost_write_requests).values(
         id=rid, cost_id=cost_id, product_id=cost.product_id, supplier_id=cost.supplier_id, trigger=trigger, proposed_value=proposed,
         previous_siweb_value=previous, status=status, attempts=0, requested_by=actor, idempotency_key=key, created_at=now, updated_at=now,
-        median_cost=median_cost if median_cost is not None else proposed, median_lot_refs=median_lot_refs))
+        median_cost=median_cost if median_cost is not None else proposed, median_lot_refs=median_lot_refs,
+        pvp_used=None if margin is None else margin.pvp, margin_before=None if margin is None else margin.margin_before,
+        margin_after=None if margin is None else margin.margin_after, rule_flags=[] if margin is None else list(margin.flags)))
     audit(conn, actor, "cost_write.requested", "cost_write", rid, after={"status": status, "trigger": trigger, "cents": erp_cents(proposed)}, now=now)
     return WriteRequestResult(conn.execute(select(cost_write_requests).where(cost_write_requests.c.id == rid)).one(), status, warnings)
 
@@ -115,8 +118,14 @@ def approve_write(conn: Connection, request_id: str, principal: Principal, write
     r = _req(conn, request_id)
     if r.status not in ("pending_review", "pending_link", "failed"):
         raise WriteError(f"cannot_release_from_{r.status}")
-    if r.median_cost is None or Decimal(str(r.median_cost)) != Decimal(str(r.proposed_value)):
-        raise WriteError("median_required")          # the released value is always the median of the lot costs (FR-042)
+    overridden = r.override_value is not None
+    expected = r.override_value if overridden else r.median_cost
+    if expected is None or Decimal(str(expected)) != Decimal(str(r.proposed_value)):
+        raise WriteError("median_required")          # the released value is the median of the lot costs, or the admin's override (FR-042/044)
+    if overridden and r.override_by == principal.subject:
+        raise WriteError("override_release_same_person")   # whoever set the override cannot release it (FR-044)
+    if BELOW_MINIMUM in (r.rule_flags or []) and not overridden:
+        raise WriteError("margin_below_minimum")           # blocked until an admin override (FR-043 d)
     cost = get_cost(conn, r.cost_id)
     if cost.superseded_by is not None:
         raise WriteError("cost_superseded")
@@ -125,7 +134,7 @@ def approve_write(conn: Connection, request_id: str, principal: Principal, write
     if _variant_conflict(conn, r.product_id, cost.variant_id) and not acknowledge_variant_conflict:
         raise WriteError("variant_conflict_unacknowledged")
     conn.execute(update(cost_write_requests).where(cost_write_requests.c.id == request_id).values(
-        status="approved_by_buyer", reviewed_by=principal.subject, updated_at=now, last_error=None))
+        status="approved_by_buyer", reviewed_by=principal.subject, released_by=principal.subject, updated_at=now, last_error=None))
     audit(conn, principal.subject, "cost_write.approved", "cost_write", request_id, before={"status": r.status}, after={"status": "approved_by_buyer"}, now=now)
     publish(conn, writer, WRITE_REQUESTED, request_id, {"cost_write_request_id": request_id}, get_correlation_id() or set_correlation_id())
     return _req(conn, request_id)
@@ -186,3 +195,52 @@ def relink_pending(conn: Connection, product_id: int, supplier_id: str, now: dat
         cost_write_requests.c.product_id == product_id, cost_write_requests.c.supplier_id == supplier_id, cost_write_requests.c.status == "pending_link")
         .values(status="pending_review", updated_at=now))
     return int(res.rowcount)
+
+
+OVERRIDE_REASON_MIN = 5
+
+
+def set_override(conn: Connection, request_id: str, principal: Principal, value: Decimal, reason: str, now: datetime | None = None) -> Row[Any]:
+    """An admin replaces the median with their own value for a blocked or flagged update (FR-044). Nothing is released here:
+    the buyer review, a different releaser, fresh MFA and the writer's own checks all still apply."""
+    now = now or datetime.now(UTC)
+    if "admin" not in principal.roles:
+        raise WriteError("not_an_admin")
+    if isinstance(value, float):
+        raise TypeError("floats are not allowed for money")
+    if value < 0:
+        raise WriteError("negative_value")
+    reason = (reason or "").strip()
+    if len(reason) < OVERRIDE_REASON_MIN or len(reason) > 500:
+        raise WriteError("override_reason_required")
+    r = _req(conn, request_id)
+    if r.status not in ("pending_review", "pending_link", "failed"):
+        raise WriteError(f"cannot_override_from_{r.status}")
+    flags = [f for f in (r.rule_flags or []) if f != "override"]
+    margin_after = r.margin_after
+    if r.pvp_used is not None:
+        ev = evaluate(value, None if r.previous_siweb_value is None else Decimal(str(r.previous_siweb_value)), Decimal(str(r.pvp_used)))
+        flags = [f for f in ev.flags if f != BELOW_MINIMUM] + ([f"override_{BELOW_MINIMUM}"] if ev.blocked else [])
+        margin_after = ev.margin_after
+    flags.append("override")
+    conn.execute(update(cost_write_requests).where(cost_write_requests.c.id == request_id).values(
+        override_value=value.quantize(Decimal("0.0001")), override_reason=reason, override_by=principal.subject, override_at=now, proposed_value=value.quantize(Decimal("0.0001")),
+        margin_after=margin_after, rule_flags=flags, updated_at=now))
+    audit(conn, principal.subject, "cost_write.override_set", "cost_write", request_id,
+          before={"median_cost": None if r.median_cost is None else str(r.median_cost), "margin_after": None if r.margin_after is None else str(r.margin_after)},
+          after={"override_value": str(value), "reason": reason, "margin_before": None if r.margin_before is None else str(r.margin_before),
+                 "margin_after": None if margin_after is None else str(margin_after), "set_by": principal.subject, "at": now.isoformat()}, now=now)
+    return _req(conn, request_id)
+
+
+def awaiting_other_buyer(conn: Connection, request_id: str) -> bool:
+    """True when an override is set and no active buyer other than its author exists to release it (the override stays pending)."""
+    from db.tables import user_roles
+
+    r = _req(conn, request_id)
+    if r.override_by is None:
+        return False
+    for u in conn.execute(select(user_roles.c.user_id, user_roles.c.roles, user_roles.c.active)).all():
+        if u.active and u.user_id != r.override_by and "buyer" in (u.roles or []):
+            return False
+    return True

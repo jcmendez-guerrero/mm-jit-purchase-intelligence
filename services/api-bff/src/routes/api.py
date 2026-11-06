@@ -207,17 +207,6 @@ async def list_cost_writes(
     return await client.get_cost_writes(roles=session.roles)
 
 
-@router.post("/cost-writes/{write_id}/approve")
-async def approve_cost_write(
-    write_id: str,
-    session: SessionData = Depends(require_fresh_mfa()),
-    client: ProcurementClient = Depends(get_procurement_client),
-) -> dict[str, Any]:
-    if not set(session.roles).intersection({"buyer", "approver", "admin"}):
-        raise HTTPException(status_code=403, detail="forbidden")
-    return await client.approve_cost_write(write_id=write_id, user_id=session.user_id, roles=session.roles)
-
-
 # --- Proposals & Orders ---
 
 @router.get("/proposals")

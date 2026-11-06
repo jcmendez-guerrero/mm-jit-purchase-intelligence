@@ -12,12 +12,14 @@ from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
-from db.tables import cost_write_requests, product_refs
+from db.tables import cost_write_requests, product_refs, supplier_costs
 from sqlalchemy import select
 from sqlalchemy.engine import Connection
 
 from costs.lot_costs import OPENING_LOT, latest_by_lot
 from costs.lot_lookup import LotsSource, fetch_lots
+from costs.margin import evaluate
+from costs.pvp import PvpSource, lowest_pvp
 from costs.recargo import Q4
 from costs.rules import load_rules
 from costs.store import NewCost, add_version, current
@@ -68,7 +70,7 @@ def eligible_lots(conn: Connection, source: LotsSource, product_id: int, supplie
 
 
 def request_median_write(conn: Connection, source: LotsSource, product_id: int, supplier_id: str, trigger: str, actor: str,
-                         now: datetime | None = None) -> WriteRequestResult:
+                         now: datetime | None = None, pvp_source: PvpSource | None = None) -> WriteRequestResult:
     """Creates (for review, never sent) the request carrying the median, or reports ``not_applicable`` when no lot qualifies."""
     now = now or datetime.now(UTC)
     lots = eligible_lots(conn, source, product_id, supplier_id)
@@ -81,7 +83,15 @@ def request_median_write(conn: Connection, source: LotsSource, product_id: int, 
                                         pack_size=cur.pack_size if cur else None, lead_time_days=cur.lead_time_days if cur else None,
                                         min_order_qty=cur.min_order_qty if cur else None), load_rules(conn), now)
     refs: list[dict[str, Any]] = [{"variant_id": u.variant_id, "lot": u.lot, "quantity": u.quantity, "unit_cost": str(u.unit_cost)} for u in lots]
-    res = request_write(conn, cur.id, trigger, actor, now, median_lot_refs=refs, median_cost=median)
+    margin = None
+    if pvp_source is not None:
+        previous = conn.execute(select(supplier_costs.c.cost_with_recargo).where(
+            supplier_costs.c.product_id == product_id, supplier_costs.c.supplier_id == supplier_id, supplier_costs.c.variant_id.is_(None),
+            supplier_costs.c.source == "siweb_product_supplier").order_by(supplier_costs.c.version.desc()).limit(1)).scalar()
+        margin = evaluate(median, None if previous is None else Decimal(str(previous)),
+                          lowest_pvp(pvp_source, sorted({u.variant_id for u in lots}) or [r.variant_id for r in conn.execute(
+                              select(product_refs.c.variant_id).where(product_refs.c.product_id == product_id)).all()]))
+    res = request_write(conn, cur.id, trigger, actor, now, median_lot_refs=refs, median_cost=median, margin=margin)
     return res
 
 

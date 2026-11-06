@@ -127,7 +127,7 @@ def build_router(app: FastAPI) -> APIRouter:
         if source is None:
             raise HTTPException(503, "not_configured")
         try:
-            res = request_median_write(conn, source, body.product_id, body.supplier_id, "buyer_entry", principal.subject)
+            res = request_median_write(conn, source, body.product_id, body.supplier_id, "buyer_entry", principal.subject, pvp_source=getattr(app.state, "pvp_source", None))
         except LotLookupError as exc:
             raise HTTPException(503, exc.code) from exc
         return {"status": res.status, "warnings": res.warnings, "request_id": None if res.request is None else res.request.id}
