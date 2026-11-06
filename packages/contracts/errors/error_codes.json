@@ -190,6 +190,21 @@
       "http": 403,
       "kind": "request",
       "meaning": "The CSRF token is missing or invalid"
+    },
+    "downstream_refused": {
+      "http": 400,
+      "kind": "request",
+      "meaning": "A downstream service refused the request"
+    },
+    "downstream_unavailable": {
+      "http": 502,
+      "kind": "request",
+      "meaning": "A downstream service is unavailable"
+    },
+    "authentication_unavailable": {
+      "http": 503,
+      "kind": "request",
+      "meaning": "Service identity could not be obtained"
     }
   }
 }

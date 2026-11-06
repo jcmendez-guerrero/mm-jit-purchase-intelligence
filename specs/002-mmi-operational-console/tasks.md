@@ -73,7 +73,7 @@
 - [X] T028 [P] [US1] Test non-admin role changes and viewer mutations are refused and recorded durably in services/api-bff/tests/test_rbac_refusals.py
 - [X] T029 [P] [US1] Test dev-login is unavailable unless the local-development flag is set in services/api-bff/tests/test_dev_login_disabled.py
 - [X] T030 [P] [US1] Test submission refused with fewer than two eligible approvers, self-approval refused, stale second factor refused, fresh second factor accepted in services/procurement-service/tests/test_approval_eligibility.py
-- [ ] T031 [US1] Write full-stack compose test: assign roles, restart api-bff, submit and approve with two users, confirm refusals in infra/tests/test_approval_e2e.py (RUN_E2E=1)
+- [X] T031 [US1] Write full-stack test as real processes (dev issuer, procurement-service, api-bff) on a real PostgreSQL: assign roles, restart api-bff, submit and approve with different users, confirm refusals, in infra/tests/test_approval_e2e.py (RUN_E2E_LOCAL=1 and MMI_PG_EXTERNAL_PORT; a Docker Compose variant remains for CI)
 
 ### Implementation
 

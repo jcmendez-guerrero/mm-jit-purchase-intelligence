@@ -42,3 +42,6 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | role_mirror_failed | 503 | A role change could not be mirrored to the purchasing side; it is retried |
 | auth_unauthenticated | 401 | Sign-in is required |
 | auth_csrf_invalid | 403 | The CSRF token is missing or invalid |
+| downstream_refused | 400 | A downstream service refused the request |
+| downstream_unavailable | 502 | A downstream service is unavailable |
+| authentication_unavailable | 503 | Service identity could not be obtained |

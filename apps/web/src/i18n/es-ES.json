@@ -112,5 +112,8 @@
   "errors.roles_last_admin": "No se puede quitar el último administrador.",
   "errors.role_mirror_failed": "El cambio de rol no se pudo comunicar al área de compras; se reintentará automáticamente.",
   "errors.auth_unauthenticated": "Debe iniciar sesión para continuar.",
-  "errors.auth_csrf_invalid": "La sesión no es válida para esta acción. Recargue la página e inténtelo de nuevo."
+  "errors.auth_csrf_invalid": "La sesión no es válida para esta acción. Recargue la página e inténtelo de nuevo.",
+  "errors.downstream_refused": "El servicio de compras ha rechazado la solicitud.",
+  "errors.downstream_unavailable": "El servicio no está disponible en este momento. Inténtelo de nuevo en unos minutos.",
+  "errors.authentication_unavailable": "No se pudo verificar la identidad para completar la acción. Inténtelo de nuevo."
 }

@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 import os
 import time
+from datetime import datetime
 from typing import Any
 
 import httpx
+from auth.identity import current_identity
 
 logger = logging.getLogger("mmi.api_bff.clients")
 
@@ -15,17 +17,24 @@ logger = logging.getLogger("mmi.api_bff.clients")
 _token_cache: dict[str, tuple[str, float]] = {}
 
 
-def get_downstream_token(audience: str, roles: list[str] | None = None) -> str:
-    """Obtain a Bearer token for downstream services.
+def get_downstream_token(audience: str, roles: list[str] | None = None, subject: str | None = None, auth_time: datetime | None = None) -> str:
+    """Obtain a Bearer token for a downstream service.
 
-    In local Compose, requests a signed JWT from dev-issuer (/token).
-    Falls back to role-based string for standalone unit tests.
+    On behalf of the authenticated user when there is one (subject = user id, the user's effective roles only, the user's real
+    second-factor time); otherwise as the BFF service identity with exactly the roles asked for. Locally the dev issuer signs
+    it; in Azure the same shape comes from the identity provider's on-behalf-of flow. There is no fabricated fallback token.
     """
     if explicit_token := os.environ.get("MMI_TEST_SERVICE_TOKEN"):
         return explicit_token
 
-    roles_list = sorted(roles) if roles else ["viewer", "buyer", "approver", "admin"]
-    cache_key = f"{audience}:{','.join(roles_list)}"
+    identity = current_identity.get()
+    on_behalf_of = subject is None and identity is not None
+    if on_behalf_of and identity is not None:
+        subject, auth_time = identity.user_id, identity.mfa_datetime
+    subject = subject or "svc-api-bff"
+    roles_list = sorted(set(roles)) if roles else (["viewer"] if on_behalf_of else [])
+    auth_epoch = int(auth_time.timestamp()) if auth_time else None
+    cache_key = f"{audience}|{subject}|{','.join(roles_list)}|{auth_epoch}"
     now = time.monotonic()
 
     cached = _token_cache.get(cache_key)
@@ -33,29 +42,20 @@ def get_downstream_token(audience: str, roles: list[str] | None = None) -> str:
         return cached[0]
 
     dev_issuer = os.environ.get("MMI_DEV_ISSUER_URL")
-    if dev_issuer:
-        try:
-            with httpx.Client(timeout=5.0) as client:
-                resp = client.post(
-                    f"{dev_issuer.rstrip('/')}/token",
-                    json={
-                        "subject": "svc-api-bff",
-                        "audience": audience,
-                        "roles": roles_list,
-                    },
-                )
-                if resp.status_code == 200:
-                    token = resp.json()["access_token"]
-                    # Cache for 10 minutes
-                    _token_cache[cache_key] = (token, now + 600)
-                    return token
-                else:
-                    logger.warning("dev-issuer returned status %s: %s", resp.status_code, resp.text)
-        except Exception as exc:
-            logger.warning("Failed to connect to dev-issuer at %s: %s", dev_issuer, exc)
-
-    # Fallback for standalone test suites without dev-issuer container
-    return roles_list[0] if roles_list else "buyer"
+    if not dev_issuer:
+        raise RuntimeError("no identity issuer configured for downstream calls")
+    try:
+        with httpx.Client(timeout=5.0) as client:
+            resp = client.post(f"{dev_issuer.rstrip('/')}/token", json={
+                "subject": subject, "audience": audience, "roles": roles_list, "user": on_behalf_of, "auth_time": auth_epoch})
+    except Exception as exc:
+        raise RuntimeError("identity issuer unreachable") from exc
+    if resp.status_code != 200:
+        logger.warning("identity issuer refused the token request: status %s", resp.status_code)
+        raise RuntimeError("identity issuer refused the token request")
+    token = resp.json()["access_token"]
+    _token_cache[cache_key] = (token, now + 300)               # short, because a user's roles and second factor can change
+    return str(token)
 
 
 class DownstreamClient:
@@ -65,9 +65,10 @@ class DownstreamClient:
 
     def _headers(self, user_id: str | None = None, roles: list[str] | None = None) -> dict[str, str]:
         token = get_downstream_token(self.audience, roles)
+        identity = current_identity.get()
         return {
             "Authorization": f"Bearer {token}",
-            "X-User-ID": user_id or "bff",
+            "X-User-ID": identity.user_id if identity else (user_id or "bff"),     # informational; the token is what services trust
         }
 
     async def get(self, path: str, params: dict[str, Any] | None = None, user_id: str | None = None, roles: list[str] | None = None) -> httpx.Response:

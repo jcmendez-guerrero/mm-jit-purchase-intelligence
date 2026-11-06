@@ -221,6 +221,7 @@ services:
       MMI_INVENTORY_URL: http://inventory-service:8000
       MMI_PROCUREMENT_URL: http://procurement-service:8000
       MMI_DATABASE_URL: postgresql+psycopg://bff_svc:dev-only-local@postgres:5432/mmi
+      MMI_ENABLE_DEV_LOGIN: "1"             # local only: lets the web app sign in as a seeded demo user; refused when MMI_ENV=prod
     depends_on:
       postgres: { condition: service_healthy }
       dev-issuer: { condition: service_healthy }
@@ -233,6 +234,20 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  api-bff-worker:
+    # Retries role changes that could not be mirrored to procurement (a short job in Azure; looping here).
+    build: { context: .., dockerfile: services/api-bff/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_DATABASE_URL: postgresql+psycopg://bff_svc:dev-only-local@postgres:5432/mmi
+      MMI_PROCUREMENT_URL: http://procurement-service:8000
+      MMI_WORKER_LOOP_SECONDS: "15"
+    depends_on:
+      api-bff: { condition: service_healthy }
+      procurement-service: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/api-bff && exec python -m worker"]
 
   web:
     build: { context: .., dockerfile: apps/web/Dockerfile }

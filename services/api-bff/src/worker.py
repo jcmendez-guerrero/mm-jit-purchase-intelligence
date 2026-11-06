@@ -46,7 +46,7 @@ def main() -> int:
     from mmi_common.logging import configure_logging
     from mmi_common.workerloop import run
 
-    configure_logging("api-bff-worker")
+    configure_logging()
     store = RoleStore(make_engine())
     client = RoleMirrorClient()
 
