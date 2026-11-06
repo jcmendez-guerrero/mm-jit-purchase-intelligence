@@ -12,12 +12,14 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     MetaData,
     Numeric,
     String,
     Table,
     UniqueConstraint,
+    false,
 )
 
 metadata = MetaData()
@@ -41,6 +43,20 @@ supplier_terms = Table(
     Column("delivery_schedule", String(200)),
     Column("valid_from", DateTime(timezone=True), nullable=False),
     Column("changed_by", String(120), nullable=False),
+    # MMI 002 (migration 0005): effective-dated commercial terms, ADR-019 (never written to the ERP)
+    Column("version", Integer, nullable=False, default=1, server_default="1"),
+    Column("valid_to", DateTime(timezone=True)),
+    Column("lead_time_days", Integer),
+    Column("order_cutoff_time", String(5)),
+    Column("delivery_weekdays", JSON),
+    Column("discounts", JSON),
+    Column("payment_terms_days", Integer),
+    Column("preferred", Boolean, nullable=False, default=False, server_default=false()),
+    Column("reliability", Integer),
+    Column("disabled", Boolean, nullable=False, default=False, server_default=false()),
+    Column("source", String(10), nullable=False, default="manual", server_default="manual"),   # erp / import / manual
+    Column("reason", String(500)),
+    Column("revision", Integer, nullable=False, default=1, server_default="1"),
 )
 supplier_costs = Table(
     "supplier_costs", metadata,
@@ -129,6 +145,11 @@ proposals = Table(
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
     Column("submitted_at", DateTime(timezone=True)),
+    # MMI 002 (migration 0007): exact versions behind the proposal (FR-026)
+    Column("scenario_id", String(36)),
+    Column("terms_version_ids", JSON),
+    Column("policy_version_ids", JSON),
+    Column("dataset_version_id", String(36)),
 )
 proposal_lines = Table(
     "proposal_lines", metadata,
@@ -229,6 +250,18 @@ cost_write_requests = Table(
     Column("idempotency_key", String(120), nullable=False, unique=True),
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
+    # MMI 002 (migration 0008): the released value is the median of lot costs; margin check; admin override (FR-042..044)
+    Column("median_cost", MONEY),
+    Column("median_lot_refs", JSON),                                    # lots used with their quantities at lookup time
+    Column("pvp_used", MONEY),
+    Column("margin_before", Numeric(7, 4)),
+    Column("margin_after", Numeric(7, 4)),
+    Column("rule_flags", JSON),
+    Column("override_value", MONEY),
+    Column("override_reason", String(500)),
+    Column("override_by", String(120)),
+    Column("override_at", DateTime(timezone=True)),
+    Column("released_by", String(120)),                                 # must differ from override_by when an override exists
 )
 user_roles = Table(
     "user_roles", metadata,
@@ -252,3 +285,134 @@ receipt_cursor = Table(
 )
 outbox = outbox_table(metadata)
 inbox = inbox_table(metadata)
+
+
+# ---- MMI 002 new tables: product-supplier terms (0005), policies and stocking (0006), scenarios (0007), lot costs (0008) ----
+product_supplier_terms = Table(
+    "product_supplier_terms", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("variant_id", Integer, nullable=False),
+    Column("supplier_id", String(36), ForeignKey("suppliers.id"), nullable=False),
+    Column("version", Integer, nullable=False),
+    Column("valid_from", DateTime(timezone=True), nullable=False),
+    Column("valid_to", DateTime(timezone=True)),
+    Column("lead_time_days", Integer),                                  # NULL columns inherit the supplier value (ADR-019)
+    Column("order_days", JSON),
+    Column("order_cutoff_time", String(5)),
+    Column("delivery_weekdays", JSON),
+    Column("min_order_value", MONEY),
+    Column("min_qty_for_delivery", Integer),
+    Column("free_delivery_threshold", MONEY),
+    Column("delivery_charge", MONEY),
+    Column("discounts", JSON),
+    Column("payment_terms_days", Integer),
+    Column("preferred", Boolean),
+    Column("reliability", Integer),
+    Column("disabled", Boolean),
+    Column("pack_multiple", Integer),
+    Column("min_qty_units", Integer),
+    Column("source", String(10), nullable=False),
+    Column("reason", String(500)),
+    Column("changed_by", String(120), nullable=False),
+    Column("revision", Integer, nullable=False, default=1),
+    UniqueConstraint("variant_id", "supplier_id", "version", name="uq_product_supplier_terms_version"),
+)
+policy_sets = Table(
+    "policy_sets", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("scope", String(10), nullable=False),                        # global / segment / product
+    Column("key", String(40), nullable=False),
+    Column("service_level", Numeric(5, 4)),
+    Column("safety_stock_units", Integer),
+    Column("min_units", Integer),
+    Column("max_units", Integer),
+    Column("replenishment_cadence_days", Integer),
+    Column("valid_from", Date, nullable=False),
+    Column("valid_to", Date),
+    Column("revision", Integer, nullable=False, default=1),
+    Column("changed_by", String(120), nullable=False),
+    UniqueConstraint("scope", "key", "valid_from", name="uq_policy_sets_effective"),
+)
+budget_caps = Table(
+    "budget_caps", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("period", String(5), nullable=False),                        # week / month
+    Column("scope", String(10), nullable=False),                        # global / supplier / category
+    Column("scope_key", String(40)),
+    Column("amount", MONEY, nullable=False),
+    Column("valid_from", Date, nullable=False),
+    Column("valid_to", Date),
+    Column("revision", Integer, nullable=False, default=1),
+    Column("changed_by", String(120), nullable=False),
+)
+stocking_settings = Table(
+    "stocking_settings", metadata,
+    Column("variant_id", Integer, primary_key=True, autoincrement=False),
+    Column("stocking_mode", String(14), nullable=False, default="standard"),   # standard / always_stocked / on_request
+    Column("min_floor_units", Integer, nullable=False, default=0),
+    Column("valid_from", Date),
+    Column("revision", Integer, nullable=False, default=1),
+    Column("changed_by", String(120), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+policy_override_requests = Table(
+    "policy_override_requests", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("variant_id", Integer, nullable=False, index=True),
+    Column("field", String(12), nullable=False),                        # safety_stock / min / max
+    Column("recommended_value", Integer, nullable=False),
+    Column("requested_value", Integer, nullable=False),
+    Column("reason", String(500), nullable=False),
+    Column("status", String(10), nullable=False, default="pending"),    # pending / approved / rejected / reverted
+    Column("requested_by", String(120), nullable=False),
+    Column("requested_at", DateTime(timezone=True), nullable=False),
+    Column("decided_by", String(120)),                                  # must differ from requested_by and hold the approver role
+    Column("decided_at", DateTime(timezone=True)),
+    Column("recommendation_changed", Boolean, nullable=False, default=False),
+)
+scenarios = Table(
+    "scenarios", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("name", String(200), nullable=False),
+    Column("parameters", JSON, nullable=False),
+    Column("status", String(10), nullable=False),                       # computing / ready / failed / promoted
+    Column("input_versions", JSON),
+    Column("result_hash", String(64)),
+    Column("idempotency_key", String(120), unique=True),
+    Column("created_by", String(120), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+)
+scenario_results = Table(
+    "scenario_results", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("scenario_id", String(36), ForeignKey("scenarios.id"), nullable=False, index=True),
+    Column("supplier_id", String(36), nullable=False),
+    Column("lines", JSON, nullable=False),
+    Column("order_total", MONEY, nullable=False),
+    Column("expected_delivery", Date),
+    Column("budget_utilisation", Numeric(8, 4)),
+    Column("binding_constraints", JSON),
+)
+scenario_sensitivity = Table(
+    "scenario_sensitivity", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("scenario_id", String(36), ForeignKey("scenarios.id"), nullable=False, index=True),
+    Column("constraint_key", String(60), nullable=False),
+    Column("delta", String(40), nullable=False),
+    Column("cost_impact", MONEY, nullable=False),
+)
+lot_acquisition_costs = Table(
+    "lot_acquisition_costs", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("variant_id", Integer, nullable=False),
+    Column("supplier_id", String(36), ForeignKey("suppliers.id"), nullable=False),
+    Column("order_ref", String(60)),
+    Column("lot", String(60), nullable=False),
+    Column("received_at", DateTime(timezone=True)),
+    Column("quantity", Integer, nullable=False, default=0),
+    Column("unit_cost", MONEY, nullable=False),                         # Recargo-inclusive; never the ERP movement price (PVP)
+    Column("source", String(20), nullable=False),                       # confirmed_order / receipt_correction / buyer_entry
+    Column("recorded_by", String(120), nullable=False),
+    Column("recorded_at", DateTime(timezone=True), nullable=False),
+)
+Index("ix_lot_acquisition_costs_pair", lot_acquisition_costs.c.variant_id, lot_acquisition_costs.c.supplier_id, lot_acquisition_costs.c.lot)

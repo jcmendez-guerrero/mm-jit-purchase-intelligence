@@ -181,3 +181,94 @@ inbound_lines = Table(
     Column("qty", Integer, nullable=False),
     Column("confirmed_at", DateTime(timezone=True), nullable=False),
 )
+
+
+# ---- MMI 002 (migration 0005): category history, demand rules, dashboard aggregates, lot-cost projection, audit ----
+segment_history = Table(
+    "segment_history", metadata,
+    Column("id", BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True),
+    Column("variant_id", Integer, nullable=False, index=True),
+    Column("changed_at", DateTime(timezone=True), nullable=False),
+    Column("abc", String(1), nullable=False),
+    Column("xyz", String(1), nullable=False),
+    Column("pattern", String(14), nullable=False),
+    Column("critical", Boolean, nullable=False, default=False),         # manual flag, never inferred
+    Column("reason_key", String(60), nullable=False),                    # why the category changed (stable code)
+    Column("run_id", String(36), nullable=False),
+)
+demand_exclusions = Table(
+    "demand_exclusions", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("variant_id", Integer),                                       # NULL = all products
+    Column("from_day", Date, nullable=False),
+    Column("to_day", Date, nullable=False),
+    Column("reason", String(500), nullable=False),
+    Column("active", Boolean, nullable=False, default=True),             # reversible: deactivate, never delete
+    Column("revision", Integer, nullable=False, default=1),
+    Column("changed_by", String(120), nullable=False),
+)
+censoring_rules = Table(
+    "censoring_rules", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("rule", String(40), nullable=False),
+    Column("value", Integer, nullable=False),
+    Column("valid_from", Date, nullable=False),
+    Column("revision", Integer, nullable=False, default=1),
+    Column("changed_by", String(120), nullable=False),
+)
+agg_daily_kpis = Table(
+    "agg_daily_kpis", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("day", Date, nullable=False, index=True),
+    Column("warehouse_id", Integer),
+    Column("category_id", String(40)),
+    Column("supplier_id", String(36)),
+    Column("inventory_value", Numeric(18, 4), nullable=False),           # quantity per lot x lot acquisition cost (FR-041)
+    Column("valued_with_estimate_count", Integer, nullable=False, default=0),
+    Column("coverage_days_avg", Numeric(10, 2)),
+    Column("stockout_risk_count", Integer, nullable=False, default=0),
+    Column("expiring_value", Numeric(18, 4), nullable=False, default=0),
+    Column("refreshed_at", DateTime(timezone=True), nullable=False),
+)
+agg_demand_trend = Table(
+    "agg_demand_trend", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("day", Date, nullable=False, index=True),
+    Column("scope_key", String(40), nullable=False),                     # variant id or segment key
+    Column("actual_qty", Numeric(18, 4)),                                # ERP-derived demand only
+    Column("estimated_qty", Numeric(18, 4)),                             # imported estimates, kept apart and labelled
+    Column("forecast_mean", Numeric(18, 4)),
+    Column("forecast_low", Numeric(18, 4)),
+    Column("forecast_high", Numeric(18, 4)),
+)
+agg_abc_xyz = Table(
+    "agg_abc_xyz", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("day", Date, nullable=False, index=True),
+    Column("abc", String(1), nullable=False),
+    Column("xyz", String(1), nullable=False),
+    Column("variant_count", Integer, nullable=False),
+    Column("value", Numeric(18, 4), nullable=False),
+)
+lot_cost_projection = Table(
+    "lot_cost_projection", metadata,
+    Column("variant_id", Integer, primary_key=True, autoincrement=False),
+    Column("supplier_id", String(36), primary_key=True),
+    Column("lot", String(60), primary_key=True),
+    Column("unit_cost", Numeric(18, 4), nullable=False),                 # Recargo-inclusive acquisition cost (never PVP)
+    Column("source", String(20), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+audit_events = Table(
+    "audit_events", metadata,
+    Column("id", BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True),
+    Column("ts", DateTime(timezone=True), nullable=False),
+    Column("actor", String(120), nullable=False),
+    Column("action", String(40), nullable=False),
+    Column("entity", String(30), nullable=False),
+    Column("entity_id", String(60), nullable=False),
+    Column("before", JSON),
+    Column("after", JSON),
+    Column("prev_hash", String(64), nullable=False, unique=True),
+    Column("hash", String(64), nullable=False),
+)

@@ -7,7 +7,7 @@ Conventions are those of 001: UUID `id`, UTC timestamps plus original strings wh
 | Table | Key fields | Rules |
 |---|---|---|
 | user_roles | user_id (unique), roles (subset of viewer/buyer/approver/admin), active, revision, updated_at, updated_by | Survives restart; admin-only changes; last admin cannot be removed |
-| role_audit | id, user_id, before_roles, after_roles, actor, at, prev_hash, hash | Append-only, hash-chained |
+| audit_events | id, ts, actor, action, entity, entity_id, before, after, prev_hash, hash | Append-only, hash-chained (role changes); same structure in every service that audits |
 | role_mirror_outbox | id, user_id, roles_snapshot, status (pending/sent/failed), attempts, last_error_key, next_attempt_at | Relay calls procurement internal endpoint; failures visible in Admin |
 
 ## Schema `procurement`

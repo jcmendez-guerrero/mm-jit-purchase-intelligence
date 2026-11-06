@@ -24,8 +24,11 @@ SERVICES = {  # service -> (schema, role)
     "forecast-service": ("forecasting", "forecasting_svc"),
     "procurement-service": ("procurement", "procurement_svc"),
     "siweb-cost-writer": ("costwrite", "costwrite_svc"),
+    "api-bff": ("bff", "bff_svc"),
 }
-pytestmark = pytest.mark.skipif(not (os.environ.get("RUN_PG_MIGRATIONS") and shutil.which("docker")), reason="needs Docker and RUN_PG_MIGRATIONS=1")
+EXTERNAL_PORT = os.environ.get("MMI_PG_EXTERNAL_PORT")   # an already running PostgreSQL with infra/postgres/init.sql applied (no Docker needed)
+pytestmark = pytest.mark.skipif(not (os.environ.get("RUN_PG_MIGRATIONS") and (EXTERNAL_PORT or shutil.which("docker"))),
+                                reason="needs RUN_PG_MIGRATIONS=1 and Docker (or MMI_PG_EXTERNAL_PORT)")
 
 
 def image() -> str:
@@ -42,6 +45,9 @@ def free_port() -> int:
 
 @pytest.fixture(scope="module")
 def pg_port():
+    if EXTERNAL_PORT:
+        yield int(EXTERNAL_PORT)
+        return
     port, name = free_port(), f"mmi-migrations-{os.getpid()}"
     subprocess.run(["docker", "run", "-d", "--rm", "--name", name, "-e", "POSTGRES_DB=mmi", "-e", "POSTGRES_USER=mmi_admin", "-e", "POSTGRES_PASSWORD=dev-only-local",
                     "-p", f"127.0.0.1:{port}:5432", "-v", f"{ROOT / 'infra/postgres/init.sql'}:/docker-entrypoint-initdb.d/00-init.sql:ro", image()],
@@ -53,8 +59,8 @@ def pg_port():
                 import psycopg
 
                 with psycopg.connect(f"host=127.0.0.1 port={port} dbname=mmi user=mmi_admin password=dev-only-local", connect_timeout=2) as c:
-                    n = c.execute("select count(*) from pg_namespace where nspname in ('integration','inventory','forecasting','procurement','costwrite')").fetchone()
-                stable = stable + 1 if n and n[0] == 5 else 0
+                    n = c.execute("select count(*) from pg_namespace where nspname in ('integration','inventory','forecasting','procurement','costwrite','bff')").fetchone()
+                stable = stable + 1 if n and n[0] == 6 else 0
             except Exception:
                 stable = 0
             if stable >= 3:
@@ -164,3 +170,39 @@ def test_audit_trails_and_cost_versions_cannot_be_rewritten_through_sql(pg_port)
                  "truncate writer_audit", "truncate write_attempts"):
         with pytest.raises(sa.exc.DBAPIError, match="append-only"):
             sql(pg_port, "costwrite_svc", stmt)
+
+
+def test_mmi002_append_only_tables_and_constraints(pg_port):
+    """T021: the lot-cost ledger and the new audit tables cannot be rewritten through SQL; one seed dataset can be active."""
+    import uuid
+
+    import sqlalchemy as sa
+
+    alembic("procurement-service", "procurement_svc", pg_port, "upgrade", "head")
+    alembic("forecast-service", "forecasting_svc", pg_port, "upgrade", "head")
+    alembic("inventory-service", "inventory_svc", pg_port, "upgrade", "head")
+    alembic("api-bff", "bff_svc", pg_port, "upgrade", "head")
+
+    sid, lid = str(uuid.uuid4()), str(uuid.uuid4())
+    sql(pg_port, "procurement_svc", "insert into suppliers (id, external_contact_id, name) values (:i, :c, 'P')", {"i": sid, "c": int(uuid.uuid4().int % 10**8)})
+    sql(pg_port, "procurement_svc", "insert into lot_acquisition_costs (id, variant_id, supplier_id, lot, quantity, unit_cost, source, recorded_by, recorded_at) "
+        "values (:i, 9001, :s, 'L-01', 6, 10.5, 'confirmed_order', 'buyer', now())", {"i": lid, "s": sid})
+    for stmt in ("update lot_acquisition_costs set unit_cost = 1", "delete from lot_acquisition_costs", "truncate lot_acquisition_costs"):
+        with pytest.raises(sa.exc.DBAPIError, match="append-only"):
+            sql(pg_port, "procurement_svc", stmt)
+
+    for role in ("bff_svc", "forecasting_svc", "inventory_svc"):
+        sql(pg_port, role, "insert into audit_events (ts, actor, action, entity, entity_id, prev_hash, hash) values (now(), 'a', 'x', 'e', '1', :p, :h)",
+            {"p": "0" * 64, "h": "1" * 64})
+        for stmt in ("update audit_events set actor = 'evil'", "delete from audit_events", "truncate audit_events"):
+            with pytest.raises(sa.exc.DBAPIError, match="append-only"):
+                sql(pg_port, role, stmt)
+
+    def dataset(status: str, version: int) -> None:
+        sql(pg_port, "forecasting_svc", "insert into seed_datasets (id, version, status, origin, file_sha256, uploader, uploaded_at) values (:i, :v, :s, 'synthetic', :h, 'buyer', now())",
+            {"i": str(uuid.uuid4()), "v": version, "s": status, "h": "a" * 64})
+
+    dataset("active", 1)
+    dataset("superseded", 2)
+    with pytest.raises(sa.exc.IntegrityError):          # a second active dataset is refused by the database
+        dataset("active", 3)
