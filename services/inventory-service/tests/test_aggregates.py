@@ -143,3 +143,19 @@ def test_the_api_serves_summary_trend_distribution_and_options_to_signed_in_user
     assert c.get("/dashboard/summary?category=Z", headers=auth()).status_code == 422
     assert {(x["abc"], x["xyz"]) for x in c.get("/dashboard/abc-xyz", headers=auth()).json()["cells"]} == {("A", "X"), ("B", "Y")}
     assert c.get("/dashboard/demand-trend?days=7", headers=auth()).json()["estimated"] == []
+
+
+def test_the_summary_for_about_1000_variants_is_computed_well_inside_the_3_second_budget(engine):
+    import time
+
+    with engine.begin() as c:
+        c.execute(insert(products).values(external_id=1, name="P", status="active", missed_syncs=0))
+        c.execute(insert(variants).values([{"external_id": i, "product_id": 1, "sku": f"S{i}", "name": "V", "pack_size": 1, "uom": "u", "reorder_point": 2, "price": 5} for i in range(1, 1001)]))
+        c.execute(insert(stock_lots).values([{"variant_id": i, "warehouse_id": 1, "batch_number": "L", "expiry_date": TODAY + timedelta(days=30 * (i % 20)), "quantity": 5, "seen_at": NOW} for i in range(1, 1001)]))
+        c.execute(insert(lot_cost_projection).values([{"variant_id": i, "supplier_id": "s", "lot": "L", "unit_cost": D("2.00"), "source": "confirmed_order", "updated_at": NOW} for i in range(1, 1001)]))
+        c.execute(insert(stock_snapshots).values([{"variant_id": i, "warehouse_id": ALL_WAREHOUSES, "snapshot_date": TODAY, "on_hand": 5, "available": 5, "reserved": 0} for i in range(1, 1001)]))
+        c.execute(insert(demand_observations).values([{"variant_id": i, "warehouse_id": 1, "day": TODAY - timedelta(days=d), "demand_qty": 1, "censored": False, "lineage": "m"} for i in range(1, 1001) for d in range(0, 90, 6)]))
+    t0 = time.perf_counter()
+    with engine.connect() as c:
+        s = compute_summary(c, TODAY)
+    assert s.inventory_value == D("10000") and time.perf_counter() - t0 < 3.0

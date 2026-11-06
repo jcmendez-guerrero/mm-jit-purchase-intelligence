@@ -413,6 +413,50 @@ export interface RiskItem {
   params?: JsonRecord;
 }
 
+
+export interface DashCard<T> {
+  ok: boolean;
+  data?: T;
+  error?: string;
+}
+
+export interface DashSummary {
+  day: string;
+  inventory_value: string | null;
+  valued_with_estimate: number;
+  unvalued_lots: number;
+  value_basis: string;
+  expiring_value: string | null;
+  stockout_risk: number;
+  expiry_risk: number;
+  coverage_days_avg: string | null;
+  variants_without_demand: number;
+  coverage_basis: { forecast: number; actual_90d: number };
+  variant_count: number;
+  forecast_available: boolean;
+}
+
+export interface DashTrend {
+  from: string;
+  to: string;
+  series: Array<{ day: string; actual: number; censored_rows: number; kind: string }>;
+  estimated: unknown[];
+}
+
+export interface DashOverview {
+  summary: DashCard<DashSummary>;
+  trend: DashCard<DashTrend>;
+  abc_xyz: DashCard<{ cells: Array<{ abc: string; xyz: string; variant_count: number; value: string }> }>;
+  risks: DashCard<RiskItem[]>;
+  options: DashCard<{ warehouses: Array<{ id: number; name: string }>; categories: Array<{ id: string; kind: string }>; family_available: boolean }>;
+}
+
+export interface DashFilters {
+  warehouse_id?: number | undefined;
+  category?: string | undefined;
+  days?: number | undefined;
+}
+
 export interface VariantDetail {
   variant: {
     id: number;
@@ -580,6 +624,15 @@ export class ApiClient {
   async logout(): Promise<void> {
     await this.request<void>("/auth/logout", { method: "POST" });
     setCsrfToken(null);
+  }
+
+  async getDashboardOverview(f: DashFilters = {}): Promise<DashOverview> {
+    const q = new URLSearchParams();
+    if (f.warehouse_id !== undefined) q.set("warehouse_id", String(f.warehouse_id));
+    if (f.category) q.set("category", f.category);
+    if (f.days) q.set("days", String(f.days));
+    const qs = q.toString();
+    return this.request<DashOverview>(`/dashboard/overview${qs ? `?${qs}` : ""}`);
   }
 
   async getRisks(warehouseId?: number): Promise<RiskItem[]> {

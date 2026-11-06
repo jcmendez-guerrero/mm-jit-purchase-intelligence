@@ -229,9 +229,9 @@
 - [X] T120 [P] [US2] Test coverage days (forecast basis, 90-day actual fallback, labelled basis, zero-demand state) and inventory value equals quantity per lot times lot acquisition cost, ignores ERP movement price (PVP), uses the labelled fallback for lots without cost and counts them in the estimated-cost indicator in services/inventory-service/tests/test_inventory_value.py
 - [ ] T121 [P] [US2] Test forecast accuracy and spend summaries in services/forecast-service/tests/test_accuracy.py and services/procurement-service/tests/test_spend_summary.py
 - [X] T122 [P] [US2] Test actual ERP series and imported estimates are separate in the trend response in services/inventory-service/tests/test_trend_series_separation.py
-- [ ] T123 [P] [US2] Test BFF merges card-level results only and degrades per card on a failing service in services/api-bff/tests/test_dashboard_orchestration.py
-- [ ] T124 [P] [US2] Write Spanish browser tests for KPIs, charts, filters, drill-down, empty/loading/error/stale states, keyboard use and axe accessibility in apps/web/tests/e2e/dashboard.spec.ts
-- [ ] T125 [P] [US2] Write dashboard performance budget test (first meaningful content under 3 s on ~1,000 variants) in apps/web/tests/e2e/dashboard-perf.spec.ts
+- [X] T123 [P] [US2] Test BFF merges card-level results only and degrades per card on a failing service in services/api-bff/tests/test_dashboard_orchestration.py
+- [X] T124 [P] [US2] Write Spanish browser tests for KPIs, charts, filters, drill-down, empty/loading/error/stale states, keyboard use and axe accessibility in apps/web/tests/e2e/dashboard.spec.ts
+- [X] T125 [P] [US2] Write dashboard performance budget test (first meaningful content under 3 s on ~1,000 variants) in apps/web/tests/e2e/dashboard-perf.spec.ts
 
 ### Implementation
 
@@ -240,10 +240,10 @@
 - [X] T128 [US2] Implement dashboard routes (summary, demand-trend, abc-xyz, risks, filters/options) in services/inventory-service/src/api/dashboard.py
 - [ ] T129 [US2] Implement forecast accuracy, runs list and variant forecast routes in services/forecast-service/src/api.py and services/forecast-service/src/runs/accuracy.py
 - [ ] T130 [US2] Implement proposed-spend summary in services/procurement-service/src/api/summary.py
-- [ ] T131 [US2] Implement BFF dashboard orchestration and filter options in services/api-bff/src/routes/dashboard.py
-- [ ] T132 [US2] Build KPI cards, charts with table alternative, filter bar and freshness indicator in apps/web/src/features/dashboard/ (replace the hard-coded warehouse list)
-- [ ] T133 [US2] Build drill-down panels and the product detail view (demand, forecast with uncertainty, stock, risk reasons, data used) in apps/web/src/features/dashboard/ProductDetail.tsx
-- [ ] T134 [US2] Add es-ES labels and Spanish number/date/EUR formatting for all dashboard strings in apps/web/src/i18n/es-ES/dashboard.json
+- [X] T131 [US2] Implement BFF dashboard orchestration and filter options in services/api-bff/src/routes/dashboard.py
+- [X] T132 [US2] Build KPI cards, charts with table alternative, filter bar and freshness indicator in apps/web/src/features/dashboard/ (replace the hard-coded warehouse list)
+- [X] T133 [US2] Build drill-down panels and the product detail view (demand, forecast with uncertainty, stock, risk reasons, data used) in apps/web/src/features/dashboard/ProductDetail.tsx
+- [X] T134 [US2] Add es-ES labels and Spanish number/date/EUR formatting for all dashboard strings in apps/web/src/i18n/es-ES/dashboard.json
 
 **Checkpoint**: US2 demonstrable; KPIs match reference totals.
 
