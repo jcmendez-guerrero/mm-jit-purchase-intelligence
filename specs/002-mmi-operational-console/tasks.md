@@ -23,11 +23,11 @@
 
 **Purpose**: Tooling and fixtures shared by all stories.
 
-- [ ] T001 [P] Add chart and accessibility dev dependencies (Recharts, @axe-core/playwright) and a bundle-size budget check in apps/web/package.json and apps/web/vite.config.ts
-- [ ] T002 [P] Add upload-handling dependency (python-multipart) and size-limit settings to services/api-bff/pyproject.toml and services/forecast-service/pyproject.toml
-- [ ] T003 [P] Create synthetic seed fixtures (valid CSV, valid XLSX, partly invalid, duplicate rows, unknown variants, negative quantities, mixed origin, macro workbook, wrong signature, oversized, formula cells) in packages/testing/fixtures/seeds/
-- [ ] T004 [P] Create synthetic supplier-terms and policy fixtures (multiple suppliers, overrides, overlapping windows, expired and future terms) in packages/testing/fixtures/terms/
-- [ ] T005 [P] Record the cost-guardrail baseline (replica caps, minReplicas 0, job caps) as machine-readable limits in infra/bicep/guardrails.json
+- [X] T001 [P] Add chart and accessibility dev dependencies (Recharts, @axe-core/playwright) and a bundle-size budget check in apps/web/package.json and apps/web/vite.config.ts
+- [X] T002 [P] Add upload-handling dependency (python-multipart) and size-limit settings to services/api-bff/pyproject.toml and services/forecast-service/pyproject.toml
+- [X] T003 [P] Create synthetic seed fixtures (valid CSV, valid XLSX, partly invalid, duplicate rows, unknown variants, negative quantities, mixed origin, macro workbook, wrong signature, oversized, formula cells) in packages/testing/fixtures/seeds/
+- [X] T004 [P] Create synthetic supplier-terms and policy fixtures (multiple suppliers, overrides, overlapping windows, expired and future terms) in packages/testing/fixtures/terms/
+- [X] T005 [P] Record the cost-guardrail baseline (replica caps, minReplicas 0, job caps) as machine-readable limits in infra/bicep/guardrails.json
 
 ---
 
