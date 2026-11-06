@@ -236,6 +236,11 @@
       "kind": "request",
       "meaning": "The proposal state does not allow this action"
     },
+    "invalid_quantity": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A quantity must be a whole number of zero or more"
+    },
     "proposal_conflict": {
       "http": 409,
       "kind": "request",

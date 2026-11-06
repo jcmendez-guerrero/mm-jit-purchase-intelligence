@@ -68,6 +68,89 @@ export interface RoleMirrorStatus {
   items: Array<{ id: number; user_id: string; status: string; attempts: number; last_error_key: string | null }>;
 }
 
+export interface DiscountDoc {
+  kind: "percent" | "amount";
+  basis: "order_value" | "order_units";
+  threshold: string;
+  value: string;
+}
+
+export interface TermsDoc {
+  min_order_value: string | null;
+  min_qty_for_delivery: number | null;
+  free_delivery_threshold: string | null;
+  delivery_charge: string | null;
+  order_days: number[];
+  delivery_schedule: string | null;
+  lead_time_days: number | null;
+  order_cutoff_time: string | null;
+  delivery_weekdays: number[];
+  discounts: DiscountDoc[];
+  payment_terms_days: number | null;
+  preferred: boolean;
+  reliability: number | null;
+  disabled: boolean;
+  valid_to: string | null;
+}
+
+export interface TermsHistoryItem {
+  version: number;
+  valid_from: string;
+  valid_to: string | null;
+  source: "erp" | "import" | "manual";
+  reason: string | null;
+  changed_by: string;
+  terms: TermsDoc;
+}
+
+export interface SupplierTermsView {
+  supplier_id: string;
+  version: number;
+  current: TermsDoc | null;
+  history: TermsHistoryItem[];
+}
+
+export interface SupplierSummary {
+  id: string;
+  name: string;
+  terms: TermsDoc | null;
+  version: number;
+}
+
+export interface OverrideDoc {
+  pack_multiple: number | null;
+  min_qty_units: number | null;
+  lead_time_days: number | null;
+  payment_terms_days: number | null;
+  preferred: boolean | null;
+  reliability: number | null;
+  disabled: boolean | null;
+}
+
+export interface EffectiveTerms {
+  lead_time_days: number;
+  pack_multiple: number | null;
+  min_qty_units: number | null;
+  payment_terms_days: number | null;
+  preferred: boolean;
+  reliability: number | null;
+  disabled: boolean;
+  sources: Record<string, "override" | "supplier" | "cost" | "default">;
+  conflicts: Array<{ field: string; erp_value: number; local_value: number; winner: string }>;
+  supplier_version: number | null;
+  override_version: number | null;
+  flags: string[];
+}
+
+export interface OverrideView {
+  variant_id: number;
+  supplier_id: string;
+  version: number;
+  override: OverrideDoc | null;
+  history: Array<{ version: number; valid_from: string; source: string; reason: string | null; changed_by: string; terms: OverrideDoc }>;
+  effective: EffectiveTerms;
+}
+
 export interface UserRoles {
   user_id: string;
   roles: string[];
@@ -79,6 +162,7 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly code: string,
+    public readonly currentVersion?: number,
   ) {
     super(code);
     this.name = "ApiError";
@@ -130,30 +214,85 @@ export interface VariantDetail {
   history_reconciled?: boolean;
 }
 
+export interface ProposalExplanation {
+  policy: string;
+  forecast_eligible: boolean;
+  service_level: string;
+  horizon_days: number;
+  expected_demand: number;
+  safety_stock: number;
+  order_up_to: number;
+  reorder_point: number;
+  need: number;
+  top_up: boolean;
+  clinical_critical: boolean;
+  position: { on_hand: number; expiring: number; usable: number; inbound: number; total: number };
+  supplier: {
+    chosen: string;
+    reason: string;
+    alternatives: Array<{ supplier_id: string; unit_cost: string; qty: number; line_total: string; lead_time_days: number; chosen: boolean }>;
+    rejected: Array<{ supplier_id: string; reason: string }>;
+  };
+  cost: { unit: string; source: string; status: string };
+  constraints: string[];
+  terms?: {
+    supplier_version: number | null;
+    override_version: number | null;
+    sources: Record<string, string>;
+    conflicts: Array<{ field: string; erp_value: unknown; local_value: unknown; winner: string }>;
+    preferred: boolean;
+    supplier_discount: string;
+  };
+}
+
 export interface ProposalLine {
   id: string;
   variant_id: number;
-  sku: string;
-  product_name: string;
+  sku: string | null;
+  product_name: string | null;
   supplier_id: string;
-  supplier_name: string;
-  warehouse_id: number;
-  order_qty: number;
-  unit_cost_net: string;
-  unit_cost_recargo: string;
+  supplier_name: string | null;
+  qty: number;
+  unit_cost_with_recargo: string;
   line_total: string;
-  explanation: string;
+  risk: string;
+  confidence: string;
+  manual_override: boolean;
+  topup: boolean;
+  constraints_applied: string[];
+  explanation: ProposalExplanation;
 }
 
-export interface Proposal {
+export interface SupplierGroup {
+  supplier_id: string;
+  supplier_name: string | null;
+  subtotal: string;
+  discount: string;
+  delivery_charge: string;
+  total_cost: string;
+  expected_delivery_date: string | null;
+  minimum_status: string;
+  free_delivery: boolean;
+}
+
+export type ProposalStatus = "draft" | "submitted" | "approved" | "confirmed";
+
+export interface ProposalSummary {
   id: string;
-  cycle_date: string;
-  status: "draft" | "submitted" | "approved" | "confirmed";
+  week: string;
+  status: ProposalStatus;
+  version: number;
+  created_by: string;
+  updated_at: string;
+}
+
+export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
+  last_edited_by: string | null;
   lines: ProposalLine[];
-  total_net: string;
-  total_with_recargo: string;
-  creator: string;
-  approver?: string;
+  supplier_groups: SupplierGroup[];
+  terms_version_ids: Record<string, unknown> | null;
+  approval: { approver: string; decision: string; version: number; valid: boolean } | null;
+  warnings?: string[];
 }
 
 export class ApiClient {
@@ -182,7 +321,8 @@ export class ApiClient {
       const err = await response.json().catch(() => ({}) as { detail?: unknown });
       const detail = (err as { detail?: unknown }).detail;
       const code = typeof detail === "string" && /^[a-z][a-z0-9_:]*$/.test(detail) ? detail : Array.isArray(detail) ? "request_invalid" : "unknown";
-      throw new ApiError(response.status, code);
+      const current = (err as { current_version?: unknown }).current_version;
+      throw new ApiError(response.status, code, typeof current === "number" ? current : undefined);
     }
 
     if (response.status === 204) {
@@ -234,8 +374,8 @@ export class ApiClient {
     });
   }
 
-  async getSuppliers(): Promise<JsonRecord[]> {
-    return this.request<JsonRecord[]>("/suppliers");
+  async getSuppliers(): Promise<SupplierSummary[]> {
+    return this.request<SupplierSummary[]>("/suppliers");
   }
 
   async getCosts(): Promise<CostRecord[]> {
@@ -250,27 +390,29 @@ export class ApiClient {
     return this.request<JsonRecord>(`/cost-writes/${writeId}/approve`, { method: "POST" });
   }
 
-  async getProposals(): Promise<Proposal[]> {
-    return this.request<Proposal[]>("/proposals");
+  async getProposals(): Promise<ProposalSummary[]> {
+    return this.request<ProposalSummary[]>("/proposals");
   }
 
   async getProposal(id: string): Promise<Proposal> {
     return this.request<Proposal>(`/proposals/${id}`);
   }
 
-  async editProposalLine(proposalId: string, lineId: string, orderQty: number): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/proposals/${proposalId}/lines/${lineId}`, {
+  /** Every change carries the version the user was looking at, so a stale view is refused instead of overwritten. */
+  async editProposalLine(proposalId: string, lineId: string, qty: number, version: number): Promise<Proposal> {
+    return this.request<Proposal>(`/proposals/${proposalId}/lines/${lineId}`, {
       method: "PUT",
-      body: JSON.stringify({ order_qty: orderQty }),
+      body: JSON.stringify({ qty }),
+      headers: { "If-Match": `"${version}"` },
     });
   }
 
-  async submitProposal(proposalId: string): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/proposals/${proposalId}/submit`, { method: "POST" });
+  async submitProposal(proposalId: string, version: number): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/proposals/${proposalId}/submit`, { method: "POST", headers: { "If-Match": `"${version}"` } });
   }
 
-  async approveProposal(proposalId: string): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/proposals/${proposalId}/approve`, { method: "POST" });
+  async approveProposal(proposalId: string, version: number): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/proposals/${proposalId}/approve`, { method: "POST", headers: { "If-Match": `"${version}"` } });
   }
 
   async getServiceLevels(): Promise<{ history?: ServiceLevelEntry[] }> {
@@ -293,6 +435,30 @@ export class ApiClient {
     return this.request<JsonRecord>(`/admin/roles/${encodeURIComponent(userId)}`, {
       method: "PUT",
       body: JSON.stringify({ roles, active }),
+    });
+  }
+
+  async getSupplierTerms(supplierId: string): Promise<SupplierTermsView> {
+    return this.request<SupplierTermsView>(`/suppliers/${encodeURIComponent(supplierId)}/terms`);
+  }
+
+  async putSupplierTerms(supplierId: string, payload: Record<string, unknown>, version: number): Promise<{ version: number }> {
+    return this.request<{ version: number }>(`/suppliers/${encodeURIComponent(supplierId)}/terms`, {
+      method: "PUT",
+      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getOverrideTerms(variantId: number, supplierId: string): Promise<OverrideView> {
+    return this.request<OverrideView>(`/product-suppliers/${variantId}/${encodeURIComponent(supplierId)}/terms`);
+  }
+
+  async putOverrideTerms(variantId: number, supplierId: string, payload: Record<string, unknown>, version: number): Promise<{ version: number }> {
+    return this.request<{ version: number }>(`/product-suppliers/${variantId}/${encodeURIComponent(supplierId)}/terms`, {
+      method: "PUT",
+      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      body: JSON.stringify(payload),
     });
   }
 }

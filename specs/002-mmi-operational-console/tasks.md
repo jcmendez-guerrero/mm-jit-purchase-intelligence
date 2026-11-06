@@ -131,8 +131,8 @@
 - [ ] T067 [US3] Confirm in planning that writing the median, or an admin-set cost, inside the same review, MFA, audit and writer chain is within constitution Principle I (which names the buyer as the one who enters or confirms the cost), or propose an amendment in .specify/memory/constitution.md via a separate reviewed change
 - [ ] T068 [P] [US3] Test the cost-update request timing and no-lots cases (request created at receipt match, opening entry when the ERP has no cost, no request when nothing is in stock) in services/procurement-service/tests/test_cost_update_timing.py
 - [X] T069 [US3] Add BFF client methods and routes for supplier list/search, terms and overrides with role checks in services/api-bff/src/clients/procurement.py and services/api-bff/src/routes/suppliers.py
-- [ ] T070 [US3] Build supplier list, terms editor, override editor, history and source badges in apps/web/src/features/suppliers/ with es-ES strings in apps/web/src/i18n/es-ES/suppliers.json
-- [ ] T071 [US3] Show terms used and precedence in proposal line explanations in apps/web/src/features/proposals/
+- [X] T070 [US3] Build supplier list, terms editor, override editor, history and source badges in apps/web/src/features/suppliers/ with es-ES strings in apps/web/src/i18n/es-ES/suppliers.json
+- [X] T071 [US3] Show terms used and precedence in proposal line explanations in apps/web/src/features/proposals/
 
 **Checkpoint**: US3 demonstrable; proposals reflect edited terms.
 

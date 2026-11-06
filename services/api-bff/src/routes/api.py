@@ -242,36 +242,33 @@ async def edit_proposal_line(
     proposal_id: str,
     line_id: str,
     payload: dict[str, Any],
-    session: SessionData = Depends(require_roles("buyer", "admin")),
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    return await client.edit_proposal_line(proposal_id=proposal_id, line_id=line_id, payload=payload, user_id=session.user_id, roles=session.roles)
+    return await client.edit_proposal_line(proposal_id=proposal_id, line_id=line_id, payload=payload, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.post("/proposals/{proposal_id}/submit")
 async def submit_proposal(
     proposal_id: str,
-    session: SessionData = Depends(require_roles("buyer", "admin")),
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    # Check T137: at least two eligible approvers must exist in the system
-    if not has_at_least_two_eligible_approvers():
-        raise HTTPException(
-            status_code=409,
-            detail="cannot submit for approval: at least two eligible approvers required to maintain separation of duties",
-        )
-    return await client.submit_proposal(proposal_id=proposal_id, user_id=session.user_id, roles=session.roles)
+    if not has_at_least_two_eligible_approvers():            # FR-002: separation of duties needs two people who could approve
+        raise HTTPException(status_code=409, detail="approval_fewer_than_two_approvers")
+    return await client.submit_proposal(proposal_id=proposal_id, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
-@router.post("/proposals/{proposal_id}/approve")
+@router.post("/proposals/{proposal_id}/approve", dependencies=[Depends(require_fresh_mfa())])
 async def approve_proposal(
     proposal_id: str,
-    session: SessionData = Depends(require_fresh_mfa()),
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("approver")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    if "approver" not in session.roles and "admin" not in session.roles:
-        raise HTTPException(status_code=403, detail="forbidden: approver role required")
-    return await client.approve_proposal(proposal_id=proposal_id, user_id=session.user_id, roles=session.roles)
+    return await client.approve_proposal(proposal_id=proposal_id, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.get("/proposals/{proposal_id}/export")

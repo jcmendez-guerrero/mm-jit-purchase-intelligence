@@ -4,6 +4,7 @@ import { ConfigScreen } from "../features/config/ConfigScreen";
 import { CostsScreen } from "../features/costs/CostsScreen";
 import { RolesScreen } from "../features/admin/RolesScreen";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
+import { SuppliersScreen } from "../features/suppliers/SuppliersScreen";
 import { ProposalsScreen } from "../features/proposals/ProposalsScreen";
 import { QualityScreen } from "../features/quality/QualityScreen";
 import { Navigation } from "./Navigation";
@@ -66,6 +67,7 @@ export const App: React.FC = () => {
           />
         )}
         {currentTab === "quality" && <QualityScreen userRoles={userRoles} />}
+        {currentTab === "suppliers" && <SuppliersScreen userRoles={userRoles} />}
         {currentTab === "costs" && <CostsScreen userRoles={userRoles} />}
         {currentTab === "proposals" && <ProposalsScreen userRoles={userRoles} />}
         {currentTab === "config" && <ConfigScreen userRoles={userRoles} />}

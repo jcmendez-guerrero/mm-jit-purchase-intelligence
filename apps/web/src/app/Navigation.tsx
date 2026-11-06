@@ -16,6 +16,7 @@ export const Navigation: React.FC<Props> = ({ currentTab, onSelectTab, session, 
   const tabs = [
     { id: "dashboard", label: t("nav.dashboard") },
     { id: "quality", label: t("nav.quality") },
+    { id: "suppliers", label: t("nav.suppliers") },
     { id: "costs", label: t("nav.costs") },
     { id: "proposals", label: t("nav.proposals") },
     { id: "config", label: t("nav.config") },

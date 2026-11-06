@@ -73,18 +73,20 @@ class ProcurementClient(DownstreamClient):
         res.raise_for_status()
         return res.json()
 
-    async def edit_proposal_line(self, proposal_id: str, line_id: str, payload: dict[str, Any], user_id: str, roles: list[str] | None = None) -> dict[str, Any]:
-        res = await self.put(f"/proposals/{proposal_id}/lines/{line_id}", json=payload, user_id=user_id, roles=roles)
+    async def edit_proposal_line(self, proposal_id: str, line_id: str, payload: dict[str, Any], user_id: str, roles: list[str] | None = None,
+                                 if_match: str | None = None) -> dict[str, Any]:
+        res = await self.patch(f"/proposals/{proposal_id}/lines/{line_id}", json=payload, user_id=user_id, roles=roles,
+                             extra_headers={"If-Match": if_match} if if_match else None)
         res.raise_for_status()
         return res.json()
 
-    async def submit_proposal(self, proposal_id: str, user_id: str, roles: list[str] | None = None) -> dict[str, Any]:
-        res = await self.post(f"/proposals/{proposal_id}/submit", json={}, user_id=user_id, roles=roles)
+    async def submit_proposal(self, proposal_id: str, user_id: str, roles: list[str] | None = None, if_match: str | None = None) -> dict[str, Any]:
+        res = await self.post(f"/proposals/{proposal_id}/submit", json={}, user_id=user_id, roles=roles, extra_headers={"If-Match": if_match} if if_match else None)
         res.raise_for_status()
         return res.json()
 
-    async def approve_proposal(self, proposal_id: str, user_id: str, roles: list[str] | None = None) -> dict[str, Any]:
-        res = await self.post(f"/proposals/{proposal_id}/approve", json={}, user_id=user_id, roles=roles)
+    async def approve_proposal(self, proposal_id: str, user_id: str, roles: list[str] | None = None, if_match: str | None = None) -> dict[str, Any]:
+        res = await self.post(f"/proposals/{proposal_id}/approve", json={}, user_id=user_id, roles=roles, extra_headers={"If-Match": if_match} if if_match else None)
         res.raise_for_status()
         return res.json()
 

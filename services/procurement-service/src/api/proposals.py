@@ -10,7 +10,7 @@ from typing import Any, Protocol
 
 from approvals.workflow import ApprovalError, UserDirectory, decide, is_approval_valid, submit
 from costs.writes import WriteError, approve_write, cancel_write, list_visible, writer_view
-from db.tables import approvals, proposal_lines, proposals, supplier_order_groups
+from db.tables import approvals, product_refs, proposal_lines, proposals, supplier_order_groups, suppliers
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Response
 from mmi_common.errors import error_code
 from mmi_common.time import get_correlation_id, set_correlation_id
@@ -88,15 +88,21 @@ def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
     groups = conn.execute(select(supplier_order_groups).where(supplier_order_groups.c.proposal_id == p.id).order_by(supplier_order_groups.c.supplier_id)).all()
     last = conn.execute(select(approvals).where(approvals.c.proposal_id == p.id).order_by(approvals.c.id.desc()).limit(1)).first()
     s = lambda v: str(Decimal(str(v)))  # noqa: E731
+    names = {r.variant_id: (r.sku, r.name) for r in conn.execute(select(product_refs.c.variant_id, product_refs.c.sku, product_refs.c.name)).all()}
+    supplier_names = {r.id: r.name for r in conn.execute(select(suppliers.c.id, suppliers.c.name)).all()}
     return {
         "id": p.id, "week": p.week, "status": p.status, "version": p.version, "created_by": p.created_by, "last_edited_by": p.last_edited_by,
         "inputs_hash": p.inputs_hash, "rule_versions": p.rule_versions, "solver_status": p.solver_status, "flags": p.flags,
         "approval": None if last is None else {"approver": last.approver_id, "decision": last.decision, "version": last.proposal_version, "valid": is_approval_valid(conn, p.id)},
         "lines": [{"id": r.id, "variant_id": r.variant_id, "product_id": r.product_id, "supplier_id": r.supplier_id, "qty": r.qty,
+                   "sku": names.get(r.variant_id, (None, None))[0], "product_name": names.get(r.variant_id, (None, None))[1],
+                   "supplier_name": supplier_names.get(r.supplier_id),
                    "unit_cost_with_recargo": s(r.unit_cost_with_recargo), "line_total": s(r.line_total), "forecast_or_policy": r.forecast_or_policy,
                    "safety_stock": r.safety_stock, "constraints_applied": r.constraints_applied, "risk": r.risk, "confidence": r.confidence,
                    "explanation": r.explanation, "alternatives_compared": r.alternatives_compared, "manual_override": r.manual_override, "topup": r.topup} for r in lines],
-        "supplier_groups": [{"supplier_id": g.supplier_id, "subtotal": s(g.subtotal), "delivery_charge": s(g.delivery_charge), "total_cost": s(g.total_cost),
+        "terms_version_ids": p.terms_version_ids,
+        "supplier_groups": [{"supplier_id": g.supplier_id, "supplier_name": supplier_names.get(g.supplier_id), "subtotal": s(g.subtotal),
+                             "discount": s(g.discount), "delivery_charge": s(g.delivery_charge), "total_cost": s(g.total_cost),
                              "expected_delivery_date": g.expected_delivery_date.isoformat() if g.expected_delivery_date else None, "minimum_status": g.minimum_status,
                              "free_delivery": g.free_delivery, "shortfall_options": g.shortfall_options} for g in groups],
     }

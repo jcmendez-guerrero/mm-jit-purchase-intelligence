@@ -51,6 +51,7 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | mfa_required | 403 | A recent second factor is required |
 | version_conflict | 409 | The record changed since it was read |
 | invalid_proposal_state | 409 | The proposal state does not allow this action |
+| invalid_quantity | 422 | A quantity must be a whole number of zero or more |
 | proposal_conflict | 409 | This week already has an approved proposal |
 | unknown_role | 422 | A role is not valid |
 | invalid_cost | 422 | A cost value is not valid |
