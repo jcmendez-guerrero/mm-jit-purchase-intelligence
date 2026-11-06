@@ -98,3 +98,11 @@ class DownstreamClient:
             res = await client.request(method, path, json=json, params=params, headers=headers)
         res.raise_for_status()
         return res.json() if res.content else {}
+
+    async def forward_raw(self, method: str, path: str, *, params: dict[str, Any] | None = None, files: Any = None, data: Any = None, user_id: str | None = None,
+                          roles: list[str] | None = None, timeout: float = 60.0) -> httpx.Response:
+        """Like ``forward`` but returns the response untouched (downloads, multipart uploads); a refusal still raises."""
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=timeout) as client:
+            res = await client.request(method, path, params=params, files=files, data=data, headers=self._headers(user_id, roles))
+        res.raise_for_status()
+        return res

@@ -199,7 +199,7 @@
 
 ### Implementation
 
-- [ ] T106 [US5] Implement BFF upload endpoint (session, CSRF, role, content-length cap, streaming to forecast-service) in services/api-bff/src/routes/imports.py and services/api-bff/src/clients/forecast.py
+- [X] T106 [US5] Implement BFF upload endpoint (session, CSRF, role, content-length cap, streaming to forecast-service) in services/api-bff/src/routes/imports.py and services/api-bff/src/clients/forecast.py
 - [X] T107 [US5] Implement dataset storage, signature verification and private blob quarantine with retention in services/forecast-service/src/seeds/storage.py
 - [X] T108 [US5] Implement streaming CSV/XLSX parsers with limits in services/forecast-service/src/seeds/parsers.py
 - [X] T109 [US5] Implement mapping suggestion, saved mappings and preview in services/forecast-service/src/seeds/mapping.py
@@ -209,7 +209,7 @@
 - [X] T113 [US5] Make forecast runs read the active dataset, fill only insufficient-history variants, flag seeded values and record dataset version in services/forecast-service/src/runs/sources.py and services/forecast-service/src/runs/runner.py
 - [ ] T114 [US5] Implement import job processing in the scale-to-zero worker with idempotent re-run in services/forecast-service/src/worker.py and services/forecast-service/src/job.py
 - [X] T115 [US5] Implement Spanish template download (CSV and XLSX) from contracts/import-template.md in services/forecast-service/src/seeds/template.py
-- [ ] T116 [US5] Add remaining BFF import routes (list, preview, mapping, validate, dry-run, activate, rollback, template) in services/api-bff/src/routes/imports.py
+- [X] T116 [US5] Add remaining BFF import routes (list, preview, mapping, validate, dry-run, activate, rollback, template) in services/api-bff/src/routes/imports.py
 - [ ] T117 [US5] Build the import wizard (template, upload, mapping, preview, validation results, quarantine, dry-run, activation, rollback) in apps/web/src/features/imports/ with es-ES strings
 
 **Checkpoint**: US5 demonstrable end to end; hostile files refused.
