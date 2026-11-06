@@ -144,7 +144,7 @@ EVENT_PAYLOADS = {
     "procurement.terms.changed": {"scope": "supplier_terms", "key": "supplier-a", "version": 3},
     "procurement.scenario.ready": {"scenario_id": U, "status": "ready"},
     "inventory.rules.changed": {"kind": "exclusion", "variant_id": 9001},
-    "procurement.lot_cost.changed": {"variant_id": 9001, "supplier_id": "supplier-a", "lot": "L-01"},
+    "procurement.lot_cost.changed": {"variant_id": 9001, "supplier_id": "supplier-a", "lot": "L-01", "unit_cost": "2.5000", "source": "confirmed_order"},
 }
 
 
