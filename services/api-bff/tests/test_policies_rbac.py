@@ -84,3 +84,8 @@ def test_a_criticality_change_is_forwarded_to_the_existing_inventory_endpoint(ro
     inv.forward.return_value = {"product_id": 5, "clinical_critical": True, "changed": True}
     res = call("PUT", "/api/products/5/criticality", headers_for("buyer-1", BUYER), inv=inv, json={"critical": True})
     assert res.status_code == 200 and inv.forward.call_args.args == ("PUT", "/products/5/criticality")
+
+
+def test_the_old_service_level_edit_route_is_gone_service_levels_are_edited_in_policies(role_store):
+    res = call("PUT", "/api/config/service-levels", headers_for("buyer-1", BUYER), json={"scope": "abc", "key": "A", "target": "0.98"})
+    assert res.status_code in (404, 405)

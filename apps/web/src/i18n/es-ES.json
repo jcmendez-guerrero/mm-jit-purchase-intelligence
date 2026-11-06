@@ -327,11 +327,11 @@
   "costs.flag.margin_kept_offer": "Margen mantenido (oferta): ya estaba por encima del máximo y se deja como está.",
   "costs.flag.margin_above_cap": "El margen supera el máximo permitido; el exceso queda señalado.",
   "costs.flag.margin_below_minimum": "El margen queda por debajo del 15 %: la liberación está bloqueada hasta que un administrador fije un valor.",
-  "costs.flag.margin_unavailable": "No hay PVP disponible: no se puede calcular el margen.",
+  "costs.flag.margin_unavailable": "No hay precio de venta (PVP): no se puede calcular el margen y la liberación queda bloqueada hasta que exista o un administrador fije un valor.",
   "costs.flag.override": "Valor fijado por un administrador.",
   "costs.flag.override_margin_below_minimum": "El valor fijado deja el margen por debajo del 15 %.",
   "costs.tips": "Máximo aplicable: {{cap}}. Coste que da el máximo: {{atCap}}. Coste que da exactamente el 15 %: {{atMin}}.",
-  "costs.pvp_assumption": "El PVP procede del último precio de los movimientos de stock del ERP; pendiente de confirmar su origen, actualidad e IVA.",
+  "costs.pvp_assumption": "El PVP es el precio de venta de la variante en el ERP, tomado sin IVA.",
   "costs.override_title": "Fijar un coste propio (administrador)",
   "costs.override_value": "Coste (€)",
   "costs.override_reason": "Motivo",
@@ -468,5 +468,6 @@
   "forecast.rerun": "Recalcular previsión ahora",
   "forecast.rerun_done": "Previsión solicitada; si nada ha cambiado se reutiliza la anterior.",
   "forecast.revision": "Versión {{revision}}",
-  "policies.working": "Trabajando…"
+  "policies.working": "Trabajando…",
+  "errors.margin_unavailable": "No hay precio de venta para esta variante, así que no se puede comprobar el margen. Un administrador puede fijar un valor o puede completarse el precio en el ERP."
 }

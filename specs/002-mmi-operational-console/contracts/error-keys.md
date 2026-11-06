@@ -70,6 +70,7 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | policy_override_pending | 409 | A request for that field is already pending |
 | policy_override_not_found | 404 | The override request does not exist |
 | policy_override_not_pending | 409 | The override request is not in a state that allows this |
+| margin_unavailable | 409 | There is no selling price, so the margin cannot be checked |
 | proposal_conflict | 409 | This week already has an approved proposal |
 | unknown_role | 422 | A role is not valid |
 | invalid_cost | 422 | A cost value is not valid |

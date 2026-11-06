@@ -29,6 +29,7 @@ describe("cost permissions", () => {
     expect(canRelease(["buyer", "admin"], "admin-1", o)).toBe(false);
     expect(canRelease(["admin"], "admin-1", o)).toBe(false);
     expect(canRelease(["buyer"], "b1", write({ status: "pending_link", rule_flags: [] }))).toBe(false);
+    expect(canRelease(["buyer"], "b1", write({ rule_flags: ["margin_unavailable"], pvp_used: null, margin_after: null }))).toBe(false);
   });
   it("only an admin overrides", () => {
     expect(canOverride(["admin"], write())).toBe(true);

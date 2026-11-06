@@ -130,13 +130,17 @@ def test_an_override_is_refused_once_the_request_was_released(conn, blocked, tmp
     assert e.value.code == "cannot_override_from_approved_by_buyer"
 
 
-def test_without_a_pvp_the_margin_is_flagged_unavailable_and_not_blocking(conn, tmp_path):
+def test_without_a_pvp_the_margin_is_unavailable_and_the_release_is_blocked_until_an_admin_overrides(conn, tmp_path):
     sid = add_supplier(conn)
     add_product(conn, 1, 10, vat=D("21"))
     conn.execute(insert(erp_supplier_links).values(product_id=10, supplier_id=sid, has_cost=False, last_seen_at=NOW))
     record_lot_cost(conn, Blob(tmp_path), variant_id=1, supplier_id=sid, lot="L1", unit_cost=D("9.00"), source="confirmed_order", actor="system", quantity=3, now=NOW)
     req = request_median_write(conn, FakeLots([{"variant_id": 1, "lot": "L1", "quantity": 3}]), 10, sid, "receipt_matched", "system", NOW, Pvp(None)).request
     assert req.rule_flags == ["margin_unavailable"] and req.margin_after is None
+    with pytest.raises(WriteError) as e:
+        approve_write(conn, req.id, who("buyer-1", {"buyer"}), Blob(tmp_path), now=NOW)
+    assert e.value.code == "margin_unavailable"
+    set_override(conn, req.id, who("admin-1", {"admin"}), D("9.00"), "precio de venta pendiente de alta", NOW)
     assert approve_write(conn, req.id, who("buyer-1", {"buyer"}), Blob(tmp_path), now=NOW).status == "approved_by_buyer"
 
 

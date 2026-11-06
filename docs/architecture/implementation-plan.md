@@ -22,7 +22,7 @@
 | 2026-11-05 | **Precedence between ERP facts, local overrides and estimates** (proposed, ADR-019) | Per field: ERP facts from the ERP; the most specific approved local value for MMI-owned terms; estimates only as a labelled fallback; conflicts shown, never silent |
 | 2026-11-05 | **Predictive seed datasets are never ERP movements** (proposed, ADR-020) | Versioned, origin-flagged, atomically activated and reversible; hardened upload; private container with retention |
 | 2026-11-05 | **Stock is valued at lot acquisition cost; the ERP cost update is the median of lot costs** (owner decision, constitution v1.2.0 pending review) | ERP movements carry PVP, not cost, and the ERP holds one cost per supplier. Margin check blocks below 15% unless an admin overrides; the releaser must differ from the override setter |
-| 2026-11-06 | **Margin check implementation choices (pending owner confirmation, T066)**: PVP = lowest variant price from the newest priced ERP stock movement; margin unavailable (no PVP) flags but does not block; an admin override unblocks even when its value leaves the margin below 15% (flagged `override_margin_below_minimum` and audited); thresholds are evaluated on exact cost comparisons | Conservative on the margin floor; all three can be tightened once the PVP source is confirmed |
+| 2026-11-06 | **Margin check implementation choices (pending owner confirmation, T066)**: PVP = lowest variant price (`variants.price`, treated as net of VAT; decided 2026-11-06 — superseding the stock-movement assumption); margin unavailable (no price) blocks the release until an admin overrides; an admin override unblocks even when its value leaves the margin below 15% (flagged `override_margin_below_minimum` and audited); thresholds are evaluated on exact cost comparisons | Conservative on the margin floor; all three can be tightened once the PVP source is confirmed |
 
 ---
 
@@ -256,7 +256,7 @@ Owners are roles, not people. "Decision" means the business must choose before t
 | 001-T130 | Threat model | Engineering | Open |
 | 001-T133 | Cost review with real regional prices | Product owner | Open |
 | 001-T152 | Compose smoke test on a machine with enough memory | Engineering | Open |
-| MMI-002 T066 | Source and freshness of the selling price (PVP) in collected ERP data, and whether it includes VAT; needed by the margin check | Operator | Open |
+| MMI-002 T066 | Operator check on the real ERP that sample variant prices come back net of VAT (source decided: variant price; treated as net) | Operator | Open (check only) |
 | MMI-002 T064 | Constitution v1.2.0 (median value, margin check, admin override) reviewed and merged; then update ADR-006 | Product owner | Decision |
 | MMI-002 T006 | Single owner of service levels (inventory and procurement both hold them today) | Product owner | Decision |
 

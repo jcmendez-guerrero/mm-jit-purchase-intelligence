@@ -5,7 +5,7 @@ const OPEN = ["pending_review", "pending_link", "failed"];
 /** Only a buyer releases, never the person who set the override; the server enforces the same rules. */
 export function canRelease(roles: string[], userId: string | undefined, w: CostWriteRecord): boolean {
   if (!roles.includes("buyer") || !OPEN.includes(w.status) || w.status === "pending_link") return false;
-  if (w.rule_flags.includes("margin_below_minimum") && !w.override) return false;
+  if ((w.rule_flags.includes("margin_below_minimum") || w.rule_flags.includes("margin_unavailable")) && !w.override) return false;
   return !(w.override && userId !== undefined && w.override.by === userId);
 }
 

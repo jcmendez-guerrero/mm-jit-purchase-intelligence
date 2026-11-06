@@ -299,21 +299,6 @@ async def get_service_levels(
     return await client.get_service_levels(roles=session.roles)
 
 
-class ServiceLevelPutBody(BaseModel):
-    scope: str
-    key: str
-    target: str
-
-
-@router.put("/config/service-levels")
-async def put_service_level(
-    body: ServiceLevelPutBody,
-    session: SessionData = Depends(require_roles("buyer", "admin")),
-    client: InventoryClient = Depends(get_inventory_client),
-) -> dict[str, Any]:
-    return await client.put_service_level(scope=body.scope, key=body.key, target=body.target, user_id=session.user_id, roles=session.roles)
-
-
 class LossCutoverPutBody(BaseModel):
     effective_date: str
 

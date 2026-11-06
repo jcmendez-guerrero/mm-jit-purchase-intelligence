@@ -1,28 +1,23 @@
-"""T066 (assumption): the selling price comes from the newest priced movement and is labelled as such."""
+"""T066: the selling price is the variant price synchronised from the ERP, treated as net of VAT."""
 
-from datetime import UTC, datetime
+from decimal import Decimal
 
 from conftest import auth
-from db.tables import stock_movements
+from db.tables import variants
 from sqlalchemy import insert
 
 
-def mv(c, ext, variant, price, hour, quarantined=False):
-    c.execute(insert(stock_movements).values(external_id=ext, created_at_utc=datetime(2026, 11, 3, hour, tzinfo=UTC), created_at_raw="x", variant_id=variant, warehouse_id=1,
-                                             quantity=1, reason="sale_shipment", unit_cost=price, has_note=False, quarantined=quarantined))
+def variant(c, vid, price):
+    c.execute(insert(variants).values(external_id=vid, sku=f"SYN-{vid}", name="V", pack_size=1, uom="unit", price=price))
 
 
-def test_latest_priced_unquarantined_movement_wins_and_missing_variants_are_omitted(client, engine):
+def test_returns_the_variant_price_as_is_and_omits_variants_without_one(client, engine):
     with engine.begin() as c:
-        mv(c, 1, 1, "10.00", 8)
-        mv(c, 2, 1, "12.50", 9)
-        mv(c, 3, 1, "99.00", 10, quarantined=True)
-        mv(c, 4, 2, None, 9)
-    body = client.get("/pvp?variant_ids=1,2,3", headers=auth()).json()["prices"]
-    from decimal import Decimal
-
-    assert [(p["variant_id"], Decimal(p["pvp"]), p["source"]) for p in body] == [(1, Decimal("12.5"), "stock_movement_price")]
-    assert {p["variant_id"] for p in body} == {1}
+        variant(c, 1, Decimal("12.50"))
+        variant(c, 2, None)
+        variant(c, 3, Decimal("0"))
+    body = client.get("/pvp?variant_ids=1,2,3,4", headers=auth()).json()["prices"]
+    assert [(p["variant_id"], Decimal(p["pvp"]), p["source"]) for p in body] == [(1, Decimal("12.5"), "variant_price")]
 
 
 def test_requires_authentication_and_valid_ids(client):

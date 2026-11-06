@@ -242,7 +242,7 @@ def build_router(app: FastAPI) -> APIRouter:
                 "proposed_value": str(Decimal(str(r.proposed_value))), "previous_siweb_value": None if r.previous_siweb_value is None else str(Decimal(str(r.previous_siweb_value))),
                 "status": r.status, "attempts": r.attempts, "last_error": r.last_error,
                 "median_cost": None if r.median_cost is None else str(Decimal(str(r.median_cost)).quantize(Decimal("0.01"))), "lots": r.median_lot_refs or [],
-                "pvp_used": None if r.pvp_used is None else str(Decimal(str(r.pvp_used)).quantize(Decimal("0.01"))), "pvp_source": "stock_movement_price",
+                "pvp_used": None if r.pvp_used is None else str(Decimal(str(r.pvp_used)).quantize(Decimal("0.01"))), "pvp_source": "variant_price",
                 "margin_before": None if r.margin_before is None else str(Decimal(str(r.margin_before))),
                 "margin_after": None if r.margin_after is None else str(Decimal(str(r.margin_after))), "rule_flags": r.rule_flags or [],
                 "tips": tips_for(r), "override": None if r.override_value is None else {

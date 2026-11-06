@@ -5,12 +5,11 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
 from typing import Any
 
 from classification.criticality import CriticalityError, set_critical
 from classification.run import load_series
-from classification.service_levels import ServiceLevelError, effective_target, history, set_target
+from classification.service_levels import effective_target, history
 from db.tables import (
     ALL_WAREHOUSES,
     demand_observations,
@@ -44,12 +43,6 @@ def get_engine() -> Engine:
 
 class CriticalityBody(BaseModel):
     critical: bool
-
-
-class ServiceLevelBody(BaseModel):
-    scope: str
-    key: str
-    target: Decimal
 
 
 class DecisionBody(BaseModel):
@@ -125,14 +118,6 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
     @router.get("/service-levels")
     def service_levels(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         return {"history": history(conn)}
-
-    @router.put("/service-levels")
-    def put_service_level(body: ServiceLevelBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
-        try:
-            set_target(conn, body.scope, body.key, body.target, principal.subject)
-        except ServiceLevelError as exc:
-            raise HTTPException(422, error_code(exc)) from exc
-        return {"ok": True}  # applies to proposals created from now on
 
     @router.get("/export/series")
     def export_series(through_day: date | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

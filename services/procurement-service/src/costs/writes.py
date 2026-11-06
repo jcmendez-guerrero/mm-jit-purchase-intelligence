@@ -23,7 +23,7 @@ from proposals.publisher import WRITE_REQUESTED, BlobWriter, publish
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.engine import Connection, Row
 
-from costs.margin import BELOW_MINIMUM, Evaluation, evaluate
+from costs.margin import BELOW_MINIMUM, UNAVAILABLE, Evaluation, evaluate
 from costs.recargo import erp_cents
 from costs.store import get as get_cost
 
@@ -126,6 +126,8 @@ def approve_write(conn: Connection, request_id: str, principal: Principal, write
         raise WriteError("override_release_same_person")   # whoever set the override cannot release it (FR-044)
     if BELOW_MINIMUM in (r.rule_flags or []) and not overridden:
         raise WriteError("margin_below_minimum")           # blocked until an admin override (FR-043 d)
+    if UNAVAILABLE in (r.rule_flags or []) and not overridden:
+        raise WriteError("margin_unavailable")             # no price, no margin: blocked until the price is known or an admin overrides
     cost = get_cost(conn, r.cost_id)
     if cost.superseded_by is not None:
         raise WriteError("cost_superseded")

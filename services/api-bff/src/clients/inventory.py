@@ -39,7 +39,3 @@ class InventoryClient(DownstreamClient):
         res.raise_for_status()
         return res.json()
 
-    async def put_service_level(self, scope: str, key: str, target: str, user_id: str, roles: list[str] | None = None) -> dict[str, Any]:
-        res = await self.put("/service-levels", json={"scope": scope, "key": key, "target": target}, user_id=user_id, roles=roles)
-        res.raise_for_status()
-        return res.json()

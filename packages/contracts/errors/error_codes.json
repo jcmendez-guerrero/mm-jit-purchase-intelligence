@@ -365,6 +365,11 @@
       "http": 409,
       "kind": "request",
       "meaning": "The override request is not in a state that allows this"
+    },
+    "margin_unavailable": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "There is no selling price, so the margin cannot be checked"
     }
   }
 }
