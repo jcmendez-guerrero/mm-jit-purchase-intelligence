@@ -53,8 +53,8 @@
 - [X] T021 Extend the PostgreSQL migration test to cover upgrade and downgrade of every new migration and schema-versus-definition parity in infra/tests/test_migrations_postgres.py
 - [X] T022 [P] Add append-only and hash-chained audit usage for the bff, forecast and inventory new tables (reuse procurement audit chain pattern) in services/api-bff/src/audit.py, services/forecast-service/src/audit.py, services/inventory-service/src/audit.py
 - [X] T023 Write procurement migration 0008 (lot_acquisition_costs, suggested_median_cost on cost_write_requests) and inventory lot_cost_projection migration in services/procurement-service/migrations/versions/ and services/inventory-service/migrations/versions/
-- [ ] T024 Add private encrypted seed-file container with lifecycle deletion to the existing storage account in infra/bicep/modules/ and the Azurite equivalent in infra/compose.yaml
-- [ ] T025 Update docs/architecture/implementation-plan.md decisions log and docs/adr/README.md to reference ADRs 018–020 as proposed
+- [X] T024 Add private encrypted seed-file container with lifecycle deletion to the existing storage account in infra/bicep/modules/ and the Azurite equivalent in infra/compose.yaml
+- [X] T025 Update docs/architecture/implementation-plan.md decisions log and docs/adr/README.md to reference ADRs 018–020 as proposed
 
 **Checkpoint**: contract and migration tests green; stories may proceed.
 

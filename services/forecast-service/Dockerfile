@@ -11,6 +11,7 @@ RUN python -c "import tomllib;print(chr(10).join(d for d in tomllib.load(open('s
 COPY services/forecast-service/ /app/services/forecast-service/
 RUN useradd --system --uid 10001 --no-create-home app \
  && mkdir -p /data/blobs && chown 10001 /data/blobs
+RUN mkdir -p /data/seeds && chown 10001 /data/seeds
 USER 10001
 ENV PYTHONPATH=/app/services/forecast-service/src
 EXPOSE 8000

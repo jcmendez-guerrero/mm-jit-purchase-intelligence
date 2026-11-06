@@ -116,6 +116,9 @@ services:
       MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
       SIWEB_BASE_URL: http://siweb-mock:8089
       SIWEB_TOKEN: synthetic-test-token
+      MMI_SEED_BLOB_ROOT: /data/seeds          # local stand-in for the private seed-quarantine container
+    volumes:
+      - seeds:/data/seeds
     depends_on:
       postgres: { condition: service_healthy }
       azurite: { condition: service_started }
@@ -244,3 +247,4 @@ services:
 
 volumes:
   blobs: {}
+  seeds: {}
