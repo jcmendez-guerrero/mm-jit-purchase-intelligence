@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -17,6 +18,12 @@ class ProcurementLotCostChanged(EventEnvelope):
     ]
 
 
+class Source(Enum):
+    confirmed_order = 'confirmed_order'
+    receipt_correction = 'receipt_correction'
+    buyer_entry = 'buyer_entry'
+
+
 class Payload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -24,3 +31,11 @@ class Payload(BaseModel):
     variant_id: Annotated[int, Field(ge=1)]
     supplier_id: str
     lot: str
+    unit_cost: Annotated[
+        str,
+        Field(
+            description='Recargo-inclusive acquisition cost in EUR (exact decimal text)',
+            pattern='^\\d+(\\.\\d{1,4})?$',
+        ),
+    ]
+    source: Source

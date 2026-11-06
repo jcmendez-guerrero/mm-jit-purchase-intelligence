@@ -67,7 +67,7 @@ def record_lot_cost(conn: Connection, writer: BlobWriter, *, variant_id: int, su
         unit_cost=unit_cost.quantize(Q4), source=source, recorded_by=actor, recorded_at=now))
     audit(conn, actor, "lot_cost.recorded", "lot_cost", rid, after={"variant_id": variant_id, "supplier_id": supplier_id, "lot": lot.strip(), "source": source,
                                                                      "unit_cost": str(unit_cost.quantize(Q4))}, now=now)
-    lot_cost_changed(conn, writer, variant_id, supplier_id, lot.strip(), rid, get_correlation_id() or set_correlation_id())
+    lot_cost_changed(conn, writer, variant_id, supplier_id, lot.strip(), rid, get_correlation_id() or set_correlation_id(), str(unit_cost.quantize(Q4)), source)
     return conn.execute(select(lot_acquisition_costs).where(lot_acquisition_costs.c.id == rid)).one()
 
 

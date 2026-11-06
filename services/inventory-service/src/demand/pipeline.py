@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from classification.run import compute_segments
+from dashboard.kpis import refresh_aggregates
 from db.tables import stock_snapshots
 from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
@@ -31,6 +32,7 @@ class Pipeline:
             return {}
         result = rebuild(conn)
         segments = compute_segments(conn)
+        refresh_aggregates(conn, snapshot_date)                 # today's dashboard figures, stored for history and quick reads (T126)
         out = {"series": result.demand_rows, "segments": segments}
         if kind == "variants":
             n = conn.execute(select(func.count(func.distinct(stock_snapshots.c.variant_id))).where(stock_snapshots.c.snapshot_date == snapshot_date)).scalar_one()

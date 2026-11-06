@@ -22,7 +22,9 @@
       "required": [
         "variant_id",
         "supplier_id",
-        "lot"
+        "lot",
+        "unit_cost",
+        "source"
       ],
       "properties": {
         "variant_id": {
@@ -34,9 +36,21 @@
         },
         "lot": {
           "type": "string"
+        },
+        "unit_cost": {
+          "type": "string",
+          "pattern": "^\\d+(\\.\\d{1,4})?$",
+          "description": "Recargo-inclusive acquisition cost in EUR (exact decimal text)"
+        },
+        "source": {
+          "enum": [
+            "confirmed_order",
+            "receipt_correction",
+            "buyer_entry"
+          ]
         }
       },
-      "description": "A lot acquisition cost was recorded or corrected; inventory projects it for valuation."
+      "description": "A lot acquisition cost was recorded or corrected; inventory projects it for valuation. Carries the cost because the projection must not call procurement."
     }
   }
 }

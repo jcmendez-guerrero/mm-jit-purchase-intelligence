@@ -74,13 +74,16 @@ def test_a_lot_bought_from_two_suppliers_has_two_independent_entries(conn, tmp_p
     assert latest_by_lot(conn, 1, a)["L1"].unit_cost == D("2.0000") and latest_by_lot(conn, 1, b)["L1"].unit_cost == D("3.0000")
 
 
-def test_every_entry_is_audited_and_emits_a_references_only_event(conn, tmp_path):
+def test_every_entry_is_audited_and_emits_an_event_that_carries_the_cost_for_the_inventory_projection(conn, tmp_path):
     sid = add_supplier(conn)
     rec(conn, tmp_path, sid, lot=OPENING_LOT, source="buyer_entry")
     assert conn.execute(select(func.count()).select_from(audit_events).where(audit_events.c.action == "lot_cost.recorded")).scalar() == 1
     ev = conn.execute(select(outbox)).all()
     assert [e.type for e in ev] == ["procurement.lot_cost.changed.v1"]
-    assert "unit_cost" not in str(ev[0].envelope)
+    import json
+
+    payload = json.loads(next(iter(Blob(tmp_path).tmp.rglob("events/procurement.lot_cost.changed.v1/*.json"))).read_text())
+    assert payload["unit_cost"] == "2.0000" and payload["source"] == "buyer_entry" and payload["lot"] == "opening"
 
 
 def test_no_path_in_this_module_reads_the_erp_movement_price():

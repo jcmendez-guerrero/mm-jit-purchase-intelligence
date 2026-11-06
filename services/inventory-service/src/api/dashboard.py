@@ -1,0 +1,60 @@
+"""T128: dashboard routes for the buyer console. Read-only; filters come from live data."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
+from typing import Any
+
+from dashboard.kpis import (
+    CATEGORIES,
+    Filters,
+    abc_xyz_distribution,
+    compute_summary,
+    demand_trend,
+    filter_options,
+)
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
+from sqlalchemy.engine import Connection
+
+
+def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> APIRouter:
+    require: Callable[..., Any] = app.state.require_roles
+    router = APIRouter(prefix="/dashboard")
+
+    def filters(warehouse_id: int | None, category: str | None) -> Filters:
+        if category is not None and category not in CATEGORIES:
+            raise HTTPException(422, "request_invalid")
+        return Filters(warehouse_id, category)
+
+    def means() -> Any:
+        return getattr(app.state, "forecast_means", None)
+
+    @router.get("/filters/options")
+    def options(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        return filter_options(conn)
+
+    @router.get("/summary")
+    def summary(warehouse_id: int | None = None, category: str | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        f = filters(warehouse_id, category)
+        today = datetime.now(UTC).date()
+        try:
+            s = compute_summary(conn, today, f, means())
+            forecast_ok = True
+        except Exception:
+            s, forecast_ok = compute_summary(conn, today, f, None), False
+        return {**s.as_json(), "forecast_available": forecast_ok and means() is not None}
+
+    @router.get("/demand-trend")
+    def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, conn: Connection = Depends(conn_dep),
+              _p: Any = Depends(require())) -> dict[str, Any]:
+        today = datetime.now(UTC).date()
+        return {"from": (today - timedelta(days=days)).isoformat(), "to": date.isoformat(today), "series": demand_trend(conn, today, days, filters(warehouse_id, category)),
+                "estimated": [], "note": "estimated_series_come_from_forecast_service"}
+
+    @router.get("/abc-xyz")
+    def abc_xyz(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        return {"cells": [{**d, "value": str(d["value"].quantize(Decimal("0.01")))} for d in abc_xyz_distribution(conn)]}
+
+    return router
