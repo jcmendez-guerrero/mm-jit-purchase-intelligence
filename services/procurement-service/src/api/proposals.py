@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -48,9 +49,13 @@ class OrderConfirmation(BaseModel):
     erp_purchase_ref: int | None = None
 
 
+USER_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.@:+-]{0,119}")
+
+
 class RolesBody(BaseModel):
-    roles: list[str]
+    roles: list[str] = Field(max_length=8)
     active: bool = True
+    revision: int | None = Field(default=None, ge=0)        # the BFF role revision; stale mirrors are ignored
 
 
 class WriteApproval(BaseModel):
@@ -239,10 +244,12 @@ def build_router(app: FastAPI) -> APIRouter:
 
     @router.put("/internal/users/{user_id}/roles")
     def mirror_roles(user_id: str, body: RolesBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("bff"))) -> dict[str, Any]:
+        if not USER_ID.fullmatch(user_id):
+            raise HTTPException(422, "invalid_user_id")
         try:
-            set_roles(conn, user_id, body.roles, principal.subject, body.active)
+            applied = set_roles(conn, user_id, body.roles, principal.subject, body.active, revision=body.revision)
         except DirectoryError as exc:
             raise HTTPException(422, "unknown_role") from exc
-        return {"user_id": user_id, "roles": sorted(set(body.roles)), "active": body.active}
+        return {"user_id": user_id, "roles": sorted(set(body.roles)), "active": body.active, "applied": applied}
 
     return router

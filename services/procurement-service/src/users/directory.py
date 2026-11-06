@@ -48,16 +48,23 @@ class DbUserDirectory:
             return _approvers(conn)
 
 
-def set_roles(conn: Connection, user_id: str, roles: list[str], actor: str, active: bool = True, now: datetime | None = None) -> None:
+def set_roles(conn: Connection, user_id: str, roles: list[str], actor: str, active: bool = True, now: datetime | None = None,
+              revision: int | None = None) -> bool:
+    """Applies a mirrored role snapshot. Returns False when ``revision`` is not newer than the stored one: a retried older
+    change must never overwrite a newer one. ``revision=None`` (legacy callers) always applies."""
     bad = [r for r in roles if r not in ROLES]
     if bad:
         raise DirectoryError(f"unknown roles: {bad}")
     now = now or datetime.now(UTC)
     before = conn.execute(select(user_roles).where(user_roles.c.user_id == user_id)).first()
-    values = {"roles": sorted(set(roles)), "active": active, "updated_by": actor, "updated_at": now}
+    if revision is not None and before is not None and revision <= before.revision:
+        return False
+    values = {"roles": sorted(set(roles)), "active": active, "updated_by": actor, "updated_at": now,
+              "revision": revision if revision is not None else (before.revision + 1 if before is not None else 1)}
     if before is None:
         conn.execute(insert(user_roles).values(user_id=user_id, **values))
     else:
         conn.execute(update(user_roles).where(user_roles.c.user_id == user_id).values(**values))
     audit(conn, actor, "user.roles_set", "user", user_id, before=None if before is None else {"roles": before.roles, "active": before.active},
-          after={"roles": values["roles"], "active": active}, now=now)
+          after={"roles": values["roles"], "active": active, "revision": values["revision"]}, now=now)
+    return True

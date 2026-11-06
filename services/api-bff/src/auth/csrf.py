@@ -20,4 +20,4 @@ def validate_csrf(request: Request, session: SessionData) -> None:
         return
     token = request.headers.get("X-CSRF-Token")
     if not token or not hmac.compare_digest(token, session.csrf_token):
-        raise HTTPException(status_code=403, detail="invalid or missing CSRF token")
+        raise HTTPException(status_code=403, detail="auth_csrf_invalid")

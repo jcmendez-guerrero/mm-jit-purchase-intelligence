@@ -25,6 +25,7 @@ def upgrade() -> None:
     op.create_table("role_mirror_outbox", sa.Column("id", sa.BigInteger, primary_key=True, autoincrement=True),
                     sa.Column("user_id", sa.String(120), nullable=False), sa.Column("roles_snapshot", sa.JSON, nullable=False),
                     sa.Column("active", sa.Boolean, nullable=False, server_default=sa.true()),
+                    sa.Column("revision", sa.Integer, nullable=False),
                     sa.Column("status", sa.String(10), nullable=False, server_default="pending"),
                     sa.Column("attempts", sa.Integer, nullable=False, server_default="0"), sa.Column("last_error_key", sa.String(80)),
                     sa.Column("next_attempt_at", sa.DateTime(timezone=True)), sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),

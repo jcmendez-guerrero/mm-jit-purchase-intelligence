@@ -34,6 +34,7 @@ role_mirror_outbox = Table(
     Column("user_id", String(120), nullable=False),
     Column("roles_snapshot", JSON, nullable=False),
     Column("active", Boolean, nullable=False, default=True),
+    Column("revision", Integer, nullable=False),                         # the user_roles revision this snapshot represents (ordering guard downstream)
     Column("status", String(10), nullable=False, default="pending"),   # pending / sent / failed
     Column("attempts", Integer, nullable=False, default=0),
     Column("last_error_key", String(80)),

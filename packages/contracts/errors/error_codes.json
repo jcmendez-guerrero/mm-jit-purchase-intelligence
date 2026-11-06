@@ -165,6 +165,31 @@
       "http": 403,
       "kind": "request",
       "meaning": "The admin who set an override cannot release it"
+    },
+    "roles_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A role is not valid"
+    },
+    "roles_last_admin": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The last administrator cannot be removed"
+    },
+    "role_mirror_failed": {
+      "http": 503,
+      "kind": "request",
+      "meaning": "A role change could not be mirrored to the purchasing side; it is retried"
+    },
+    "auth_unauthenticated": {
+      "http": 401,
+      "kind": "request",
+      "meaning": "Sign-in is required"
+    },
+    "auth_csrf_invalid": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "The CSRF token is missing or invalid"
     }
   }
 }

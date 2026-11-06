@@ -107,5 +107,10 @@
   "errors.override_release_by_setter": "Quien fija el coste alternativo no puede liberarlo; debe hacerlo otra persona con rol de comprador.",
   "errors.policy_override_requires_approval": "La solicitud queda pendiente de aprobación; mientras tanto se mantiene la recomendación.",
   "errors.policy_override_self_approval": "No puede aprobar su propia solicitud.",
-  "errors.stocking_floor_required": "Un producto siempre en stock necesita un mínimo de al menos 1 unidad."
+  "errors.stocking_floor_required": "Un producto siempre en stock necesita un mínimo de al menos 1 unidad.",
+  "errors.roles_invalid": "Algún rol no es válido. Los roles permitidos son lector, comprador, aprobador y administrador.",
+  "errors.roles_last_admin": "No se puede quitar el último administrador.",
+  "errors.role_mirror_failed": "El cambio de rol no se pudo comunicar al área de compras; se reintentará automáticamente.",
+  "errors.auth_unauthenticated": "Debe iniciar sesión para continuar.",
+  "errors.auth_csrf_invalid": "La sesión no es válida para esta acción. Recargue la página e inténtelo de nuevo."
 }

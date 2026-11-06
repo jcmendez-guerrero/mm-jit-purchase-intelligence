@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from auth.session import (
@@ -42,9 +43,22 @@ class DevLoginBody(BaseModel):
 
 # --- Authentication / Session endpoints ---
 
+def dev_login_enabled() -> bool:
+    """Off unless explicitly enabled, and never in production: the endpoint mints a session for a caller-chosen user."""
+    return os.environ.get("MMI_ENABLE_DEV_LOGIN") == "1" and os.environ.get("MMI_ENV", "dev") != "prod"
+
+
 @router.post("/auth/dev-login")
 def dev_login(body: DevLoginBody, response: Response) -> dict[str, Any]:
-    session = create_session(user_id=body.user_id, email=body.email, roles=body.roles)
+    if not dev_login_enabled():
+        raise HTTPException(status_code=404, detail="not_found")
+    from routes.admin_roles import get_store
+
+    rec = get_store().get(body.user_id)                    # the registry decides roles; the body can never escalate
+    if rec is not None and not rec.active:
+        raise HTTPException(status_code=403, detail="auth_forbidden_role")
+    roles = list(rec.roles) if rec else ["viewer"]
+    session = create_session(user_id=body.user_id, email=body.email, roles=roles)
     set_session_cookie(response, session)
     return {
         "user_id": session.user_id,

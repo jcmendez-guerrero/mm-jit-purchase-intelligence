@@ -270,6 +270,7 @@ user_roles = Table(
     Column("active", Boolean, nullable=False, default=True),
     Column("updated_by", String(120), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
+    Column("revision", Integer, nullable=False, default=0, server_default="0"),   # BFF role revision; older mirrors are ignored (MMI 002)
 )
 forecast_runs_seen = Table(
     "forecast_runs_seen", metadata,

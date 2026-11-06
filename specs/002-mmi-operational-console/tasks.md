@@ -68,19 +68,19 @@
 
 ### Tests first
 
-- [ ] T026 [P] [US1] Test roles persist across a BFF restart and last admin cannot be removed in services/api-bff/tests/test_roles_persistence.py
-- [ ] T027 [P] [US1] Test role change writes role, audit and outbox row atomically, retries failed mirror calls, and surfaces failures in services/api-bff/tests/test_role_mirror_outbox.py
-- [ ] T028 [P] [US1] Test non-admin role changes and viewer mutations are refused and recorded durably in services/api-bff/tests/test_rbac_refusals.py
-- [ ] T029 [P] [US1] Test dev-login is unavailable unless the local-development flag is set in services/api-bff/tests/test_dev_login_disabled.py
-- [ ] T030 [P] [US1] Test submission refused with fewer than two eligible approvers, self-approval refused, stale second factor refused, fresh second factor accepted in services/procurement-service/tests/test_approval_eligibility.py
+- [X] T026 [P] [US1] Test roles persist across a BFF restart and last admin cannot be removed in services/api-bff/tests/test_roles_persistence.py
+- [X] T027 [P] [US1] Test role change writes role, audit and outbox row atomically, retries failed mirror calls, and surfaces failures in services/api-bff/tests/test_role_mirror_outbox.py
+- [X] T028 [P] [US1] Test non-admin role changes and viewer mutations are refused and recorded durably in services/api-bff/tests/test_rbac_refusals.py
+- [X] T029 [P] [US1] Test dev-login is unavailable unless the local-development flag is set in services/api-bff/tests/test_dev_login_disabled.py
+- [X] T030 [P] [US1] Test submission refused with fewer than two eligible approvers, self-approval refused, stale second factor refused, fresh second factor accepted in services/procurement-service/tests/test_approval_eligibility.py
 - [ ] T031 [US1] Write full-stack compose test: assign roles, restart api-bff, submit and approve with two users, confirm refusals in infra/tests/test_approval_e2e.py (RUN_E2E=1)
 
 ### Implementation
 
-- [ ] T032 [US1] Implement bff table definitions and repository in services/api-bff/src/db/tables.py and services/api-bff/src/db/roles.py
-- [ ] T033 [US1] Replace the in-memory user registry, refusal log and audit log with the persistent store in services/api-bff/src/routes/admin_roles.py and services/api-bff/src/routes/rbac.py
-- [ ] T034 [US1] Implement the role-mirror relay (outbox to procurement PUT /internal/users/{id}/roles with audience-scoped identity, bounded retries) in services/api-bff/src/worker.py and services/api-bff/src/clients/procurement.py
-- [ ] T035 [US1] Harden procurement's internal role endpoint (service identity audience check, schema validation, audit) in services/procurement-service/src/users/directory.py and services/procurement-service/src/api/
+- [X] T032 [US1] Implement bff table definitions and repository in services/api-bff/src/db/tables.py and services/api-bff/src/db/roles.py
+- [X] T033 [US1] Replace the in-memory user registry, refusal log and audit log with the persistent store in services/api-bff/src/routes/admin_roles.py and services/api-bff/src/routes/rbac.py
+- [X] T034 [US1] Implement the role-mirror relay (outbox to procurement PUT /internal/users/{id}/roles with audience-scoped identity, bounded retries) in services/api-bff/src/worker.py and services/api-bff/src/clients/procurement.py
+- [X] T035 [US1] Harden procurement's internal role endpoint (service identity audience check, schema validation, audit) in services/procurement-service/src/users/directory.py and services/procurement-service/src/api/
 - [ ] T036 [US1] Return Spanish explanations for approval.fewer_than_two_approvers and approval.self_not_allowed through services/procurement-service/src/approvals/workflow.py and apps/web/src/features/proposals/
 - [ ] T037 [US1] Add role and mirror-status management UI (durable, shows mirror lag and failures) in apps/web/src/features/admin/RolesScreen.tsx
 - [ ] T038 [US1] Perform and document the security review of commit 3a664a0 (web and BFF); fix findings or record accepted risks in the internal wiki; add regression tests for each fix in services/api-bff/tests/ and apps/web/tests/unit/

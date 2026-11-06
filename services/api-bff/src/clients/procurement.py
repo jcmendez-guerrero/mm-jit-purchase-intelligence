@@ -80,3 +80,23 @@ class ProcurementClient(DownstreamClient):
         res = await self.get(f"/proposals/{proposal_id}/export", params=params, roles=roles)
         res.raise_for_status()
         return res.content
+
+
+class RoleMirrorClient:
+    """Synchronous client used by the role-mirror relay. Calls procurement's internal endpoint with a ``bff`` service token only."""
+
+    def __init__(self, base_url: str | None = None, timeout: float = 10.0) -> None:
+        import httpx
+
+        self._base = (base_url or os.environ.get("MMI_PROCUREMENT_URL", "http://procurement-service:8000")).rstrip("/")
+        self._http = httpx.Client(timeout=timeout)
+
+    def put_user_roles(self, user_id: str, roles: list[str], active: bool, revision: int) -> None:
+        from urllib.parse import quote
+
+        from .base import get_downstream_token
+
+        token = get_downstream_token("api://mmi-procurement-service", ["bff"])
+        res = self._http.put(f"{self._base}/internal/users/{quote(user_id, safe='')}/roles", json={"roles": roles, "active": active, "revision": revision},
+                             headers={"Authorization": f"Bearer {token}", "X-User-ID": "bff"})
+        res.raise_for_status()

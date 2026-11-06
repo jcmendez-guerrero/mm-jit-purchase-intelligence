@@ -37,3 +37,8 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | import_invalid_date | 422 (row) | Date is not a valid calendar date |
 | import_missing_provenance | 422 (row) | The provenance label is empty |
 | override_release_by_setter | 403 | The admin who set an override cannot release it |
+| roles_invalid | 422 | A role is not valid |
+| roles_last_admin | 409 | The last administrator cannot be removed |
+| role_mirror_failed | 503 | A role change could not be mirrored to the purchasing side; it is retried |
+| auth_unauthenticated | 401 | Sign-in is required |
+| auth_csrf_invalid | 403 | The CSRF token is missing or invalid |
