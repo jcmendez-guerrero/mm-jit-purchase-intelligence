@@ -68,3 +68,27 @@ D = Decimal
 def conn(engine):
     with engine.begin() as c:
         yield c
+
+
+class FileStore:
+    """Private blob store stand-in: put returns a reference, get reads it back."""
+
+    def __init__(self, root):
+        self.root = root
+        self.files = {}
+
+    def put(self, name, data):
+        ref = f"file://{name}"
+        self.files[ref] = bytes(data)
+        return ref
+
+    def get(self, ref):
+        return self.files[ref]
+
+
+@pytest.fixture
+def store(tmp_path):
+    return FileStore(tmp_path)
+
+
+KNOWN = {9001, 9002, 9003, 9004, 9005}

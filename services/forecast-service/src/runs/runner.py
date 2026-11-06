@@ -32,7 +32,7 @@ from sqlalchemy.engine import Connection, Engine
 from runs.eligibility import decide
 
 EVENT_TYPE = "forecast.completed.v1"
-SUBSCRIPTIONS = {EVENT_TYPE: ["procurement-in"]}
+SUBSCRIPTIONS = {EVENT_TYPE: ["procurement-in"], "forecast.seed.activated.v1": ["forecast-in"]}
 DEFAULT_HORIZONS = (7, 14, 21, 28, 42)
 
 
@@ -92,6 +92,12 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
 
         cfg, versions = config_from_parameters(conn, clock().date())
     export = source.fetch()
+    from runs.seeds import SeedReport, apply_seeds, load_active
+
+    seeds, report = load_active(conn), SeedReport()
+    if seeds is not None:                      # the active seed dataset extends short histories only; the run records which one it used
+        series_with_seeds, report = apply_seeds(export["series"], seeds, cfg.backtest.min_history)
+        export = {**export, "series": series_with_seeds}
     digest = input_hash(export, cfg)
     done = conn.execute(select(forecast_runs).where(forecast_runs.c.input_hash == digest, forecast_runs.c.status == "completed")).first()
     if done:  # identical inputs, configuration and models: nothing new to compute or announce
@@ -122,7 +128,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
                     rate, policy_used = POLICIES[BASELINE].rate(history) or 0.0, BASELINE
                 plan = build_plan(policy_used, rate, history, h, min(cfg.lead_time, h), level)
                 rows.append({"run_id": run_id, "variant_id": s["variant_id"], "horizon_days": h, "mean": plan.mean_horizon, "quantiles": plan.quantiles,
-                             "policy_used": policy_used, "eligible": True, "reasons": "", "service_level": Decimal(str(level))})
+                             "policy_used": policy_used, "eligible": True, "reasons": "seed_used" if s["variant_id"] in report.used else "", "service_level": Decimal(str(level))})
             else:
                 fb = conservative_plan(history, h, min(cfg.lead_time, h), level, crit).plan
                 rows.append({"run_id": run_id, "variant_id": s["variant_id"], "horizon_days": h, "mean": None,
@@ -133,7 +139,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     conn.execute(insert(forecast_runs).values(
         id=run_id, started_at=started, through_day=export.get("through_day"), model_versions=model_versions(), input_hash=digest,
         config=cfg.as_json(), status="running", total_count=len(series), eligible_count=eligible,
-        parameter_version_ids=versions or None))
+        parameter_version_ids=versions or None, dataset_version_id=None if seeds is None else seeds.dataset_id))
     if rows:
         conn.execute(insert(forecast_values), rows)
     _store_backtests(conn, run_id, results, adopted)
