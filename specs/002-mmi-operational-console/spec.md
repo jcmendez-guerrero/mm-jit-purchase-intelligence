@@ -37,6 +37,7 @@ Out of scope: any ERP write other than the existing buyer-released, fresh-MFA su
 ### Session 2026-11-06
 
 - Q: Which price is the selling price (PVP) for the margin check? → A: The variant price held in the ERP and synchronised into inventory (`variants.price`, the catalogue selling price in EUR). The price on stock movements is not used. A product-level cost update is checked against the lowest PVP among the product's variants, because that gives the tightest margin. A variant with no price is skipped; a product with no variant price has an unavailable margin, which blocks the release as in the edge case below. Whether this price includes VAT is still to be confirmed (T066).
+- Q: Which service is the only place where a person edits service levels? → A: Procurement (policy sets). Inventory keeps its computed defaults (critical 99 %, ABC 97/95/90 %, sparse 85 %) as a read-only fallback and its history stays readable. The inventory edit route and the BFF `PUT /config/service-levels` are removed; the existing inventory history may be imported once into policy sets.
 
 ### Session 2026-11-05 (resolved autonomously from the authoritative sources, for reviewer confirmation)
 

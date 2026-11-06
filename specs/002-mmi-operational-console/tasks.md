@@ -35,7 +35,7 @@
 
 **Purpose**: Contracts, migrations, ownership decisions and localisation keys. Contract-first (AGENTS rule 9).
 
-- [ ] T006 DECISION REQUIRED (owner: product owner) Resolve duplicated service-level ownership: read services/inventory-service/src (service_level_config) and services/procurement-service/src (service-levels), decide single owner, and update docs/adr/018-configuration-ownership.md with the migration path
+- [X] T006 DECIDED 2026-11-06: procurement owns editing (follow-up: remove inventory PUT /service-levels and BFF PUT /config/service-levels, optional one-time history import) — Resolve duplicated service-level ownership: read services/inventory-service/src (service_level_config) and services/procurement-service/src (service-levels), decide single owner, and update docs/adr/018-configuration-ownership.md with the migration path
 - [X] T007 [P] Add JSON Schemas for supplier terms, product-supplier terms, policy sets, budget caps, demand rules in packages/contracts/dto/
 - [X] T008 [P] Add JSON Schemas for seed datasets, mappings, validation results, forecast parameters, accuracy in packages/contracts/dto/
 - [X] T009 [P] Add JSON Schemas for scenarios, results, sensitivity and dashboard aggregates in packages/contracts/dto/
