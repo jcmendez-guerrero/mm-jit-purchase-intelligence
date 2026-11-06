@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, ApiError, CostRecord, CostWriteRecord, errorMessage } from "../../api/client";
+import { api, ApiError, CostRecord, CostWriteRecord, SupplierSummary, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate, formatPercent } from "../../i18n/formatters";
-import { canOverride, canRelease, flagKey, parseAmount } from "./costsModel";
+import { Field } from "../suppliers/Field";
+import { canOverride, canRelease, canRequestUpdate, flagKey, parseAmount, parseOpening } from "./costsModel";
 
 interface Props {
   userRoles: string[];
@@ -19,6 +20,8 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
   const [fixing, setFixing] = useState<Record<string, string>>({});
   const [overrideValue, setOverrideValue] = useState<Record<string, string>>({});
   const [overrideReason, setOverrideReason] = useState<Record<string, string>>({});
+  const [suppliers, setSuppliers] = useState<SupplierSummary[]>([]);
+  const [opening, setOpening] = useState({ supplier: "", product: "", variant: "", amount: "", recargo: true });
 
   const fail = useCallback((err: unknown) => setError(errorMessage(err, t("common.error"))), [t]);
 
@@ -37,7 +40,43 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
 
   useEffect(() => {
     void load();
+    void api.getSuppliers().then(setSuppliers).catch(() => setSuppliers([]));
   }, [load]);
+
+  const openingInput = () => {
+    if (!opening.supplier) {
+      setError(t("costs.opening.no_supplier"));
+      return null;
+    }
+    const p = parseOpening(opening.product, opening.variant, opening.amount);
+    if ("invalid" in p) {
+      setError(t("costs.opening.invalid", { field: t(`costs.opening.field.${p.invalid}`) }));
+      return null;
+    }
+    return p;
+  };
+
+  const saveOpening = async () => {
+    setError(null);
+    setNotice(null);
+    const p = openingInput();
+    if (!p) return;
+    await run(() => api.addOpeningCost({ variant_id: p.variantId, supplier_id: opening.supplier, amount: p.amount, includes_recargo: opening.recargo }), t("costs.opening.saved"));
+  };
+
+  const requestUpdate = async () => {
+    setError(null);
+    setNotice(null);
+    const p = openingInput();
+    if (!p) return;
+    try {
+      const r = await api.requestCostUpdate(p.productId, opening.supplier);
+      setNotice(t(r.request_id ? "costs.opening.requested" : "costs.opening.not_applicable"));
+    } catch (err) {
+      fail(err);
+    }
+    await load();
+  };
 
   const run = async (action: () => Promise<unknown>, done?: string) => {
     setError(null);
@@ -113,6 +152,38 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
           </table>
         )}
       </div>
+
+      {canRequestUpdate(userRoles) && (
+        <div className="mmi-card">
+          <h3>{t("costs.opening.title")}</h3>
+          <p className="mmi-muted">{t("costs.opening.help")}</p>
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "end" }}>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <label htmlFor="op-supplier">{t("costs.opening.supplier")}</label>
+              <select id="op-supplier" value={opening.supplier} onChange={(e) => setOpening({ ...opening, supplier: e.target.value })}>
+                <option value="">—</option>
+                {suppliers.map((sp) => (
+                  <option key={sp.id} value={sp.id}>
+                    {sp.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Field id="op-product" label={t("costs.opening.product")} value={opening.product} onChange={(v) => setOpening({ ...opening, product: v })} inputMode="numeric" />
+            <Field id="op-variant" label={t("costs.opening.variant")} value={opening.variant} onChange={(v) => setOpening({ ...opening, variant: v })} inputMode="numeric" />
+            <Field id="op-amount" label={t("costs.opening.amount")} value={opening.amount} onChange={(v) => setOpening({ ...opening, amount: v })} inputMode="decimal" />
+            <label>
+              <input type="checkbox" checked={opening.recargo} onChange={(e) => setOpening({ ...opening, recargo: e.target.checked })} /> {t("costs.opening.recargo")}
+            </label>
+          </div>
+          <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void saveOpening()}>
+            {t("costs.opening.save")}
+          </button>{" "}
+          <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void requestUpdate()}>
+            {t("costs.opening.request")}
+          </button>
+        </div>
+      )}
 
       <div className="mmi-card">
         <h3>{t("costs.pending_writes")}</h3>

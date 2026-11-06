@@ -595,6 +595,18 @@ export class ApiClient {
     return this.request<JsonRecord>(`/cost-writes/${writeId}/approve`, { method: "POST" });
   }
 
+  /** The buyer's opening cost for a pair whose ERP record has none. It becomes a lot entry, never a free supplier cost. */
+  async addOpeningCost(body: { variant_id: number; supplier_id: string; amount: string; includes_recargo: boolean }): Promise<JsonRecord> {
+    return this.request<JsonRecord>("/lot-costs", { method: "POST", body: JSON.stringify({ ...body, lot: "opening", source: "buyer_entry", quantity: 0 }) });
+  }
+
+  /** Builds the review request carrying the median of the lots in stock (or the opening entry). Nothing is sent to the ERP from here. */
+  async requestCostUpdate(productId: number, supplierId: string): Promise<{ status: string; warnings: string[]; request_id: string | null }> {
+    return this.request<{ status: string; warnings: string[]; request_id: string | null }>("/cost-updates", {
+      method: "POST", body: JSON.stringify({ product_id: productId, supplier_id: supplierId }),
+    });
+  }
+
   /** Admin only: replaces the median with their own value. It still has to be released by a different buyer. */
   async overrideCostWrite(writeId: string, value: string, reason: string): Promise<JsonRecord> {
     return this.request<JsonRecord>(`/cost-writes/${writeId}/override`, { method: "POST", body: JSON.stringify({ value, reason }) });

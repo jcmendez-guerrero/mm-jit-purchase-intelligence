@@ -544,5 +544,22 @@
   "imports.rollback": "Volver a la versión anterior",
   "imports.rolled_back": "Versión anterior restaurada. Se ha pedido una nueva previsión.",
   "imports.read_only": "Solo lectura: importar datos requiere el rol de comprador o administrador.",
-  "imports.none": "Todavía no hay conjuntos de datos."
+  "imports.none": "Todavía no hay conjuntos de datos.",
+  "costs.opening.title": "Coste inicial y solicitud de actualización",
+  "costs.opening.help": "Para un producto cuyo proveedor aún no tiene coste en el ERP: indique el coste inicial y solicite la actualización. El valor que se enviará es siempre la mediana de los lotes (aquí, el coste inicial); usted lo revisa y lo libera abajo.",
+  "costs.opening.supplier": "Proveedor",
+  "costs.opening.product": "Producto (número)",
+  "costs.opening.variant": "Variante (número)",
+  "costs.opening.amount": "Coste (€)",
+  "costs.opening.recargo": "El importe ya incluye recargo de equivalencia",
+  "costs.opening.save": "Guardar coste inicial",
+  "costs.opening.saved": "Coste inicial guardado.",
+  "costs.opening.request": "Solicitar actualización de coste",
+  "costs.opening.invalid": "El valor de «{{field}}» no es válido.",
+  "costs.opening.field.product": "Producto",
+  "costs.opening.field.variant": "Variante",
+  "costs.opening.field.amount": "Coste",
+  "costs.opening.requested": "Actualización solicitada: revísela y libérela más abajo.",
+  "costs.opening.not_applicable": "No hay lotes con stock ni coste inicial para este proveedor: no se ha creado ninguna solicitud.",
+  "costs.opening.no_supplier": "Elija un proveedor."
 }

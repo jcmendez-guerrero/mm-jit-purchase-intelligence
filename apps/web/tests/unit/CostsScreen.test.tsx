@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError, CostWriteRecord } from "../../src/api/client";
 import { CostsScreen } from "../../src/features/costs/CostsScreen";
-import { canOverride, canRelease, parseAmount } from "../../src/features/costs/costsModel";
+import { canOverride, canRelease, parseAmount, parseOpening } from "../../src/features/costs/costsModel";
 import "../../src/i18n";
 
 const write = (over: Partial<CostWriteRecord> = {}): CostWriteRecord => ({
@@ -13,6 +13,7 @@ const write = (over: Partial<CostWriteRecord> = {}): CostWriteRecord => ({
 });
 
 beforeEach(() => {
+  vi.spyOn(api, "getSuppliers").mockResolvedValue([{ id: "s1", name: "Proveedor Sintético A", terms: null, version: 0 }]);
   vi.spyOn(api, "getCosts").mockResolvedValue([]);
   vi.spyOn(api, "getCostWrites").mockResolvedValue([write()]);
 });
@@ -79,5 +80,53 @@ describe("CostsScreen", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Liberar coste/ }));
     expect((await screen.findByRole("alert")).textContent).toContain("segundo factor");
     expect(spy).toHaveBeenCalledWith("w1");
+  });
+});
+
+
+describe("opening cost and update request", () => {
+  const fill = async (over: Partial<Record<string, string>> = {}) => {
+    render(<CostsScreen userRoles={["viewer", "buyer"]} userId="b1" />);
+    await screen.findByLabelText("Proveedor");
+    await waitFor(() => expect(screen.getByRole("option", { name: "Proveedor Sintético A" })).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("Proveedor"), { target: { value: over.supplier ?? "s1" } });
+    fireEvent.change(screen.getByLabelText("Producto (número)"), { target: { value: over.product ?? "10" } });
+    fireEvent.change(screen.getByLabelText("Variante (número)"), { target: { value: over.variant ?? "1" } });
+    fireEvent.change(screen.getByLabelText("Coste (€)"), { target: { value: over.amount ?? "1,5" } });
+  };
+
+  it("parses the typed values and names the first invalid field", () => {
+    expect(parseOpening("10", "1", "1,5")).toEqual({ productId: 10, variantId: 1, amount: "1.5" });
+    expect(parseOpening("x", "1", "1")).toEqual({ invalid: "product" });
+    expect(parseOpening("1", "0", "1")).toEqual({ invalid: "variant" });
+    expect(parseOpening("1", "1", "-2")).toEqual({ invalid: "amount" });
+  });
+
+  it("saves the opening cost as a lot entry and then requests the update, which stays a review request", async () => {
+    const add = vi.spyOn(api, "addOpeningCost").mockResolvedValue({});
+    const req = vi.spyOn(api, "requestCostUpdate").mockResolvedValue({ status: "pending_review", warnings: [], request_id: "w1" });
+    await fill();
+    fireEvent.click(screen.getByRole("button", { name: "Guardar coste inicial" }));
+    await waitFor(() => expect(add).toHaveBeenCalledWith({ variant_id: 1, supplier_id: "s1", amount: "1.5", includes_recargo: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Solicitar actualización de coste" }));
+    await waitFor(() => expect(req).toHaveBeenCalledWith(10, "s1"));
+    expect((await screen.findByRole("status")).textContent).toContain("revísela y libérela más abajo");
+  });
+
+  it("says so when nothing qualifies and refuses invalid input without calling the server", async () => {
+    const req = vi.spyOn(api, "requestCostUpdate").mockResolvedValue({ status: "not_applicable", warnings: ["no_lots_in_stock"], request_id: null });
+    await fill({ amount: "abc" });
+    fireEvent.click(screen.getByRole("button", { name: "Solicitar actualización de coste" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("Coste");
+    expect(req).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Coste (€)"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Solicitar actualización de coste" }));
+    expect((await screen.findByRole("status")).textContent).toContain("No hay lotes con stock ni coste inicial");
+  });
+
+  it("is not offered to someone who is not a buyer", async () => {
+    render(<CostsScreen userRoles={["viewer", "admin"]} userId="a1" />);
+    await screen.findByText(/Costes registrados/);
+    expect(screen.queryByRole("button", { name: "Solicitar actualización de coste" })).toBeNull();
   });
 });
