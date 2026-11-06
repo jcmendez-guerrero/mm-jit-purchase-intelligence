@@ -150,7 +150,7 @@
 - [X] T073 [P] [US4] Test effective dating: earlier runs unchanged, later runs use the new version and record it in services/procurement-service/tests/test_policy_effective_dates.py
 - [X] T074 [P] [US4] Test preview of affected products and spend change without saving in services/procurement-service/tests/test_policy_preview.py
 - [X] T075 [P] [US4] Test demand exclusions and censoring rules change forecast inputs and are reversible in services/inventory-service/tests/test_demand_rules.py
-- [ ] T076 [P] [US4] Test clinical criticality is editable in the policy console through the existing inventory endpoint, audited, and refused for viewers in services/inventory-service/tests/test_criticality_console.py and services/api-bff/tests/test_policies_rbac.py
+- [X] T076 [P] [US4] Test clinical criticality is editable in the policy console through the existing inventory endpoint, audited, and refused for viewers in services/inventory-service/tests/test_criticality_console.py and services/api-bff/tests/test_policies_rbac.py
 - [X] T077 [P] [US4] Test continuous re-evaluation: category recomputed on each demand update, history with reasons kept, clinical criticality never inferred in services/inventory-service/tests/test_segment_history.py
 - [X] T078 [P] [US4] Test recommended versus effective safety stock and the override flow: pending until approved by a different approver, rejection keeps the recommendation, stale recommendation flagged, audit complete in services/procurement-service/tests/test_safety_stock_override.py
 - [X] T079 [P] [US4] Test always-stocked mode: floor forces a proposal line with no recent demand or when not forecast-eligible, monthly check included, nothing ordered automatically, shortfall shown when no supplier can serve it in services/procurement-service/tests/test_always_stocked.py
@@ -172,7 +172,7 @@
 - [X] T092 [US4] Implement forecast parameters with validation and routes in services/forecast-service/src/parameters.py and services/forecast-service/src/api.py
 - [X] T093 [US4] Make runs read policy and parameter versions and record them in services/forecast-service/src/runs/runner.py and services/procurement-service/src/proposals/
 - [ ] T094 [US4] Add on-request re-forecast and re-proposal trigger via events in services/inventory-service/src/projections/rules.py and services/forecast-service/src/runs/consumer.py
-- [ ] T095 [US4] Add BFF aggregation routes for the three policy sections (each with its own revision) in services/api-bff/src/routes/policies.py
+- [X] T095 [US4] Add BFF aggregation routes for the three policy sections (each with its own revision) in services/api-bff/src/routes/policies.py
 - [ ] T096 [US4] Build the policy console (sections, preview, effective date, audit view) replacing the read-only config screen in apps/web/src/features/policies/ with es-ES strings
 
 **Checkpoint**: US4 demonstrable; policy changes alter later runs.

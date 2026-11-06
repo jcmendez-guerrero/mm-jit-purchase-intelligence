@@ -89,3 +89,12 @@ class DownstreamClient:
                     extra_headers: dict[str, str] | None = None) -> httpx.Response:
         async with httpx.AsyncClient(base_url=self.base_url, timeout=10.0) as client:
             return await client.patch(path, json=json, headers={**self._headers(user_id, roles), **(extra_headers or {})})
+
+    async def forward(self, method: str, path: str, *, json: Any = None, params: dict[str, Any] | None = None, user_id: str | None = None,
+                      roles: list[str] | None = None, if_match: str | None = None) -> Any:
+        """Calls the downstream service as the signed-in user and returns its JSON; a refusal raises HTTPStatusError (turned into a stable code by main)."""
+        headers = {**self._headers(user_id, roles), **({"If-Match": if_match} if if_match else {})}
+        async with httpx.AsyncClient(base_url=self.base_url, timeout=30.0) as client:
+            res = await client.request(method, path, json=json, params=params, headers=headers)
+        res.raise_for_status()
+        return res.json() if res.content else {}
