@@ -103,6 +103,7 @@ seed_datasets = Table(
     Column("quarantined_count", Integer, nullable=False, default=0),
     Column("rejected_count", Integer, nullable=False, default=0),
     Column("kind_summary", JSON),
+    Column("row_count", Integer, nullable=False, default=0),             # rows in the uploaded file; decides foreground or background validation
 )
 Index("uq_seed_datasets_one_active", seed_datasets.c.status, unique=True, postgresql_where=seed_datasets.c.status == "active",
       sqlite_where=seed_datasets.c.status == "active")
@@ -137,6 +138,9 @@ import_jobs = Table(
     Column("started_at", DateTime(timezone=True)),
     Column("finished_at", DateTime(timezone=True)),
     Column("error_key", String(60)),
+    Column("params", JSON),                                              # what a queued stage needs to run (mapping, actor, mapping id): never file content
+    Column("queued_at", DateTime(timezone=True)),
+    Column("requested_by", String(120)),
 )
 forecast_parameters = Table(
     "forecast_parameters", metadata,

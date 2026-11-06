@@ -25,11 +25,27 @@ from sqlalchemy.engine import Engine
 log = logging.getLogger("forecast.worker")
 
 
+def process_imports(engine: Engine, source) -> dict[str, int]:  # type: ignore[no-untyped-def]
+    """Validates queued seed files (large uploads). Skipped, and left queued, when inventory cannot say which variants exist."""
+    from seeds.files import LocalSeedStore
+    from seeds.jobs import process_queued
+    from upload_settings import load_limits
+
+    try:
+        known = {int(s["variant_id"]) for s in source.fetch()["series"]}
+    except Exception:
+        log.warning("IMPORT_JOBS_DEFERRED: inventory unavailable")
+        return {"processed": 0, "done": 0, "failed": 0, "deferred": 1}
+    store = LocalSeedStore(Path(os.environ.get("MMI_SEED_ROOT", "/tmp/mmi-forecast-seeds")))  # noqa: S108 - local default only
+    return process_queued(engine, store, known, load_limits())
+
+
 def run_once(engine: Engine, bus, blobs, source, writer) -> dict[str, int]:  # type: ignore[no-untyped-def]
     stats = consume_once(engine, bus, blobs, source, writer)
+    imports = process_imports(engine, source)
     with engine.begin() as conn:
         sent = relay_once(conn, outbox, bus, SUBSCRIPTIONS)
-    return {"applied": stats.applied, "duplicates": stats.duplicates, "rejected": stats.rejected, "failed": stats.failed, "relayed": sent}
+    return {"applied": stats.applied, "duplicates": stats.duplicates, "rejected": stats.rejected, "failed": stats.failed, "relayed": sent, "imports": imports["processed"], "imports_failed": imports["failed"]}
 
 
 class FileBlobs:

@@ -23,7 +23,8 @@ def upgrade() -> None:
                     sa.Column("activated_by", sa.String(120)), sa.Column("activated_at", sa.DateTime(timezone=True)), sa.Column("supersedes_id", sa.String(36)),
                     sa.Column("mapping_id", sa.String(36), sa.ForeignKey("seed_mappings.id")),
                     sa.Column("accepted_count", sa.Integer, nullable=False, server_default="0"), sa.Column("quarantined_count", sa.Integer, nullable=False, server_default="0"),
-                    sa.Column("rejected_count", sa.Integer, nullable=False, server_default="0"), sa.Column("kind_summary", sa.JSON))
+                    sa.Column("rejected_count", sa.Integer, nullable=False, server_default="0"), sa.Column("kind_summary", sa.JSON),
+                    sa.Column("row_count", sa.Integer, nullable=False, server_default="0"))
     op.create_index("uq_seed_datasets_one_active", "seed_datasets", ["status"], unique=True, postgresql_where=sa.text("status = 'active'"),
                     sqlite_where=sa.text("status = 'active'"))
     op.create_table("seed_rows", sa.Column("id", sa.BigInteger, primary_key=True, autoincrement=True),
@@ -40,7 +41,8 @@ def upgrade() -> None:
     op.create_table("import_jobs", sa.Column("id", sa.String(36), primary_key=True),
                     sa.Column("dataset_id", sa.String(36), sa.ForeignKey("seed_datasets.id"), nullable=False), sa.Column("stage", sa.String(20), nullable=False),
                     sa.Column("state", sa.String(12), nullable=False), sa.Column("started_at", sa.DateTime(timezone=True)),
-                    sa.Column("finished_at", sa.DateTime(timezone=True)), sa.Column("error_key", sa.String(60)))
+                    sa.Column("finished_at", sa.DateTime(timezone=True)), sa.Column("error_key", sa.String(60)),
+                    sa.Column("params", sa.JSON), sa.Column("queued_at", sa.DateTime(timezone=True)), sa.Column("requested_by", sa.String(120)))
     op.create_index("ix_import_jobs_dataset_id", "import_jobs", ["dataset_id"])
     op.create_table("audit_events", sa.Column("id", sa.BigInteger, primary_key=True, autoincrement=True),
                     sa.Column("ts", sa.DateTime(timezone=True), nullable=False), sa.Column("actor", sa.String(120), nullable=False),

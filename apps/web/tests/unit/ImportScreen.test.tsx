@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api, ApiError, SeedDataset, SeedUpload } from "../../src/api/client";
+import { api, ApiError, SeedDataset, SeedJob, SeedUpload } from "../../src/api/client";
 import { ImportScreen } from "../../src/features/imports/ImportScreen";
 import "../../src/i18n";
 
@@ -16,6 +16,7 @@ const file = (name = "datos.csv", size = 10) => new File([new Uint8Array(size)],
 const pick = async (f: File) => fireEvent.change(await screen.findByLabelText("Archivo (CSV o XLSX)"), { target: { files: [f] } });
 
 beforeEach(() => {
+  vi.spyOn(api, "getSeedJobs").mockResolvedValue({ jobs: [], background_over_rows: 10000 });
   vi.spyOn(api, "getSeedDatasets").mockResolvedValue({ datasets: [] });
 });
 afterEach(() => {
@@ -101,5 +102,40 @@ describe("ImportScreen", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Volver a la versión anterior" }));
     await waitFor(() => expect(rb).toHaveBeenCalled());
     expect((await screen.findByRole("status")).textContent).toContain("Versión anterior restaurada");
+  });
+});
+
+
+describe("background validation", () => {
+  const job = (over: Partial<SeedJob> = {}): SeedJob => ({ id: "j1", dataset_id: "d1", version: 3, name: "Hoja grande", rows: 20000, stage: "validate", state: "queued", queued_at: "2026-11-09T08:00:00Z",
+    started_at: null, finished_at: null, error_key: null, requested_by: "buyer-1", ...over });
+
+  it("tells the buyer the file went to the background and shows it in the status section", async () => {
+    vi.spyOn(api, "uploadSeed").mockResolvedValue(upload({ row_count: 20000 }));
+    const validate = vi.spyOn(api, "validateSeed").mockResolvedValue({ id: "d1", queued: true, job_id: "j1", rows: 20000, background_over_rows: 10000 });
+    const jobs = vi.spyOn(api, "getSeedJobs").mockResolvedValue({ jobs: [], background_over_rows: 10000 });
+    render(<ImportScreen userRoles={["buyer"]} />);
+    await pick(file());
+    fireEvent.click(screen.getByRole("button", { name: "Subir archivo" }));
+    await screen.findByText(/Archivo recibido/);
+    jobs.mockResolvedValue({ jobs: [job()], background_over_rows: 10000 });
+    fireEvent.click(screen.getByRole("button", { name: "Validar" }));
+    await waitFor(() => expect(validate).toHaveBeenCalled());
+    expect((await screen.findByRole("status")).textContent).toContain("se ha enviado a segundo plano");
+    const table = await screen.findByRole("table", { name: "Estado de las importaciones" });
+    expect(table.textContent).toContain("v3 · Hoja grande");
+    expect(table.textContent).toContain("En cola");
+    expect(screen.queryByText(/Aceptadas:/)).toBeNull();                                         // nothing is claimed as validated yet
+  });
+
+  it("shows a failed job with its Spanish reason and lets the buyer refresh the status", async () => {
+    const jobs = vi.spyOn(api, "getSeedJobs").mockResolvedValue({ jobs: [job({ state: "failed", error_key: "import_mixed_origin", finished_at: "2026-11-09T08:05:00Z" })], background_over_rows: 10000 });
+    render(<ImportScreen userRoles={["viewer"]} />);
+    const table = await screen.findByRole("table", { name: "Estado de las importaciones" });
+    expect(table.textContent).toContain("Con error");
+    expect(table.textContent).toContain("mezcla datos sintéticos y reales");
+    jobs.mockResolvedValue({ jobs: [job({ state: "done", finished_at: "2026-11-09T08:06:00Z" })], background_over_rows: 10000 });
+    fireEvent.click(screen.getByRole("button", { name: "Actualizar estado" }));
+    await waitFor(() => expect(screen.getByRole("table", { name: "Estado de las importaciones" }).textContent).toContain("Terminada"));
   });
 });

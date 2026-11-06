@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, errorMessage, SeedDataset, SeedDryRun, SeedQuarantineRow, SeedUpload, SeedValidation } from "../../api/client";
+import { api, errorMessage, SeedDataset, SeedDryRun, SeedJob, SeedQuarantineRow, SeedUpload, SeedValidation } from "../../api/client";
+import { formatDateTime } from "../../i18n/formatters";
 import { Field } from "../suppliers/Field";
-import { ALL_FIELDS, canImport, fileProblem, missingFields, setMapping } from "./importsModel";
+import { ALL_FIELDS, canImport, fileProblem, hasLiveJob, isQueued, missingFields, setMapping } from "./importsModel";
 
 interface Props {
   userRoles: string[];
@@ -21,6 +22,7 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
   const [quarantine, setQuarantine] = useState<SeedQuarantineRow[]>([]);
   const [dry, setDry] = useState<SeedDryRun | null>(null);
   const [ack, setAck] = useState(false);
+  const [jobs, setJobs] = useState<SeedJob[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const canEdit = canImport(userRoles);
@@ -33,9 +35,26 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
       fail(err);
     }
   }, [fail]);
+  const loadJobs = useCallback(async () => {
+    try {
+      setJobs((await api.getSeedJobs()).jobs);
+    } catch (err) {
+      fail(err);
+    }
+  }, [fail]);
   useEffect(() => {
     void loadList();
-  }, [loadList]);
+    void loadJobs();
+  }, [loadList, loadJobs]);
+  const live = hasLiveJob(jobs);
+  useEffect(() => {
+    if (!live) return;
+    const timer = setInterval(() => {                       // while something runs in the background, refresh its status
+      void loadJobs();
+      void loadList();
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [live, loadJobs, loadList]);
 
   const clear = () => {
     setError(null);
@@ -67,6 +86,12 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
     if (!upload) return;
     try {
       const v = await api.validateSeed(upload.id, map);
+      if (isQueued(v)) {
+        setNotice(t("imports.background", { rows: v.rows, limit: v.background_over_rows }));
+        setValidation(null);
+        await loadJobs();
+        return;
+      }
       setValidation(v);
       setQuarantine((await api.getSeedQuarantine(upload.id)).rows);
       setDry(null);
@@ -269,6 +294,41 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
               {t("imports.activate")}
             </button>
           </>
+        )}
+
+        <h3>{t("imports.jobs")}</h3>
+        <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void loadJobs()}>
+          {t("imports.jobs_refresh")}
+        </button>
+        {jobs.length === 0 ? (
+          <p>{t("imports.jobs_empty")}</p>
+        ) : (
+          <table aria-label={t("imports.jobs")} className="mmi-table">
+            <thead>
+              <tr>
+                <th>{t("imports.job.col.dataset")}</th>
+                <th>{t("imports.job.col.stage")}</th>
+                <th>{t("imports.job.col.state")}</th>
+                <th>{t("imports.job.col.queued")}</th>
+                <th>{t("imports.job.col.finished")}</th>
+                <th>{t("imports.job.col.error")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.map((j) => (
+                <tr key={j.id}>
+                  <td>
+                    v{j.version} · {j.name}
+                  </td>
+                  <td>{t(`imports.job.stage.${j.stage}`, { defaultValue: j.stage })}</td>
+                  <td>{t(`imports.job.state.${j.state}`)}</td>
+                  <td>{j.queued_at ? formatDateTime(j.queued_at) : "—"}</td>
+                  <td>{j.finished_at ? formatDateTime(j.finished_at) : "—"}</td>
+                  <td>{j.error_key ? t(`errors.${j.error_key}`, { defaultValue: j.error_key }) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
 
         <h3>{t("imports.datasets")}</h3>

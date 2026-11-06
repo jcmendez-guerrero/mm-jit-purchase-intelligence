@@ -67,9 +67,18 @@ async def rollback(session: SessionData = Depends(require_roles(*EDIT)), fc: For
     return await fc.forward("POST", "/imports/rollback", json={}, user_id=session.user_id, roles=session.roles)
 
 
+@router.get("/jobs")
+async def jobs(session: SessionData = Depends(require_roles(*READ)), fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+    return await fc.forward("GET", "/imports/jobs", user_id=session.user_id, roles=session.roles)
+
+
 @router.post("/{dataset_id}/validate")
-async def validate(dataset_id: str, body: dict[str, Any], session: SessionData = Depends(require_roles(*EDIT)), fc: ForecastClient = Depends(get_forecast_client)) -> Any:
-    return await fc.forward("POST", f"/imports/{dataset_id}/validate", json=body, user_id=session.user_id, roles=session.roles)
+async def validate(dataset_id: str, body: dict[str, Any], response: Response, session: SessionData = Depends(require_roles(*EDIT)),
+                   fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+    """200 when validated now; 202 when a large file was sent to the background (the status section shows it)."""
+    res = await fc.forward_raw("POST", f"/imports/{dataset_id}/validate", data=None, user_id=session.user_id, roles=session.roles, json_body=body)
+    response.status_code = res.status_code
+    return res.json()
 
 
 @router.get("/{dataset_id}/quarantine")

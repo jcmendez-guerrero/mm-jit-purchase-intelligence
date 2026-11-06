@@ -70,7 +70,7 @@ def register_upload(conn: Connection, store: BlobStore, filename: str, data: byt
     ref = store_private(store, did, filename, data)
     suggestion = mp.suggest(headers)
     conn.execute(insert(seed_datasets).values(id=did, version=version, name=(name or filename)[:200], status="uploaded", origin="synthetic", file_sha256=sha, file_ref=ref,
-                                              uploader=uploader, uploaded_at=now, accepted_count=0, quarantined_count=0, rejected_count=0))
+                                              uploader=uploader, uploaded_at=now, accepted_count=0, quarantined_count=0, rejected_count=0, row_count=len(rows)))
     dup = duplicate_of(conn, sha, did)
     audit(conn, uploader, "seed.uploaded", "seed_dataset", did, after={"version": version, "sha256": sha, "rows": len(rows), "format": fmt, "duplicate_of": dup}, now=now)
     _job(conn, did, "parse", now)
@@ -80,7 +80,7 @@ def register_upload(conn: Connection, store: BlobStore, filename: str, data: byt
 
 
 def validate_dataset(conn: Connection, store: BlobStore, dataset_id: str, column_map: dict[str, str], known_variants: set[int], actor: str, limits: ParseLimits,
-                     today: date | None = None, mapping_id: str | None = None, now: datetime | None = None) -> dict[str, Any]:
+                     today: date | None = None, mapping_id: str | None = None, now: datetime | None = None, record_job: bool = True) -> dict[str, Any]:
     """Parses the stored original with the chosen mapping and stores accepted rows and quarantined ones. Safe to repeat (idempotent per dataset)."""
     now = now or datetime.now(UTC)
     ds = _get(conn, dataset_id)
@@ -108,7 +108,8 @@ def validate_dataset(conn: Connection, store: BlobStore, dataset_id: str, column
     conn.execute(update(seed_datasets).where(seed_datasets.c.id == dataset_id).values(
         status="validated", origin=result.origin, accepted_count=len(result.accepted), quarantined_count=len(result.quarantined), rejected_count=0, kind_summary=kinds, mapping_id=mapping_id))
     audit(conn, actor, "seed.validated", "seed_dataset", dataset_id, after={"accepted": len(result.accepted), "quarantined": len(result.quarantined), "origin": result.origin}, now=now)
-    _job(conn, dataset_id, "validate", now)
+    if record_job:
+        _job(conn, dataset_id, "validate", now)
     return {"id": dataset_id, "status": "validated", "origin": result.origin, "accepted": len(result.accepted), "quarantined": len(result.quarantined), "kinds": kinds}
 
 
@@ -175,6 +176,6 @@ def rollback(conn: Connection, writer: Any, actor: str, now: datetime | None = N
 
 
 def list_datasets(conn: Connection) -> list[dict[str, Any]]:
-    return [{"id": r.id, "version": r.version, "name": r.name, "status": r.status, "origin": r.origin, "uploader": r.uploader, "uploaded_at": r.uploaded_at.isoformat(),
+    return [{"id": r.id, "version": r.version, "name": r.name, "status": r.status, "origin": r.origin, "uploader": r.uploader, "uploaded_at": r.uploaded_at.isoformat(), "row_count": r.row_count,
              "activated_by": r.activated_by, "activated_at": r.activated_at.isoformat() if r.activated_at else None, "accepted": r.accepted_count, "quarantined": r.quarantined_count,
              "kinds": r.kind_summary or {}} for r in conn.execute(select(seed_datasets).order_by(seed_datasets.c.version.desc())).all()]

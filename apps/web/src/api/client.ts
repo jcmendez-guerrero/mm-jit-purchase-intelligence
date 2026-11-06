@@ -251,6 +251,29 @@ export interface SeedValidation {
   kinds: Record<string, number>;
 }
 
+export interface SeedQueued {
+  id: string;
+  queued: true;
+  job_id: string;
+  rows: number;
+  background_over_rows: number;
+}
+
+export interface SeedJob {
+  id: string;
+  dataset_id: string;
+  version: number;
+  name: string;
+  rows: number;
+  stage: string;
+  state: "queued" | "running" | "done" | "failed";
+  queued_at: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  error_key: string | null;
+  requested_by: string | null;
+}
+
 export interface SeedQuarantineRow {
   row_no: number;
   reason_key: string;
@@ -751,8 +774,13 @@ export class ApiClient {
     return this.request<SeedUpload>("/imports", { method: "POST", body: form });
   }
 
-  async validateSeed(id: string, columnMap: Record<string, string>): Promise<SeedValidation> {
-    return this.request<SeedValidation>(`/imports/${id}/validate`, { method: "POST", body: JSON.stringify({ column_map: columnMap }) });
+  /** Returns the result, or ``queued`` when a large file was sent to the background (the status section then shows it). */
+  async validateSeed(id: string, columnMap: Record<string, string>): Promise<SeedValidation | SeedQueued> {
+    return this.request<SeedValidation | SeedQueued>(`/imports/${id}/validate`, { method: "POST", body: JSON.stringify({ column_map: columnMap }) });
+  }
+
+  async getSeedJobs(): Promise<{ jobs: SeedJob[]; background_over_rows: number }> {
+    return this.request<{ jobs: SeedJob[]; background_over_rows: number }>("/imports/jobs");
   }
 
   async getSeedQuarantine(id: string): Promise<{ rows: SeedQuarantineRow[] }> {

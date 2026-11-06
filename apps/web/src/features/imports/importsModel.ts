@@ -25,3 +25,6 @@ export function setMapping(map: Record<string, string>, header: string, field: s
 }
 
 export const statusTone = (status: string): "ok" | "warn" | "off" => (status === "active" ? "ok" : status === "validated" || status === "uploaded" ? "warn" : "off");
+
+export const isQueued = (r: object): r is { queued: true; rows: number; background_over_rows: number } => "queued" in r;
+export const hasLiveJob = (jobs: Array<{ state: string }>): boolean => jobs.some((j) => j.state === "queued" || j.state === "running");

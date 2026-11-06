@@ -18,6 +18,8 @@ from seeds import mapping as mp
 from seeds import template as tpl
 from seeds.dryrun import dry_run
 from seeds.files import LocalSeedStore
+from seeds.jobs import SYNC_ROWS, enqueue_validation
+from seeds.jobs import list_jobs as job_list
 from seeds.storage import SeedFileError
 from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
@@ -113,8 +115,24 @@ def build_router(app: FastAPI) -> APIRouter:
         except SeedFileError as exc:
             raise refuse(exc) from exc
 
+    @router.get("/jobs")
+    def jobs(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        return {"jobs": job_list(conn), "background_over_rows": SYNC_ROWS}
+
     @router.post("/{dataset_id}/validate")
-    def validate(dataset_id: str, body: ValidateBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:
+    def validate(dataset_id: str, body: ValidateBody, response: Response, conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:
+        row = conn.execute(select(seed_datasets.c.row_count, seed_datasets.c.status).where(seed_datasets.c.id == dataset_id)).first()
+        if row is not None and row.status in ("uploaded", "validated") and row.row_count > SYNC_ROWS:
+            try:
+                mp.validate_map(body.column_map)
+            except mp.MappingError as exc:
+                raise refuse(exc) from exc
+            missing = mp.missing_required(body.column_map)
+            if missing:
+                raise HTTPException(422, "import_missing_column")
+            queued = enqueue_validation(conn, dataset_id, body.column_map, principal.subject, body.mapping_id)
+            response.status_code = 202                                                      # the buyer is told it went to the background
+            return {"id": dataset_id, "queued": True, "job_id": queued["job_id"], "rows": row.row_count, "background_over_rows": SYNC_ROWS}
         known, _ = known_variants()
         try:
             return lc.validate_dataset(conn, store(), dataset_id, body.column_map, known, principal.subject, load_limits(), mapping_id=body.mapping_id)

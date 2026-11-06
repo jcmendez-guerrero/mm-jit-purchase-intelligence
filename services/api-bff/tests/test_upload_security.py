@@ -99,3 +99,16 @@ def test_downloads_pass_through_with_their_content_type(role_store):
     fc.forward_raw.return_value = res
     out = call("GET", "/api/imports/template?format=csv", headers_for("v", ["viewer"]), fc)
     assert out.content == b"a;b\n" and out.headers["content-type"].startswith("text/csv") and "plantilla.csv" in out.headers["content-disposition"]
+
+
+def test_validate_keeps_the_background_status_and_the_job_list_is_readable_by_any_signed_in_user(role_store):
+    fc = AsyncMock()
+    res = MagicMock()
+    res.status_code = 202
+    res.json.return_value = {"id": "d1", "queued": True, "job_id": "j1", "rows": 20000}
+    fc.forward_raw.return_value = res
+    out = call("POST", "/api/imports/d1/validate", headers_for("b", BUYER), fc, json={"column_map": {"Fecha": "day"}})
+    assert out.status_code == 202 and out.json()["queued"] is True and fc.forward_raw.call_args.kwargs["json_body"] == {"column_map": {"Fecha": "day"}}
+    fc2 = AsyncMock()
+    fc2.forward.return_value = {"jobs": [], "background_over_rows": 10000}
+    assert call("GET", "/api/imports/jobs", headers_for("v", ["viewer"]), fc2).json()["background_over_rows"] == 10000
