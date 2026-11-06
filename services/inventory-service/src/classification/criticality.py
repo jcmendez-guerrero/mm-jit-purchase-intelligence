@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from audit import append as audit
 from db.tables import criticality_changes, products
 from mmi_common.time import utc_now
 from sqlalchemy import insert, select, update
@@ -23,6 +24,7 @@ def set_critical(conn: Connection, product_id: int, critical: bool, changed_by: 
         return False
     conn.execute(update(products).where(products.c.external_id == product_id).values(clinical_critical=critical))
     conn.execute(insert(criticality_changes).values(product_id=product_id, clinical_critical=critical, changed_by=changed_by, changed_at=now or utc_now()))
+    audit(conn, changed_by, "criticality.changed", "product", str(product_id), before={"clinical_critical": bool(row.clinical_critical)}, after={"clinical_critical": critical}, now=now)
     return True
 
 

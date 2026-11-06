@@ -149,9 +149,9 @@
 - [X] T072 [P] [US4] Test policy range validation and revision conflicts in services/procurement-service/tests/test_policies.py
 - [X] T073 [P] [US4] Test effective dating: earlier runs unchanged, later runs use the new version and record it in services/procurement-service/tests/test_policy_effective_dates.py
 - [X] T074 [P] [US4] Test preview of affected products and spend change without saving in services/procurement-service/tests/test_policy_preview.py
-- [ ] T075 [P] [US4] Test demand exclusions and censoring rules change forecast inputs and are reversible in services/inventory-service/tests/test_demand_rules.py
+- [X] T075 [P] [US4] Test demand exclusions and censoring rules change forecast inputs and are reversible in services/inventory-service/tests/test_demand_rules.py
 - [ ] T076 [P] [US4] Test clinical criticality is editable in the policy console through the existing inventory endpoint, audited, and refused for viewers in services/inventory-service/tests/test_criticality_console.py and services/api-bff/tests/test_policies_rbac.py
-- [ ] T077 [P] [US4] Test continuous re-evaluation: category recomputed on each demand update, history with reasons kept, clinical criticality never inferred in services/inventory-service/tests/test_segment_history.py
+- [X] T077 [P] [US4] Test continuous re-evaluation: category recomputed on each demand update, history with reasons kept, clinical criticality never inferred in services/inventory-service/tests/test_segment_history.py
 - [X] T078 [P] [US4] Test recommended versus effective safety stock and the override flow: pending until approved by a different approver, rejection keeps the recommendation, stale recommendation flagged, audit complete in services/procurement-service/tests/test_safety_stock_override.py
 - [X] T079 [P] [US4] Test always-stocked mode: floor forces a proposal line with no recent demand or when not forecast-eligible, monthly check included, nothing ordered automatically, shortfall shown when no supplier can serve it in services/procurement-service/tests/test_always_stocked.py
 - [ ] T080 [P] [US4] Write Spanish browser test of override request, approval queue and always-stocked setting in apps/web/tests/e2e/safety-stock.spec.ts
@@ -163,9 +163,9 @@
 
 - [X] T084 [US4] Implement policy sets and budget caps (service, tables, routes, preview) in services/procurement-service/src/policies/ and services/procurement-service/src/api/policies.py
 - [ ] T085 [US4] Migrate service-level ownership to the decided owner and keep history in services/procurement-service/src/ or services/inventory-service/src/ per the Phase 2 decision
-- [ ] T086 [US4] Implement demand exclusions and censoring rules with routes in services/inventory-service/src/projections/rules.py and services/inventory-service/src/api/demand_rules.py
+- [X] T086 [US4] Implement demand exclusions and censoring rules with routes in services/inventory-service/src/projections/rules.py and services/inventory-service/src/api/demand_rules.py
 - [ ] T087 [US4] Expose clinical criticality (read and edit) in the policy console through the BFF and the existing PUT /products/{id}/criticality in services/api-bff/src/routes/policies.py and apps/web/src/features/policies/
-- [ ] T088 [US4] Record category changes and expose the history in services/inventory-service/src/classification/history.py and services/inventory-service/src/api/segments.py
+- [X] T088 [US4] Record category changes and expose the history in services/inventory-service/src/classification/history.py and services/inventory-service/src/api/segments.py
 - [X] T089 [US4] Implement stocking settings, recommended-versus-effective safety stock and override requests with approval in services/procurement-service/src/policies/stocking.py, services/procurement-service/src/policies/overrides.py and services/procurement-service/src/api/policy_overrides.py
 - [X] T090 [US4] Add the always-stocked floor rule and monthly check to proposal generation in services/procurement-service/src/proposals/ with the floor reason in the line explanation
 - [ ] T091 [US4] Add BFF routes and screens for category history, recommended versus effective safety stock, override requests, the approval queue and the always-stocked setting in services/api-bff/src/routes/policies.py and apps/web/src/features/policies/ with es-ES strings
