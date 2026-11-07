@@ -19,5 +19,9 @@ export interface PolicyOverrideRequest {
   requested_by?: string;
   decided_by?: string | null;
   decided_at?: string | null;
+  /**
+   * For a pending safety-stock request: what the engine recommends now, so a moved recommendation can be shown next to the one the request was made against
+   */
+  current_recommended?: number | null;
   recommendation_changed?: boolean;
 }

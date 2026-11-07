@@ -79,4 +79,17 @@ test.describe("Safety stock and always-stocked (T080)", () => {
     await expect(page.getByText(/recomendado 2, solicitado 6/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Aprobar" })).toHaveCount(0);
   });
+
+  test("a pending request is flagged when the recommendation has moved since it was made", async ({ page }) => {
+    const state = await backend(page, "approver-1", ["viewer", "approver"]);
+    await open(page);
+    await expect(page.getByText(/recomendado 2, solicitado 6/)).toBeVisible();
+    await expect(page.getByText(/La recomendación ha cambiado/)).toHaveCount(0);                  // unchanged: no warning
+    state.queue = [{ ...state.queue[0], recommendation_changed: true, current_recommended: 4 }];
+    await page.reload();
+    await page.click("button:has-text('Configuración')");
+    await page.getByRole("tab", { name: /Stock de seguridad/ }).click();
+    await expect(page.getByText(/recomendado 2, solicitado 6/)).toBeVisible();                    // still the value it was made against
+    await expect(page.getByText("La recomendación ha cambiado desde la solicitud: era 2 y ahora es 4. Revise la solicitud antes de decidir.")).toBeVisible();
+  });
 });

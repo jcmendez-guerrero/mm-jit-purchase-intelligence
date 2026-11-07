@@ -14,6 +14,7 @@ from mmi_common.errors import error_code
 from policies.overrides import (
     OverrideRequestError,
     decide,
+    drift,
     queue,
     recommended_safety_stock,
     request_override,
@@ -79,6 +80,12 @@ def _json_override(r: Any) -> dict[str, Any]:
     return {"id": r.id, "variant_id": r.variant_id, "field": r.field, "recommended_value": r.recommended_value, "requested_value": r.requested_value, "reason": r.reason,
             "status": r.status, "requested_by": r.requested_by, "requested_at": r.requested_at.isoformat(), "decided_by": r.decided_by,
             "decided_at": r.decided_at.isoformat() if r.decided_at else None, "recommendation_changed": r.recommendation_changed}
+
+
+def override_json(conn: Connection, r: Any) -> dict[str, Any]:
+    """The request as the API shows it: for a pending safety-stock request, whether the recommendation has moved since and what it is now."""
+    changed, current = drift(conn, r, lambda c, v: recommended_safety_stock(c, v))
+    return {**_json_override(r), "recommendation_changed": changed, "current_recommended": current}
 
 
 def build_router(app: FastAPI) -> APIRouter:
@@ -180,7 +187,7 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.get("/policy-overrides")
     def list_overrides(status: str | None = Query(default="pending", pattern="^(pending|approved|rejected|reverted|all)$"), conn: Connection = Depends(conn_dep),
                        _p: Any = Depends(require())) -> list[dict[str, Any]]:
-        return [_json_override(r) for r in queue(conn, None if status == "all" else status)]
+        return [override_json(conn, r) for r in queue(conn, None if status == "all" else status)]
 
     @router.get("/policy-overrides/recommendation/{variant_id}")
     def recommendation(variant_id: int, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

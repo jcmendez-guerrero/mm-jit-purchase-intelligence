@@ -4,6 +4,7 @@ only applies once an approver other than the requester approves it. A rejected r
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -28,6 +29,15 @@ def recommended_safety_stock(conn: Connection, variant_id: int) -> int | None:
     r = conn.execute(select(proposal_lines.c.safety_stock).join(proposals, proposals.c.id == proposal_lines.c.proposal_id)
                      .where(proposal_lines.c.variant_id == variant_id).order_by(proposals.c.created_at.desc()).limit(1)).first()
     return None if r is None or r.safety_stock is None else int(r.safety_stock)
+
+
+def drift(conn: Connection, r: Row[Any], recommend: Callable[[Connection, int], int | None] = recommended_safety_stock) -> tuple[bool, int | None]:
+    """(has the recommendation moved since the request was made, the current recommendation). Only a pending safety-stock request is compared: min and max
+    have no engine recommendation, and a decided request keeps what was recorded when it was decided."""
+    if r.status != "pending" or r.field != "safety_stock":
+        return bool(r.recommendation_changed), None
+    current = recommend(conn, r.variant_id)
+    return (current is not None and current != r.recommended_value), current
 
 
 def request_override(conn: Connection, variant_id: int, field: str, requested: int, reason: str, actor: str, recommended: int | None, now: datetime | None = None) -> Row[Any]:

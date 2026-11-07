@@ -112,6 +112,12 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
           {queue.map((q) => (
             <li key={q.id}>
               {t("safety.queue_row", { variant: q.variant_id, field: t(`safety.field.${q.field}`), recommended: q.recommended_value, requested: q.requested_value, by: q.requested_by })} — {q.reason}
+              {q.recommendation_changed && (
+                <span role="note" className="mmi-badge mmi-badge-warning">
+                  {" "}
+                  {t("safety.queue_changed", { was: q.recommended_value, now: q.current_recommended ?? "—" })}
+                </span>
+              )}
               {canDecide && (
                 <>
                   {" "}

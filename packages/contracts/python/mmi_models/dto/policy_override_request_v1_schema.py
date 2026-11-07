@@ -37,4 +37,10 @@ class PolicyOverrideRequest(BaseModel):
     requested_by: str | None = None
     decided_by: str | None = None
     decided_at: AwareDatetime | None = None
+    current_recommended: Annotated[
+        int | None,
+        Field(
+            description='For a pending safety-stock request: what the engine recommends now, so a moved recommendation can be shown next to the one the request was made against'
+        ),
+    ] = None
     recommendation_changed: bool | None = None

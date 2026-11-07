@@ -863,5 +863,6 @@
   "dashboard.detail.forecast_col.mean": "Media prevista",
   "dashboard.detail.forecast_col.upper": "Hasta (95 %)",
   "dashboard.detail.risks": "Riesgos de este producto",
-  "dashboard.detail.no_risks": "No se ha detectado ningún riesgo en este producto."
+  "dashboard.detail.no_risks": "No se ha detectado ningún riesgo en este producto.",
+  "safety.queue_changed": "La recomendación ha cambiado desde la solicitud: era {{was}} y ahora es {{now}}. Revise la solicitud antes de decidir."
 }

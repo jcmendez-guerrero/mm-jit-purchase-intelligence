@@ -89,3 +89,30 @@ def test_the_effective_safety_stock_changes_the_target_not_the_recommendation():
     assert Decimal(over.order_up_to) > Decimal(base.order_up_to)
     low = compute_target(VariantInput(**{**v.__dict__, "safety_override": 0}), 3)
     assert low.order_up_to < base.order_up_to
+
+
+def test_a_pending_request_is_flagged_when_the_recommendation_has_moved_since_it_was_made(conn):
+    from policies.overrides import drift
+
+    r = ask(conn, recommended=2)
+    assert drift(conn, r, lambda c, v: 2) == (False, 2)                       # unchanged: no flag
+    assert drift(conn, r, lambda c, v: 4) == (True, 4)                        # moved: flagged, with the new value
+    assert drift(conn, r, lambda c, v: None) == (False, None)                 # never proposed again: nothing to compare with
+
+
+def test_only_pending_safety_stock_requests_are_compared(conn):
+    from policies.overrides import drift
+
+    mx = ask(conn, field="max", value=20, recommended=None)
+    assert drift(conn, mx, lambda c, v: 9) == (False, None)                    # min and max have no engine recommendation
+    done = decide(conn, ask(conn).id, who("approver-1"), True, 2, NOW)
+    assert drift(conn, done, lambda c, v: 9) == (bool(done.recommendation_changed), None)   # a decided request keeps what was recorded at the decision
+
+
+def test_the_pending_list_carries_the_flag_and_the_current_recommendation(conn, monkeypatch):
+    import api.policies as api_policies
+
+    ask(conn, recommended=2)
+    monkeypatch.setattr(api_policies, "recommended_safety_stock", lambda c, v: 5)
+    (row,) = [api_policies.override_json(conn, r) for r in queue(conn)]
+    assert row["recommended_value"] == 2 and row["current_recommended"] == 5 and row["recommendation_changed"] is True

@@ -73,6 +73,10 @@
         }
       ]
     },
+    "current_recommended": {
+      "type": ["integer", "null"],
+      "description": "For a pending safety-stock request: what the engine recommends now, so a moved recommendation can be shown next to the one the request was made against"
+    },
     "recommendation_changed": {
       "type": "boolean"
     }

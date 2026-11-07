@@ -198,6 +198,7 @@ export interface OverrideRequest {
   requested_by: string;
   decided_by: string | null;
   recommendation_changed: boolean;
+  current_recommended?: number | null;
 }
 
 export interface CriticalProduct {
