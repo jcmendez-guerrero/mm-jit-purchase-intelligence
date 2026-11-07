@@ -234,6 +234,25 @@ describe("DashboardScreen", () => {
     expect(within(panel).getByRole("table", { name: "Demanda reciente (datos reales del ERP)" })).toBeTruthy();
   });
 
+  it("shows a product's category history with the reason for each change, or says there is none", async () => {
+    vi.spyOn(api, "getVariant").mockResolvedValue(detail([]));
+    vi.spyOn(api, "getForecastBasis").mockRejectedValue(new Error("404"));
+    const hist = vi.spyOn(api, "getSegmentHistory").mockResolvedValue({ variant_id: 7, history: [
+      { changed_at: "2026-11-05T00:00:00Z", abc: "A", xyz: "X", pattern: "smooth", critical: true, reason_key: "criticality_changed" },
+      { changed_at: "2026-10-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] });
+    const first = render(<DashboardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
+    const panel = await screen.findByLabelText("Detalle de la variante 7");
+    expect(await within(panel).findByText(/ABC A · XYZ X · smooth · clínicamente crítico · cambió la criticidad \(manual\)/)).toBeTruthy();
+    expect(within(panel).getByText(/ABC B · XYZ X · smooth · primera clasificación/)).toBeTruthy();
+    expect(within(panel).getByText("Historial de categoría")).toBeTruthy();
+    first.unmount();
+    hist.mockResolvedValue({ variant_id: 7, history: [] });
+    render(<DashboardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
+    expect(await screen.findByText("Todavía no hay historial de categoría.")).toBeTruthy();
+  });
+
   it("says why there is no forecast table for a min/max product or when no forecast exists, and when no risk was found", async () => {
     vi.spyOn(api, "getVariant").mockResolvedValue(detail([]));
     const basis = vi.spyOn(api, "getForecastBasis").mockResolvedValue({ run_id: "r1", variant_id: 7, eligible: false, policy: "minmax_conservative", seed_used: false, horizons: [] });

@@ -201,6 +201,18 @@ export interface OverrideRequest {
   current_recommended?: number | null;
 }
 
+export interface EffectiveValue {
+  value: number | null;
+  source: "recommendation" | "approved_override" | "none";
+  request_id: string | null;
+}
+
+export interface Recommendation {
+  variant_id: number;
+  safety_stock: number | null;
+  effective?: { safety_stock: EffectiveValue; min: EffectiveValue; max: EffectiveValue };
+}
+
 export interface CriticalProduct {
   product_id: number;
   name: string;
@@ -882,8 +894,8 @@ export class ApiClient {
     return this.request<OverrideRequest[]>(`/policy-overrides?status=${status}`);
   }
 
-  async getRecommendation(variantId: number): Promise<{ variant_id: number; safety_stock: number | null }> {
-    return this.request<{ variant_id: number; safety_stock: number | null }>(`/policy-overrides/recommendation/${variantId}`);
+  async getRecommendation(variantId: number): Promise<Recommendation> {
+    return this.request<Recommendation>(`/policy-overrides/recommendation/${variantId}`);
   }
 
   async createOverride(body: { variant_id: number; field: string; requested_value: number; reason: string }): Promise<OverrideRequest> {

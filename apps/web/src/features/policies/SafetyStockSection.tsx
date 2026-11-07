@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, ApiError, errorMessage, OverrideRequest, SegmentHistoryRow, StockingSetting } from "../../api/client";
-import { formatDate } from "../../i18n/formatters";
+import { api, ApiError, EffectiveValue, errorMessage, OverrideRequest, SegmentHistoryRow, StockingSetting } from "../../api/client";
 import { Field } from "../suppliers/Field";
+import { CategoryHistory } from "./CategoryHistory";
 import { canDecideOverrides, canEditPolicies, parseId } from "./policiesModel";
 
 interface Props {
@@ -14,6 +14,7 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
   const [variantText, setVariantText] = useState("");
   const [variant, setVariant] = useState<number | null>(null);
   const [recommended, setRecommended] = useState<number | null | undefined>(undefined);
+  const [effective, setEffective] = useState<Record<string, EffectiveValue> | null>(null);
   const [stocking, setStocking] = useState<StockingSetting | null>(null);
   const [mode, setMode] = useState("standard");
   const [floor, setFloor] = useState("0");
@@ -48,6 +49,7 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
       const [rec, st, hist] = await Promise.all([api.getRecommendation(id), api.getStocking(id), api.getSegmentHistory(id)]);
       setVariant(id);
       setRecommended(rec.safety_stock);
+      setEffective(rec.effective ?? null);
       setStocking(st);
       setMode(st.stocking_mode);
       setFloor(String(st.min_floor_units));
@@ -144,6 +146,18 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
       {variant !== null && (
         <>
           <p>{recommended === null || recommended === undefined ? t("safety.recommended_none") : t("safety.recommended", { value: recommended })}</p>
+          {effective && (
+            <ul aria-label={t("safety.effective_title")}>
+              {(["safety_stock", "min", "max"] as const).map((f) => {
+                const e = effective[f];
+                return e ? (
+                  <li key={f}>
+                    {e.value === null ? t("safety.effective_none", { field: t(`safety.field.${f}`) }) : t("safety.effective_row", { field: t(`safety.field.${f}`), value: e.value, source: t(`safety.effective_source.${e.source}`) })}
+                  </li>
+                ) : null;
+              })}
+            </ul>
+          )}
 
           {canEdit && (
             <fieldset>
@@ -184,17 +198,7 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
           </fieldset>
 
           <h4>{t("safety.history")}</h4>
-          {history && history.length === 0 && <p>{t("safety.history_empty")}</p>}
-          <ul>
-            {(history ?? []).map((h, i) => (
-              <li key={i}>
-                {t("safety.history_row", {
-                  when: formatDate(h.changed_at), abc: h.abc, xyz: h.xyz, pattern: h.pattern, critical: h.critical ? t("safety.critical_suffix") : "",
-                  reason: t(`safety.reason_key.${h.reason_key}`, { defaultValue: h.reason_key }),
-                })}
-              </li>
-            ))}
-          </ul>
+          <CategoryHistory history={history} />
         </>
       )}
     </div>

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, errorMessage, ForecastBasis, VariantDetail } from "../../api/client";
+import { api, errorMessage, ForecastBasis, SegmentHistoryRow, VariantDetail } from "../../api/client";
 import { formatDate, formatNumber } from "../../i18n/formatters";
+import { CategoryHistory } from "../policies/CategoryHistory";
 
 interface Props {
   variantId: number;
@@ -14,6 +15,7 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
   const [d, setD] = useState<VariantDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [basis, setBasis] = useState<ForecastBasis | null>(null);
+  const [history, setHistory] = useState<SegmentHistoryRow[] | null>(null);
   const estimateBased = basis?.seed_used === true;
 
   useEffect(() => {
@@ -26,6 +28,18 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
       live = false;
     };
   }, [variantId, t]);
+
+  useEffect(() => {
+    let live = true;
+    setHistory(null);
+    api
+      .getSegmentHistory(variantId)
+      .then((h) => live && setHistory(h.history))
+      .catch(() => live && setHistory([]));                      // the history is context: if it cannot be read the detail still opens
+    return () => {
+      live = false;
+    };
+  }, [variantId]);
 
   useEffect(() => {
     let live = true;
@@ -60,6 +74,8 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
               {estimateBased && <p role="note" className="mmi-badge mmi-badge-warning">{t("dashboard.detail.estimate_based")}</p>}
             </>
           )}
+          <h4>{t("dashboard.detail.category_history")}</h4>
+          <CategoryHistory history={history} />
           <h4>{t("dashboard.detail.forecast")}</h4>
           {basis === null ? (
             <p>{t("dashboard.detail.forecast_none")}</p>

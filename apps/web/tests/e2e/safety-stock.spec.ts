@@ -7,6 +7,7 @@ const json = (body: unknown, status = 200) => ({ status, contentType: "applicati
 async function backend(page: Page, user: string, roles: string[]) {
   const state = {
     queue: [{ id: "r1", variant_id: 5, field: "safety_stock", recommended_value: 2, requested_value: 6, reason: "proveedor poco fiable", status: "pending", requested_by: "buyer-1", decided_by: null, recommendation_changed: false }] as Array<Record<string, unknown>>,
+    effective: { safety_stock: { value: 2, source: "recommendation", request_id: null }, min: { value: null, source: "none", request_id: null }, max: { value: null, source: "none", request_id: null } } as Record<string, unknown>,
     stocking: { variant_id: 5, stocking_mode: "standard", min_floor_units: 0, revision: 0 },
     created: [] as unknown[], stockingSaved: [] as unknown[],
   };
@@ -17,7 +18,7 @@ async function backend(page: Page, user: string, roles: string[]) {
     demand: { ok: true, data: { exclusions: [], rules: [] } }, forecast: { ok: true, data: { as_of: "2026-11-09", parameters: [] } },
   })));
   await page.route("**/api/policy-overrides?status=pending", (r) => r.fulfill(json(state.queue)));
-  await page.route("**/api/policy-overrides/recommendation/5", (r) => r.fulfill(json({ variant_id: 5, safety_stock: 2 })));
+  await page.route("**/api/policy-overrides/recommendation/5", (r) => r.fulfill(json({ variant_id: 5, safety_stock: 2, effective: state.effective })));
   await page.route("**/api/segments/5/history", (r) => r.fulfill(json({ variant_id: 5, history: [{ changed_at: "2026-11-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] })));
   await page.route("**/api/stocking/5", (r) => {
     const req = r.request();
@@ -91,5 +92,20 @@ test.describe("Safety stock and always-stocked (T080)", () => {
     await page.getByRole("tab", { name: /Stock de seguridad/ }).click();
     await expect(page.getByText(/recomendado 2, solicitado 6/)).toBeVisible();                    // still the value it was made against
     await expect(page.getByText("La recomendación ha cambiado desde la solicitud: era 2 y ahora es 4. Revise la solicitud antes de decidir.")).toBeVisible();
+  });
+
+  test("the screen shows the value in force next to the recommendation and whether it is an approved override", async ({ page }) => {
+    const state = await backend(page, "buyer-1", ["viewer", "buyer"]);
+    await open(page);
+    await page.getByLabel("Variante").fill("5");
+    await page.click("button:has-text('Consultar')");
+    const list = page.getByRole("list", { name: "Valores en vigor" });
+    await expect(list).toContainText("Stock de seguridad en vigor: 2 unidades (es la recomendación del sistema)");
+    await expect(list).toContainText("Mínimo en vigor: sin valor fijado");
+    state.effective = { ...state.effective, safety_stock: { value: 6, source: "approved_override", request_id: "r1" }, min: { value: 3, source: "approved_override", request_id: "r9" } };
+    await page.click("button:has-text('Consultar')");
+    await expect(list).toContainText("Stock de seguridad en vigor: 6 unidades (es un valor aprobado distinto de la recomendación)");
+    await expect(list).toContainText("Mínimo en vigor: 3 unidades (es un valor aprobado distinto de la recomendación)");
+    await expect(page.getByText("Recomendado por el sistema: 2 unidades")).toBeVisible();              // the recommendation stays visible beside it
   });
 });

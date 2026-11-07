@@ -116,3 +116,41 @@ def test_the_pending_list_carries_the_flag_and_the_current_recommendation(conn, 
     monkeypatch.setattr(api_policies, "recommended_safety_stock", lambda c, v: 5)
     (row,) = [api_policies.override_json(conn, r) for r in queue(conn)]
     assert row["recommended_value"] == 2 and row["current_recommended"] == 5 and row["recommendation_changed"] is True
+
+
+def test_the_effective_values_say_whether_they_are_the_recommendation_or_an_approved_override(conn):
+    from policies.overrides import effective_for_variant
+
+    none = effective_for_variant(conn, 7, None)
+    assert none["safety_stock"] == {"value": None, "source": "none", "request_id": None}
+    rec = effective_for_variant(conn, 7, 2)
+    assert rec["safety_stock"] == {"value": 2, "source": "recommendation", "request_id": None}
+    pending = ask(conn, value=5)
+    assert effective_for_variant(conn, 7, 2)["safety_stock"]["source"] == "recommendation"                 # a pending request changes nothing
+    decide(conn, pending.id, who("approver-1"), True, 2, NOW)
+    eff = effective_for_variant(conn, 7, 2)["safety_stock"]
+    assert eff == {"value": 5, "source": "approved_override", "request_id": pending.id}
+    revert(conn, pending.id, who("approver-1"))
+    assert effective_for_variant(conn, 7, 2)["safety_stock"] == {"value": 2, "source": "recommendation", "request_id": None}
+
+
+def test_min_and_max_show_their_approved_override_or_nothing(conn):
+    from policies.overrides import effective_for_variant
+
+    req = ask(conn, field="min", value=3, recommended=None)
+    decide(conn, req.id, who("approver-1"), True, None, NOW)
+    eff = effective_for_variant(conn, 7, 2)
+    assert eff["min"] == {"value": 3, "source": "approved_override", "request_id": req.id}
+    assert eff["max"] == {"value": None, "source": "none", "request_id": None}
+
+
+def test_the_newest_approved_override_wins_and_other_variants_are_untouched(conn):
+    from policies.overrides import effective_for_variant
+
+    first = ask(conn, value=4)
+    decide(conn, first.id, who("approver-1"), True, 2, NOW)
+    revert(conn, first.id, who("approver-1"))
+    second = ask(conn, value=9)
+    decide(conn, second.id, who("approver-1"), True, 2, NOW)
+    assert effective_for_variant(conn, 7, 2)["safety_stock"]["value"] == 9
+    assert effective_for_variant(conn, 8, 2)["safety_stock"] == {"value": 2, "source": "recommendation", "request_id": None}

@@ -871,5 +871,12 @@
   "versions.run": "ejecución de previsión {{id}}",
   "versions.run_unknown": "ejecución de previsión no registrada",
   "versions.dataset": "conjunto de datos importados {{id}}",
-  "versions.dataset_none": "sin datos importados (solo ventas reales del ERP)"
+  "versions.dataset_none": "sin datos importados (solo ventas reales del ERP)",
+  "dashboard.detail.category_history": "Historial de categoría",
+  "safety.effective_title": "Valores en vigor",
+  "safety.effective_row": "{{field}} en vigor: {{value}} unidades ({{source}})",
+  "safety.effective_none": "{{field}} en vigor: sin valor fijado",
+  "safety.effective_source.recommendation": "es la recomendación del sistema",
+  "safety.effective_source.approved_override": "es un valor aprobado distinto de la recomendación",
+  "safety.effective_source.none": "sin valor"
 }

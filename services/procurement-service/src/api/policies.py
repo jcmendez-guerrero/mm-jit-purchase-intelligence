@@ -15,6 +15,7 @@ from policies.overrides import (
     OverrideRequestError,
     decide,
     drift,
+    effective_for_variant,
     queue,
     recommended_safety_stock,
     request_override,
@@ -191,7 +192,8 @@ def build_router(app: FastAPI) -> APIRouter:
 
     @router.get("/policy-overrides/recommendation/{variant_id}")
     def recommendation(variant_id: int, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
-        return {"variant_id": variant_id, "safety_stock": recommended_safety_stock(conn, variant_id)}
+        rec = recommended_safety_stock(conn, variant_id)
+        return {"variant_id": variant_id, "safety_stock": rec, "effective": effective_for_variant(conn, variant_id, rec)}
 
     @router.post("/policy-overrides", status_code=201)
     def create_override(body: OverrideBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:

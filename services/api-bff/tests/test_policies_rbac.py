@@ -89,3 +89,11 @@ def test_a_criticality_change_is_forwarded_to_the_existing_inventory_endpoint(ro
 def test_the_old_service_level_edit_route_is_gone_service_levels_are_edited_in_policies(role_store):
     res = call("PUT", "/api/config/service-levels", headers_for("buyer-1", BUYER), json={"scope": "abc", "key": "A", "target": "0.98"})
     assert res.status_code in (404, 405)
+
+
+def test_the_effective_values_pass_through_from_procurement_unchanged_for_any_signed_in_user():
+    proc = AsyncMock()
+    proc.forward.return_value = {"variant_id": 5, "safety_stock": 2, "effective": {"safety_stock": {"value": 6, "source": "approved_override", "request_id": "r1"}}}
+    res = call("GET", "/api/policy-overrides/recommendation/5", headers_for("v", ["viewer"]), proc=proc)
+    assert res.status_code == 200 and res.json()["effective"]["safety_stock"] == {"value": 6, "source": "approved_override", "request_id": "r1"}
+    assert proc.forward.call_args.args[:2] == ("GET", "/policy-overrides/recommendation/5") and proc.forward.call_args.kwargs["user_id"] == "v"

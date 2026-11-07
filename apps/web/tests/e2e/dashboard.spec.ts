@@ -53,6 +53,14 @@ test.describe("Dashboard (T124)", () => {
     await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Riesgos de este producto");
   });
 
+  test("the product detail shows the category history", async ({ page }) => {
+    await page.route("**/api/segments/100/history", (r) => r.fulfill(json({ variant_id: 100, history: [{ changed_at: "2026-11-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] })));
+    await page.goto("/");
+    await page.getByRole("button", { name: "Ver detalle" }).first().click();
+    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Historial de categoría");
+    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("primera clasificación");
+  });
+
   test("a product with no forecast basis shows no estimate label", async ({ page }) => {
     await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ detail: "no_forecast_run" }, 404)));
     await page.goto("/");

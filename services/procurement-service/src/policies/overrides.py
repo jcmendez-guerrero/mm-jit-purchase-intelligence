@@ -94,6 +94,23 @@ def revert(conn: Connection, rid: str, principal: Principal, now: datetime | Non
     return _get(conn, rid)
 
 
+def effective_for_variant(conn: Connection, variant_id: int, recommended: int | None) -> dict[str, dict[str, Any]]:
+    """The value in force for each field of one variant and where it comes from (FR-046): the newest approved override, otherwise the engine's
+    recommendation (safety stock only; minimum and maximum have no recommendation, so they show nothing without an override)."""
+    out: dict[str, dict[str, Any]] = {}
+    for field_name in ("safety_stock", "min", "max"):
+        r = conn.execute(select(policy_override_requests).where(
+            policy_override_requests.c.variant_id == variant_id, policy_override_requests.c.field == field_name, policy_override_requests.c.status == "approved")
+            .order_by(policy_override_requests.c.decided_at.desc()).limit(1)).first()
+        if r is not None:
+            out[field_name] = {"value": int(r.requested_value), "source": "approved_override", "request_id": r.id}
+        elif field_name == "safety_stock" and recommended is not None:
+            out[field_name] = {"value": recommended, "source": "recommendation", "request_id": None}
+        else:
+            out[field_name] = {"value": None, "source": "none", "request_id": None}
+    return out
+
+
 def effective_overrides(conn: Connection) -> dict[tuple[int, str], int]:
     """Latest approved request per (variant, field)."""
     out: dict[tuple[int, str], int] = {}
