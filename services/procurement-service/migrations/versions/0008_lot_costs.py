@@ -14,7 +14,7 @@ branch_labels = None
 depends_on = None
 
 CWR_COLUMNS = [
-    sa.Column("median_cost", sa.Numeric(18, 4)), sa.Column("median_lot_refs", sa.JSON), sa.Column("pvp_used", sa.Numeric(18, 4)),
+    sa.Column("median_cost", sa.Numeric(18, 4)), sa.Column("median_lot_refs", sa.JSON), sa.Column("pvp_used", sa.Numeric(18, 4)), sa.Column("pvp_age_days", sa.Integer),
     sa.Column("margin_before", sa.Numeric(7, 4)), sa.Column("margin_after", sa.Numeric(7, 4)), sa.Column("rule_flags", sa.JSON),
     sa.Column("override_value", sa.Numeric(18, 4)), sa.Column("override_reason", sa.String(500)), sa.Column("override_by", sa.String(120)),
     sa.Column("override_at", sa.DateTime(timezone=True)), sa.Column("released_by", sa.String(120)),

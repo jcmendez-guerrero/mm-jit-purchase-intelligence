@@ -7,7 +7,7 @@ cents because the ERP stores cents. No eligible lot means no request.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
@@ -18,8 +18,8 @@ from sqlalchemy.engine import Connection
 
 from costs.lot_costs import OPENING_LOT, latest_by_lot
 from costs.lot_lookup import LotsSource, fetch_lots
-from costs.margin import evaluate
-from costs.pvp import PvpSource, lowest_pvp
+from costs.margin import PVP_STALE, evaluate
+from costs.pvp import PvpSource, lowest_pvp_info
 from costs.recargo import Q4
 from costs.rules import load_rules
 from costs.store import NewCost, add_version, current
@@ -88,9 +88,10 @@ def request_median_write(conn: Connection, source: LotsSource, product_id: int, 
         previous = conn.execute(select(supplier_costs.c.cost_with_recargo).where(
             supplier_costs.c.product_id == product_id, supplier_costs.c.supplier_id == supplier_id, supplier_costs.c.variant_id.is_(None),
             supplier_costs.c.source == "siweb_product_supplier").order_by(supplier_costs.c.version.desc()).limit(1)).scalar()
-        margin = evaluate(median, None if previous is None else Decimal(str(previous)),
-                          lowest_pvp(pvp_source, sorted({u.variant_id for u in lots}) or [r.variant_id for r in conn.execute(
-                              select(product_refs.c.variant_id).where(product_refs.c.product_id == product_id)).all()]))
+        info = lowest_pvp_info(pvp_source, sorted({u.variant_id for u in lots}) or [r.variant_id for r in conn.execute(
+            select(product_refs.c.variant_id).where(product_refs.c.product_id == product_id)).all()])
+        margin = evaluate(median, None if previous is None else Decimal(str(previous)), info.price)
+        margin = replace(margin, pvp_age_days=info.age_days, flags=margin.flags + ((PVP_STALE,) if info.stale_only else ()))
     res = request_write(conn, cur.id, trigger, actor, now, median_lot_refs=refs, median_cost=median, margin=margin)
     return res
 

@@ -25,7 +25,7 @@ Branch `claude/mmi-002-operational-console-ibqo4g`. Synthetic data only; no real
 - Seed originals use a local folder in development; production needs the private container described in the plan.
 - The accuracy chart uses stored daily aggregates per warehouse and demand group, not per supplier.
 - Performance: only the dashboard first-content budget (3 s, 1,000 alerts) is asserted, in a mocked browser; the 15-minute import and 2-minute rollback timings (SC-002) were not measured end to end.
-- Stale-selling-price rule threshold (G2) needs an owner decision; the constitution v1.2.0 ratification date is pending.
+- Stale-selling-price rule (G2) is decided (7 days) and implemented; the constitution v1.2.0 ratification date is pending.
 
 ## Success criteria to evidence
 

@@ -58,6 +58,7 @@ export interface CostWriteRecord {
   median_cost: string | null;
   lots: CostWriteLot[];
   pvp_used: string | null;
+  pvp_age_days?: number | null;
   pvp_source: string;
   margin_before: string | null;
   margin_after: string | null;

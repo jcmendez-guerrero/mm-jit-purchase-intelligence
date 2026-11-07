@@ -784,5 +784,7 @@
   "admin.status.policy.status.approved": "Aprobado",
   "admin.status.policy.status.rejected": "Rechazado",
   "admin.status.policy.status.reverted": "Revertido",
-  "errors.import_failed": "La importación falló de forma inesperada. Puede repetirla; si vuelve a fallar, revise el archivo."
+  "errors.import_failed": "La importación falló de forma inesperada. Puede repetirla; si vuelve a fallar, revise el archivo.",
+  "costs.pvp_age": "Precio confirmado por la última sincronización hace (días): {{days}}",
+  "costs.flag.pvp_stale": "El precio de venta (PVP) lleva más de 7 días sin confirmarse en la sincronización: se trata como si faltara y la liberación queda bloqueada hasta que se confirme o un administrador fije un valor."
 }

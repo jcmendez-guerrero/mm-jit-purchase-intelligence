@@ -54,6 +54,15 @@ describe("CostsScreen", () => {
     expect(screen.queryByRole("button", { name: /Liberar coste/ })).toBeNull();           // blocked
   });
 
+  it("shows the price age next to the PVP, and a stale price as unavailable with its reason", async () => {
+    vi.spyOn(api, "getCostWrites").mockResolvedValue([write({ pvp_used: null, pvp_age_days: 9, margin_before: null, margin_after: null, rule_flags: ["margin_unavailable", "pvp_stale"], tips: null })]);
+    render(<CostsScreen userRoles={["viewer", "buyer"]} userId="b1" />);
+    expect((await screen.findByText(/Precio confirmado por la última sincronización/)).textContent).toContain("9");
+    expect(screen.getByText(/más de 7 días sin confirmarse/)).toBeTruthy();
+    expect(screen.getByText(/PVP utilizado/).textContent).toContain("no disponible");
+    expect(screen.queryByRole("button", { name: /Liberar coste/ })).toBeNull();
+  });
+
   it("lets an admin set a value with a reason and shows the other-buyer requirement afterwards", async () => {
     const spy = vi.spyOn(api, "overrideCostWrite").mockResolvedValue({});
     render(<CostsScreen userRoles={["viewer", "admin"]} userId="admin-1" />);

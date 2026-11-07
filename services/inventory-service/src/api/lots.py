@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from db.tables import stock_lots, variants
@@ -11,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
 
 MAX_VARIANTS = 200
+PRICE_STALE_AFTER = timedelta(days=7)          # FR-043: a price last confirmed by a sync longer ago than this blocks the margin check
 
 
 def build_lots_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> APIRouter:
@@ -35,15 +37,23 @@ def build_lots_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> APIR
     @router.get("/pvp")
     def pvp(variant_ids: str = Query(min_length=1, max_length=2000), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         """Selling price (PVP) per variant: the variant price synchronised from the ERP (decided 2026-11-06). It is treated as net of VAT for
-        every product, so it is returned as is. Variants without a price are omitted: the caller reports the margin as unavailable."""
+        every product, so it is returned as is, with the time a sync last confirmed it and whether that is stale (over 7 days; no time counts as stale).
+        Variants without a price are omitted: the caller reports the margin as unavailable."""
         try:
             ids = sorted({int(x) for x in variant_ids.split(",") if x.strip()})
         except ValueError as exc:
             raise HTTPException(422, "invalid_variant_ids") from exc
         if not ids or len(ids) > MAX_VARIANTS or any(i < 1 for i in ids):
             raise HTTPException(422, "invalid_variant_ids")
-        rows = conn.execute(select(variants.c.external_id, variants.c.price).where(variants.c.external_id.in_(ids), variants.c.price.is_not(None), variants.c.price > 0)
-                            .order_by(variants.c.external_id)).all()
-        return {"prices": [{"variant_id": r.external_id, "pvp": str(r.price), "source": "variant_price"} for r in rows]}
+        rows = conn.execute(select(variants.c.external_id, variants.c.price, variants.c.price_confirmed_at)
+                            .where(variants.c.external_id.in_(ids), variants.c.price.is_not(None), variants.c.price > 0).order_by(variants.c.external_id)).all()
+        now = datetime.now(UTC)
+        out = []
+        for r in rows:
+            at = None if r.price_confirmed_at is None else (r.price_confirmed_at if r.price_confirmed_at.tzinfo else r.price_confirmed_at.replace(tzinfo=UTC))
+            age = None if at is None else now - at
+            out.append({"variant_id": r.external_id, "pvp": str(r.price), "source": "variant_price", "as_of": None if at is None else at.isoformat(),
+                        "age_days": None if age is None else max(0, age.days), "stale": age is None or age > PRICE_STALE_AFTER})
+        return {"prices": out}
 
     return router

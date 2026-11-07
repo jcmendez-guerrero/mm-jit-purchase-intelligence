@@ -18,6 +18,7 @@ KEPT_OFFER = "margin_kept_offer"
 ABOVE_CAP = "margin_above_cap"
 BELOW_MINIMUM = "margin_below_minimum"
 UNAVAILABLE = "margin_unavailable"
+PVP_STALE = "pvp_stale"
 
 
 def cap_for(cost: Decimal) -> Decimal:
@@ -45,6 +46,7 @@ class Evaluation:
     blocked: bool = False
     cost_at_minimum: Decimal | None = None      # tips: the cost that yields exactly 15 % and the cap
     cost_at_cap: Decimal | None = None
+    pvp_age_days: int | None = None             # days since a sync last confirmed the price; None when unknown
 
 
 def evaluate(new_cost: Decimal, previous_cost: Decimal | None, pvp: Decimal | None) -> Evaluation:

@@ -337,6 +337,6 @@
 
 ## Phase 11: Follow-up from clarification 2026-11-07
 
-- [ ] T163 [P] Test that a variant price last confirmed by a sync more than 7 days ago is reported stale by `GET /pvp` (with its age), that a fresh price is not, and that procurement treats a stale price like a missing one (margin unavailable, release blocked, admin override allowed) in services/inventory-service/tests/test_pvp.py and services/procurement-service/tests/test_margin_rules.py
-- [ ] T164 Add `price_confirmed_at` to inventory `variants` (migration edited in place while unmerged), set it in the product/variant projection each time a sync confirms the price, and return `as_of` and `stale` from `GET /pvp` in services/inventory-service/src/
-- [ ] T165 Show the price age next to the PVP on the cost screen and the stale reason in Spanish (new string and error-key if needed) in apps/web/src/features/costs/ and services/procurement-service/src/costs/
+- [X] T163 [P] Test that a variant price last confirmed by a sync more than 7 days ago is reported stale by `GET /pvp` (with its age), that a fresh price is not, and that procurement treats a stale price like a missing one (margin unavailable, release blocked, admin override allowed) in services/inventory-service/tests/test_pvp.py and services/procurement-service/tests/test_margin_rules.py
+- [X] T164 Add `price_confirmed_at` to inventory `variants` (migration edited in place while unmerged), set it in the product/variant projection each time a sync confirms the price, and return `as_of` and `stale` from `GET /pvp` in services/inventory-service/src/
+- [X] T165 Show the price age next to the PVP on the cost screen and the stale reason in Spanish (new string and error-key if needed) in apps/web/src/features/costs/ and services/procurement-service/src/costs/

@@ -95,7 +95,7 @@ def request_write(conn: Connection, cost_id: str, trigger: str, actor: str, now:
         id=rid, cost_id=cost_id, product_id=cost.product_id, supplier_id=cost.supplier_id, trigger=trigger, proposed_value=proposed,
         previous_siweb_value=previous, status=status, attempts=0, requested_by=actor, idempotency_key=key, created_at=now, updated_at=now,
         median_cost=median_cost if median_cost is not None else proposed, median_lot_refs=median_lot_refs,
-        pvp_used=None if margin is None else margin.pvp, margin_before=None if margin is None else margin.margin_before,
+        pvp_used=None if margin is None else margin.pvp, pvp_age_days=None if margin is None else margin.pvp_age_days, margin_before=None if margin is None else margin.margin_before,
         margin_after=None if margin is None else margin.margin_after, rule_flags=[] if margin is None else list(margin.flags)))
     audit(conn, actor, "cost_write.requested", "cost_write", rid, after={"status": status, "trigger": trigger, "cents": erp_cents(proposed)}, now=now)
     return WriteRequestResult(conn.execute(select(cost_write_requests).where(cost_write_requests.c.id == rid)).one(), status, warnings)

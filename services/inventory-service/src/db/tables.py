@@ -52,6 +52,7 @@ variants = Table(
     Column("uom", String(20)),
     Column("reorder_point", Integer),
     Column("price", Numeric(18, 6)),  # selling price in EUR, used only to rank value (ABC)
+    Column("price_confirmed_at", DateTime(timezone=True)),  # last successful sync that carried this price (stale after 7 days)
 )
 stock_snapshots = Table(
     "stock_snapshots", metadata,

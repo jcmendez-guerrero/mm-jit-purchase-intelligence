@@ -241,6 +241,7 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
             <h5>{t("costs.margin_panel")}</h5>
             <ul>
               <li>{t("costs.pvp_used", { value: w.pvp_used === null ? t("costs.margin_unavailable") : formatCurrencyEUR(w.pvp_used) })}</li>
+              {w.pvp_age_days != null && <li>{t("costs.pvp_age", { days: w.pvp_age_days })}</li>}
               <li>{t("costs.margin_before", { value: pct(w.margin_before) })}</li>
               <li>{t("costs.margin_after", { value: pct(w.margin_after) })}</li>
               {w.rule_flags.map((f) => (

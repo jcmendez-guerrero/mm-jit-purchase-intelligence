@@ -255,6 +255,7 @@ cost_write_requests = Table(
     Column("median_cost", MONEY),
     Column("median_lot_refs", JSON),                                    # lots used with their quantities at lookup time
     Column("pvp_used", MONEY),
+    Column("pvp_age_days", Integer),                                    # days since a sync last confirmed the price (FR-043: stale after 7)
     Column("margin_before", Numeric(7, 4)),
     Column("margin_after", Numeric(7, 4)),
     Column("rule_flags", JSON),

@@ -13,6 +13,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    op.add_column("variants", sa.Column("price_confirmed_at", sa.DateTime(timezone=True)))
     op.create_table("segment_history", sa.Column("id", sa.BigInteger, primary_key=True, autoincrement=True), sa.Column("variant_id", sa.Integer, nullable=False),
                     sa.Column("changed_at", sa.DateTime(timezone=True), nullable=False), sa.Column("abc", sa.String(1), nullable=False),
                     sa.Column("xyz", sa.String(1), nullable=False), sa.Column("pattern", sa.String(14), nullable=False),
@@ -57,6 +58,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_column("variants", "price_confirmed_at")
     if op.get_bind().dialect.name == "postgresql":
         op.execute("DROP TRIGGER IF EXISTS audit_events_no_truncate ON audit_events")
         op.execute("DROP TRIGGER IF EXISTS audit_events_append_only ON audit_events")
