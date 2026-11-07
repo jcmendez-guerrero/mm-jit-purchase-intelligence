@@ -28,7 +28,18 @@ This loads the synthetic ERP mock and runs the existing pipeline.
 5. **Dashboard (US2, SC-003/004)**: open the dashboard; check KPI values against the reference totals, filters from live options, drill-down to a variant, loading/empty/error/stale states, and the table alternative of each chart.
 6. **Scenarios (US6, SC-008)**: create scenarios changing MOQ, lead time, shipping, pack multiple and budget; confirm allocations change with stated reasons; promote one and approve it; export CSV/XLSX and open it safely.
 7. **Cost update and margin (US3, SC-012)**: receive a synthetic order with lots at different costs, check the median and the lots behind it, a margin below 15% blocked, an admin override with tips and reason, and that the ERP mock receives only the allowed PUT.
-8. **Admin and cost (US7, SC-011)**: view sync/import/model status, rerun a failed import idempotently, run the cost-guardrail test.
+8. **Admin and cost (US7, SC-011)**: open Administración, check source freshness, a failed import and the model runs; re-run the failed import twice and confirm only one job is queued; re-run the forecast and confirm it reuses the run when inputs are unchanged; run the cost-guardrail test.
+
+## Synthetic demo path (about 10 minutes, no Azure, no real host)
+
+1. Start the stack and load the mock ERP (Setup above), then `npm --prefix apps/web run dev` and open the printed address.
+2. Sign in with the local development login as `buyer-1`; open **Datos predictivos**, download the template, upload `packages/testing` synthetic valid file, map, validate, compare and activate.
+3. Open **Panel**: filter by warehouse and category, open a product, switch a chart to its table.
+4. Open **Escenarios**: create one with a lower budget and one without a supplier; compare with the current proposal and read the explanations; promote one.
+5. Sign out, sign in as `approver-1`, approve the new proposal with the second factor (the creator cannot).
+6. Sign in as `admin-1`; open **Administración**: freshness, jobs, runs, roles, cost limits.
+
+Everything above uses fixtures from `packages/testing`; never upload a real export.
 
 ## Automated suites
 
@@ -51,6 +62,18 @@ npm --prefix apps/web run test
 ```bash
 npm --prefix apps/web run e2e
 ```
+
+```bash
+pytest infra/tests/test_security_abuse.py infra/tests/test_cost_guardrails.py infra/tests/test_alert_rules.py
+```
+
+The real-process approval end-to-end needs a local PostgreSQL with `infra/postgres/init.sql` applied:
+
+```bash
+RUN_E2E_LOCAL=1 MMI_PG_EXTERNAL_PORT=<port> pytest infra/tests/test_approval_e2e.py
+```
+
+Runbooks: `docs/runbooks/failed-import.md`, `dataset-rollback.md`, `role-mirror-failure.md`.
 
 Expected: contract, integration, migration (up and down), Spanish end-to-end with axe, security abuse, localisation and cost-guardrail suites all green. Playwright captures screenshots of the Spanish screens as review evidence.
 

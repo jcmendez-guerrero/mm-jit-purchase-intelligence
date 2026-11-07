@@ -303,8 +303,8 @@
 
 - [ ] T155 [P] Run the full Spanish Playwright suite and capture screenshots of every new screen as review evidence in apps/web/tests/e2e/ and docs/architecture/evidence/ (synthetic data only)
 - [X] T156 [P] Write security abuse suite (upload abuse, CSRF, RBAC bypass, MFA freshness, IDOR on datasets and scenarios, formula injection) in infra/tests/test_security_abuse.py
-- [ ] T157 [P] Add runbooks: failed import, rollback of a dataset, role-mirror failure in docs/runbooks/
-- [ ] T158 [P] Update quickstart with final commands and add a synthetic demo path in specs/002-mmi-operational-console/quickstart.md
+- [X] T157 [P] Add runbooks: failed import, rollback of a dataset, role-mirror failure in docs/runbooks/
+- [X] T158 [P] Update quickstart with final commands and add a synthetic demo path in specs/002-mmi-operational-console/quickstart.md
 - [ ] T159 Run secret scan, vulnerability scan and contract compatibility checks locally and in CI configuration under .github/workflows/
 - [ ] T160 Run RUN_PG_MIGRATIONS=1 and RUN_E2E=1 suites and fix failures before reporting
 - [ ] T161 Write the final technical report mapping SC-001..SC-011 and AC1..AC9 to evidence in specs/002-mmi-operational-console/report.md
