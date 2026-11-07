@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, DashOverview, DrillRequest, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate, formatNumber, formatPercent } from "../../i18n/formatters";
 import { ChartWithTable } from "./ChartWithTable";
-import { ageInDays, coverageDays, isStale, PERIODS, trendStats } from "./dashboardModel";
+import { ageInDays, coverageDays, forecastStats, isStale, mergeTrend, PERIODS, trendStats } from "./dashboardModel";
 import { DrillDownPanel } from "./DrillDownPanel";
 import { ProductDetail } from "./ProductDetail";
 import { SupplierPanel } from "./SupplierPanel";
@@ -70,6 +70,9 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
 
   const s = data?.summary.ok ? data.summary.data : undefined;
   const stats = data?.trend.ok && data.trend.data ? trendStats(data.trend.data.series) : null;
+  const trendData = data?.trend.ok ? data.trend.data : undefined;
+  const fstats = trendData ? forecastStats(trendData.estimated) : null;
+  const trendRows = trendData ? mergeTrend(trendData) : [];
   const opts = data?.options.ok ? data.options.data : undefined;
   const risks = data?.risks.ok ? (data.risks.data ?? []) : [];
   const cells = data?.abc_xyz.ok ? (data.abc_xyz.data?.cells ?? []) : [];
@@ -281,23 +284,27 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
               ) : (
                 <ChartWithTable
                   title={t("dashboard.chart.trend")}
-                  summary={t("dashboard.chart.trend_summary", { total: stats.total, days: stats.days, max: stats.max, day: formatDate(stats.maxDay) })}
-                  columns={[t("dashboard.chart.col.day"), t("dashboard.chart.col.units")]}
-                  rows={data.trend.data.series.map((p) => [formatDate(p.day), p.actual])}
+                  summary={t("dashboard.chart.trend_summary", { total: stats.total, days: stats.days, max: stats.max, day: formatDate(stats.maxDay) }) +
+                    (fstats ? ` ${t("dashboard.chart.forecast_summary", { days: fstats.days, mean: formatNumber(fstats.mean, 1), upper: formatNumber(fstats.upper, 1) })}` : "")}
+                  columns={[t("dashboard.chart.col.day"), t("dashboard.chart.col.actual"), ...(fstats ? [t("dashboard.chart.col.forecast"), t("dashboard.chart.col.upper")] : [])]}
+                  rows={trendRows.map((p) => [formatDate(p.day), p.actual ?? "—", ...(fstats ? [p.mean === undefined ? "—" : formatNumber(p.mean, 1), p.upper === undefined ? "—" : formatNumber(p.upper, 1)] : [])])}
                   rowAction={(i) => {
-                    const day = data.trend.ok && data.trend.data ? data.trend.data.series[i]?.day ?? "" : "";
-                    return { label: t("dashboard.drill.day_action", { day: formatDate(day) }), onClick: () => openDrill({ kind: "trend_day", day }, t("dashboard.drill.title.trend_day", { day: formatDate(day) })) };
+                    const day = trendRows[i]?.actual === undefined ? "" : trendRows[i]?.day ?? "";
+                    return { label: day ? t("dashboard.drill.day_action", { day: formatDate(day) }) : "", onClick: () => day && openDrill({ kind: "trend_day", day }, t("dashboard.drill.title.trend_day", { day: formatDate(day) })) };
                   }}
                 >
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data.trend.data.series}>
+                    <ComposedChart data={trendRows}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="day" tickFormatter={(d: string) => formatDate(d)} />
                       <YAxis allowDecimals={false} />
                       <Tooltip labelFormatter={(d) => formatDate(String(d))} />
-                      <Bar dataKey="actual" fill="#1f5f6b" name={t("dashboard.chart.col.units")} cursor="pointer"
+                      <Legend />
+                      <Bar dataKey="actual" fill="#1f5f6b" name={t("dashboard.chart.legend_actual")} cursor="pointer"
                         onClick={(p: { day?: string }) => p.day && openDrill({ kind: "trend_day", day: p.day }, t("dashboard.drill.title.trend_day", { day: formatDate(p.day) }))} />
-                    </BarChart>
+                      {fstats && <Area dataKey="band" fill="#c97b2a" stroke="none" fillOpacity={0.25} name={t("dashboard.chart.legend_band")} />}
+                      {fstats && <Line dataKey="mean" stroke="#c97b2a" strokeWidth={2} strokeDasharray="6 4" dot={false} name={t("dashboard.chart.legend_forecast")} />}
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </ChartWithTable>
               )
@@ -305,6 +312,13 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
               <Unavailable />
             )}
             <p className="mmi-muted">{t("dashboard.chart.trend_note")}</p>
+            {trendData && (
+              <>
+                {fstats && trendData.estimated_basis && <p className="mmi-muted">{t("dashboard.chart.forecast_basis", { variants: trendData.estimated_basis.variants })}</p>}
+                {fstats && trendData.estimated_basis && trendData.estimated_basis.seed_assisted > 0 && <p role="note">{t("dashboard.chart.forecast_seeded", { n: trendData.estimated_basis.seed_assisted })}</p>}
+                {!fstats && <p className="mmi-muted">{t(trendData.estimated_basis?.reason === "company_wide_only" ? "dashboard.chart.forecast_company_wide" : "dashboard.chart.forecast_none")}</p>}
+              </>
+            )}
           </div>
 
           <div className="mmi-card">

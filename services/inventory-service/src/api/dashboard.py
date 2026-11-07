@@ -15,6 +15,7 @@ from dashboard.kpis import (
     compute_summary,
     demand_trend,
     filter_options,
+    forecast_series,
 )
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
 from sqlalchemy.engine import Connection
@@ -53,8 +54,10 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
     def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, family: str | None = None, conn: Connection = Depends(conn_dep),
               _p: Any = Depends(require())) -> dict[str, Any]:
         today = datetime.now(UTC).date()
-        return {"from": (today - timedelta(days=days)).isoformat(), "to": date.isoformat(today), "series": demand_trend(conn, today, days, filters(warehouse_id, category, family)),
-                "estimated": [], "note": "estimated_series_come_from_forecast_service"}
+        f = filters(warehouse_id, category, family)
+        fc = forecast_series(conn, today, f, means())
+        return {"from": (today - timedelta(days=days)).isoformat(), "to": date.isoformat(today), "series": demand_trend(conn, today, days, f),
+                "estimated": fc["points"], "estimated_basis": {"variants": fc["variants"], "seed_assisted": fc["seed_assisted"], "reason": fc["reason"], "upper_level": "0.95"}}
 
     @router.get("/drilldown")
     def drill(kind: str = Query(max_length=20), abc: str | None = Query(default=None, max_length=1), xyz: str | None = Query(default=None, max_length=1),

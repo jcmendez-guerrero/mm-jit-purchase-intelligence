@@ -95,10 +95,44 @@ describe("DashboardScreen", () => {
     const toggles = screen.getAllByRole("button", { name: "Ver como tabla" });
     expect(toggles).toHaveLength(2);
     fireEvent.click(toggles[0]!);
-    const table = screen.getByRole("table", { name: "Demanda diaria real" });
+    const table = screen.getByRole("table", { name: "Demanda diaria real y previsión" });
     expect(within(table).getAllByRole("row")).toHaveLength(3);
     fireEvent.click(screen.getByRole("button", { name: "Ver como gráfico" }));
-    expect(screen.queryByRole("table", { name: "Demanda diaria real" })).toBeNull();
+    expect(screen.queryByRole("table", { name: "Demanda diaria real y previsión" })).toBeNull();
+  });
+
+  const withForecast = (estimated: Array<{ day: string; mean: string; upper: string; kind: string }>, basis: object) => {
+    const base = overview();
+    if (!base.trend.ok || !base.trend.data) throw new Error("fixture");
+    return overview({ trend: { ok: true, data: { ...base.trend.data, estimated, estimated_basis: basis as never } } });
+  };
+  const days = ["2026-11-10", "2026-11-11"].map((day) => ({ day, mean: "3.50", upper: "5.00", kind: "forecast" }));
+
+  it("shows the forecast and its uncertainty apart from actual demand, with a table alternative and the seed note", async () => {
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(withForecast(days, { variants: 12, seed_assisted: 3, reason: null, upper_level: "0.95" }));
+    render(<DashboardScreen />);
+    expect(await screen.findByText(/Previsión para los próximos 2 días: 3,5 unidades al día de media y hasta 5,0 con un 95 % de probabilidad/)).toBeTruthy();
+    expect(screen.getByText(/Previsión de 12 productos previsibles/)).toBeTruthy();
+    expect(screen.getByText(/3 de ellos apoyan su previsión en datos importados/)).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Ver como tabla" })[0]!);
+    const table = screen.getByRole("table", { name: "Demanda diaria real y previsión" });
+    const heads = within(table).getAllByRole("columnheader").map((h) => h.textContent);
+    expect(heads).toEqual(expect.arrayContaining(["Unidades reales", "Previsión (media)", "Previsión (límite superior)"]));
+    const rows = within(table).getAllByRole("row");
+    expect(rows).toHaveLength(5);                                                             // header, 2 actual days, 2 forecast days
+    expect(within(rows[3]!).getAllByRole("cell")[1]!.textContent).toBe("—");                  // a forecast day has no actual units
+    expect(within(rows[1]!).getAllByRole("cell")[2]!.textContent).toBe("—");                  // an actual day has no forecast
+    expect(within(rows[3]!).queryByRole("button")).toBeNull();                                // nothing to drill into on a future day
+  });
+
+  it("says so when there is no forecast, or when the warehouse filter hides it", async () => {
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(withForecast([], { variants: 0, seed_assisted: 0, reason: "no_forecast", upper_level: "0.95" }));
+    const first = render(<DashboardScreen />);
+    expect(await screen.findByText(/No hay previsión disponible: se muestran solo las ventas reales del ERP/)).toBeTruthy();
+    first.unmount();
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(withForecast([], { variants: 0, seed_assisted: 0, reason: "company_wide_only", upper_level: "0.95" }));
+    render(<DashboardScreen />);
+    expect(await screen.findByText(/La previsión es global de la empresa/)).toBeTruthy();
   });
 
   it("shows the proposed spend against the budget and the forecast accuracy by group", async () => {

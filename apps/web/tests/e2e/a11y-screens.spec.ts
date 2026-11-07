@@ -78,3 +78,15 @@ test("dashboard drill-down and supplier panels", async ({ page }) => {
   await page.getByRole("complementary", { name: "Proveedor: Proveedor Sintético A" }).waitFor();
   await check(page);
 });
+
+test("dashboard trend chart with the forecast and its notes", async ({ page }) => {
+  await signIn(page);
+  const base = overview();
+  const estimated = Array.from({ length: 5 }, (_, i) => ({ day: `2026-11-${10 + i}`, mean: "3.50", upper: "5.00", kind: "forecast" }));
+  await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json({ ...base, trend: { ok: true, data: { ...base.trend.data, estimated, estimated_basis: { variants: 12, seed_assisted: 2, reason: null, upper_level: "0.95" } } } })));
+  await page.goto("/");
+  await page.getByText(/Previsión para los próximos 5 días/).waitFor();
+  await check(page);
+  await page.getByRole("button", { name: "Ver como tabla" }).first().click();
+  await check(page);
+});

@@ -43,6 +43,10 @@ class ForecastMeans(Protocol):
         """variant_id -> forecast mean units per day over the next 28 days, for forecast-eligible variants only."""
         ...
 
+    def daily_bands(self) -> dict[int, tuple[float, float | None, bool]]:
+        """variant_id -> (daily mean, daily upper bound, rests on imported estimates) over the next 28 days, for forecast-eligible variants only."""
+        ...
+
 
 @dataclass
 class Filters:
@@ -219,6 +223,33 @@ def demand_trend(conn: Connection, today: date, days: int, f: Filters) -> list[d
             c[0] += r.demand_qty
             c[1] += 1 if r.censored else 0
     return [{"day": d.isoformat(), "actual": v[0], "censored_rows": v[1], "kind": "actual_erp"} for d, v in sorted(by_day.items())]
+
+
+FORECAST_DAYS = 28
+
+
+def forecast_series(conn: Connection, today: date, f: Filters, forecast: ForecastMeans | None, days: int = FORECAST_DAYS) -> dict[str, Any]:
+    """The forecast for the coming days, kept apart from actual ERP demand (FR-005, FR-008). The mean is the sum of the forecast-eligible variants' daily
+    means; ``upper`` is the sum of their upper bounds (a conservative figure: the bound of a sum is below the sum of the bounds). The forecast is
+    company-wide, so with a warehouse filter it is left out rather than guessed."""
+    empty = {"points": [], "variants": 0, "seed_assisted": 0}
+    if forecast is None:
+        return {**empty, "reason": "no_forecast"}
+    if f.warehouse_id is not None:
+        return {**empty, "reason": "company_wide_only"}
+    try:
+        bands = forecast.daily_bands() if hasattr(forecast, "daily_bands") else {v: (m, None, False) for v, m in forecast.daily_means().items()}
+    except Exception:
+        return {**empty, "reason": "no_forecast"}
+    scope = variant_scope(conn, f)
+    use = {v: b for v, b in bands.items() if v in scope}
+    if not use:
+        return {**empty, "reason": "no_forecast"}
+    mean = sum((Decimal(str(b[0])) for b in use.values()), ZERO)
+    upper = sum((max(Decimal(str(b[1] if b[1] is not None else b[0])), Decimal(str(b[0]))) for b in use.values()), ZERO)       # never below the mean
+    pts = [{"day": (today + timedelta(days=i)).isoformat(), "mean": str(mean.quantize(Decimal("0.01"))), "upper": str(upper.quantize(Decimal("0.01"))), "kind": "forecast"}
+           for i in range(1, days + 1)]
+    return {"points": pts, "variants": len(use), "seed_assisted": sum(1 for b in use.values() if b[2]), "reason": None}
 
 
 def filter_options(conn: Connection) -> dict[str, Any]:

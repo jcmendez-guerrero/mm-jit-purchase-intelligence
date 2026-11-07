@@ -23,14 +23,25 @@ test.describe("Dashboard (T124)", () => {
     await expect(page.getByText("Solo ventas reales del ERP")).toBeVisible();
   });
 
+  test("the trend chart shows the forecast and its uncertainty apart from actual demand", async ({ page }) => {
+    await page.unroute("**/api/dashboard/overview*");
+    const base = overview();
+    const estimated = Array.from({ length: 28 }, (_, i) => ({ day: `2026-11-${String(10 + (i % 18)).padStart(2, "0")}`, mean: "3.50", upper: "5.00", kind: "forecast" }));
+    await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json({ ...base, trend: { ok: true, data: { ...base.trend.data, estimated, estimated_basis: { variants: 12, seed_assisted: 2, reason: null, upper_level: "0.95" } } } })));
+    await page.goto("/");
+    await expect(page.getByText(/Previsión para los próximos 28 días/)).toBeVisible();
+    await expect(page.getByText("Previsión (no son ventas reales)")).toBeVisible();                 // the legend names the forecast apart from real sales
+    await expect(page.getByText(/2 de ellos apoyan su previsión en datos importados/)).toBeVisible();
+  });
+
   test("a chart can be read as a table with the keyboard", async ({ page }) => {
     await page.goto("/");
     const toggle = page.getByRole("button", { name: "Ver como tabla" }).first();
     await toggle.focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("table", { name: "Demanda diaria real" })).toBeVisible();
+    await expect(page.getByRole("table", { name: "Demanda diaria real y previsión" })).toBeVisible();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("table", { name: "Demanda diaria real" })).toHaveCount(0);
+    await expect(page.getByRole("table", { name: "Demanda diaria real y previsión" })).toHaveCount(0);
   });
 
   test("the product detail says when the forecast rests on imported estimates", async ({ page }) => {

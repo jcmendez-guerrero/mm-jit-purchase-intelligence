@@ -607,7 +607,7 @@
   "dashboard.kpi.stockout": "Variantes con riesgo de rotura",
   "dashboard.kpi.expiring": "Valor que caduca en 60 días",
   "dashboard.kpi.expiry_count": "{{n}} lotes en riesgo de caducidad",
-  "dashboard.chart.trend": "Demanda diaria real",
+  "dashboard.chart.trend": "Demanda diaria real y previsión",
   "dashboard.chart.trend_summary": "{{total}} unidades en {{days}} días; máximo {{max}} el {{day}}.",
   "dashboard.chart.trend_empty": "No hay demanda en el periodo seleccionado.",
   "dashboard.chart.trend_note": "Solo ventas reales del ERP. Los datos importados se muestran por separado.",
@@ -842,5 +842,16 @@
   "scenarios.group.utilisation_none": "Uso del presupuesto: sin presupuesto fijado",
   "proposals.badge.estimate": "· previsión con datos importados",
   "proposals.why.estimate": "Esta previsión se apoya en datos importados (estimaciones del historial anterior al ERP), no solo en ventas reales del ERP. La cantidad es la calculada; esta nota solo indica su origen.",
-  "dashboard.detail.estimate_based": "Previsión con datos importados: parte del historial son estimaciones, no ventas reales del ERP."
+  "dashboard.detail.estimate_based": "Previsión con datos importados: parte del historial son estimaciones, no ventas reales del ERP.",
+  "dashboard.chart.col.forecast": "Previsión (media)",
+  "dashboard.chart.col.upper": "Previsión (límite superior)",
+  "dashboard.chart.col.actual": "Unidades reales",
+  "dashboard.chart.forecast_summary": "Previsión para los próximos {{days}} días: {{mean}} unidades al día de media y hasta {{upper}} con un 95 % de probabilidad.",
+  "dashboard.chart.legend_actual": "Ventas reales del ERP",
+  "dashboard.chart.legend_forecast": "Previsión (no son ventas reales)",
+  "dashboard.chart.legend_band": "Margen de incertidumbre hasta el 95 %",
+  "dashboard.chart.forecast_basis": "Previsión de {{variants}} productos previsibles; el límite superior suma los límites de cada producto, por lo que es prudente.",
+  "dashboard.chart.forecast_seeded": "{{n}} de ellos apoyan su previsión en datos importados (estimaciones), no solo en ventas reales.",
+  "dashboard.chart.forecast_none": "No hay previsión disponible: se muestran solo las ventas reales del ERP.",
+  "dashboard.chart.forecast_company_wide": "La previsión es global de la empresa: quite el filtro de almacén para verla junto a las ventas reales."
 }

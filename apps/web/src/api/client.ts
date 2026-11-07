@@ -503,7 +503,8 @@ export interface DashTrend {
   from: string;
   to: string;
   series: Array<{ day: string; actual: number; censored_rows: number; kind: string }>;
-  estimated: unknown[];
+  estimated: Array<{ day: string; mean: string; upper: string; kind: string }>;
+  estimated_basis?: { variants: number; seed_assisted: number; reason: "no_forecast" | "company_wide_only" | null; upper_level: string };
 }
 
 export interface DashOverview {

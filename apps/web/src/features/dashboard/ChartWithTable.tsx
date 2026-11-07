@@ -44,9 +44,11 @@ export const ChartWithTable: React.FC<Props> = ({ title, summary, columns, rows,
                   ))}
                   {rowAction && (
                     <td>
-                      <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={rowAction(i).onClick}>
-                        {rowAction(i).label}
-                      </button>
+                      {rowAction(i).label !== "" && (
+                        <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={rowAction(i).onClick}>
+                          {rowAction(i).label}
+                        </button>
+                      )}
                     </td>
                   )}
                 </tr>
