@@ -152,6 +152,8 @@ def build_router(app: FastAPI) -> APIRouter:
 
     @router.get("/{dataset_id}/quarantine")
     def quarantine(dataset_id: str, format: str = Query(default="json", pattern="^(json|csv|xlsx)$"), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> Any:
+        if conn.execute(select(seed_datasets.c.id).where(seed_datasets.c.id == dataset_id)).first() is None:
+            raise HTTPException(404, "import_unknown_dataset")
         rows = lc.quarantine_list(conn, dataset_id)
         if format == "json":
             return {"rows": rows}

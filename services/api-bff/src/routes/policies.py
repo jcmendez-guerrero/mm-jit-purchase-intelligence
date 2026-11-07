@@ -115,7 +115,7 @@ async def reject_override(rid: str, session: SessionData = Depends(require_roles
 
 
 @router.post("/policy-overrides/{rid}/revert")
-async def revert_override(rid: str, session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
+async def revert_override(rid: str, session: SessionData = Depends(require_roles("buyer", "approver")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
     return await proc.forward("POST", f"/policy-overrides/{rid}/revert", json={}, user_id=session.user_id, roles=session.roles)
 
 
