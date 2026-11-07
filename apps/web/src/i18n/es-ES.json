@@ -733,5 +733,7 @@
   "scenarios.export_xlsx": "Exportar Excel",
   "scenarios.read_only": "Solo lectura: crear escenarios requiere el rol de comprador.",
   "common.date": "Fecha",
-  "scenarios.col.delta": "Diferencia de coste"
+  "scenarios.col.delta": "Diferencia de coste",
+  "errors.import_unknown_job": "La tarea de importación no existe.",
+  "errors.import_job_not_rerunnable": "Solo se puede repetir una tarea de importación fallida."
 }

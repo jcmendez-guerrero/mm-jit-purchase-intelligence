@@ -18,7 +18,7 @@ from seeds import mapping as mp
 from seeds import template as tpl
 from seeds.dryrun import dry_run
 from seeds.files import LocalSeedStore
-from seeds.jobs import SYNC_ROWS, enqueue_validation
+from seeds.jobs import SYNC_ROWS, enqueue_validation, rerun_job
 from seeds.jobs import list_jobs as job_list
 from seeds.storage import SeedFileError
 from sqlalchemy import create_engine, select
@@ -27,7 +27,7 @@ from upload_settings import load_limits
 
 _engine: Engine | None = None
 HTTP = {"import_file_too_large": 413, "import_decompression_limit": 413, "import_too_many_rows": 413, "import_type_not_allowed": 415, "import_mixed_origin": 409,
-        "import_duplicate_file": 409, "import_dataset_state": 409, "import_nothing_to_activate": 409, "import_unknown_dataset": 404, "import_missing_column": 422,
+        "import_duplicate_file": 409, "import_dataset_state": 409, "import_nothing_to_activate": 409, "import_unknown_dataset": 404, "import_unknown_job": 404, "import_job_not_rerunnable": 409, "import_missing_column": 422,
         "import_mapping_name_taken": 409}
 
 
@@ -118,6 +118,13 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.get("/jobs")
     def jobs(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         return {"jobs": job_list(conn), "background_over_rows": SYNC_ROWS}
+
+    @router.post("/jobs/{job_id}/rerun", status_code=202)
+    def rerun(job_id: str, conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:
+        try:
+            return rerun_job(conn, job_id, principal.subject)
+        except lc.LifecycleError as exc:
+            raise refuse(exc) from exc
 
     @router.post("/{dataset_id}/validate")
     def validate(dataset_id: str, body: ValidateBody, response: Response, conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:

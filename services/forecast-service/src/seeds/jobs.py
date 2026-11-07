@@ -12,6 +12,7 @@ from collections.abc import Collection
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from audit import append
 from db.tables import import_jobs, seed_datasets
 from sqlalchemy import select, update
 from sqlalchemy.engine import Connection, Engine
@@ -34,6 +35,22 @@ def enqueue_validation(conn: Connection, dataset_id: str, column_map: dict[str, 
     conn.execute(import_jobs.insert().values(id=jid, dataset_id=dataset_id, stage=STAGE, state="queued", queued_at=now, requested_by=actor,
                                              params={"column_map": column_map, "mapping_id": mapping_id}))
     return {"job_id": jid, "state": "queued", "reused": False}
+
+
+def rerun_job(conn: Connection, job_id: str, actor: str, now: datetime | None = None) -> dict[str, Any]:
+    """Queue a failed validation job again with the inputs it had. Idempotent: a live job for the dataset is reused, nothing is duplicated."""
+    job = conn.execute(select(import_jobs).where(import_jobs.c.id == job_id)).first()
+    if job is None:
+        raise LifecycleError("import_unknown_job")
+    if job.state in ("queued", "running"):
+        return {"job_id": job.id, "state": job.state, "reused": True}
+    if job.state != "failed" or job.stage != STAGE:
+        raise LifecycleError("import_job_not_rerunnable")
+    p = job.params or {}
+    res = enqueue_validation(conn, job.dataset_id, p.get("column_map", {}), actor, mapping_id=p.get("mapping_id"), now=now)
+    if not res["reused"]:
+        append(conn, actor, "import.job_rerun", "import_job", res["job_id"], before={"previous_job": job.id, "error_key": job.error_key})
+    return res
 
 
 def process_queued(engine: Engine, store: BlobStore, known_variants: Collection[int], limits: ParseLimits, now: datetime | None = None) -> dict[str, int]:

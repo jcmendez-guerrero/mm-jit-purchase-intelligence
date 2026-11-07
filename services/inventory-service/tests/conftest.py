@@ -75,7 +75,7 @@ class _Validator:
     def validate(self, token, required_roles=()):
         from mmi_common.auth import AuthError, Principal
 
-        roles = {"viewer", "buyer"} if token == "buyer" else {"viewer"}  # noqa: S105 - test token name, not a secret
+        roles = {"viewer", "buyer"} if token == "buyer" else {"viewer", "admin"} if token == "admin" else {"viewer"}  # noqa: S105 - test token name, not a secret
         if not set(required_roles) <= roles:
             raise AuthError("forbidden", 403)
         return Principal(subject=f"user-{token}", roles=frozenset(roles), auth_time=None)

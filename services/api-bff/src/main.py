@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from mmi_common.service import create_service_app
 from routes.admin_roles import router as admin_roles_router
+from routes.admin_status import router as admin_status_router
 from routes.api import router as api_router
 from routes.costs import router as costs_router
 from routes.dashboard import router as dashboard_router
@@ -74,4 +75,5 @@ app.include_router(policies_router, prefix="/api")
 app.include_router(imports_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 app.include_router(scenarios_router, prefix="/api")
+app.include_router(admin_status_router, prefix="/api")
 app.include_router(admin_roles_router, prefix="/api")

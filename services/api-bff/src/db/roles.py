@@ -132,6 +132,11 @@ class RoleStore:
         with self.engine.begin() as conn:
             append_audit(conn, actor, action, "access" if action == "access.refused" else "user_roles", subject[:60], before=before, after=after, now=now)
 
+    def record_action(self, actor: str, action: str, subject: str, after: Any = None, now: datetime | None = None) -> None:
+        """An admin operation that is not a role change (a job re-run), in the same hash-chained log."""
+        with self.engine.begin() as conn:
+            append_audit(conn, actor, action, "admin_action", subject[:60], after=after, now=now)
+
     def audit_view(self, limit: int | None = None) -> list[dict[str, Any]]:
         with self.engine.connect() as conn:
             rows = conn.execute(select(audit_events).order_by(audit_events.c.id)).all()

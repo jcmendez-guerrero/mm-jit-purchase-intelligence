@@ -44,7 +44,7 @@
     "policy_out_of_range": {
       "http": 422,
       "kind": "request",
-      "meaning": "Service level outside 0\u2013100 or max below min"
+      "meaning": "Service level outside 0–100 or max below min"
     },
     "import_file_too_large": {
       "http": 413,
@@ -445,6 +445,16 @@
       "http": 422,
       "kind": "request",
       "meaning": "An Idempotency-Key header is required"
+    },
+    "import_unknown_job": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The import job does not exist"
+    },
+    "import_job_not_rerunnable": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Only a failed import job can be re-run"
     }
   }
 }

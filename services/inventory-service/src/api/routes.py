@@ -178,8 +178,10 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
     from api.dashboard import build_dashboard_router
     from api.demand_rules import build_rules_router
     from api.lots import build_lots_router
+    from api.status import build_status_router
 
     router.include_router(build_dashboard_router(app, conn_dep))
     router.include_router(build_lots_router(app, conn_dep))
     router.include_router(build_rules_router(app, conn_dep))
+    router.include_router(build_status_router(app, conn_dep))
     return router

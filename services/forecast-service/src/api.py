@@ -7,6 +7,7 @@ from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime
 from typing import Any
 
+from audit import append
 from db.tables import forecast_runs, forecast_values
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse
@@ -92,12 +93,17 @@ def build_router(app: FastAPI) -> APIRouter:
         return {"key": key, "revision": rev}
 
     @router.post("/runs", status_code=202)
-    def request_run(principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
-        """Re-forecast on request. Unchanged inputs and parameters reuse the existing run (nothing is duplicated)."""
+    def request_run(engine: Engine = Depends(get_engine), principal: Any = Depends(require())) -> dict[str, Any]:
+        """Re-forecast on request (buyers and admins). Unchanged inputs and parameters reuse the existing run (nothing is duplicated)."""
+        if not ({"buyer", "admin"} & set(principal.roles)):
+            raise HTTPException(403, "auth_forbidden_role")
         source, writer = getattr(app.state, "series_source", None), getattr(app.state, "blob_writer", None)
         if source is None or writer is None:
             raise HTTPException(503, "not_configured")
-        res = run_forecast(get_engine(), source, writer)
+        res = run_forecast(engine, source, writer)
+        if "admin" in principal.roles:
+            with engine.begin() as conn:
+                append(conn, principal.subject, "forecast.rerun", "forecast_run", res.run_id, after={"reused": res.reused})
         return {"run_id": res.run_id, "reused": res.reused, "eligible": res.eligible}
 
     return router
