@@ -369,3 +369,7 @@
 
 - [X] T178 Show a product's forecast with uncertainty and its risk reasons in the product detail: extend forecast-service's per-variant read (`GET /forecasts/variant/{id}`) to return the daily mean and the upper bound per horizon (never the imported rows), return the product's own risk entries from the inventory risk data, forward both through the BFF, and render them in apps/web/src/features/dashboard/ProductDetail.tsx as a labelled forecast block (clearly apart from the actual-demand table, with the imported-estimates note) and a list of Spanish risk reasons, with tests in services/forecast-service/tests/, services/inventory-service/tests/, services/api-bff/tests/ and apps/web/tests/ per US2/AC4 (partial)
 - [X] T179 Label the warehouse view as informational: when a warehouse is selected, show in Spanish that the company-wide proposal is the canonical one and that the proposed spend and the forecast do not change with the warehouse filter, with a unit test and a browser test in apps/web/tests/ and es-ES strings in apps/web/src/i18n/es-ES.json per US2/AC6 (partial)
+
+## Phase 17: Convergence
+
+- [ ] T180 Offer the Excel export of a proposal next to the CSV one: add a `proposals.export_xlsx` es-ES label and a download link for `/api/proposals/{id}/export?format=xlsx` in apps/web/src/features/proposals/ProposalsScreen.tsx, with a unit test in apps/web/tests/unit/ProposalsScreen.test.tsx and a browser test that the file downloads per FR-032 and US6/AC5 (partial)
