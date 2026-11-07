@@ -37,7 +37,7 @@ def get_procurement_client() -> ProcurementClient:
 
 class DevLoginBody(BaseModel):
     user_id: str = "buyer-1"
-    email: str = "buyer1@mundomascotix.es"
+    email: str = "buyer1@example.invalid"
     roles: list[str] = Field(default_factory=lambda: ["viewer", "buyer"])
 
 
