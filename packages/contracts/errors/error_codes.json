@@ -455,6 +455,11 @@
       "http": 409,
       "kind": "request",
       "meaning": "Only a failed import job can be re-run"
+    },
+    "import_failed": {
+      "http": 500,
+      "kind": "request",
+      "meaning": "A background import failed unexpectedly"
     }
   }
 }

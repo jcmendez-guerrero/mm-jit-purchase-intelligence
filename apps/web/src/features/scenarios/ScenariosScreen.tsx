@@ -95,7 +95,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
       {!editable && <p>{t("scenarios.read_only")}</p>}
 
       {editable && (
-        <form onSubmit={(e) => { e.preventDefault(); void compute(); }} aria-label={t("scenarios.new")}>
+        <form className="mmi-card" style={{ marginBottom: "1rem" }} onSubmit={(e) => { e.preventDefault(); void compute(); }} aria-label={t("scenarios.new")}>
           <h3>{t("scenarios.new")}</h3>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
             <Field id="sc-name" label={t("scenarios.name")} value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
@@ -107,7 +107,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
           {suppliers.map((sp) => {
             const cur = form.suppliers[sp.id] ?? emptySupplier();
             return (
-              <fieldset key={sp.id}>
+              <fieldset key={sp.id} style={{ marginBottom: "0.75rem" }}>
                 <legend>{sp.name}</legend>
                 <label>
                   <input type="checkbox" checked={cur.disabled} onChange={(e) => setSupplier(sp.id, { disabled: e.target.checked })} /> {t("scenarios.supplier.disabled")}
@@ -121,13 +121,13 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
               </fieldset>
             );
           })}
-          <button type="submit" disabled={busy}>{busy ? t("scenarios.computing") : t("scenarios.compute")}</button>
+          <button type="submit" className="mmi-btn mmi-btn-primary" disabled={busy}>{busy ? t("scenarios.computing") : t("scenarios.compute")}</button>
         </form>
       )}
 
       <h3>{t("scenarios.list")}</h3>
       {list.length === 0 ? <p>{t("scenarios.list_empty")}</p> : (
-        <table>
+        <div className="mmi-table-wrapper"><table className="mmi-table">
           <thead><tr><th>{t("scenarios.name")}</th><th>{t("common.status")}</th><th>{t("scenarios.col.delta")}</th><th>{t("common.date")}</th><th /></tr></thead>
           <tbody>
             {list.map((r) => (
@@ -136,28 +136,28 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
                 <td>{t(`scenarios.status.${r.status}`)}</td>
                 <td>{r.delta_total === null ? "—" : formatCurrencyEUR(r.delta_total)}</td>
                 <td>{formatDateTime(r.created_at)}</td>
-                <td><button type="button" onClick={() => void open(r.id)} aria-label={`${t("scenarios.open")} ${r.name}`}>{t("scenarios.open")}</button></td>
+                <td><button type="button" className="mmi-btn" onClick={() => void open(r.id)} aria-label={`${t("scenarios.open")} ${r.name}`}>{t("scenarios.open")}</button></td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {detail && s && (
-        <article aria-label={detail.name}>
+        <article aria-label={detail.name} className="mmi-card" style={{ marginTop: "1rem" }}>
           <h3>{detail.name} — {t(`scenarios.status.${detail.status}`)}</h3>
           <h4>{t("scenarios.compare")}</h4>
-          <table>
+          <div className="mmi-table-wrapper"><table className="mmi-table">
             <thead><tr><th>{t("scenarios.col.metric")}</th><th>{t("scenarios.col.baseline")}</th><th>{t("scenarios.col.scenario")}</th></tr></thead>
             <tbody>
               <tr><th scope="row">{t("scenarios.metric.total")}</th><td>{formatCurrencyEUR(s.baseline.total)}</td><td>{formatCurrencyEUR(s.scenario.total)}</td></tr>
               <tr><th scope="row">{t("scenarios.metric.over")}</th><td>{formatCurrencyEUR(s.baseline.over_budget)}</td><td>{formatCurrencyEUR(s.scenario.over_budget)}</td></tr>
               <tr><th scope="row">{t("scenarios.metric.lines")}</th><td>{s.baseline.lines}</td><td>{s.scenario.lines}</td></tr>
               {s.scenario.utilisation !== null && (
-                <tr><th scope="row">{t("scenarios.col.utilisation")}</th><td>—</td><td>{formatPercent(Number(s.scenario.utilisation) * 100)}</td></tr>
+                <tr><th scope="row">{t("scenarios.col.utilisation")}</th><td>—</td><td>{formatPercent(s.scenario.utilisation)}</td></tr>
               )}
             </tbody>
-          </table>
+          </table></div>
           <p><strong>{t("scenarios.delta", { value: formatCurrencyEUR(s.delta_total) })}</strong></p>
           {s.infeasible && (
             <div role="alert">
@@ -201,7 +201,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
           )}
 
           <h4>{t("scenarios.col.supplier")}</h4>
-          <table>
+          <div className="mmi-table-wrapper"><table className="mmi-table">
             <thead><tr><th>{t("scenarios.col.supplier")}</th><th>{t("scenarios.col.total")}</th><th>{t("scenarios.col.delivery")}</th><th>{t("scenarios.col.utilisation")}</th></tr></thead>
             <tbody>
               {detail.results.map((r) => (
@@ -209,14 +209,14 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
                   <td>{r.supplier_name ?? supplierName(r.supplier_id)}</td>
                   <td>{formatCurrencyEUR(r.order_total)}</td>
                   <td>{r.expected_delivery ? formatDateTime(r.expected_delivery) : "—"}</td>
-                  <td>{r.budget_utilisation === null ? "—" : formatPercent(Number(r.budget_utilisation) * 100)}</td>
+                  <td>{r.budget_utilisation === null ? "—" : formatPercent(r.budget_utilisation)}</td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
 
           <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.75rem" }}>
-            {editable && detail.status === "ready" && <button type="button" onClick={() => void promote()}>{t("scenarios.promote")}</button>}
+            {editable && detail.status === "ready" && <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void promote()}>{t("scenarios.promote")}</button>}
             <a href={`/api/scenarios/${detail.id}/export?format=csv`}>{t("scenarios.export_csv")}</a>
             <a href={`/api/scenarios/${detail.id}/export?format=xlsx`}>{t("scenarios.export_xlsx")}</a>
           </div>

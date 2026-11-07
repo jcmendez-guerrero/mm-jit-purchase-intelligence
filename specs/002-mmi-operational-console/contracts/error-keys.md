@@ -78,6 +78,7 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | import_ambiguous_time | 422 | The local time is ambiguous because of the clock change |
 | import_dataset_state | 409 | The dataset is not in a state that allows this |
 | import_unknown_dataset | 404 | The dataset does not exist |
+| import_failed | 500 | A background import failed unexpectedly |
 | import_unknown_job | 404 | The import job does not exist |
 | import_job_not_rerunnable | 409 | Only a failed import job can be re-run |
 | import_nothing_to_activate | 409 | The dataset has no accepted rows |

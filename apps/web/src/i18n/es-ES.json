@@ -776,5 +776,13 @@
   "admin.status.cost": "Coste y límites",
   "admin.status.cost_text": "Estimación mensual: {{estimate}} de {{budget}} compartidos ({{share}}).",
   "admin.status.cost_unknown": "La estimación mensual se anota en el documento de arquitectura; aquí se muestran los límites que se comprueban automáticamente.",
-  "admin.status.guardrails": "Réplicas mínimas: {{min}} · Réplicas máximas: {{max}} · Tareas en paralelo: {{par}}"
+  "admin.status.guardrails": "Réplicas mínimas: {{min}} · Réplicas máximas: {{max}} · Tareas en paralelo: {{par}}",
+  "admin.status.run.status.completed": "Completada",
+  "admin.status.run.status.failed": "Con error",
+  "admin.status.run.status.running": "En curso",
+  "admin.status.policy.status.pending": "Pendiente",
+  "admin.status.policy.status.approved": "Aprobado",
+  "admin.status.policy.status.rejected": "Rechazado",
+  "admin.status.policy.status.reverted": "Revertido",
+  "errors.import_failed": "La importación falló de forma inesperada. Puede repetirla; si vuelve a fallar, revise el archivo."
 }

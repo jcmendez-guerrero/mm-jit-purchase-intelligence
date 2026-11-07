@@ -7,7 +7,7 @@ import { canRerunJob, freshness, spendShare } from "./statusModel";
 function Card<T>({ title, card, children }: { title: string; card: StatusCard<T>; children: (data: T) => React.ReactNode }) {
   const { t } = useTranslation();
   return (
-    <section aria-label={title}>
+    <section aria-label={title} className="mmi-card" style={{ marginBottom: "1rem" }}>
       <h4>{title}</h4>
       {card.ok ? children(card.data) : <p role="status">{t("admin.status.unavailable")}</p>}
     </section>
@@ -47,14 +47,14 @@ export const AdminStatusScreen: React.FC = () => {
   const now = new Date();
   const c = status.cost;
   return (
-    <section aria-labelledby="admin-status-title">
-      <h3 id="admin-status-title">{t("admin.status.title")} <button type="button" onClick={() => void load()}>{t("admin.status.refresh")}</button></h3>
+    <section aria-labelledby="admin-status-title" style={{ marginBottom: "1.5rem" }}>
+      <h3 id="admin-status-title">{t("admin.status.title")} <button type="button" className="mmi-btn" onClick={() => void load()}>{t("admin.status.refresh")}</button></h3>
       {error && <p role="alert" className="mmi-error">{error}</p>}
       {notice && <p role="status">{notice}</p>}
 
       <Card title={t("admin.status.freshness")} card={status.freshness}>
         {(f) => (
-          <table>
+          <div className="mmi-table-wrapper"><table className="mmi-table">
             <thead><tr><th>{t("admin.status.source")}</th><th>{t("admin.status.last")}</th><th>{t("admin.status.rows")}</th><th>{t("admin.status.quarantined")}</th><th>{t("common.status")}</th></tr></thead>
             <tbody>
               {[
@@ -71,13 +71,13 @@ export const AdminStatusScreen: React.FC = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
 
       <Card title={t("admin.status.jobs")} card={status.import_jobs}>
         {(d) => d.jobs.length === 0 ? <p>{t("admin.status.jobs_empty")}</p> : (
-          <table>
+          <div className="mmi-table-wrapper"><table className="mmi-table">
             <thead><tr><th>{t("admin.status.job.dataset")}</th><th>{t("admin.status.job.state")}</th><th>{t("admin.status.job.error")}</th><th /></tr></thead>
             <tbody>
               {d.jobs.map((j) => (
@@ -85,11 +85,11 @@ export const AdminStatusScreen: React.FC = () => {
                   <td>{j.name} (v{j.version})</td>
                   <td>{t(`admin.status.job.state.${j.state}`)}</td>
                   <td>{j.error_key ? t(`errors.${j.error_key}`, { defaultValue: j.error_key }) : "—"}</td>
-                  <td>{canRerunJob(j.state) && <button type="button" onClick={() => void act(() => api.rerunImportJob(j.id))} aria-label={`${t("admin.status.rerun")} ${j.name}`}>{t("admin.status.rerun")}</button>}</td>
+                  <td>{canRerunJob(j.state) && <button type="button" className="mmi-btn" onClick={() => void act(() => api.rerunImportJob(j.id))} aria-label={`${t("admin.status.rerun")} ${j.name}`}>{t("admin.status.rerun")}</button>}</td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
 
@@ -97,26 +97,26 @@ export const AdminStatusScreen: React.FC = () => {
         {(d) => (
           <>
             {d.runs.length === 0 ? <p>{t("admin.status.runs_empty")}</p> : (
-              <table>
+              <div className="mmi-table-wrapper"><table className="mmi-table">
                 <thead><tr><th>{t("common.date")}</th><th>{t("common.status")}</th><th>{t("admin.status.run.through")}</th><th>{t("admin.status.run.eligible")}</th><th>{t("admin.status.run.dataset")}</th></tr></thead>
                 <tbody>
                   {d.runs.map((r) => (
-                    <tr key={r.id}><td>{formatDateTime(r.started_at)}</td><td>{r.status}</td><td>{formatDate(r.through_day)}</td><td>{r.eligible} / {r.total}</td><td>{r.dataset_version_id ? r.dataset_version_id.slice(0, 8) : "—"}</td></tr>
+                    <tr key={r.id}><td>{formatDateTime(r.started_at)}</td><td>{t(`admin.status.run.status.${r.status}`, { defaultValue: r.status })}</td><td>{formatDate(r.through_day)}</td><td>{r.eligible} / {r.total}</td><td>{r.dataset_version_id ? r.dataset_version_id.slice(0, 8) : "—"}</td></tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
-            <button type="button" onClick={() => void act(() => api.rerunForecast())}>{t("admin.status.rerun_forecast")}</button>
+            <button type="button" className="mmi-btn" onClick={() => void act(() => api.rerunForecast())}>{t("admin.status.rerun_forecast")}</button>
           </>
         )}
       </Card>
 
       <Card title={t("admin.status.policy")} card={status.policy_history}>
         {(rows) => rows.length === 0 ? <p>{t("admin.status.policy_empty")}</p> : (
-          <table>
+          <div className="mmi-table-wrapper"><table className="mmi-table">
             <thead><tr><th>{t("admin.status.policy.variant")}</th><th>{t("admin.status.policy.status")}</th></tr></thead>
-            <tbody>{rows.slice(0, 20).map((r) => <tr key={r.id}><td>{r.variant_id}</td><td>{r.status}</td></tr>)}</tbody>
-          </table>
+            <tbody>{rows.slice(0, 20).map((r) => <tr key={r.id}><td>{r.variant_id}</td><td>{t(`admin.status.policy.status.${r.status}`, { defaultValue: r.status })}</td></tr>)}</tbody>
+          </table></div>
         )}
       </Card>
 
@@ -124,10 +124,10 @@ export const AdminStatusScreen: React.FC = () => {
         {(m) => <p>{t("admin.status.mirror_text", { pending: m.pending, failed: m.failed, minutes: Math.ceil(m.oldest_pending_seconds / 60) })}</p>}
       </Card>
 
-      <section aria-label={t("admin.status.cost")}>
+      <section aria-label={t("admin.status.cost")} className="mmi-card" style={{ marginBottom: "1rem" }}>
         <h4>{t("admin.status.cost")}</h4>
         <p>{c.estimate_eur > 0
-          ? t("admin.status.cost_text", { estimate: formatCurrencyEUR(c.estimate_eur), budget: formatCurrencyEUR(c.budget_eur), share: formatPercent(spendShare(c.estimate_eur, c.budget_eur) * 100) })
+          ? t("admin.status.cost_text", { estimate: formatCurrencyEUR(c.estimate_eur), budget: formatCurrencyEUR(c.budget_eur), share: formatPercent(spendShare(c.estimate_eur, c.budget_eur)) })
           : t("admin.status.cost_unknown")}</p>
         <p>{t("admin.status.guardrails", { min: c.guardrails.min_replicas, max: c.guardrails.max_replicas, par: c.guardrails.job_parallelism })}</p>
       </section>

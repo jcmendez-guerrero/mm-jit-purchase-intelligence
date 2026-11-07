@@ -10,7 +10,7 @@ async function backend(page: Page, roles: string[], runsDown = false) {
   const state = { reruns: [] as string[], forecastReruns: 0 };
   await page.route("**/api/me", (r) => r.fulfill(json({ user_id: "admin-1", roles, mfa_auth_time: new Date().toISOString(), csrf_token: "csrf" })));
   await page.route("**/api/dashboard/risk*", (r) => r.fulfill(json([])));
-  await page.route("**/api/admin/roles*", (r) => r.fulfill(json({ users: [], eligible_approvers_count: 2, valid_roles: ["viewer", "buyer", "approver", "admin"], pending: 0, failed: 0, sent: 0, oldest_pending_seconds: 0, items: [] })));
+  await page.route("**/api/admin/roles**", (r) => r.fulfill(json({ users: [], eligible_approvers_count: 2, valid_roles: ["viewer", "buyer", "approver", "admin"], pending: 0, failed: 0, sent: 0, oldest_pending_seconds: 0, items: [] })));
   await page.route("**/api/admin/status", (r) => r.fulfill(json({
     freshness: { ok: true, data: { stock_snapshots: { latest_day: "2026-11-09", rows: 40 }, movements: { rows: 900, quarantined: 3, latest_at: old }, aggregates: { refreshed_at: recent } } },
     import_jobs: { ok: true, data: { jobs: [{ id: "5ba24d0e-5860-4dc0-baf2-caf0cb702742", dataset_id: "d1", version: 2, name: "Hoja sintética", rows: 12000, stage: "validate", state: "failed", queued_at: recent, started_at: recent, finished_at: recent, error_key: "import_failed", requested_by: "buyer-1" }] } },

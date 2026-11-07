@@ -301,7 +301,7 @@
 
 ## Phase 10: Polish and cross-cutting verification
 
-- [ ] T155 [P] Run the full Spanish Playwright suite and capture screenshots of every new screen as review evidence in apps/web/tests/e2e/ and docs/architecture/evidence/ (synthetic data only)
+- [X] T155 [P] Run the full Spanish Playwright suite and capture screenshots of every new screen as review evidence in apps/web/tests/e2e/ and docs/architecture/evidence/ (synthetic data only)
 - [X] T156 [P] Write security abuse suite (upload abuse, CSRF, RBAC bypass, MFA freshness, IDOR on datasets and scenarios, formula injection) in infra/tests/test_security_abuse.py
 - [X] T157 [P] Add runbooks: failed import, rollback of a dataset, role-mirror failure in docs/runbooks/
 - [X] T158 [P] Update quickstart with final commands and add a synthetic demo path in specs/002-mmi-operational-console/quickstart.md

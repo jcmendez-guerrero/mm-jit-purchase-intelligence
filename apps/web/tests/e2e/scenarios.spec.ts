@@ -57,6 +57,7 @@ test.describe("Purchasing scenarios (T141)", () => {
     await expect(page.getByText("Diferencia de coste: 100,00 €")).toBeVisible();
     await expect(page.getByText(/Variante 9001: Proveedor A \(12\) → Proveedor B \(12\) — proveedor desactivado/)).toBeVisible();
     await expect(page.getByText(/Pedido mínimo de Proveedor B \(completado para llegar\)/)).toBeVisible();
+    await expect(page.getByRole("row", { name: /Uso del presupuesto.*91,7\s?%/ }).first()).toBeVisible();      // a fraction from the service, shown as a percentage
     await page.click("button:has-text('Convertir en propuesta')");
     await expect(page.getByText(/Propuesta creada como borrador para la semana 2026-11-09/)).toBeVisible();
     expect(state.promoted).toBe(1);
