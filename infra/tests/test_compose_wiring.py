@@ -29,3 +29,10 @@ def test_every_service_that_calls_another_names_it_by_a_compose_service():
             if key.startswith("MMI_") and key.endswith("_URL") and value.startswith("http://") and "localhost" not in value:
                 host = value.split("//")[1].split(":")[0]
                 assert host in COMPOSE, f"{name}: {key} points at unknown service {host}"
+
+
+def test_the_api_and_the_worker_read_the_same_seed_folder_under_the_name_the_code_reads():
+    """Queued imports are validated by the worker from the originals the API stored; the variable must be MMI_SEED_ROOT."""
+    api, worker = env("forecast-service"), env("forecast-worker")
+    assert api["MMI_SEED_ROOT"] == worker["MMI_SEED_ROOT"] == "/data/seeds" and "MMI_SEED_BLOB_ROOT" not in api
+    assert "seeds" in {v.split(":")[0] for v in COMPOSE["forecast-worker"]["volumes"]}

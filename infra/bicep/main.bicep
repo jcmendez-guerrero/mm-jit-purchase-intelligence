@@ -84,3 +84,5 @@ module forecastJob 'modules/containerAppJob.bicep' = if (!empty(environmentId) &
 }
 
 output storageAccountId string = storage.outputs.accountId
+@description('Set as MMI_SEED_ACCOUNT_URL on forecast-service and its worker; without it production refuses to start the import API.')
+output seedAccountUrl string = storage.outputs.blobEndpoint

@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import os
 from collections.abc import Callable, Iterator
-from pathlib import Path
 from typing import Any
 
 from db.tables import seed_datasets
@@ -18,10 +17,10 @@ from seeds import lifecycle as lc
 from seeds import mapping as mp
 from seeds import template as tpl
 from seeds.dryrun import dry_run
-from seeds.files import LocalSeedStore
 from seeds.jobs import SYNC_ROWS, enqueue_validation, rerun_job
 from seeds.jobs import list_jobs as job_list
 from seeds.storage import SeedFileError
+from seeds.store import make_seed_store
 from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
 from upload_settings import load_limits
@@ -70,7 +69,7 @@ def build_router(app: FastAPI) -> APIRouter:
     def store() -> Any:
         s = getattr(app.state, "seed_store", None)
         if s is None:
-            s = app.state.seed_store = LocalSeedStore(Path(os.environ.get("MMI_SEED_ROOT", "/tmp/mmi-forecast-seeds")))  # noqa: S108 - local default only
+            s = app.state.seed_store = make_seed_store()
         return s
 
     def known_variants() -> tuple[set[int], list[dict[str, Any]]]:

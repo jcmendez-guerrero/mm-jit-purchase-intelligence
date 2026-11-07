@@ -27,8 +27,8 @@ log = logging.getLogger("forecast.worker")
 
 def process_imports(engine: Engine, source) -> dict[str, int]:  # type: ignore[no-untyped-def]
     """Validates queued seed files (large uploads). Skipped, and left queued, when inventory cannot say which variants exist."""
-    from seeds.files import LocalSeedStore
     from seeds.jobs import process_queued
+    from seeds.store import make_seed_store
     from upload_settings import load_limits
 
     try:
@@ -36,7 +36,7 @@ def process_imports(engine: Engine, source) -> dict[str, int]:  # type: ignore[n
     except Exception:
         log.warning("IMPORT_JOBS_DEFERRED: inventory unavailable")
         return {"processed": 0, "done": 0, "failed": 0, "deferred": 1}
-    store = LocalSeedStore(Path(os.environ.get("MMI_SEED_ROOT", "/tmp/mmi-forecast-seeds")))  # noqa: S108 - local default only
+    store = make_seed_store()
     return process_queued(engine, store, known, load_limits())
 
 

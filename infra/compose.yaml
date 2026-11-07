@@ -116,7 +116,7 @@ services:
       MMI_QUEUE_CONNECTION: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;QueueEndpoint=http://azurite:10001/devstoreaccount1;
       SIWEB_BASE_URL: http://siweb-mock:8089
       SIWEB_TOKEN: synthetic-test-token
-      MMI_SEED_BLOB_ROOT: /data/seeds          # local stand-in for the private seed-quarantine container
+      MMI_SEED_ROOT: /data/seeds          # local stand-in for the private seed-quarantine container
       MMI_INVENTORY_URL: http://inventory-service:8000   # series source for the import dry-run and the re-forecast on request
       MMI_BLOB_ROOT: /data/blobs
     volumes:
@@ -186,8 +186,10 @@ services:
       MMI_BLOB_ROOT: /data/blobs
       MMI_WORKER_LOOP_SECONDS: "10"
       MMI_INVENTORY_URL: http://inventory-service:8000
+      MMI_SEED_ROOT: /data/seeds
     volumes:
       - blobs:/data/blobs
+      - seeds:/data/seeds
     depends_on:
       postgres: { condition: service_healthy }
       azurite: { condition: service_started }

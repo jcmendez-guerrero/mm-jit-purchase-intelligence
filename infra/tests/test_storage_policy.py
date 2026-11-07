@@ -47,3 +47,11 @@ def test_only_forecast_service_is_wired_to_the_seed_container():
     main = (ROOT / "infra/bicep/main.bicep").read_text()
     assert "seedPrincipalIds: seedFilePrincipalIds" in main
     assert "rawWriterPrincipalIds: connectorPrincipalIds" in main      # the raw-payload wiring is untouched
+
+
+def test_the_seed_container_is_reachable_by_the_forecast_identity_only_and_its_endpoint_is_exported():
+    """T169: forecast-service gets Contributor on the seed container alone; main.bicep exports the endpoint for MMI_SEED_ACCOUNT_URL."""
+    access = re.search(r"resource seedAccess.*?\n\}\]", STORAGE, re.S)
+    assert access and "scope: seed" in access.group(0) and "blobDataContributor" in access.group(0) and "seedPrincipalIds" in access.group(0)
+    assert "output blobEndpoint" in STORAGE
+    assert "MMI_SEED_ACCOUNT_URL" in (ROOT / "infra/bicep/main.bicep").read_text()
