@@ -2,7 +2,7 @@
 
 :root {
   --color-primary: #016581; /* Azul petróleo */
-  --color-primary-light: #2f8198; /* Azul medio */
+  --color-primary-light: #2a778d; /* Azul medio (white text on it meets 4.5:1) */
   --color-primary-dark: #002028; /* Azul noche */
   --color-accent: #60abb8; /* Turquesa */
   --color-bg: #f2f8f9; /* Blanco hielo */

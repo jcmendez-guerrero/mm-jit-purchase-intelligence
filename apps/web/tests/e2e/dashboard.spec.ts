@@ -67,7 +67,7 @@ test.describe("Dashboard (T124)", () => {
   test("has no serious or critical accessibility violations", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByLabel("Valor del inventario")).toBeVisible();
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(["color-contrast"]).analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
     const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     expect(bad.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
   });
