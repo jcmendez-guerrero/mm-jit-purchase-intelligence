@@ -2,14 +2,24 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any, Protocol
 
 from approvals.workflow import ApprovalError, UserDirectory, decide, is_approval_valid, submit
-from costs.writes import WriteError, approve_write, cancel_write, list_visible, writer_view
-from db.tables import approvals, proposal_lines, proposals, supplier_order_groups
+from costs.margin import evaluate
+from costs.writes import (
+    WriteError,
+    approve_write,
+    awaiting_other_buyer,
+    cancel_write,
+    list_visible,
+    set_override,
+    writer_view,
+)
+from db.tables import approvals, product_refs, proposal_lines, proposals, supplier_order_groups, suppliers
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Response
 from mmi_common.errors import error_code
 from mmi_common.time import get_correlation_id, set_correlation_id
@@ -48,9 +58,18 @@ class OrderConfirmation(BaseModel):
     erp_purchase_ref: int | None = None
 
 
+USER_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.@:+-]{0,119}")
+
+
 class RolesBody(BaseModel):
-    roles: list[str]
+    roles: list[str] = Field(max_length=8)
     active: bool = True
+    revision: int | None = Field(default=None, ge=0)        # the BFF role revision; stale mirrors are ignored
+
+
+class OverrideBody(BaseModel):
+    value: Decimal = Field(ge=0, max_digits=14, decimal_places=4)
+    reason: str = Field(min_length=1, max_length=500)
 
 
 class WriteApproval(BaseModel):
@@ -83,15 +102,21 @@ def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
     groups = conn.execute(select(supplier_order_groups).where(supplier_order_groups.c.proposal_id == p.id).order_by(supplier_order_groups.c.supplier_id)).all()
     last = conn.execute(select(approvals).where(approvals.c.proposal_id == p.id).order_by(approvals.c.id.desc()).limit(1)).first()
     s = lambda v: str(Decimal(str(v)))  # noqa: E731
+    names = {r.variant_id: (r.sku, r.name) for r in conn.execute(select(product_refs.c.variant_id, product_refs.c.sku, product_refs.c.name)).all()}
+    supplier_names = {r.id: r.name for r in conn.execute(select(suppliers.c.id, suppliers.c.name)).all()}
     return {
         "id": p.id, "week": p.week, "status": p.status, "version": p.version, "created_by": p.created_by, "last_edited_by": p.last_edited_by,
         "inputs_hash": p.inputs_hash, "rule_versions": p.rule_versions, "solver_status": p.solver_status, "flags": p.flags,
         "approval": None if last is None else {"approver": last.approver_id, "decision": last.decision, "version": last.proposal_version, "valid": is_approval_valid(conn, p.id)},
         "lines": [{"id": r.id, "variant_id": r.variant_id, "product_id": r.product_id, "supplier_id": r.supplier_id, "qty": r.qty,
+                   "sku": names.get(r.variant_id, (None, None))[0], "product_name": names.get(r.variant_id, (None, None))[1],
+                   "supplier_name": supplier_names.get(r.supplier_id),
                    "unit_cost_with_recargo": s(r.unit_cost_with_recargo), "line_total": s(r.line_total), "forecast_or_policy": r.forecast_or_policy,
                    "safety_stock": r.safety_stock, "constraints_applied": r.constraints_applied, "risk": r.risk, "confidence": r.confidence,
                    "explanation": r.explanation, "alternatives_compared": r.alternatives_compared, "manual_override": r.manual_override, "topup": r.topup} for r in lines],
-        "supplier_groups": [{"supplier_id": g.supplier_id, "subtotal": s(g.subtotal), "delivery_charge": s(g.delivery_charge), "total_cost": s(g.total_cost),
+        "terms_version_ids": p.terms_version_ids, "policy_version_ids": p.policy_version_ids, "dataset_version_id": p.dataset_version_id, "forecast_run_id": p.forecast_run_id,
+        "supplier_groups": [{"supplier_id": g.supplier_id, "supplier_name": supplier_names.get(g.supplier_id), "subtotal": s(g.subtotal),
+                             "discount": s(g.discount), "delivery_charge": s(g.delivery_charge), "total_cost": s(g.total_cost),
                              "expected_delivery_date": g.expected_delivery_date.isoformat() if g.expected_delivery_date else None, "minimum_status": g.minimum_status,
                              "free_delivery": g.free_delivery, "shortfall_options": g.shortfall_options} for g in groups],
     }
@@ -204,10 +229,25 @@ def build_router(app: FastAPI) -> APIRouter:
         return {"order_id": res.order_id, "warnings": res.warnings,
                 "cost_writes": [{"id": w.request.id, "status": w.status, "warnings": w.warnings} for w in res.cost_writes if w.request is not None]}
 
+    def tips_for(r: Any) -> dict[str, Any] | None:
+        """Explanatory tips for the admin (FR-044): the cost that yields exactly 15 % and the cap, and the cap that applies."""
+        if r.pvp_used is None:
+            return None
+        ev = evaluate(Decimal(str(r.proposed_value)), None if r.previous_siweb_value is None else Decimal(str(r.previous_siweb_value)), Decimal(str(r.pvp_used)))
+        q = lambda v: str(v.quantize(Decimal("0.01")))  # noqa: E731
+        return {"cap": str(ev.cap), "cost_at_minimum": q(ev.cost_at_minimum), "cost_at_cap": q(ev.cost_at_cap)}  # type: ignore[arg-type]
+
     def write_json(r: Any) -> dict[str, Any]:
         return {"id": r.id, "cost_id": r.cost_id, "product_id": r.product_id, "supplier_id": r.supplier_id, "trigger": r.trigger,
                 "proposed_value": str(Decimal(str(r.proposed_value))), "previous_siweb_value": None if r.previous_siweb_value is None else str(Decimal(str(r.previous_siweb_value))),
-                "status": r.status, "attempts": r.attempts, "last_error": r.last_error}
+                "status": r.status, "attempts": r.attempts, "last_error": r.last_error,
+                "median_cost": None if r.median_cost is None else str(Decimal(str(r.median_cost)).quantize(Decimal("0.01"))), "lots": r.median_lot_refs or [],
+                "pvp_used": None if r.pvp_used is None else str(Decimal(str(r.pvp_used)).quantize(Decimal("0.01"))), "pvp_source": "variant_price", "pvp_age_days": r.pvp_age_days,
+                "margin_before": None if r.margin_before is None else str(Decimal(str(r.margin_before))),
+                "margin_after": None if r.margin_after is None else str(Decimal(str(r.margin_after))), "rule_flags": r.rule_flags or [],
+                "tips": tips_for(r), "override": None if r.override_value is None else {
+                    "value": str(Decimal(str(r.override_value)).quantize(Decimal("0.01"))), "reason": r.override_reason, "by": r.override_by,
+                    "at": r.override_at.isoformat() if r.override_at else None}}
 
     @router.get("/cost-writes")
     def cost_writes(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
@@ -220,8 +260,16 @@ def build_router(app: FastAPI) -> APIRouter:
         try:
             r = approve_write(conn, request_id, principal, writer, bool(body and body.acknowledge_variant_conflict))
         except WriteError as exc:
-            raise HTTPException(403 if exc.code in ("mfa_required", "not_a_buyer") else 409, exc.code) from exc
+            raise HTTPException(403 if exc.code in ("mfa_required", "not_a_buyer", "override_release_same_person") else 409, exc.code) from exc
         return write_json(r)
+
+    @router.post("/cost-writes/{request_id}/override")
+    def override_cost_write(request_id: str, body: OverrideBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("admin"))) -> dict[str, Any]:
+        try:
+            r = set_override(conn, request_id, principal, body.value, body.reason)
+        except WriteError as exc:
+            raise HTTPException(404 if exc.code == "unknown_request" else 409 if exc.code.startswith("cannot_") else 422, exc.code) from exc
+        return {**write_json(r), "awaiting_other_buyer": awaiting_other_buyer(conn, request_id)}
 
     @router.post("/cost-writes/{request_id}/cancel", status_code=204)
     def cancel(request_id: str, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> None:
@@ -239,10 +287,12 @@ def build_router(app: FastAPI) -> APIRouter:
 
     @router.put("/internal/users/{user_id}/roles")
     def mirror_roles(user_id: str, body: RolesBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("bff"))) -> dict[str, Any]:
+        if not USER_ID.fullmatch(user_id):
+            raise HTTPException(422, "invalid_user_id")
         try:
-            set_roles(conn, user_id, body.roles, principal.subject, body.active)
+            applied = set_roles(conn, user_id, body.roles, principal.subject, body.active, revision=body.revision)
         except DirectoryError as exc:
             raise HTTPException(422, "unknown_role") from exc
-        return {"user_id": user_id, "roles": sorted(set(body.roles)), "active": body.active}
+        return {"user_id": user_id, "roles": sorted(set(body.roles)), "active": body.active, "applied": applied}
 
     return router

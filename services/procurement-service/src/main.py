@@ -9,35 +9,38 @@ from decimal import Decimal
 from pathlib import Path
 
 from api.costs import build_router, get_engine
+from api.policies import build_router as build_policy_router
 from api.proposals import build_router as build_proposal_router
+from api.scenarios import build_router as build_scenario_router
+from api.summary import build_router as build_summary_router
 from mmi_common.service import create_service_app
 from mmi_common.servicetoken import service_token
 
 app = create_service_app("procurement-service")
 app.include_router(build_router(app))
 app.include_router(build_proposal_router(app))
+app.include_router(build_policy_router(app))
+app.include_router(build_summary_router(app))
+app.include_router(build_scenario_router(app))
 
 
 def configure() -> None:
     if not os.environ.get("MMI_DATABASE_URL"):
         return
+    from proposals.blob_store import FileWriter
     from proposals.inputs import HttpJsonSource, InputsProvider
     from users.directory import DbUserDirectory
 
-    class FileWriter:
-        def __init__(self, root: Path) -> None:
-            self.root = root
-
-        def put(self, name: str, data: bytes) -> str:
-            p = (self.root / name).resolve()
-            if self.root.resolve() not in p.parents:
-                raise ValueError("blob name escapes the store")
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_bytes(data)
-            return p.as_uri()
-
     app.state.user_directory = DbUserDirectory(get_engine())
     app.state.blob_writer = FileWriter(Path(os.environ.get("MMI_BLOB_ROOT", "/tmp/mmi-procurement")))  # noqa: S108 - local default only
+    if os.environ.get("MMI_INVENTORY_URL"):
+        from costs.lot_lookup import HttpLotsSource
+
+        lot_token = os.environ.get("MMI_UPSTREAM_TOKEN") or (lambda: service_token("api://mmi-inventory-service", "svc-procurement", ["viewer"]))
+        app.state.lots_source = HttpLotsSource(os.environ["MMI_INVENTORY_URL"], lot_token)
+        from costs.pvp import HttpPvpSource
+
+        app.state.pvp_source = HttpPvpSource(os.environ["MMI_INVENTORY_URL"], lot_token)
     if os.environ.get("MMI_INVENTORY_URL") and os.environ.get("MMI_FORECAST_URL"):
         static = os.environ.get("MMI_UPSTREAM_TOKEN")
 

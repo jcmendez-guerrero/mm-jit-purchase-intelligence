@@ -21,10 +21,12 @@ from sqlalchemy import delete, insert
 from sqlalchemy.engine import Connection, Engine
 
 from projections.apply import TOMBSTONE_AFTER_DEFAULT, apply_payload
+from projections.lot_costs import apply_lot_cost
 
 QUEUE = "inventory-in"
 SYNC = "siweb.sync.completed.v1"
 ORDER = "procurement.order.confirmed.v1"
+LOT_COST = "procurement.lot_cost.changed.v1"
 Stats = DispatchStats
 
 
@@ -61,7 +63,11 @@ class InventoryConsumer:
             occurred = datetime.fromisoformat(env["occurred_at"].replace("Z", "+00:00"))
             apply_order_confirmed(conn, json.loads(payload), occurred.astimezone(UTC))
 
-        return {SYNC: sync, ORDER: order}
+        def lot_cost(conn: Connection, env: dict[str, Any], payload: bytes) -> None:
+            occurred = datetime.fromisoformat(env["occurred_at"].replace("Z", "+00:00"))
+            apply_lot_cost(conn, json.loads(payload), occurred.astimezone(UTC))
+
+        return {SYNC: sync, ORDER: order, LOT_COST: lot_cost}
 
 
 def consume_once(engine: Engine, bus: MessageBus, blobs: BlobReader, queue: str = QUEUE, batch: int = 10, tombstone_after: int = TOMBSTONE_AFTER_DEFAULT,

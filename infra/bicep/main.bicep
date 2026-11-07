@@ -27,6 +27,8 @@ var queueNames = [
 param connectorPrincipalIds array = []
 @description('Managed identities that may only read raw payloads (inventory-service, procurement-service).')
 param payloadReaderPrincipalIds array = []
+@description('Managed identity of forecast-service, the only reader and writer of uploaded seed files.')
+param seedFilePrincipalIds array = []
 
 module storage 'modules/storage.bicep' = {
   name: 'storage'
@@ -36,6 +38,7 @@ module storage 'modules/storage.bicep' = {
     queueNames: queueNames
     rawWriterPrincipalIds: connectorPrincipalIds
     rawReaderPrincipalIds: payloadReaderPrincipalIds
+    seedPrincipalIds: seedFilePrincipalIds
   }
 }
 
@@ -81,3 +84,5 @@ module forecastJob 'modules/containerAppJob.bicep' = if (!empty(environmentId) &
 }
 
 output storageAccountId string = storage.outputs.accountId
+@description('Set as MMI_SEED_ACCOUNT_URL on forecast-service and its worker; without it production refuses to start the import API.')
+output seedAccountUrl string = storage.outputs.blobEndpoint

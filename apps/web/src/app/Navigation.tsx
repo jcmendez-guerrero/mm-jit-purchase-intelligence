@@ -16,9 +16,13 @@ export const Navigation: React.FC<Props> = ({ currentTab, onSelectTab, session, 
   const tabs = [
     { id: "dashboard", label: t("nav.dashboard") },
     { id: "quality", label: t("nav.quality") },
+    { id: "suppliers", label: t("nav.suppliers") },
     { id: "costs", label: t("nav.costs") },
     { id: "proposals", label: t("nav.proposals") },
+    { id: "scenarios", label: t("nav.scenarios") },
+    { id: "imports", label: t("nav.imports") },
     { id: "config", label: t("nav.config") },
+    ...((session?.roles ?? []).includes("admin") ? [{ id: "admin", label: t("nav.admin") }] : []),
   ];
 
   return (
@@ -54,7 +58,7 @@ export const Navigation: React.FC<Props> = ({ currentTab, onSelectTab, session, 
               <div className="mmi-user-chip">
                 <span>👤</span>
                 <span>{session.user_id}</span>
-                <span className="mmi-badge mmi-badge-petroleo" style={{ background: "rgba(255,255,255,0.2)", color: "#fff" }}>
+                <span className="mmi-badge mmi-badge-petroleo" style={{ background: "rgba(0,32,40,0.35)", color: "#fff" }}>
                   {(session.roles || []).join(", ")}
                 </span>
               </div>

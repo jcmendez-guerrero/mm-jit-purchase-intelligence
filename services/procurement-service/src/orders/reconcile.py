@@ -11,8 +11,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Any
 
+from costs.lot_costs import record_lot_cost
 from db.tables import inbound_order_lines, inbound_orders, receipt_matches
+from proposals.publisher import BlobWriter
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
 
@@ -35,6 +39,7 @@ class Receipt:
     variant_id: int
     qty: int
     reference: str | int | None = None
+    lot: str | None = None            # batch number on the receipt movement, when the ERP gave one
 
 
 @dataclass
@@ -43,9 +48,10 @@ class ReconcileResult:
     already_applied: int = 0
     unmatched: list[tuple[int, str]] = field(default_factory=list)     # (movement_id, reason)
     excess: list[tuple[int, int]] = field(default_factory=list)        # (movement_id, units beyond the order)
+    pairs: set[tuple[int, str]] = field(default_factory=set)           # (variant_id, supplier_id) newly received: their lot cost may have changed
 
 
-def reconcile_receipts(conn: Connection, receipts: list[Receipt], now: datetime | None = None) -> ReconcileResult:
+def reconcile_receipts(conn: Connection, receipts: list[Receipt], now: datetime | None = None, writer: BlobWriter | None = None) -> ReconcileResult:
     now = now or datetime.now(UTC)
     res = ReconcileResult()
     for r in sorted(receipts, key=lambda x: x.movement_id):
@@ -75,6 +81,9 @@ def reconcile_receipts(conn: Connection, receipts: list[Receipt], now: datetime 
             conn.execute(update(inbound_order_lines).where(inbound_order_lines.c.order_id == line.order_id, inbound_order_lines.c.variant_id == line.variant_id)
                          .values(received_qty=line.received_qty + take))
             first_order = first_order or line.order_id
+            if writer is not None:
+                _record_lot(conn, writer, line, r, take, now)
+                res.pairs.add((line.variant_id, _supplier_of(conn, line.order_id)))
             left -= take
             _refresh_status(conn, line.order_id)
             if left == 0:
@@ -91,3 +100,14 @@ def _refresh_status(conn: Connection, order_id: str) -> None:
     received = sum(x.received_qty for x in lines)
     status = "received" if all(x.received_qty >= x.qty for x in lines) else "partially_received" if received else "confirmed"
     conn.execute(update(inbound_orders).where(inbound_orders.c.id == order_id).values(status=status))
+
+
+def _supplier_of(conn: Connection, order_id: str) -> str:
+    return str(conn.execute(select(inbound_orders.c.supplier_id).where(inbound_orders.c.id == order_id)).scalar_one())
+
+
+def _record_lot(conn: Connection, writer: BlobWriter, line: Any, receipt: Receipt, qty: int, now: datetime) -> None:
+    """The confirmed order cost becomes the acquisition cost of the received lot (FR-040). Without a batch number the lot is the order."""
+    record_lot_cost(conn, writer, variant_id=line.variant_id, supplier_id=_supplier_of(conn, line.order_id), lot=receipt.lot or f"order-{line.order_id[:8]}",
+                    unit_cost=Decimal(str(line.confirmed_cost_with_recargo)), source="confirmed_order", actor="system:receipt-match", quantity=qty,
+                    order_ref=line.order_id, received_at=now, now=now)

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Protocol
@@ -20,12 +20,15 @@ from costs.resolve import resolve_cost
 from costs.rules import load_rules
 from db.tables import product_refs, supplier_costs, suppliers
 from orders.confirm import open_inbound
+from policies.overrides import effective_overrides
+from policies.service import effective_weekly_budget, resolve_policy
+from policies.stocking import MONTHLY_CHECK_DAYS, last_order_dates, stocking_map
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
-from terms.service import current_terms
+from terms.resolve import resolve_effective
+from terms.service import current_row, row_to_terms
 
 from proposals.model import (
-    DEFAULT_LEAD_DAYS,
     Forecast,
     HorizonForecast,
     Offer,
@@ -90,6 +93,9 @@ class InputsReport:
     variants: int = 0
     without_forecast: list[int] = field(default_factory=list)
     without_cost: list[int] = field(default_factory=list)
+    disabled_pairs: list[tuple[int, str]] = field(default_factory=list)      # (variant_id, supplier_id) removed by a manual disable
+    on_request: list[int] = field(default_factory=list)                      # stocking mode "on request": never proposed
+    always_stocked_unserved: list[int] = field(default_factory=list)         # always-stocked but no supplier can serve it: shown, not hidden
 
 
 @dataclass
@@ -110,13 +116,22 @@ class InputsProvider:
         names = {r.id for r in conn.execute(select(suppliers.c.id)).all()}
         report = InputsReport(variants=len(stock["variants"]))
         out: list[VariantInput] = []
+        stocking = stocking_map(conn)
+        overrides = effective_overrides(conn)
+        last_bought = last_order_dates(conn)
+        policy_versions: dict[str, Any] = {}
         used_suppliers: set[str] = set()
+        overrides_used: dict[str, dict[str, int]] = {}
         for v in stock["variants"]:
             vid, pid = int(v["variant_id"]), v.get("product_id")
             if pid is None:
                 continue
+            mode, floor = stocking.get(vid, ("standard", 0))
+            if mode == "on_request":
+                report.on_request.append(vid)
+                continue
             entry = fc["variants"].get(str(vid))
-            if entry is None:
+            if entry is None and mode != "always_stocked":
                 report.without_forecast.append(vid)
                 continue
             offers: list[Offer] = []
@@ -127,23 +142,52 @@ class InputsProvider:
                 if res.cost is None:
                     continue
                 c = res.cost
-                offers.append(Offer(sid, Decimal(str(c.cost_with_recargo)), c.id, c.source, res.status, c.pack_size or 1,
-                                    c.lead_time_days if c.lead_time_days is not None else DEFAULT_LEAD_DAYS, c.min_order_qty or 0))
+                eff = resolve_effective(conn, sid, vid, now, erp={"source": c.source, "lead_time_days": c.lead_time_days, "pack_size": c.pack_size,
+                                                                  "min_order_qty": c.min_order_qty})
+                if eff.disabled:                                    # a manual disable removes the offer; the report says so
+                    report.disabled_pairs.append((vid, sid))
+                    continue
+                info = (("supplier_version", eff.supplier_version), ("override_version", eff.override_version), ("sources", tuple(sorted(eff.sources.items()))),
+                        ("conflicts", tuple(tuple(sorted(x.items())) for x in eff.conflicts)))
+                offers.append(Offer(sid, Decimal(str(c.cost_with_recargo)), c.id, c.source, res.status, eff.pack_multiple or 1, eff.lead_time_days,
+                                    eff.min_qty_units or 0, eff.preferred, info))
                 used_suppliers.add(sid)
+                if eff.override_version is not None:
+                    overrides_used.setdefault(sid, {})[str(vid)] = eff.override_version
             if not offers:
                 report.without_cost.append(vid)
+                if mode == "always_stocked":
+                    report.always_stocked_unserved.append(vid)
                 continue
-            forecast = to_forecast(entry)
+            forecast = to_forecast(entry) if entry is not None else Forecast({}, "always_stocked_floor", False, ("no_forecast",))
             horizon_mean = {h: hf.mean for h, hf in forecast.horizons.items() if hf.mean is not None}
             soon = max(math.ceil(horizon_mean.get(14, 0.0) - horizon_mean.get(7, 0.0)), 0) if forecast.eligible and horizon_mean else 0
             cutoff = today + timedelta(days=self.expiry_window_days)
             expiring = sum(int(x["quantity"]) for x in v.get("lots", []) if x.get("expiry_date") and date.fromisoformat(x["expiry_date"]) <= cutoff)
-            out.append(VariantInput(vid, int(pid), int(v.get("on_hand", 0)), forecast, Decimal(str(v["service_level"])), tuple(offers),
-                                    tuple(inbound.get(vid, ())), expiring, bool(v.get("clinical_critical")), soon))
+            seg = v.get("segment") or {}
+            segments = tuple(x for x in (("critical",) if v.get("clinical_critical") else ()) + ((seg.get("abc"),) if seg.get("abc") else ())
+                             + (("sparse",) if seg.get("pattern") in ("intermittent", "lumpy") else ()) if x)
+            pol = resolve_policy(conn, vid, segments, today)
+            policy_versions.update(pol.revisions)
+            bought = last_bought.get(vid)
+            monthly = mode == "always_stocked" and (bought is None or (today - bought).days >= MONTHLY_CHECK_DAYS)
+            info = tuple(sorted(pol.sources.items())) + ((("stocking", mode),) if mode != "standard" else ())
+            level = pol.values.service_level if pol.values.service_level is not None else Decimal(str(v["service_level"]))
+            out.append(VariantInput(vid, int(pid), int(v.get("on_hand", 0)), forecast, level, tuple(offers),
+                                    tuple(inbound.get(vid, ())), expiring, bool(v.get("clinical_critical")), soon,
+                                    overrides.get((vid, "safety_stock")), overrides.get((vid, "min"), pol.values.min_units),
+                                    overrides.get((vid, "max"), pol.values.max_units), floor if mode == "always_stocked" else 0, monthly, info))
+            if pol.values.safety_stock_units is not None and (vid, "safety_stock") not in overrides:
+                out[-1] = replace(out[-1], safety_override=pol.values.safety_stock_units)
         terms: dict[str, SupplierTermsIn] = {}
+        versions_used: dict[str, Any] = {}
         for sid in sorted(used_suppliers):
-            t = current_terms(conn, sid, now)
+            row = current_row(conn, sid, now)
+            t = None if row is None else row_to_terms(row)
             terms[sid] = SupplierTermsIn(sid) if t is None else SupplierTermsIn(
-                sid, t.min_order_value, t.min_qty_for_delivery, t.free_delivery_threshold, t.delivery_charge)
+                sid, t.min_order_value, t.min_qty_for_delivery, t.free_delivery_threshold, t.delivery_charge, t.discounts, t.preferred, t.disabled, int(row.version))
+            versions_used[sid] = {"supplier": None if row is None else int(row.version), "overrides": overrides_used.get(sid, {})}
         self.report = report
-        return ProposalInputs(today, tuple(out), terms, self.budget)
+        capped = effective_weekly_budget(conn, today)
+        return ProposalInputs(today, tuple(out), terms, capped if capped is not None else self.budget, terms_versions=versions_used, policy_versions=policy_versions,
+                              forecast_run_id=fc.get("run_id"), dataset_version_id=fc.get("dataset_version_id"))

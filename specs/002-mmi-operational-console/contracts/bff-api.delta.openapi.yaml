@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: Mundo Mascotix Intelligence — BFF API delta for MMI 002
+  version: 0.2.0
+  description: >
+    Design-first delta over specs/001-mmi-purchase-intelligence/contracts/bff-api.openapi.yaml.
+    Logical contract: reconcile names with existing routes in Phase 1; do not duplicate them.
+    Cookie session; CSRF token on mutations; roles enforced at the BFF and again by the owning service.
+    Errors return stable keys (see error-keys.md); the SPA localises to es-ES.
+    Money is a decimal string; timestamps are UTC RFC 3339. Lists are paginated server-side (page, page_size, total).
+    Mutations on revisioned resources require If-Match with the revision; mismatch returns 412 with the current version.
+servers: [{url: /api}]
+security: [{session: []}]
+tags: [{name: dashboard}, {name: suppliers}, {name: config}, {name: forecast}, {name: procurement}, {name: admin}]
+paths:
+  /dashboard/summary:
+    get: {tags: [dashboard], summary: 'KPI cards (inventory value, coverage days, risk count/expiring value, proposed spend)', parameters: [{$ref: '#/components/parameters/DateFrom'}, {$ref: '#/components/parameters/DateTo'}, {$ref: '#/components/parameters/WarehouseId'}, {$ref: '#/components/parameters/CategoryId'}, {$ref: '#/components/parameters/SupplierId'}], responses: {"200": {description: Summary with refreshed_at and per-card source}}}
+  /dashboard/demand-trend:
+    get: {tags: [dashboard], summary: Actual vs forecast with uncertainty band; actual ERP and imported estimates are separate series, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /dashboard/abc-xyz:
+    get: {tags: [dashboard], summary: ABC/XYZ distribution with drill-down keys, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /dashboard/risk:
+    get: {tags: [dashboard], summary: 'EXISTING route, extended with server-side pagination, the shared filters and drill-down keys (replaces the proposed /dashboard/risks)', responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /dashboard/forecast-accuracy:
+    get: {tags: [dashboard], summary: Accuracy by segment and window, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /filters/options:
+    get: {tags: [dashboard], summary: 'Live warehouses, categories and suppliers; replaces any hard-coded list', responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /suppliers:
+    get: {tags: [suppliers], summary: List/search suppliers with current terms summary (paginated), responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /suppliers/{supplierId}/terms:
+    get: {tags: [suppliers], summary: Current and historical term versions, parameters: [{name: supplierId, in: path, required: true, schema: {type: string}}, {name: as_of, in: query, schema: {type: string, format: date}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+    put: {tags: [suppliers], summary: Save a new effective-dated terms version, description: Requires If-Match; roles buyer or admin; no ERP request, parameters: [{name: supplierId, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /product-suppliers/{variantId}/{supplierId}/terms:
+    get: {tags: [suppliers], summary: Override versions and effective value with precedence and conflicts, parameters: [{name: variantId, in: path, required: true, schema: {type: integer}}, {name: supplierId, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+    put: {tags: [suppliers], summary: Save an override version; nullable fields inherit, parameters: [{name: variantId, in: path, required: true, schema: {type: integer}}, {name: supplierId, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /config/policies:
+    get: {tags: [config], summary: 'Policy sections (purchase, forecast, demand rules) each with its own revision', responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+    put: {tags: [config], summary: Save one section; If-Match required; supports valid_from, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /config/stocking/{variantId}:
+    get: {tags: [config], summary: 'Stocking mode, floor, recommended and effective safety stock for a product', parameters: [{name: variantId, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+    put: {tags: [config], summary: Set stocking mode and floor; If-Match required, parameters: [{name: variantId, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /config/policy-overrides:
+    get: {tags: [config], summary: Override requests with status, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+    post: {tags: [config], summary: 'Request an override of a recommended safety stock, min or max, with reason', responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /config/policy-overrides/{id}/approve:
+    post: {tags: [config], summary: 'Approve (approver role, not the requester)', parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /config/policy-overrides/{id}/reject:
+    post: {tags: [config], summary: Reject with reason, parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /config/policies/preview:
+    post: {tags: [config], summary: Preview affected products and effect of a draft change without saving, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/imports:
+    get: {tags: [forecast], summary: List import datasets with status, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+    post: {tags: [forecast], summary: Multipart upload (CSV/XLSX); size and signature enforced; creates dataset in uploaded state, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/imports/template:
+    get: {tags: [forecast], summary: Download Spanish template (CSV or XLSX), responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/imports/{id}/preview:
+    get: {tags: [forecast], summary: 'First rows, detected columns and suggested mapping', parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/imports/{id}/mapping:
+    put: {tags: [forecast], summary: Save column mapping (optionally as a reusable named mapping), parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/imports/{id}/validate:
+    post: {tags: [forecast], summary: 'Run row-level validation; returns counts and quarantine page, idempotent', parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/imports/{id}/dry-run:
+    get: {tags: [forecast], summary: Diff against active dataset and backtest comparison, parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/imports/{id}/activate:
+    post: {tags: [forecast], summary: Atomic activation; buyer or admin; enqueues versioned forecast run, parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/imports/{id}/rollback:
+    post: {tags: [forecast], summary: Restore previous active version atomically, parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/runs:
+    get: {tags: [forecast], summary: 'Runs with dataset, parameter and policy versions', responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /forecast/variants/{variantId}:
+    get: {tags: [forecast], summary: 'Forecast, uncertainty, and data used for one variant', parameters: [{name: variantId, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /procurement/scenarios:
+    get: {tags: [procurement], summary: List scenarios, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+    post: {tags: [procurement], summary: Create and compute a scenario; Idempotency-Key header required, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /procurement/scenarios/{id}:
+    get: {tags: [procurement], summary: 'Result per supplier, binding constraints, sensitivity, versions used', parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /procurement/scenarios/{id}/promote:
+    post: {tags: [procurement], summary: Create a draft proposal from the scenario; normal approval workflow follows, parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /procurement/scenarios/{id}/export:
+    get: {tags: [procurement], summary: 'CSV or Excel export, Spanish, formula-injection safe', parameters: [{name: id, in: path, required: true, schema: {type: string}}, {name: format, in: query, schema: {type: string, enum: [csv, xlsx]}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /costs/lots:
+    get: {tags: [procurement], summary: Lot acquisition cost entries for a product-supplier pair with remaining quantity, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+    put: {tags: [procurement], summary: Buyer corrects a lot acquisition cost on arrival; audited; If-Match required, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /costs/{id}/median:
+    get: {tags: [procurement], summary: 'Median value, entries used, PVP, margin before/after and rule flags for a cost-update request', parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /costs/{id}/override:
+    post: {tags: [procurement], summary: Admin sets a cost of their own with a reason; audited; still requires buyer review and fresh MFA, parameters: [{name: id, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /admin/roles:
+    get: {tags: [admin], summary: Roles and mirror status, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+    put: {tags: [admin], summary: Change roles (admin only); audited; mirrored with visible retry, responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /admin/status:
+    get: {tags: [admin], summary: 'Sync freshness, import jobs, model runs, role-mirror lag, cost indicators', responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+  /admin/jobs/{kind}/rerun:
+    post: {tags: [admin], summary: Idempotent re-run of a permitted job; admin only, parameters: [{name: kind, in: path, required: true, schema: {type: string}}], responses: {"200": {description: Success}, default: {description: Error with a stable error key (see error-keys.md)}}}
+components:
+  parameters:
+    DateFrom: {name: date_from, in: query, schema: {type: string, format: date}}
+    DateTo: {name: date_to, in: query, schema: {type: string, format: date}}
+    WarehouseId: {name: warehouse_id, in: query, schema: {type: string}}
+    CategoryId: {name: category_id, in: query, schema: {type: string}}
+    SupplierId: {name: supplier_id, in: query, schema: {type: string}}
+  schemas:
+    Error: {type: object, required: [key], properties: {key: {type: string}, params: {type: object}, current: {type: object, description: Present on 412 conflicts}}}
+    Money: {type: string, pattern: '^-?\d+(\.\d{1,4})?$'}

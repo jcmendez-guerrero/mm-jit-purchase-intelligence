@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/seed_mapping.v1",
+  "title": "SeedMapping",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "column_map"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string"
+    },
+    "column_map": {
+      "type": "object",
+      "additionalProperties": {
+        "enum": [
+          "variant_id",
+          "sku",
+          "day",
+          "quantity",
+          "warehouse",
+          "kind",
+          "provenance",
+          "origin"
+        ]
+      },
+      "description": "Source column header -> canonical field"
+    },
+    "created_by": {
+      "type": "string"
+    }
+  }
+}

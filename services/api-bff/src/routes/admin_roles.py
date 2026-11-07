@@ -1,18 +1,19 @@
-"""Admin role assignment and revocation with audit logging and separation-of-duties check (T137).
+"""Admin role management (FR-001, T137): durable roles, two-approver rule, last-admin guard, audit, and the procurement mirror.
 
-Guarantees at least two eligible approvers exist in the system to prevent single-person deadlock
-or self-approval. Records all changes and refused attempts in an audit log.
+Every change is stored in the ``bff`` schema together with its hash-chained audit event and a mirror-outbox row; the same
+request then tries one mirror pass, and ``python -m worker`` retries what failed. Errors are stable codes, never sentences.
 """
 
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+import os
 from typing import Any
 
 from auth.session import SessionData
-from fastapi import APIRouter, Depends, HTTPException
+from db.engine import make_engine
+from db.roles import ROLES, RoleError, RoleStore
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 from routes.rbac import require_roles
 
@@ -20,21 +21,8 @@ logger = logging.getLogger("mmi.api_bff.admin_roles")
 
 router = APIRouter(prefix="/admin/roles", tags=["config"])
 
-
-@dataclass
-class AuditRecord:
-    timestamp: str
-    actor: str
-    action: str
-    target_user: str
-    old_roles: list[str]
-    new_roles: list[str]
-    success: bool
-    refusal_reason: str | None = None
-
-
-# Persistent in-memory user registry for the BFF
-_users: dict[str, list[str]] = {
+DEV_USERS: dict[str, list[str]] = {
+    "viewer-1": ["viewer"],
     "buyer-1": ["viewer", "buyer"],
     "buyer-2": ["viewer", "buyer"],
     "approver-1": ["viewer", "approver"],
@@ -42,28 +30,43 @@ _users: dict[str, list[str]] = {
     "admin-1": ["viewer", "admin"],
 }
 
-_audit_log: list[AuditRecord] = []
+_store: RoleStore | None = None
 
 
+def get_store() -> RoleStore:
+    global _store
+    if _store is None:
+        _store = RoleStore(make_engine())
+        if os.environ.get("MMI_ENV", "dev") != "prod" and os.environ.get("MMI_ENABLE_DEV_LOGIN") == "1":
+            _store.seed_if_empty(DEV_USERS)          # local development only; production roles are administered, never seeded
+    return _store
+
+
+def set_store(store: RoleStore | None) -> None:
+    global _store
+    _store = store
+
+
+# ---- compatibility helpers used by tests and other routes ----
 def get_user_roles(user_id: str) -> list[str] | None:
-    return _users.get(user_id)
+    rec = get_store().get(user_id)
+    return list(rec.roles) if rec else None
 
 
 def set_initial_users(users: dict[str, list[str]]) -> None:
-    global _users
-    _users = {k: list(v) for k, v in users.items()}
+    get_store().replace_all(users)
 
 
 def get_audit_log() -> list[dict[str, Any]]:
-    return [asdict(r) for r in _audit_log]
+    return get_store().audit_view()
 
 
 def clear_audit_log() -> None:
-    _audit_log.clear()
+    get_store().reset_for_tests()
 
 
 def count_eligible_approvers() -> int:
-    return sum(1 for roles in _users.values() if "approver" in roles)
+    return get_store().approver_count()
 
 
 def has_at_least_two_eligible_approvers() -> bool:
@@ -72,64 +75,53 @@ def has_at_least_two_eligible_approvers() -> bool:
 
 class RoleUpdateRequest(BaseModel):
     roles: list[str] = Field(..., description="List of roles: viewer, buyer, approver, admin")
+    active: bool = True
 
 
 @router.get("")
 def list_roles(session: SessionData = Depends(require_roles("admin"))) -> dict[str, Any]:
+    store = get_store()
     return {
-        "users": [{"user_id": uid, "roles": roles} for uid, roles in _users.items()],
-        "eligible_approvers_count": count_eligible_approvers(),
+        "users": [{"user_id": r.user_id, "roles": list(r.roles), "active": r.active, "revision": r.revision} for r in store.list()],
+        "eligible_approvers_count": store.approver_count(),
+        "valid_roles": list(ROLES),
     }
 
 
+@router.get("/mirror")
+def mirror_status(session: SessionData = Depends(require_roles("admin"))) -> dict[str, Any]:
+    return get_store().mirror_status()
+
+
+@router.post("/mirror/retry")
+def mirror_retry(background: BackgroundTasks, session: SessionData = Depends(require_roles("admin"))) -> dict[str, Any]:
+    n = get_store().requeue_failed()
+    background.add_task(_mirror_pass)
+    return {"requeued": n}
+
+
 @router.put("/{user_id}")
-def update_user_roles(
-    user_id: str,
-    body: RoleUpdateRequest,
-    session: SessionData = Depends(require_roles("admin")),
-) -> dict[str, Any]:
-    valid_roles = {"viewer", "buyer", "approver", "admin"}
-    invalid = set(body.roles) - valid_roles
-    if invalid:
-        raise HTTPException(status_code=422, detail=f"invalid roles: {list(invalid)}")
+def update_user_roles(user_id: str, body: RoleUpdateRequest, background: BackgroundTasks,
+                      session: SessionData = Depends(require_roles("admin"))) -> dict[str, Any]:
+    store = get_store()
+    old = store.get(user_id)
+    try:
+        rec = store.set_roles(user_id, body.roles, actor=session.user_id, active=body.active)
+    except RoleError as exc:
+        store.record_refusal(session.user_id, "roles.refused", user_id, before={"roles": list(old.roles) if old else []},
+                             after={"roles": sorted(set(body.roles)), "reason": exc.code})
+        status = 422 if exc.code == "roles_invalid" else 409
+        raise HTTPException(status_code=status, detail=exc.code) from exc
+    background.add_task(_mirror_pass)                  # best effort now; the worker retries anything that fails
+    return {"user_id": rec.user_id, "roles": list(rec.roles), "active": rec.active, "revision": rec.revision}
 
-    old_roles = _users.get(user_id, ["viewer"])
-    new_roles = sorted(set(body.roles))
 
-    # Check if this change would reduce the count of eligible approvers below 2
-    was_approver = "approver" in old_roles
-    will_be_approver = "approver" in new_roles
+def _mirror_pass() -> None:
+    """One immediate relay pass. Never raises: a failure stays queued and visible in /admin/roles/mirror."""
+    try:
+        from clients.procurement import RoleMirrorClient
+        from worker import drain_once
 
-    current_approvers = count_eligible_approvers()
-    projected_approvers = current_approvers - (1 if was_approver and not will_be_approver else 0)
-
-    if projected_approvers < 2:
-        reason = "at least two eligible approvers required to maintain separation of duties"
-        _audit_log.append(
-            AuditRecord(
-                timestamp=datetime.now(UTC).isoformat(),
-                actor=session.user_id,
-                action="update_roles_refused",
-                target_user=user_id,
-                old_roles=old_roles,
-                new_roles=new_roles,
-                success=False,
-                refusal_reason=reason,
-            )
-        )
-        raise HTTPException(status_code=409, detail=reason)
-
-    _users[user_id] = new_roles
-    _audit_log.append(
-        AuditRecord(
-            timestamp=datetime.now(UTC).isoformat(),
-            actor=session.user_id,
-            action="update_roles",
-            target_user=user_id,
-            old_roles=old_roles,
-            new_roles=new_roles,
-            success=True,
-            refusal_reason=None,
-        )
-    )
-    return {"user_id": user_id, "roles": new_roles}
+        drain_once(get_store(), RoleMirrorClient())
+    except Exception as exc:
+        logger.warning("ROLE_MIRROR_PASS_FAILED reason=%s", type(exc).__name__)

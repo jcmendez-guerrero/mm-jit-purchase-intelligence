@@ -18,7 +18,7 @@ from approvals.workflow import is_approval_valid
 from audit.chain import append as audit
 from costs.rules import load_rules
 from costs.store import NewCost, add_version, confirm_jump, current
-from costs.writes import WriteRequestResult, request_write
+from costs.writes import WriteRequestResult
 from db.tables import inbound_order_lines, inbound_orders, proposal_lines, proposals, supplier_order_groups
 from mmi_common.time import get_correlation_id, set_correlation_id
 from proposals.edit import ProposalStateError
@@ -92,10 +92,6 @@ def confirm_order(conn: Connection, proposal_id: str, supplier_id: str, lines: l
             if new.jump_flag:
                 confirm_jump(conn, new.id, actor, now)                   # the buyer agreed this price with the supplier
                 result.warnings.append(f"cost_jump_confirmed:{ln.variant_id}")
-            w = request_write(conn, new.id, "order_confirmed", actor, now)
-            if w.status != "unchanged":
-                result.cost_writes.append(w)
-                result.warnings += [f"{x}:{ln.variant_id}" for x in w.warnings]
     audit(conn, actor, "order.confirmed", "inbound_order", oid, after={"proposal_id": proposal_id, "supplier_id": supplier_id, "lines": len(event_lines)}, now=now)
     order_confirmed(conn, writer, oid, proposal_id, supplier_id, event_lines, get_correlation_id() or set_correlation_id())
     return result

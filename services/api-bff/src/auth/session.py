@@ -41,9 +41,17 @@ class SessionData:
         return 0 <= diff <= max_age_seconds
 
 
+MIN_SECRET_LENGTH = 32
+
+
 def get_secret_key() -> bytes:
-    key = os.environ.get("MMI_SESSION_SECRET", "dev-insecure-session-secret-change-in-prod")
-    return key.encode("utf-8")
+    """Production refuses to sign sessions with a missing or short secret; only development has a built-in value."""
+    key = os.environ.get("MMI_SESSION_SECRET")
+    if os.environ.get("MMI_ENV", "dev") == "prod":
+        if not key or len(key) < MIN_SECRET_LENGTH:
+            raise RuntimeError("MMI_SESSION_SECRET must be set to at least 32 characters in production")
+        return key.encode("utf-8")
+    return (key or "dev-insecure-session-secret-change-in-prod").encode("utf-8")
 
 
 def sign_session(data: SessionData) -> str:

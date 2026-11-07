@@ -245,3 +245,7 @@ __marimo__/
 !*.tfvars.example
 .env.*
 !.env.example
+
+# Playwright output
+test-results/
+playwright-report/

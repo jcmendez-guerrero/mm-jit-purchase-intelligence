@@ -13,7 +13,10 @@ from sqlalchemy.engine import Connection
 PROPOSAL_GENERATED = "procurement.proposal.generated.v1"
 ORDER_CONFIRMED = "procurement.order.confirmed.v1"
 WRITE_REQUESTED = "procurement.cost.write_requested.v1"
-SUBSCRIPTIONS = {PROPOSAL_GENERATED: ["bff-notifications"], ORDER_CONFIRMED: ["inventory-in"], WRITE_REQUESTED: ["costwriter-in"]}
+TERMS_CHANGED = "procurement.terms.changed.v1"
+LOT_COST_CHANGED = "procurement.lot_cost.changed.v1"
+SCENARIO_READY = "procurement.scenario.ready.v1"
+SUBSCRIPTIONS = {PROPOSAL_GENERATED: ["bff-notifications"], ORDER_CONFIRMED: ["inventory-in"], WRITE_REQUESTED: ["costwriter-in"], TERMS_CHANGED: ["bff-notifications"], LOT_COST_CHANGED: ["inventory-in"], SCENARIO_READY: ["bff-notifications"]}
 
 
 class BlobWriter(Protocol):
@@ -35,3 +38,19 @@ def proposal_generated(conn: Connection, writer: BlobWriter, proposal_id: str, w
 def order_confirmed(conn: Connection, writer: BlobWriter, order_id: str, proposal_id: str, supplier_id: str, lines: list[dict[str, Any]], correlation_id: str) -> dict[str, Any]:
     return publish(conn, writer, ORDER_CONFIRMED, order_id,
                    {"order_id": order_id, "proposal_id": proposal_id, "supplier_id": supplier_id, "lines": lines}, correlation_id)
+
+
+def terms_changed(conn: Connection, writer: BlobWriter, scope: str, key: str, version: int, correlation_id: str) -> dict[str, Any]:
+    """A terms or override version was saved. The event carries references only (scope, key, version), never the values."""
+    resource = f"{scope}.{key}.{version}".replace(":", "_")
+    return publish(conn, writer, TERMS_CHANGED, resource, {"scope": scope, "key": key, "version": version}, correlation_id)
+
+
+def lot_cost_changed(conn: Connection, writer: BlobWriter, variant_id: int, supplier_id: str, lot: str, version: str, correlation_id: str, unit_cost: str, source: str) -> dict[str, Any]:
+    """Carries the cost so inventory can value stock without calling procurement (the projection is a read-only copy)."""
+    return publish(conn, writer, LOT_COST_CHANGED, f"{variant_id}.{supplier_id}.{lot}.{version}".replace(":", "_").replace("/", "_"),
+                   {"variant_id": variant_id, "supplier_id": supplier_id, "lot": lot, "unit_cost": unit_cost, "source": source}, correlation_id)
+
+
+def scenario_ready(conn: Connection, writer: BlobWriter, scenario_id: str, status: str, correlation_id: str) -> dict[str, Any]:
+    return publish(conn, writer, SCENARIO_READY, scenario_id, {"scenario_id": scenario_id, "status": status}, correlation_id)

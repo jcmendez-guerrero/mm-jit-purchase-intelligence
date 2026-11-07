@@ -5,12 +5,11 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
 from typing import Any
 
 from classification.criticality import CriticalityError, set_critical
 from classification.run import load_series
-from classification.service_levels import ServiceLevelError, effective_target, history, set_target
+from classification.service_levels import effective_target, history
 from db.tables import (
     ALL_WAREHOUSES,
     demand_observations,
@@ -44,12 +43,6 @@ def get_engine() -> Engine:
 
 class CriticalityBody(BaseModel):
     critical: bool
-
-
-class ServiceLevelBody(BaseModel):
-    scope: str
-    key: str
-    target: Decimal
 
 
 class DecisionBody(BaseModel):
@@ -96,6 +89,8 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
             "flows": [{"day": r.day.isoformat(), "warehouse_id": r.warehouse_id, "flow": r.flow, "qty": r.qty} for r in flows],
             "history": [{"day": r.day.isoformat(), "on_hand": r.on_hand_reconstructed, "censored": r.censored} for r in hist],
             "history_reconciled": all(r.reconciled_ok for r in hist) if hist else None,
+            "risks": [{"risk_type": r["risk_type"], "explanation_key": r["explanation_key"], "params": r.get("params") or {}}
+                      for r in evaluate_risks(conn) if r["variant_id"] == variant_id],
         }
 
     @router.get("/review")
@@ -125,14 +120,6 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
     @router.get("/service-levels")
     def service_levels(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         return {"history": history(conn)}
-
-    @router.put("/service-levels")
-    def put_service_level(body: ServiceLevelBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
-        try:
-            set_target(conn, body.scope, body.key, body.target, principal.subject)
-        except ServiceLevelError as exc:
-            raise HTTPException(422, error_code(exc)) from exc
-        return {"ok": True}  # applies to proposals created from now on
 
     @router.get("/export/series")
     def export_series(through_day: date | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
@@ -187,6 +174,16 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
                                                           stock_movements.c.external_id > after_id, stock_movements.c.quarantined.is_(False))
                             .order_by(stock_movements.c.external_id).limit(min(limit, 5000))).all()
         return {"receipts": [{"movement_id": r.external_id, "variant_id": r.variant_id, "qty": r.quantity,
-                              "reference": r.reference_number if r.reference_number is not None else r.reference_id} for r in rows]}
+                              "reference": r.reference_number if r.reference_number is not None else r.reference_id,
+                              "batch_number": r.batch_number} for r in rows]}
 
+    from api.dashboard import build_dashboard_router
+    from api.demand_rules import build_rules_router
+    from api.lots import build_lots_router
+    from api.status import build_status_router
+
+    router.include_router(build_dashboard_router(app, conn_dep))
+    router.include_router(build_lots_router(app, conn_dep))
+    router.include_router(build_rules_router(app, conn_dep))
+    router.include_router(build_status_router(app, conn_dep))
     return router

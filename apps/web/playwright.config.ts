@@ -11,6 +11,12 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:5173",
     trace: "on-first-retry",
   },
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
+    command: "npx vite --port 5173 --strictPort",
+    url: "http://localhost:5173",
+    reuseExistingServer: !process.env.CI,
+    timeout: 60_000,
+  },
   projects: [
     {
       name: "chromium",

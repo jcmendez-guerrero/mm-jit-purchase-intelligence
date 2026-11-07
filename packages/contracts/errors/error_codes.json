@@ -1,0 +1,465 @@
+{
+  "_note": "Stable error codes (snake_case). Services return these, never sentences. Spanish text: apps/web/src/i18n/es-ES.json errors.<code>.",
+  "codes": {
+    "auth_forbidden_role": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "Role does not allow the action (refusal recorded)"
+    },
+    "auth_mfa_stale": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "Second factor older than 5 minutes"
+    },
+    "approval_fewer_than_two_approvers": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Submission needs two eligible users"
+    },
+    "revision_conflict": {
+      "http": 412,
+      "kind": "request",
+      "meaning": "Stale If-Match; body returns current version"
+    },
+    "terms_negative_amount": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "Negative money or quantity"
+    },
+    "terms_threshold_below_minimum": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "Free-shipping threshold below minimum order"
+    },
+    "terms_window_overlap": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "Overlapping validity windows"
+    },
+    "terms_invalid_weekday": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "Weekday outside 1..7 or duplicated"
+    },
+    "policy_out_of_range": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "Service level outside 0–100 or max below min"
+    },
+    "import_file_too_large": {
+      "http": 413,
+      "kind": "request",
+      "meaning": "Size cap exceeded"
+    },
+    "import_type_not_allowed": {
+      "http": 415,
+      "kind": "request",
+      "meaning": "Extension/signature mismatch, macros, or unsupported type"
+    },
+    "import_unknown_variant": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "Variant not found"
+    },
+    "import_negative_quantity": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "Quantity below zero"
+    },
+    "import_date_out_of_range": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "Date outside allowed range"
+    },
+    "import_duplicate_row": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "Repeated variant/day/kind"
+    },
+    "import_mixed_origin": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Synthetic and real data in one dataset"
+    },
+    "import_duplicate_file": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Same checksum already uploaded; explicit decision needed"
+    },
+    "scenario_infeasible": {
+      "http": 200,
+      "kind": "request",
+      "meaning": "Result explains shortfall causes"
+    },
+    "margin_below_minimum": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Margin after the update would be below 15%; release blocked unless an admin overrides"
+    },
+    "margin_pvp_unavailable": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Selling price missing or stale; margin check unavailable"
+    },
+    "margin_above_maximum": {
+      "http": 200,
+      "kind": "flag",
+      "meaning": "Margin above its maximum; informational"
+    },
+    "cost_no_entries_in_stock": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "No lot entry with remaining stock; no update request is created"
+    },
+    "override_admin_required": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "Only an admin may replace the median"
+    },
+    "override_reason_required": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "An override needs a reason"
+    },
+    "policy_override_requires_approval": {
+      "http": 202,
+      "kind": "request",
+      "meaning": "Override saved as pending; the recommendation stays in force"
+    },
+    "policy_override_self_approval": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "The requester cannot approve their own override"
+    },
+    "stocking_floor_required": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "An always-stocked product needs a floor of at least 1"
+    },
+    "cost_lot_lookup_unavailable": {
+      "http": 503,
+      "kind": "request",
+      "meaning": "Inventory could not be reached; the cost-update request fails visibly and is retried"
+    },
+    "import_invalid_quantity": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "Quantity is not a number"
+    },
+    "import_invalid_date": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "Date is not a valid calendar date"
+    },
+    "import_missing_provenance": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "The provenance label is empty"
+    },
+    "override_release_by_setter": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "The admin who set an override cannot release it"
+    },
+    "roles_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A role is not valid"
+    },
+    "roles_last_admin": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The last administrator cannot be removed"
+    },
+    "role_mirror_failed": {
+      "http": 503,
+      "kind": "request",
+      "meaning": "A role change could not be mirrored to the purchasing side; it is retried"
+    },
+    "auth_unauthenticated": {
+      "http": 401,
+      "kind": "request",
+      "meaning": "Sign-in is required"
+    },
+    "auth_csrf_invalid": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "The CSRF token is missing or invalid"
+    },
+    "downstream_refused": {
+      "http": 400,
+      "kind": "request",
+      "meaning": "A downstream service refused the request"
+    },
+    "downstream_unavailable": {
+      "http": 502,
+      "kind": "request",
+      "meaning": "A downstream service is unavailable"
+    },
+    "authentication_unavailable": {
+      "http": 503,
+      "kind": "request",
+      "meaning": "Service identity could not be obtained"
+    },
+    "request_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The request body or parameters are not valid"
+    },
+    "separation_of_duties": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "The creator or last editor cannot approve"
+    },
+    "no_eligible_approver": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Submission needs another eligible approver"
+    },
+    "not_an_approver": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "Only users with the approver role can decide"
+    },
+    "mfa_required": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "A recent second factor is required"
+    },
+    "version_conflict": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The record changed since it was read"
+    },
+    "invalid_proposal_state": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The proposal state does not allow this action"
+    },
+    "invalid_quantity": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A quantity must be a whole number of zero or more"
+    },
+    "proposal_conflict": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "This week already has an approved proposal"
+    },
+    "unknown_role": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A role is not valid"
+    },
+    "invalid_cost": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A cost value is not valid"
+    },
+    "invalid_user_id": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A user id is not valid"
+    },
+    "invalid_terms": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "Supplier order terms are not valid"
+    },
+    "revision_required": {
+      "http": 428,
+      "kind": "request",
+      "meaning": "The caller must say which version it edited (If-Match)"
+    },
+    "terms_invalid_value": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A terms value is out of range or malformed"
+    },
+    "override_release_same_person": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "The admin who set an override cannot release it"
+    },
+    "median_required": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The released value must be the lot median or the admin override"
+    },
+    "not_an_admin": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "Only an admin can set a cost override"
+    },
+    "negative_value": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A value must not be negative"
+    },
+    "inventory_unavailable": {
+      "http": 503,
+      "kind": "request",
+      "meaning": "Inventory could not be queried for the lots in stock"
+    },
+    "pvp_unavailable": {
+      "http": 503,
+      "kind": "request",
+      "meaning": "The selling price (PVP) could not be queried"
+    },
+    "vat_unknown": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The product VAT is unknown, so a net cost cannot be converted"
+    },
+    "negative_cost": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A cost must not be negative"
+    },
+    "invalid_source": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The cost source is not allowed"
+    },
+    "invalid_lot": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The lot identifier is missing or too long"
+    },
+    "unknown_variant": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The variant is not known"
+    },
+    "unknown_supplier": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The supplier is not known"
+    },
+    "not_a_buyer": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "Only buyers can do this"
+    },
+    "unknown_parameter": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The forecast parameter is not on the approved list"
+    },
+    "unknown_exclusion": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The demand exclusion does not exist"
+    },
+    "policy_override_pending": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "A request for that field is already pending"
+    },
+    "policy_override_not_found": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The override request does not exist"
+    },
+    "policy_override_not_pending": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The override request is not in a state that allows this"
+    },
+    "margin_unavailable": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "There is no selling price, so the margin cannot be checked"
+    },
+    "import_decompression_limit": {
+      "http": 413,
+      "kind": "request",
+      "meaning": "The workbook expands beyond the allowed size"
+    },
+    "import_too_many_rows": {
+      "http": 413,
+      "kind": "request",
+      "meaning": "The file has more rows, columns or sheets than allowed"
+    },
+    "import_missing_column": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A required column is missing or the file is empty"
+    },
+    "import_unknown_kind": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The data type is not one of the allowed values"
+    },
+    "import_ambiguous_time": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The local time is ambiguous because of the clock change"
+    },
+    "import_dataset_state": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The dataset is not in a state that allows this"
+    },
+    "import_unknown_dataset": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The dataset does not exist"
+    },
+    "import_nothing_to_activate": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The dataset has no accepted rows"
+    },
+    "import_mapping_name_taken": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "A mapping with that name already exists"
+    },
+    "scenario_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The scenario parameters are not valid"
+    },
+    "scenario_stale": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The inputs changed since the scenario was computed"
+    },
+    "unknown_scenario": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The scenario does not exist"
+    },
+    "scenario_not_ready": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The scenario is not ready"
+    },
+    "scenario_already_promoted": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The scenario was already turned into a proposal"
+    },
+    "idempotency_key_required": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "An Idempotency-Key header is required"
+    },
+    "import_unknown_job": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The import job does not exist"
+    },
+    "import_job_not_rerunnable": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Only a failed import job can be re-run"
+    },
+    "import_failed": {
+      "http": 500,
+      "kind": "request",
+      "meaning": "A background import failed unexpectedly"
+    }
+  }
+}

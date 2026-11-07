@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/policy_override_request.v1",
+  "title": "PolicyOverrideRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "variant_id",
+    "field",
+    "recommended_value",
+    "requested_value",
+    "reason",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "variant_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "field": {
+      "enum": ["safety_stock", "min", "max"]
+    },
+    "recommended_value": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "requested_value": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "status": {
+      "enum": ["pending", "approved", "rejected", "reverted"]
+    },
+    "requested_by": {
+      "type": "string"
+    },
+    "decided_by": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decided_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "current_recommended": {
+      "type": ["integer", "null"],
+      "description": "For a pending safety-stock request: what the engine recommends now, so a moved recommendation can be shown next to the one the request was made against"
+    },
+    "recommendation_changed": {
+      "type": "boolean"
+    }
+  },
+  "description": "decided_by must differ from requested_by and hold the approver role; the value applies only when approved."
+}

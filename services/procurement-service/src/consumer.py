@@ -14,14 +14,18 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any, Protocol
 
+from costs.lot_lookup import LotsSource
+from costs.median_suggestion import request_median_write
+from costs.pvp import PvpSource
 from costs.recargo import load_table
 from costs.rules import load_rules
 from costs.siweb_import import import_supplier_rows
 from costs.writes import WriteError, apply_outcome
-from db.tables import forecast_runs_seen, inbox, receipt_cursor
+from db.tables import forecast_runs_seen, inbox, product_refs, receipt_cursor
 from mmi_common.bus import MessageBus
 from mmi_common.dispatch import BlobReader, DispatchStats, Handler, RejectMessageError, consume_queue
 from orders.reconcile import Receipt, reconcile_receipts
+from proposals.publisher import BlobWriter
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection, Engine
 
@@ -81,17 +85,29 @@ class ReceiptSource(Protocol):
     def fetch_after(self, after_id: int) -> list[dict[str, Any]]: ...
 
 
-def sync_receipts(conn: Connection, source: ReceiptSource, now: datetime | None = None) -> dict[str, int]:
+def sync_receipts(conn: Connection, source: ReceiptSource, now: datetime | None = None, writer: BlobWriter | None = None,
+                  lots: LotsSource | None = None, pvp: PvpSource | None = None) -> dict[str, int]:
     """Poll inventory-service for supplier receipts after the cursor, match them to confirmed orders, advance the cursor."""
     row = conn.execute(select(receipt_cursor.c.last_movement_id).where(receipt_cursor.c.id == 1)).first()
     after = int(row.last_movement_id) if row else 0
     items = source.fetch_after(after)
     if not items:
         return {"fetched": 0, "matched": 0, "unmatched": 0, "excess": 0}
-    res = reconcile_receipts(conn, [Receipt(int(x["movement_id"]), int(x["variant_id"]), int(x["qty"]), x.get("reference")) for x in items], now)
+    res = reconcile_receipts(conn, [Receipt(int(x["movement_id"]), int(x["variant_id"]), int(x["qty"]), x.get("reference"), x.get("batch_number")) for x in items], now, writer)
+    requests = 0
+    if writer is not None and lots is not None:
+        # one cost-update request per (product, supplier) whose lots changed; a failed lookup raises and rolls the whole pass back for a clean retry
+        done: set[tuple[int, str]] = set()
+        for variant_id, supplier_id in sorted(res.pairs):
+            pid = conn.execute(select(product_refs.c.product_id).where(product_refs.c.variant_id == variant_id)).scalar()
+            if pid is None or (pid, supplier_id) in done:
+                continue
+            done.add((pid, supplier_id))
+            out = request_median_write(conn, lots, int(pid), supplier_id, "receipt_matched", "system:receipt-match", now, pvp)
+            requests += 1 if out.request is not None else 0
     newest = max(int(x["movement_id"]) for x in items)
     if row is None:
         conn.execute(insert(receipt_cursor).values(id=1, last_movement_id=newest))
     else:
         conn.execute(update(receipt_cursor).where(receipt_cursor.c.id == 1).values(last_movement_id=newest))
-    return {"fetched": len(items), "matched": res.matched, "unmatched": len(res.unmatched), "excess": len(res.excess)}
+    return {"fetched": len(items), "matched": res.matched, "unmatched": len(res.unmatched), "excess": len(res.excess), "cost_requests": requests}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/stocking_setting.v1",
+  "title": "StockingSetting",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["variant_id", "stocking_mode", "min_floor_units", "revision"],
+  "properties": {
+    "variant_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stocking_mode": {
+      "enum": ["standard", "always_stocked", "on_request"]
+    },
+    "min_floor_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "valid_from": {
+      "type": "string",
+      "format": "date"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optimistic-concurrency revision; PUT requires If-Match with this value"
+    },
+    "changed_by": {
+      "type": "string"
+    }
+  },
+  "description": "Always-stocked products need a floor of at least 1 (error key stocking_floor_required)."
+}

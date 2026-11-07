@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/dashboard_summary.v1",
+  "title": "DashboardSummary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["refreshed_at", "cards"],
+  "properties": {
+    "refreshed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "value", "basis"],
+        "properties": {
+          "key": {
+            "enum": [
+              "inventory_value",
+              "coverage_days",
+              "stockout_risk",
+              "expiring_value",
+              "proposed_spend"
+            ]
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unit": {
+            "enum": ["EUR", "days", "count"]
+          },
+          "basis": {
+            "type": "string",
+            "description": "Label of the calculation basis, e.g. lot acquisition cost or forecast"
+          },
+          "estimated_count": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "enum": ["ok", "no_data", "stale", "error"]
+          }
+        }
+      }
+    }
+  },
+  "description": "Filters (date range, category, supplier, warehouse) are query parameters, not part of the payload."
+}

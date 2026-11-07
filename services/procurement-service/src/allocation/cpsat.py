@@ -13,11 +13,52 @@ from __future__ import annotations
 from ortools.sat.python import cp_model
 from proposals.model import ProposalInputs, SupplierTermsIn, ticks
 
-from allocation.common import Allocation, Chosen, LineSpec, budget_excess, summarise
+from allocation.common import (
+    Allocation,
+    Chosen,
+    LineSpec,
+    budget_excess,
+    percent_basis_points,
+    summarise,
+    threshold_units,
+)
 from allocation.greedy import allocate_greedy
 
 BIG = 1_000_000       # penalty per tick of violated minimum / budget: dwarfs any real saving, and stays far inside int64
 MAX_TICKS = 10**10    # 1,000,000 EUR: upper bound for money variables
+
+
+def _discount_expr(m: cp_model.CpModel, t: SupplierTermsIn, sid: str, y: cp_model.IntVar, subtotal: cp_model.IntVar, qty: object) -> cp_model.IntVar | None:
+    """The best qualifying discount tier of an order (the solver may use at most one, and minimising cost makes it the best).
+    Thresholds are judged on the list subtotal / units, before the discount - the same rule as ``summarise``."""
+    if not t.discounts:
+        return None
+    uses, applied_vars = [], []
+    for k, d in enumerate(t.discounts):
+        measure = subtotal if d.basis == "order_value" else qty
+        threshold = ticks(d.threshold) if d.basis == "order_value" else threshold_units(d)
+        met = m.NewBoolVar(f"dmet_{sid}_{k}")
+        m.Add(measure >= threshold).OnlyEnforceIf(met)  # type: ignore[operator]
+        m.Add(measure < threshold).OnlyEnforceIf(met.Not())  # type: ignore[operator]
+        use = m.NewBoolVar(f"duse_{sid}_{k}")
+        m.Add(use <= met)
+        m.Add(use <= y)
+        raw = m.NewIntVar(0, MAX_TICKS, f"draw_{sid}_{k}")
+        if d.kind == "percent":
+            num = m.NewIntVar(0, MAX_TICKS * 10_000, f"dnum_{sid}_{k}")
+            m.Add(num == subtotal * percent_basis_points(d.value))
+            m.AddDivisionEquality(raw, num, 10_000)
+        else:
+            m.AddMinEquality(raw, [ticks(d.value), subtotal])
+        applied = m.NewIntVar(0, MAX_TICKS, f"dapp_{sid}_{k}")
+        m.Add(applied == raw).OnlyEnforceIf(use)
+        m.Add(applied == 0).OnlyEnforceIf(use.Not())
+        uses.append(use)
+        applied_vars.append(applied)
+    m.Add(sum(uses) <= 1)
+    total = m.NewIntVar(0, MAX_TICKS, f"discount_{sid}")
+    m.Add(total == sum(applied_vars))
+    return total
 
 
 def allocate_cpsat(inputs: ProposalInputs, lines: list[LineSpec], time_limit_s: float = 30.0, seed: int = 1) -> Allocation:
@@ -76,6 +117,10 @@ def allocate_cpsat(inputs: ProposalInputs, lines: list[LineSpec], time_limit_s: 
         else:
             charge_expr = None
         total_terms.append(subtotal)
+        discount = _discount_expr(m, t, sid, y, subtotal, qty)
+        if discount is not None:
+            cost_terms.append(-discount)
+            total_terms.append(-discount)
         if charge_expr is not None:
             cost_terms.append(charge_expr)
             total_terms.append(charge_expr)
