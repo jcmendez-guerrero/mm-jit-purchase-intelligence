@@ -60,4 +60,4 @@ The acceptance criteria labelled AC1 to AC9 live in the Jira issue, not in this 
 
 ## Decisions for the owner
 
-Malware scanning: owner accepted the risk on 2026-11-07 (recorded in ADR-020). Still open: decide the stale-price threshold (G2), VAT: all variant prices are treated as net for now, a sample shows some include VAT (follow-up T166, deferred), set the constitution v1.2.0 ratification date, and ADR-018 and ADR-020 are accepted (2026-11-07); ADR-019 is still proposed.
+Malware scanning: owner accepted the risk on 2026-11-07 (recorded in ADR-020). Still open: decide the stale-price threshold (G2), VAT: all variant prices are treated as net for now, a sample shows some include VAT (follow-up T166, deferred), set the constitution v1.2.0 ratification date, and ADR-018, ADR-019 and ADR-020 are accepted (2026-11-07).

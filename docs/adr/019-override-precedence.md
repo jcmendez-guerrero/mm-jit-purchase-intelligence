@@ -1,6 +1,6 @@
 # ADR-019: Precedence between ERP facts, local overrides and uploaded estimates
 
-- Status: proposed
+- Status: accepted (owner, 2026-11-07)
 - Date: 2026-11-05
 - Feature: specs/002-mmi-operational-console
 
