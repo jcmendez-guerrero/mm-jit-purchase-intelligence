@@ -19,11 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "dataset_id",
-        "version",
-        "action"
-      ],
+      "required": ["dataset_id", "version", "action"],
       "properties": {
         "dataset_id": {
           "type": "string",
@@ -34,10 +30,7 @@
           "minimum": 1
         },
         "action": {
-          "enum": [
-            "activated",
-            "rolled_back"
-          ]
+          "enum": ["activated", "rolled_back"]
         }
       },
       "description": "Dataset activated or rolled back; requests a versioned forecast run."

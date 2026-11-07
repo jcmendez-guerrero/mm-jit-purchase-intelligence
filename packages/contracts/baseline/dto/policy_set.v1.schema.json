@@ -4,23 +4,14 @@
   "title": "PolicySet",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "scope",
-    "key",
-    "valid_from",
-    "revision"
-  ],
+  "required": ["scope", "key", "valid_from", "revision"],
   "properties": {
     "id": {
       "type": "string",
       "format": "uuid"
     },
     "scope": {
-      "enum": [
-        "global",
-        "segment",
-        "product"
-      ]
+      "enum": ["global", "segment", "product"]
     },
     "key": {
       "type": "string"

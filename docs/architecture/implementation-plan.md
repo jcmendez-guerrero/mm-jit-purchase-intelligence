@@ -260,7 +260,6 @@ Owners are roles, not people. "Decision" means the business must choose before t
 | MMI-002 T064 | Constitution v1.2.0 (median value, margin check, admin override) reviewed and merged; then update ADR-006 | Product owner | Decision |
 | MMI-002 T006 | Single owner of service levels (inventory and procurement both hold them today) | Product owner | Decision |
 
-
 ## 10. MMI 002 cost estimate and upload-scanning decision (T154)
 
 Figures are order-of-magnitude estimates from published consumption pricing, to be checked against the first real monthly invoice. They are not measurements.

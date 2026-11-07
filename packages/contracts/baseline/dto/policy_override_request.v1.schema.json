@@ -22,11 +22,7 @@
       "minimum": 1
     },
     "field": {
-      "enum": [
-        "safety_stock",
-        "min",
-        "max"
-      ]
+      "enum": ["safety_stock", "min", "max"]
     },
     "recommended_value": {
       "type": "integer",
@@ -42,12 +38,7 @@
       "maxLength": 500
     },
     "status": {
-      "enum": [
-        "pending",
-        "approved",
-        "rejected",
-        "reverted"
-      ]
+      "enum": ["pending", "approved", "rejected", "reverted"]
     },
     "requested_by": {
       "type": "string"

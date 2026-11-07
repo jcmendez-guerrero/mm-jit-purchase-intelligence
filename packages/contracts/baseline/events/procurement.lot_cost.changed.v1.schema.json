@@ -19,13 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "variant_id",
-        "supplier_id",
-        "lot",
-        "unit_cost",
-        "source"
-      ],
+      "required": ["variant_id", "supplier_id", "lot", "unit_cost", "source"],
       "properties": {
         "variant_id": {
           "type": "integer",
@@ -43,11 +37,7 @@
           "description": "Recargo-inclusive acquisition cost in EUR (exact decimal text)"
         },
         "source": {
-          "enum": [
-            "confirmed_order",
-            "receipt_correction",
-            "buyer_entry"
-          ]
+          "enum": ["confirmed_order", "receipt_correction", "buyer_entry"]
         }
       },
       "description": "A lot acquisition cost was recorded or corrected; inventory projects it for valuation. Carries the cost because the projection must not call procurement."

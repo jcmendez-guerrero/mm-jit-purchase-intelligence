@@ -19,11 +19,7 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "scope",
-        "key",
-        "version"
-      ],
+      "required": ["scope", "key", "version"],
       "properties": {
         "scope": {
           "enum": [

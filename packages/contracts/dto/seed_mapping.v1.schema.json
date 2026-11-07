@@ -4,10 +4,7 @@
   "title": "SeedMapping",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "name",
-    "column_map"
-  ],
+  "required": ["name", "column_map"],
   "properties": {
     "id": {
       "type": "string",

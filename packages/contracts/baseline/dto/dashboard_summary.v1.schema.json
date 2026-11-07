@@ -4,10 +4,7 @@
   "title": "DashboardSummary",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "refreshed_at",
-    "cards"
-  ],
+  "required": ["refreshed_at", "cards"],
   "properties": {
     "refreshed_at": {
       "type": "string",
@@ -18,11 +15,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "key",
-          "value",
-          "basis"
-        ],
+        "required": ["key", "value", "basis"],
         "properties": {
           "key": {
             "enum": [
@@ -44,11 +37,7 @@
             ]
           },
           "unit": {
-            "enum": [
-              "EUR",
-              "days",
-              "count"
-            ]
+            "enum": ["EUR", "days", "count"]
           },
           "basis": {
             "type": "string",
@@ -66,12 +55,7 @@
             ]
           },
           "state": {
-            "enum": [
-              "ok",
-              "no_data",
-              "stale",
-              "error"
-            ]
+            "enum": ["ok", "no_data", "stale", "error"]
           }
         }
       }

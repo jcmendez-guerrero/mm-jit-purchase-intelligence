@@ -4,13 +4,7 @@
   "title": "LotAcquisitionCost",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "variant_id",
-    "supplier_id",
-    "lot",
-    "unit_cost",
-    "source"
-  ],
+  "required": ["variant_id", "supplier_id", "lot", "unit_cost", "source"],
   "properties": {
     "id": {
       "type": "string",
@@ -56,11 +50,7 @@
       "description": "Recargo-inclusive acquisition cost (never the ERP movement price, which is PVP)"
     },
     "source": {
-      "enum": [
-        "confirmed_order",
-        "receipt_correction",
-        "buyer_entry"
-      ]
+      "enum": ["confirmed_order", "receipt_correction", "buyer_entry"]
     },
     "recorded_by": {
       "type": "string"

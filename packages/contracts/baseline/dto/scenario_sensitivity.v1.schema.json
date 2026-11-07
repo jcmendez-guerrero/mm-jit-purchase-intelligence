@@ -4,12 +4,7 @@
   "title": "ScenarioSensitivity",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "scenario_id",
-    "constraint_key",
-    "delta",
-    "cost_impact"
-  ],
+  "required": ["scenario_id", "constraint_key", "delta", "cost_impact"],
   "properties": {
     "scenario_id": {
       "type": "string",

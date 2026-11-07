@@ -1,23 +1,67 @@
 {
   "_note": "Synthetic only. Supplier names and values are made up.",
   "suppliers": [
-    {"id": "supplier-a", "name": "Proveedor Sintético A", "lead_time_days": 3, "order_days": [1, 4], "delivery_weekdays": [2, 5],
-     "min_order_value": "150.00", "free_delivery_threshold": "300.00", "delivery_charge": "9.90", "payment_terms_days": 30, "preferred": true},
-    {"id": "supplier-b", "name": "Proveedor Sintético B", "lead_time_days": 7, "order_days": [3], "delivery_weekdays": [5],
-     "min_order_value": "0.00", "free_delivery_threshold": null, "delivery_charge": "0.00", "payment_terms_days": 60, "preferred": false}
+    {
+      "id": "supplier-a",
+      "name": "Proveedor Sintético A",
+      "lead_time_days": 3,
+      "order_days": [1, 4],
+      "delivery_weekdays": [2, 5],
+      "min_order_value": "150.00",
+      "free_delivery_threshold": "300.00",
+      "delivery_charge": "9.90",
+      "payment_terms_days": 30,
+      "preferred": true
+    },
+    {
+      "id": "supplier-b",
+      "name": "Proveedor Sintético B",
+      "lead_time_days": 7,
+      "order_days": [3],
+      "delivery_weekdays": [5],
+      "min_order_value": "0.00",
+      "free_delivery_threshold": null,
+      "delivery_charge": "0.00",
+      "payment_terms_days": 60,
+      "preferred": false
+    }
   ],
   "overrides": [
-    {"variant_id": 9001, "supplier_id": "supplier-a", "pack_multiple": 6, "lead_time_days": 5}
+    {
+      "variant_id": 9001,
+      "supplier_id": "supplier-a",
+      "pack_multiple": 6,
+      "lead_time_days": 5
+    }
   ],
   "invalid": {
     "overlapping_windows": [
-      {"supplier_id": "supplier-a", "valid_from": "2026-01-01", "valid_to": "2026-06-30"},
-      {"supplier_id": "supplier-a", "valid_from": "2026-06-01", "valid_to": "2026-12-31"}
+      {
+        "supplier_id": "supplier-a",
+        "valid_from": "2026-01-01",
+        "valid_to": "2026-06-30"
+      },
+      {
+        "supplier_id": "supplier-a",
+        "valid_from": "2026-06-01",
+        "valid_to": "2026-12-31"
+      }
     ],
-    "threshold_below_minimum": {"min_order_value": "200.00", "free_delivery_threshold": "100.00"},
-    "negative_amount": {"delivery_charge": "-1.00"},
-    "invalid_weekday": {"order_days": [0, 8]}
+    "threshold_below_minimum": {
+      "min_order_value": "200.00",
+      "free_delivery_threshold": "100.00"
+    },
+    "negative_amount": { "delivery_charge": "-1.00" },
+    "invalid_weekday": { "order_days": [0, 8] }
   },
-  "expired": {"supplier_id": "supplier-b", "valid_from": "2025-01-01", "valid_to": "2025-12-31"},
-  "future": {"supplier_id": "supplier-b", "valid_from": "2027-01-01", "valid_to": null}
+  "expired": {
+    "supplier_id": "supplier-b",
+    "valid_from": "2025-01-01",
+    "valid_to": "2025-12-31"
+  },
+  "future": {
+    "supplier_id": "supplier-b",
+    "valid_from": "2027-01-01",
+    "valid_to": null
+  }
 }

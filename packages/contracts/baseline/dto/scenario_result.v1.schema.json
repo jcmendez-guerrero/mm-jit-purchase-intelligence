@@ -4,12 +4,7 @@
   "title": "ScenarioResult",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "scenario_id",
-    "supplier_id",
-    "order_total",
-    "lines"
-  ],
+  "required": ["scenario_id", "supplier_id", "order_total", "lines"],
   "properties": {
     "scenario_id": {
       "type": "string",
@@ -23,11 +18,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "variant_id",
-          "quantity",
-          "unit_cost"
-        ],
+        "required": ["variant_id", "quantity", "unit_cost"],
         "properties": {
           "variant_id": {
             "type": "integer",
@@ -105,9 +96,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "key"
-        ],
+        "required": ["key"],
         "properties": {
           "key": {
             "type": "string"

@@ -160,11 +160,7 @@
       "type": "boolean"
     },
     "source": {
-      "enum": [
-        "erp",
-        "import",
-        "manual"
-      ]
+      "enum": ["erp", "import", "manual"]
     },
     "reason": {
       "type": "string",
@@ -206,24 +202,13 @@
     "discount": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "kind",
-        "basis",
-        "threshold",
-        "value"
-      ],
+      "required": ["kind", "basis", "threshold", "value"],
       "properties": {
         "kind": {
-          "enum": [
-            "percent",
-            "amount"
-          ]
+          "enum": ["percent", "amount"]
         },
         "basis": {
-          "enum": [
-            "order_value",
-            "order_units"
-          ]
+          "enum": ["order_value", "order_units"]
         },
         "threshold": {
           "type": "string",

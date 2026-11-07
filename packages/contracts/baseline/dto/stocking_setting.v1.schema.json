@@ -4,23 +4,14 @@
   "title": "StockingSetting",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "variant_id",
-    "stocking_mode",
-    "min_floor_units",
-    "revision"
-  ],
+  "required": ["variant_id", "stocking_mode", "min_floor_units", "revision"],
   "properties": {
     "variant_id": {
       "type": "integer",
       "minimum": 1
     },
     "stocking_mode": {
-      "enum": [
-        "standard",
-        "always_stocked",
-        "on_request"
-      ]
+      "enum": ["standard", "always_stocked", "on_request"]
     },
     "min_floor_units": {
       "type": "integer",

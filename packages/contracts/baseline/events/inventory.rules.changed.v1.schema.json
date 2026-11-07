@@ -19,15 +19,10 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "kind"
-      ],
+      "required": ["kind"],
       "properties": {
         "kind": {
-          "enum": [
-            "exclusion",
-            "censoring"
-          ]
+          "enum": ["exclusion", "censoring"]
         },
         "variant_id": {
           "oneOf": [

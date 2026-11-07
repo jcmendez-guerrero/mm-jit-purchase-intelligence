@@ -4,13 +4,7 @@
   "title": "SeedDataset",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "id",
-    "version",
-    "status",
-    "origin",
-    "file_sha256"
-  ],
+  "required": ["id", "version", "status", "origin", "file_sha256"],
   "properties": {
     "id": {
       "type": "string",
@@ -35,10 +29,7 @@
       ]
     },
     "origin": {
-      "enum": [
-        "synthetic",
-        "real"
-      ]
+      "enum": ["synthetic", "real"]
     },
     "file_sha256": {
       "type": "string",
@@ -86,11 +77,7 @@
     "row_counts": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "accepted",
-        "quarantined",
-        "rejected"
-      ],
+      "required": ["accepted", "quarantined", "rejected"],
       "properties": {
         "accepted": {
           "type": "integer",

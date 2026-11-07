@@ -4,12 +4,7 @@
   "title": "ForecastAccuracy",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "run_id",
-    "segment",
-    "metric",
-    "value"
-  ],
+  "required": ["run_id", "segment", "metric", "value"],
   "properties": {
     "run_id": {
       "type": "string",
@@ -19,11 +14,7 @@
       "type": "string"
     },
     "metric": {
-      "enum": [
-        "wape",
-        "bias",
-        "stockout_rate"
-      ]
+      "enum": ["wape", "bias", "stockout_rate"]
     },
     "value": {
       "type": "string",

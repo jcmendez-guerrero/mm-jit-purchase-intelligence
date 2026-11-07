@@ -14,17 +14,17 @@ security: [{session: []}]
 tags: [{name: dashboard}, {name: suppliers}, {name: config}, {name: forecast}, {name: procurement}, {name: admin}]
 paths:
   /dashboard/summary:
-    get: {tags: [dashboard], summary: KPI cards (inventory value, coverage days, risk count/expiring value, proposed spend), parameters: [{$ref: '#/components/parameters/DateFrom'}, {$ref: '#/components/parameters/DateTo'}, {$ref: '#/components/parameters/WarehouseId'}, {$ref: '#/components/parameters/CategoryId'}, {$ref: '#/components/parameters/SupplierId'}], responses: {"200": {description: Summary with refreshed_at and per-card source}}}
+    get: {tags: [dashboard], summary: 'KPI cards (inventory value, coverage days, risk count/expiring value, proposed spend)', parameters: [{$ref: '#/components/parameters/DateFrom'}, {$ref: '#/components/parameters/DateTo'}, {$ref: '#/components/parameters/WarehouseId'}, {$ref: '#/components/parameters/CategoryId'}, {$ref: '#/components/parameters/SupplierId'}], responses: {"200": {description: Summary with refreshed_at and per-card source}}}
   /dashboard/demand-trend:
     get: {tags: [dashboard], summary: Actual vs forecast with uncertainty band; actual ERP and imported estimates are separate series}
   /dashboard/abc-xyz:
     get: {tags: [dashboard], summary: ABC/XYZ distribution with drill-down keys}
   /dashboard/risk:
-    get: {tags: [dashboard], summary: EXISTING route, extended with server-side pagination, the shared filters and drill-down keys (replaces the proposed /dashboard/risks)}
+    get: {tags: [dashboard], summary: 'EXISTING route, extended with server-side pagination, the shared filters and drill-down keys (replaces the proposed /dashboard/risks)'}
   /dashboard/forecast-accuracy:
     get: {tags: [dashboard], summary: Accuracy by segment and window}
   /filters/options:
-    get: {tags: [dashboard], summary: Live warehouses, categories and suppliers; replaces any hard-coded list}
+    get: {tags: [dashboard], summary: 'Live warehouses, categories and suppliers; replaces any hard-coded list'}
   /suppliers:
     get: {tags: [suppliers], summary: List/search suppliers with current terms summary (paginated)}
   /suppliers/{supplierId}/terms:
@@ -34,16 +34,16 @@ paths:
     get: {tags: [suppliers], summary: Override versions and effective value with precedence and conflicts}
     put: {tags: [suppliers], summary: Save an override version; nullable fields inherit}
   /config/policies:
-    get: {tags: [config], summary: Policy sections (purchase, forecast, demand rules) each with its own revision}
+    get: {tags: [config], summary: 'Policy sections (purchase, forecast, demand rules) each with its own revision'}
     put: {tags: [config], summary: Save one section; If-Match required; supports valid_from}
   /config/stocking/{variantId}:
-    get: {tags: [config], summary: Stocking mode, floor, recommended and effective safety stock for a product}
+    get: {tags: [config], summary: 'Stocking mode, floor, recommended and effective safety stock for a product'}
     put: {tags: [config], summary: Set stocking mode and floor; If-Match required}
   /config/policy-overrides:
     get: {tags: [config], summary: Override requests with status}
-    post: {tags: [config], summary: Request an override of a recommended safety stock, min or max, with reason}
+    post: {tags: [config], summary: 'Request an override of a recommended safety stock, min or max, with reason'}
   /config/policy-overrides/{id}/approve:
-    post: {tags: [config], summary: Approve (approver role, not the requester)}
+    post: {tags: [config], summary: 'Approve (approver role, not the requester)'}
   /config/policy-overrides/{id}/reject:
     post: {tags: [config], summary: Reject with reason}
   /config/policies/preview:
@@ -54,11 +54,11 @@ paths:
   /forecast/imports/template:
     get: {tags: [forecast], summary: Download Spanish template (CSV or XLSX)}
   /forecast/imports/{id}/preview:
-    get: {tags: [forecast], summary: First rows, detected columns and suggested mapping}
+    get: {tags: [forecast], summary: 'First rows, detected columns and suggested mapping'}
   /forecast/imports/{id}/mapping:
     put: {tags: [forecast], summary: Save column mapping (optionally as a reusable named mapping)}
   /forecast/imports/{id}/validate:
-    post: {tags: [forecast], summary: Run row-level validation; returns counts and quarantine page, idempotent}
+    post: {tags: [forecast], summary: 'Run row-level validation; returns counts and quarantine page, idempotent'}
   /forecast/imports/{id}/dry-run:
     get: {tags: [forecast], summary: Diff against active dataset and backtest comparison}
   /forecast/imports/{id}/activate:
@@ -66,30 +66,30 @@ paths:
   /forecast/imports/{id}/rollback:
     post: {tags: [forecast], summary: Restore previous active version atomically}
   /forecast/runs:
-    get: {tags: [forecast], summary: Runs with dataset, parameter and policy versions}
+    get: {tags: [forecast], summary: 'Runs with dataset, parameter and policy versions'}
   /forecast/variants/{variantId}:
-    get: {tags: [forecast], summary: Forecast, uncertainty, and data used for one variant}
+    get: {tags: [forecast], summary: 'Forecast, uncertainty, and data used for one variant'}
   /procurement/scenarios:
     get: {tags: [procurement], summary: List scenarios}
     post: {tags: [procurement], summary: Create and compute a scenario; Idempotency-Key header required}
   /procurement/scenarios/{id}:
-    get: {tags: [procurement], summary: Result per supplier, binding constraints, sensitivity, versions used}
+    get: {tags: [procurement], summary: 'Result per supplier, binding constraints, sensitivity, versions used'}
   /procurement/scenarios/{id}/promote:
     post: {tags: [procurement], summary: Create a draft proposal from the scenario; normal approval workflow follows}
   /procurement/scenarios/{id}/export:
-    get: {tags: [procurement], summary: CSV or Excel export, Spanish, formula-injection safe, parameters: [{name: format, in: query, schema: {type: string, enum: [csv, xlsx]}}]}
+    get: {tags: [procurement], summary: 'CSV or Excel export, Spanish, formula-injection safe', parameters: [{name: format, in: query, schema: {type: string, enum: [csv, xlsx]}}]}
   /costs/lots:
     get: {tags: [procurement], summary: Lot acquisition cost entries for a product-supplier pair with remaining quantity}
     put: {tags: [procurement], summary: Buyer corrects a lot acquisition cost on arrival; audited; If-Match required}
   /costs/{id}/median:
-    get: {tags: [procurement], summary: Median value, entries used, PVP, margin before/after and rule flags for a cost-update request}
+    get: {tags: [procurement], summary: 'Median value, entries used, PVP, margin before/after and rule flags for a cost-update request'}
   /costs/{id}/override:
     post: {tags: [procurement], summary: Admin sets a cost of their own with a reason; audited; still requires buyer review and fresh MFA}
   /admin/roles:
     get: {tags: [admin], summary: Roles and mirror status}
     put: {tags: [admin], summary: Change roles (admin only); audited; mirrored with visible retry}
   /admin/status:
-    get: {tags: [admin], summary: Sync freshness, import jobs, model runs, role-mirror lag, cost indicators}
+    get: {tags: [admin], summary: 'Sync freshness, import jobs, model runs, role-mirror lag, cost indicators'}
   /admin/jobs/{kind}/rerun:
     post: {tags: [admin], summary: Idempotent re-run of a permitted job; admin only}
 components:

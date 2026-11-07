@@ -4,13 +4,7 @@
   "title": "ForecastParameter",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "scope",
-    "key",
-    "value",
-    "valid_from",
-    "revision"
-  ],
+  "required": ["scope", "key", "value", "valid_from", "revision"],
   "properties": {
     "id": {
       "type": "string",
@@ -23,11 +17,7 @@
       "type": "string"
     },
     "value": {
-      "type": [
-        "number",
-        "string",
-        "boolean"
-      ]
+      "type": ["number", "string", "boolean"]
     },
     "valid_from": {
       "type": "string",

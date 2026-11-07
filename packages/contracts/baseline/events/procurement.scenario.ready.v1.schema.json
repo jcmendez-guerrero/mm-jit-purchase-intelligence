@@ -19,20 +19,14 @@
     "payload": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "scenario_id",
-        "status"
-      ],
+      "required": ["scenario_id", "status"],
       "properties": {
         "scenario_id": {
           "type": "string",
           "format": "uuid"
         },
         "status": {
-          "enum": [
-            "ready",
-            "failed"
-          ]
+          "enum": ["ready", "failed"]
         }
       },
       "description": "Scenario computation finished."

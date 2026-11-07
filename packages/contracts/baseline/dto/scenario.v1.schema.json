@@ -4,11 +4,7 @@
   "title": "Scenario",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "name",
-    "parameters",
-    "status"
-  ],
+  "required": ["name", "parameters", "status"],
   "properties": {
     "id": {
       "type": "string",
@@ -58,12 +54,7 @@
       }
     },
     "status": {
-      "enum": [
-        "computing",
-        "ready",
-        "failed",
-        "promoted"
-      ]
+      "enum": ["computing", "ready", "failed", "promoted"]
     },
     "input_versions": {
       "type": "object",

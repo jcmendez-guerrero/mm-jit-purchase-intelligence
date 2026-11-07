@@ -4,30 +4,17 @@
   "title": "BudgetCap",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "period",
-    "scope",
-    "amount",
-    "valid_from",
-    "revision"
-  ],
+  "required": ["period", "scope", "amount", "valid_from", "revision"],
   "properties": {
     "id": {
       "type": "string",
       "format": "uuid"
     },
     "period": {
-      "enum": [
-        "week",
-        "month"
-      ]
+      "enum": ["week", "month"]
     },
     "scope": {
-      "enum": [
-        "global",
-        "supplier",
-        "category"
-      ]
+      "enum": ["global", "supplier", "category"]
     },
     "scope_key": {
       "oneOf": [
