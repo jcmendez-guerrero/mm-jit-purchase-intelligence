@@ -296,6 +296,48 @@ export interface MappingInfo {
   required: string[];
 }
 
+
+export interface ScenarioSummary {
+  baseline: { total: string; over_budget: string; lines: number };
+  scenario: { total: string; over_budget: string; lines: number; budget: string | null; utilisation: string | null };
+  delta_total: string;
+  changes: Array<{ variant_id: number; supplier_before: string | null; supplier_after: string | null; qty_before: number; qty_after: number; reasons: string[] }>;
+  binding: Array<{ key: string; params: Record<string, string> }>;
+  infeasible: { over_by: string; clinical_critical_variants: number[] } | null;
+  notes: string[];
+}
+
+export interface ScenarioDetail {
+  id: string;
+  name: string;
+  status: "computing" | "ready" | "failed" | "promoted";
+  parameters: Record<string, unknown>;
+  result_hash: string | null;
+  created_by: string;
+  created_at: string;
+  summary: ScenarioSummary | null;
+  results: Array<{ supplier_id: string; supplier_name: string | null; order_total: string; expected_delivery: string | null; budget_utilisation: string | null;
+    lines: Array<{ variant_id: number; qty: number; unit_cost: string; line_total: string; clinical_critical: boolean }> }>;
+  sensitivity: Array<{ constraint_key: string; delta: string; cost_impact: string }>;
+}
+
+export interface ScenarioListItem {
+  id: string;
+  name: string;
+  status: string;
+  created_by: string;
+  created_at: string;
+  delta_total: string | null;
+}
+
+export interface ScenarioRequest {
+  name: string;
+  budget?: string;
+  disabled_suppliers: string[];
+  supplier_deltas: Record<string, Record<string, string | number>>;
+  service_level_delta: string;
+}
+
 export interface DiscountDoc {
   kind: "percent" | "amount";
   basis: "order_value" | "order_units";
@@ -859,6 +901,23 @@ export class ApiClient {
 
   async rejectSeed(id: string): Promise<void> {
     await this.request<void>(`/imports/${id}/reject`, { method: "POST", body: JSON.stringify({}) });
+  }
+
+
+  async createScenario(body: ScenarioRequest, idempotencyKey: string): Promise<ScenarioDetail> {
+    return this.request<ScenarioDetail>("/scenarios", { method: "POST", body: JSON.stringify(body), headers: { "Idempotency-Key": idempotencyKey } });
+  }
+
+  async getScenarios(): Promise<{ scenarios: ScenarioListItem[] }> {
+    return this.request<{ scenarios: ScenarioListItem[] }>("/scenarios");
+  }
+
+  async getScenario(id: string): Promise<ScenarioDetail> {
+    return this.request<ScenarioDetail>(`/scenarios/${id}`);
+  }
+
+  async promoteScenario(id: string): Promise<{ proposal_id: string; week: string; superseded: string[] }> {
+    return this.request<{ proposal_id: string; week: string; superseded: string[] }>(`/scenarios/${id}/promote`, { method: "POST", body: JSON.stringify({}) });
   }
 
   async getServiceLevels(): Promise<{ history?: ServiceLevelEntry[] }> {

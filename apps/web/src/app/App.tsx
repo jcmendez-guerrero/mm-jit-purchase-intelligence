@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api, UserSession } from "../api/client";
+import { ScenariosScreen } from "../features/scenarios/ScenariosScreen";
 import { ImportScreen } from "../features/imports/ImportScreen";
 import { PoliciesScreen } from "../features/policies/PoliciesScreen";
 import { CostsScreen } from "../features/costs/CostsScreen";
@@ -71,6 +72,7 @@ export const App: React.FC = () => {
         {currentTab === "suppliers" && <SuppliersScreen userRoles={userRoles} />}
         {currentTab === "costs" && <CostsScreen userRoles={userRoles} userId={session?.user_id} />}
         {currentTab === "proposals" && <ProposalsScreen userRoles={userRoles} />}
+        {currentTab === "scenarios" && <ScenariosScreen userRoles={userRoles} />}
         {currentTab === "imports" && <ImportScreen userRoles={userRoles} />}
         {currentTab === "config" && <PoliciesScreen userRoles={userRoles} />}
         {currentTab === "admin" && userRoles.includes("admin") && <RolesScreen />}

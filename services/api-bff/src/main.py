@@ -14,6 +14,7 @@ from routes.costs import router as costs_router
 from routes.dashboard import router as dashboard_router
 from routes.imports import router as imports_router
 from routes.policies import router as policies_router
+from routes.scenarios import router as scenarios_router
 
 # In api-bff, user session cookies are used for the frontend API.
 # Service skeleton provides /healthz, /readyz.
@@ -72,4 +73,5 @@ app.include_router(costs_router, prefix="/api")
 app.include_router(policies_router, prefix="/api")
 app.include_router(imports_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
+app.include_router(scenarios_router, prefix="/api")
 app.include_router(admin_roles_router, prefix="/api")
