@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, errorMessage, ScenarioDetail, ScenarioListItem, SupplierSummary } from "../../api/client";
 import { formatCurrencyEUR, formatDate, formatDateTime, formatPercent } from "../../i18n/formatters";
+import { VersionsUsed } from "../proposals/VersionsUsed";
 import { Field } from "../suppliers/Field";
 import { canCreate, constraintLabel, emptyForm, emptySupplier, reasonKey, ScenarioForm, SupplierForm, toRequest } from "./scenariosModel";
 
@@ -147,6 +148,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
       {detail && s && (
         <article aria-label={detail.name} className="mmi-card" style={{ marginTop: "1rem" }}>
           <h3>{detail.name} — {t(`scenarios.status.${detail.status}`)}</h3>
+          <VersionsUsed dataset={detail.input_versions?.dataset} forecastRun={detail.input_versions?.forecast_run} />
           <h4>{t("scenarios.compare")}</h4>
           <div className="mmi-table-wrapper"><table className="mmi-table">
             <thead><tr><th>{t("scenarios.col.metric")}</th><th>{t("scenarios.col.baseline")}</th><th>{t("scenarios.col.scenario")}</th></tr></thead>

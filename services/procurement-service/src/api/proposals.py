@@ -114,7 +114,7 @@ def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
                    "unit_cost_with_recargo": s(r.unit_cost_with_recargo), "line_total": s(r.line_total), "forecast_or_policy": r.forecast_or_policy,
                    "safety_stock": r.safety_stock, "constraints_applied": r.constraints_applied, "risk": r.risk, "confidence": r.confidence,
                    "explanation": r.explanation, "alternatives_compared": r.alternatives_compared, "manual_override": r.manual_override, "topup": r.topup} for r in lines],
-        "terms_version_ids": p.terms_version_ids,
+        "terms_version_ids": p.terms_version_ids, "policy_version_ids": p.policy_version_ids, "dataset_version_id": p.dataset_version_id, "forecast_run_id": p.forecast_run_id,
         "supplier_groups": [{"supplier_id": g.supplier_id, "supplier_name": supplier_names.get(g.supplier_id), "subtotal": s(g.subtotal),
                              "discount": s(g.discount), "delivery_charge": s(g.delivery_charge), "total_cost": s(g.total_cost),
                              "expected_delivery_date": g.expected_delivery_date.isoformat() if g.expected_delivery_date else None, "minimum_status": g.minimum_status,

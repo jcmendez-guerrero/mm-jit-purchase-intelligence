@@ -150,6 +150,7 @@ proposals = Table(
     Column("terms_version_ids", JSON),
     Column("policy_version_ids", JSON),
     Column("dataset_version_id", String(36)),
+    Column("forecast_run_id", String(36)),
 )
 proposal_lines = Table(
     "proposal_lines", metadata,

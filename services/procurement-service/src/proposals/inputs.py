@@ -189,4 +189,5 @@ class InputsProvider:
             versions_used[sid] = {"supplier": None if row is None else int(row.version), "overrides": overrides_used.get(sid, {})}
         self.report = report
         capped = effective_weekly_budget(conn, today)
-        return ProposalInputs(today, tuple(out), terms, capped if capped is not None else self.budget, terms_versions=versions_used, policy_versions=policy_versions)
+        return ProposalInputs(today, tuple(out), terms, capped if capped is not None else self.budget, terms_versions=versions_used, policy_versions=policy_versions,
+                              forecast_run_id=fc.get("run_id"), dataset_version_id=fc.get("dataset_version_id"))

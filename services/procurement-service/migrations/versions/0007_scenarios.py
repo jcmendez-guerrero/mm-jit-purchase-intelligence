@@ -29,12 +29,12 @@ def upgrade() -> None:
                     sa.Column("delta", sa.String(40), nullable=False), sa.Column("cost_impact", sa.Numeric(18, 4), nullable=False))
     op.create_index("ix_scenario_sensitivity_scenario_id", "scenario_sensitivity", ["scenario_id"])
     for col in (sa.Column("scenario_id", sa.String(36)), sa.Column("terms_version_ids", sa.JSON), sa.Column("policy_version_ids", sa.JSON),
-                sa.Column("dataset_version_id", sa.String(36))):
+                sa.Column("dataset_version_id", sa.String(36)), sa.Column("forecast_run_id", sa.String(36))):
         op.add_column("proposals", col)
 
 
 def downgrade() -> None:
-    for c in ("dataset_version_id", "policy_version_ids", "terms_version_ids", "scenario_id"):
+    for c in ("forecast_run_id", "dataset_version_id", "policy_version_ids", "terms_version_ids", "scenario_id"):
         op.drop_column("proposals", c)
     op.drop_index("ix_scenario_sensitivity_scenario_id", table_name="scenario_sensitivity")
     op.drop_index("ix_scenario_results_scenario_id", table_name="scenario_results")

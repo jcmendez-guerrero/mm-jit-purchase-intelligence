@@ -176,3 +176,4 @@ def test_the_proposal_view_carries_names_the_discount_and_the_terms_versions(api
     assert (line["sku"], line["product_name"], line["supplier_name"]) == ("SYN-1", "Producto sintético 1", "Proveedor Sintetico")
     assert view["supplier_groups"][0]["discount"] == "0.0000" and view["supplier_groups"][0]["supplier_name"] == "Proveedor Sintetico"
     assert "terms" in line["explanation"] and "terms_version_ids" in view
+    assert {"policy_version_ids", "dataset_version_id", "forecast_run_id"} <= set(view)                 # the versions behind the proposal are part of its view (FR-026)

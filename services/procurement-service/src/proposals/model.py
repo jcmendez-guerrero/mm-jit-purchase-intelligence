@@ -112,6 +112,9 @@ class ProposalInputs:
     risk_penalty_ticks_per_unit_day: int = 100         # 0.01 EUR per unit per extra day of lead time
     terms_versions: dict[str, Any] = field(default_factory=dict)   # supplier_id -> {"supplier": n, "overrides": {variant_id: n}} (FR-026)
     policy_versions: dict[str, Any] = field(default_factory=dict)  # "scope:key" -> revision used (FR-026)
+    # Where the forecast came from (FR-026). Recorded, never hashed: the same numbers from another run or dataset must give the same result.
+    forecast_run_id: str | None = field(default=None, metadata={"hash": False})
+    dataset_version_id: str | None = field(default=None, metadata={"hash": False})
 
 
 def canonical(obj: Any) -> str:
@@ -123,7 +126,7 @@ def canonical(obj: Any) -> str:
         if isinstance(o, (set, frozenset)):
             return sorted(o)
         if hasattr(o, "__dataclass_fields__"):
-            return {k: getattr(o, k) for k in o.__dataclass_fields__}
+            return {k: getattr(o, k) for k, f in o.__dataclass_fields__.items() if f.metadata.get("hash", True)}
         raise TypeError(type(o))
 
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), default=default)

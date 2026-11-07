@@ -78,6 +78,8 @@ class Draft:
     notes: tuple[str, ...] = field(default_factory=tuple)
     terms_versions: dict[str, Any] = field(default_factory=dict)
     policy_versions: dict[str, Any] = field(default_factory=dict)
+    forecast_run_id: str | None = None
+    dataset_version_id: str | None = None
 
 
 def _risk(t: Target, shortfall: bool) -> str:
@@ -169,7 +171,7 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
         g.supplier_id, money(g.subtotal_ticks), money(g.delivery_charge_ticks), money(g.total_ticks), inputs.today + timedelta(days=max_lead[g.supplier_id]),
         g.minimum_status, g.free_delivery, tuple(opts_by_supplier.get(g.supplier_id, ())), money(g.discount_ticks)) for g in alloc.groups)
     return Draft(tuple(out_lines), out_groups, tuple(targets), alloc.solver_status, inputs_hash(inputs, RULE_VERSIONS), dict(RULE_VERSIONS),
-                 money(greedy.total_ticks), money(alloc.total_ticks), money(alloc.over_budget_ticks), tuple(alloc.notes), dict(inputs.terms_versions), dict(inputs.policy_versions))
+                 money(greedy.total_ticks), money(alloc.total_ticks), money(alloc.over_budget_ticks), tuple(alloc.notes), dict(inputs.terms_versions), dict(inputs.policy_versions), inputs.forecast_run_id, inputs.dataset_version_id)
 
 
 def store(conn: Connection, draft: Draft, created_by: str, week: str, budget: Decimal | None = None, now: datetime | None = None) -> str:
@@ -189,6 +191,7 @@ def store(conn: Connection, draft: Draft, created_by: str, week: str, budget: De
         id=pid, week=week, status="draft", created_by=created_by, last_edited_by=created_by, version=1, inputs_hash=draft.inputs_hash,
         rule_versions=draft.rule_versions, solver_status=draft.solver_status, budget=budget, created_at=now, updated_at=now,
         terms_version_ids=draft.terms_versions or None, policy_version_ids=draft.policy_versions or None,
+        dataset_version_id=draft.dataset_version_id, forecast_run_id=draft.forecast_run_id,
         flags={"greedy_total": str(draft.greedy_total), "optimized_total": str(draft.optimized_total), "over_budget": str(draft.over_budget), "notes": list(draft.notes)}))
     for ln in draft.lines:
         conn.execute(insert(proposal_lines).values(

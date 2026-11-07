@@ -1,5 +1,7 @@
 """T175 (FR-008): the buyer can see whether one product's forecast rests on imported estimates."""
 
+from datetime import timedelta
+
 import api
 import pytest
 from fastapi.testclient import TestClient
@@ -64,3 +66,27 @@ def test_a_conservative_min_max_variant_has_no_horizon_figures(client, engine, t
     run_forecast(engine, FakeSource(export_with_new_variant()), NullWriter(tmp_path), RunConfig(), clock=CLOCK)
     body = client.get("/forecasts/variant/9001", headers=H).json()
     assert body["eligible"] is False and body["horizons"] == []                        # no mean to show; the page says it uses min/max
+
+
+def test_the_latest_forecast_names_the_run_and_the_dataset_behind_it(client, engine, store, tmp_path):
+    run_forecast(engine, FakeSource(export_with_new_variant()), NullWriter(tmp_path), RunConfig(), clock=CLOCK)
+    plain = client.get("/forecasts/latest", headers=H).json()
+    assert plain["run_id"] and plain["dataset_version_id"] is None                       # no active dataset: nothing is invented
+    did = activate_valid(engine, store, dense_csv())
+    run_forecast(engine, FakeSource(export_with_new_variant()), NullWriter(tmp_path), RunConfig(), clock=lambda: CLOCK() + timedelta(hours=1))      # a later run is the latest
+    seeded_run = client.get("/forecasts/latest", headers=H).json()
+    assert seeded_run["dataset_version_id"] == did and seeded_run["run_id"] != plain["run_id"]
+
+
+def test_the_completion_event_carries_the_dataset_version(engine, store, tmp_path):
+    import json
+
+    from db.tables import outbox
+    from sqlalchemy import select
+
+    did = activate_valid(engine, store, dense_csv())
+    run_forecast(engine, FakeSource(export_with_new_variant()), NullWriter(tmp_path), RunConfig(), clock=CLOCK)
+    with engine.connect() as c:
+        rows = c.execute(select(outbox)).all()
+    docs = [json.loads(p.read_text()) for p in (tmp_path / "events" / "forecast").glob("*.json")]
+    assert docs and all(d["dataset_version_id"] == did for d in docs) and rows

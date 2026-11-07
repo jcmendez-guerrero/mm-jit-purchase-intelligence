@@ -55,7 +55,7 @@ def build_router(app: FastAPI) -> APIRouter:
             v = variants.setdefault(r.variant_id, {"eligible": r.eligible, "policy": r.policy_used, "reasons": [x for x in r.reasons.split(",") if x],
                                                    "service_level": str(r.service_level), "horizons": {}})
             v["horizons"][str(r.horizon_days)] = {"mean": r.mean, "quantiles": r.quantiles}
-        return {"run_id": run.id, "input_hash": run.input_hash, "through_day": run.through_day, "total": run.total_count, "eligible": run.eligible_count,
+        return {"run_id": run.id, "input_hash": run.input_hash, "dataset_version_id": run.dataset_version_id, "through_day": run.through_day, "total": run.total_count, "eligible": run.eligible_count,
                 "variants": {str(k): v for k, v in variants.items()}}
 
     @router.get("/forecasts/variant/{variant_id}")

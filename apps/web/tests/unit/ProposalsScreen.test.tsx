@@ -69,6 +69,16 @@ describe("ProposalsScreen", () => {
     expect(screen.queryByText(/previsión con datos importados/)).toBeNull();
   });
 
+  it("shows the forecast run and the imported dataset behind the proposal, or says there is none", async () => {
+    vi.spyOn(api, "getProposal").mockResolvedValue(proposal({ forecast_run_id: "abcdef12-0000-4000-8000-000000000000", dataset_version_id: "12345678-0000-4000-8000-000000000000" }));
+    const first = render(<ProposalsScreen userRoles={["viewer"]} />);
+    expect((await screen.findByLabelText("Datos usados")).textContent).toContain("ejecución de previsión abcdef12 · conjunto de datos importados 12345678");
+    first.unmount();
+    vi.spyOn(api, "getProposal").mockResolvedValue(proposal({ forecast_run_id: "abcdef12-0000-4000-8000-000000000000", dataset_version_id: null }));
+    render(<ProposalsScreen userRoles={["viewer"]} />);
+    expect((await screen.findByLabelText("Datos usados")).textContent).toContain("sin datos importados (solo ventas reales del ERP)");
+  });
+
   it("offers both the CSV and the Excel export of the proposal", async () => {
     render(<ProposalsScreen userRoles={["viewer"]} />);
     const csv = await screen.findByRole("link", { name: "Exportar CSV (formato es-ES)" });

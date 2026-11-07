@@ -146,7 +146,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     if rows:
         conn.execute(insert(forecast_values), rows)
     _store_backtests(conn, run_id, results, adopted)
-    payload = json.dumps({"run_id": run_id, "input_hash": digest, "eligible_count": eligible}, sort_keys=True, separators=(",", ":")).encode()
+    payload = json.dumps({"run_id": run_id, "input_hash": digest, "eligible_count": eligible, "dataset_version_id": None if seeds is None else seeds.dataset_id}, sort_keys=True, separators=(",", ":")).encode()
     uri = writer.put(f"events/forecast/{run_id}.json", payload)
     enqueue(conn, outbox, new_envelope(EVENT_TYPE, run_id, payload, uri, cid))
     conn.execute(update(forecast_runs).where(forecast_runs.c.id == run_id).values(status="completed", finished_at=clock()))

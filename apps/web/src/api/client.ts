@@ -335,6 +335,7 @@ export interface ScenarioDetail {
   status: "computing" | "ready" | "failed" | "promoted";
   parameters: Record<string, unknown>;
   result_hash: string | null;
+  input_versions?: { dataset?: string | null; forecast_run?: string | null } & Record<string, unknown>;
   created_by: string;
   created_at: string;
   summary: ScenarioSummary | null;
@@ -665,6 +666,9 @@ export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
   lines: ProposalLine[];
   supplier_groups: SupplierGroup[];
   terms_version_ids: Record<string, unknown> | null;
+  policy_version_ids?: Record<string, unknown> | null;
+  dataset_version_id?: string | null;
+  forecast_run_id?: string | null;
   approval: { approver: string; decision: string; version: number; valid: boolean } | null;
   warnings?: string[];
 }

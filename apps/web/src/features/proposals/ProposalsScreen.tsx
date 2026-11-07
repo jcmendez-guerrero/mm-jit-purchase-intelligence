@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, Proposal, ProposalSummary, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
+import { VersionsUsed } from "./VersionsUsed";
 import { ProposalLineExplanation } from "./ProposalLineExplanation";
 import { canApprove, canEditLines, canSubmit, parseQty } from "./proposalModel";
 
@@ -99,6 +100,7 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
         {current && (
           <div>
             <h3>{t("proposals.week", { week: current.week })}</h3>
+            <VersionsUsed dataset={current.dataset_version_id} forecastRun={current.forecast_run_id} />
             <span className="mmi-badge">{t(`proposals.status.${current.status}`)}</span>
             <span className="mmi-muted"> {t("proposals.created_by", { user: current.created_by })}</span>
             <div>

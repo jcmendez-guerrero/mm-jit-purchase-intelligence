@@ -62,7 +62,8 @@ def create(conn: Connection, writer: BlobWriter, name: str, params: ScenarioPara
     if existing is not None:
         return get(conn, existing.id)
     sid = str(uuid.uuid4())
-    versions = {"inputs_fingerprint": input_fingerprint(base), "rules": RULE_VERSIONS, "terms": base.terms_versions, "policy": base.policy_versions}
+    versions = {"inputs_fingerprint": input_fingerprint(base), "rules": RULE_VERSIONS, "terms": base.terms_versions, "policy": base.policy_versions,
+                "dataset": base.dataset_version_id, "forecast_run": base.forecast_run_id}
     conn.execute(insert(scenarios).values(id=sid, name=name, parameters=params.to_json(), status="computing", input_versions=versions, idempotency_key=idempotency_key,
                                           created_by=actor, created_at=now))
     try:
