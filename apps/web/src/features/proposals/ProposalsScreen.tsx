@@ -115,6 +115,9 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
               <a href={`/api/proposals/${current.id}/export?format=csv`} download className="mmi-btn mmi-btn-secondary">
                 {t("proposals.export_csv")}
               </a>
+              <a href={`/api/proposals/${current.id}/export?format=xlsx`} download className="mmi-btn mmi-btn-secondary">
+                {t("proposals.export_excel")}
+              </a>
             </div>
 
             {current.supplier_groups.length > 0 && (

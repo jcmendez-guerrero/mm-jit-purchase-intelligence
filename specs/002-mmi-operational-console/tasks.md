@@ -372,4 +372,4 @@
 
 ## Phase 17: Convergence
 
-- [ ] T180 Offer the Excel export of a proposal next to the CSV one: add a `proposals.export_xlsx` es-ES label and a download link for `/api/proposals/{id}/export?format=xlsx` in apps/web/src/features/proposals/ProposalsScreen.tsx, with a unit test in apps/web/tests/unit/ProposalsScreen.test.tsx and a browser test that the file downloads per FR-032 and US6/AC5 (partial)
+- [X] T180 Offer the Excel export of a proposal next to the CSV one: add a `proposals.export_xlsx` es-ES label and a download link for `/api/proposals/{id}/export?format=xlsx` in apps/web/src/features/proposals/ProposalsScreen.tsx, with a unit test in apps/web/tests/unit/ProposalsScreen.test.tsx and a browser test that the file downloads per FR-032 and US6/AC5 (partial)

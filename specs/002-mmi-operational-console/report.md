@@ -7,7 +7,7 @@ Branch `claude/mmi-002-operational-console-ibqo4g`. Synthetic data only; no real
 | Suite | Result |
 |---|---|
 | Service unit and integration tests (inventory, forecast, procurement, api-bff, connector, cost-writer, contracts) | all pass (inventory 157, forecast 150, procurement 410, api-bff 116, connector 87, cost-writer 60, contracts 185; emulator tests skipped here) |
-| Web unit tests (Vitest, includes localisation and no-hard-coded-options checks) | 224 pass |
+| Web unit tests (Vitest, includes localisation and no-hard-coded-options checks) | 225 pass |
 | Spanish browser tests (Playwright on Chromium, backends mocked, axe checks) | 44 pass (plus 4 evidence captures that run only on request) |
 | PostgreSQL 16 migrations, upgrade and downgrade, all six schemas | 9 pass |
 | Real-process approval end-to-end (real services, real PostgreSQL, two users, fresh MFA) | 3 pass |

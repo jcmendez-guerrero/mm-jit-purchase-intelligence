@@ -69,6 +69,15 @@ describe("ProposalsScreen", () => {
     expect(screen.queryByText(/previsión con datos importados/)).toBeNull();
   });
 
+  it("offers both the CSV and the Excel export of the proposal", async () => {
+    render(<ProposalsScreen userRoles={["viewer"]} />);
+    const csv = await screen.findByRole("link", { name: "Exportar CSV (formato es-ES)" });
+    const xlsx = screen.getByRole("link", { name: "Exportar Excel" });
+    expect(csv.getAttribute("href")).toBe("/api/proposals/p1/export?format=csv");
+    expect(xlsx.getAttribute("href")).toBe("/api/proposals/p1/export?format=xlsx");
+    expect(xlsx.hasAttribute("download")).toBe(true);
+  });
+
   it("edits a quantity with the version on screen", async () => {
     const edit = vi.spyOn(api, "editProposalLine").mockResolvedValue(proposal());
     render(<ProposalsScreen userRoles={["viewer", "buyer"]} />);
