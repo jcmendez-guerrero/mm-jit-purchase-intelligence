@@ -50,6 +50,7 @@ Out of scope: any ERP write other than the existing buyer-released, fresh-MFA su
 - Q: Should the old inventory service-level history be copied once into the procurement policy sets? → A: No. Policy sets start empty; inventory values stay read-only history so earlier proposals reproduce, and the computed defaults apply until a buyer sets a value.
 - Q: Are ADR-018 (configuration ownership) and ADR-020 (seed provenance and activation) accepted? → A: Yes, accepted by the owner on 2026-11-07, including the accepted risk of no paid malware scanning. ADR-019 stays proposed.
 - Q: Is ADR-019 (precedence between ERP facts, local overrides and uploaded estimates) accepted as written? → A: Yes, accepted by the owner on 2026-11-07. ADR-018, ADR-019 and ADR-020 are now all accepted.
+- Q: May the web app keep loading its typefaces from a third-party host, and where is that recorded? → A: Yes, as a recorded exception: Inter and Bricolage Grotesque may be loaded from Google Fonts (the constitution has no rule against third-party runtime hosts; FR-035 is about language, not hosting). It is the only permitted third-party host, for styles and fonts only; scripts, connections and everything else stay `'self'`, enforced by `infra/tests/test_web_headers.py`. Self-hosting is optional later.
 
 ### Session 2026-11-05 (resolved autonomously from the authoritative sources, for reviewer confirmation)
 
@@ -306,6 +307,7 @@ The admin sees sync status and source freshness, import jobs, supplier-policy hi
 - **FR-037**: Free-text notes and supplier tax identifiers MUST NOT be parsed, stored or used, including in imports; malformed or ambiguous records MUST go to review.
 - **FR-038**: The feature MUST stay within the shared EUR 120/month budget: no always-on analytics infrastructure, scale-to-zero, replica and job caps, and automated cost-guardrail checks.
 - **FR-039**: Public-repository content MUST be synthetic only; no secrets, real identifiers, prices or imports.
+- **FR-049**: Exception: the web app MAY load the Inter and Bricolage Grotesque typefaces from Google Fonts. These two hosts are the only third-party hosts allowed at runtime, only as style and font sources in the Content-Security-Policy; no third-party scripts or connections are allowed, and an automated header test MUST fail on any other third-party host.
 
 ### Key Entities *(include if feature involves data)*
 
