@@ -80,3 +80,17 @@ def test_a_sync_reaches_a_proposal_through_every_service(dc):
     out = dc("exec", "-T", "procurement-service", "python", "-c", probe, timeout=600).stdout
     status, state, lines, solver = out.split("RESULT", 1)[1].split()
     assert (status, state, solver) == ("202", "draft", "optimal") and int(lines) > 0
+
+
+def test_an_admin_can_re_forecast_and_unchanged_inputs_reuse_the_run(dc):
+    """T168: the forecast API holds a series source in Compose, so a re-run on request answers 202 and reuses the existing run."""
+    probe = textwrap.dedent("""
+        import os, httpx
+        r = httpx.post(os.environ["MMI_DEV_ISSUER_URL"] + "/token", json={"subject": "dev-admin-1", "audience": "api://mmi-forecast-service", "roles": ["viewer", "admin"]}, timeout=10)
+        h = {"Authorization": "Bearer " + r.json()["access_token"]}
+        g = httpx.post("http://localhost:8000/runs", headers=h, timeout=600)
+        print("RESULT", g.status_code, g.json().get("reused"))
+    """)
+    out = dc("exec", "-T", "forecast-service", "python", "-c", probe, timeout=900).stdout
+    status, reused = out.split("RESULT", 1)[1].split()
+    assert (status, reused) == ("202", "True")

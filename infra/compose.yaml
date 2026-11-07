@@ -117,8 +117,11 @@ services:
       SIWEB_BASE_URL: http://siweb-mock:8089
       SIWEB_TOKEN: synthetic-test-token
       MMI_SEED_BLOB_ROOT: /data/seeds          # local stand-in for the private seed-quarantine container
+      MMI_INVENTORY_URL: http://inventory-service:8000   # series source for the import dry-run and the re-forecast on request
+      MMI_BLOB_ROOT: /data/blobs
     volumes:
       - seeds:/data/seeds
+      - blobs:/data/blobs
     depends_on:
       postgres: { condition: service_healthy }
       azurite: { condition: service_started }

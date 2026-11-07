@@ -345,7 +345,7 @@
 ## Phase 12: Convergence
 
 - [X] T167 Run a backtest of the candidate seed dataset against the active one in the dry-run and return the accuracy comparison (instead of `not_run_until_activation`), with tests in services/forecast-service/tests/ and the comparison shown on the import screen with es-ES strings per FR-023 (partial)
-- [ ] T168 Wire `MMI_INVENTORY_URL`, the series source and blob writer into the forecast-service entry in infra/compose.yaml, and cover a forecast re-run in the pipeline suite infra/tests/test_pipeline_e2e.py per plan: Compose stack and SC-010 (partial)
+- [X] T168 Wire `MMI_INVENTORY_URL`, the series source and blob writer into the forecast-service entry in infra/compose.yaml, and cover a forecast re-run in the pipeline suite infra/tests/test_pipeline_e2e.py per plan: Compose stack and SC-010 (partial)
 - [ ] T169 Add an Azure blob adapter for seed originals (put and get against the private `seed-quarantine` container, same interface as `LocalSeedStore`, managed identity), select it by configuration, grant the forecast identity writer access in infra/bicep/modules/storage.bicep, and test it on Azurite in services/forecast-service/ per FR-020 and ADR-020 (missing)
 - [ ] T170 Project the ERP `category` from variants into inventory (migration edited in place), return it in the filter options and apply it as the product-family filter on the dashboard, with tests and es-ES labels per FR-006 (partial)
 - [ ] T171 Fix the colour-contrast failures in apps/web/src/index.css and remove `disableRules(["color-contrast"])` from apps/web/tests/e2e/dashboard.spec.ts and a11y.spec.ts so the accessibility run enforces it per SC-010 (partial)
