@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canCreate, constraintLabel, emptyForm, emptySupplier, toRequest } from "./scenariosModel";
+import { canCreate, constraintLabel, emptyForm, emptySupplier, toRequest } from "../../src/features/scenarios/scenariosModel";
 
 describe("scenario form", () => {
   it("needs a name and treats blank fields as no change", () => {

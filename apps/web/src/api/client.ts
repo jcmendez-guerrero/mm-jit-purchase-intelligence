@@ -297,6 +297,17 @@ export interface MappingInfo {
 }
 
 
+export type StatusCard<T> = { ok: true; data: T } | { ok: false; error: string };
+
+export interface AdminStatus {
+  freshness: StatusCard<{ stock_snapshots: { latest_day: string | null; rows: number }; movements: { rows: number; quarantined: number; latest_at: string | null }; aggregates: { refreshed_at: string | null } }>;
+  import_jobs: StatusCard<{ jobs: SeedJob[] }>;
+  model_runs: StatusCard<{ runs: Array<{ id: string; started_at: string; status: string; through_day: string; total: number; eligible: number; dataset_version_id: string | null }> }>;
+  policy_history: StatusCard<Array<{ id: string; status: string; variant_id: number; [k: string]: unknown }>>;
+  role_mirror: StatusCard<{ pending: number; failed: number; sent: number; oldest_pending_seconds: number }>;
+  cost: { budget_eur: number; estimate_eur: number; guardrails: { min_replicas: number; max_replicas: number; job_parallelism: number } };
+}
+
 export interface ScenarioSummary {
   baseline: { total: string; over_budget: string; lines: number };
   scenario: { total: string; over_budget: string; lines: number; budget: string | null; utilisation: string | null };
@@ -922,6 +933,19 @@ export class ApiClient {
 
   async getServiceLevels(): Promise<{ history?: ServiceLevelEntry[] }> {
     return this.request<{ history?: ServiceLevelEntry[] }>("/config/service-levels");
+  }
+
+
+  async getAdminStatus(): Promise<AdminStatus> {
+    return this.request<AdminStatus>("/admin/status");
+  }
+
+  async rerunForecast(): Promise<{ run_id: string; reused: boolean }> {
+    return this.request<{ run_id: string; reused: boolean }>("/admin/rerun/forecast", { method: "POST", body: JSON.stringify({}) });
+  }
+
+  async rerunImportJob(jobId: string): Promise<{ job_id: string; reused: boolean }> {
+    return this.request<{ job_id: string; reused: boolean }>(`/admin/rerun/import/${encodeURIComponent(jobId)}`, { method: "POST", body: JSON.stringify({}) });
   }
 
   async getRoles(): Promise<RolesListing> {

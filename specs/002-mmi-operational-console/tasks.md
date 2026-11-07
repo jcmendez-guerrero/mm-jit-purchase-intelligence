@@ -293,7 +293,7 @@
 ### Implementation
 
 - [X] T151 [US7] Implement admin status and re-run routes in services/api-bff/src/routes/admin_status.py
-- [ ] T152 [US7] Build admin screens for sync, import jobs, supplier-policy history, model runs and cost indicators in apps/web/src/features/admin/
+- [X] T152 [US7] Build admin screens for sync, import jobs, supplier-policy history, model runs and cost indicators in apps/web/src/features/admin/
 - [X] T153 [US7] Add metrics and alerts for import failures, upload rejections and role-mirror lag in infra/bicep/modules/ and the services' logging (no secrets, no personal data)
 - [X] T154 [US7] Write the monthly cost estimate for storage and job minutes and evaluate malware scanning feasibility; record the decision or accepted risk in docs/architecture/implementation-plan.md and docs/adr/020-seed-provenance.md
 

@@ -4,6 +4,7 @@ import { ScenariosScreen } from "../features/scenarios/ScenariosScreen";
 import { ImportScreen } from "../features/imports/ImportScreen";
 import { PoliciesScreen } from "../features/policies/PoliciesScreen";
 import { CostsScreen } from "../features/costs/CostsScreen";
+import { AdminStatusScreen } from "../features/admin/AdminStatusScreen";
 import { RolesScreen } from "../features/admin/RolesScreen";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
 import { SuppliersScreen } from "../features/suppliers/SuppliersScreen";
@@ -75,7 +76,12 @@ export const App: React.FC = () => {
         {currentTab === "scenarios" && <ScenariosScreen userRoles={userRoles} />}
         {currentTab === "imports" && <ImportScreen userRoles={userRoles} />}
         {currentTab === "config" && <PoliciesScreen userRoles={userRoles} />}
-        {currentTab === "admin" && userRoles.includes("admin") && <RolesScreen />}
+        {currentTab === "admin" && userRoles.includes("admin") && (
+          <>
+            <AdminStatusScreen />
+            <RolesScreen />
+          </>
+        )}
       </main>
     </div>
   );
