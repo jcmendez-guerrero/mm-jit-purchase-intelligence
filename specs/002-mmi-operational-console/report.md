@@ -6,9 +6,9 @@ Branch `claude/mmi-002-operational-console-ibqo4g`. Synthetic data only; no real
 
 | Suite | Result |
 |---|---|
-| Service unit and integration tests (inventory, forecast, procurement, api-bff, connector, cost-writer, contracts) | all pass (inventory 134, forecast 144, procurement 403, api-bff 114, connector 87, cost-writer 60, contracts 185; emulator tests skipped here) |
+| Service unit and integration tests (inventory, forecast, procurement, api-bff, connector, cost-writer, contracts) | all pass (inventory 147, forecast 144, procurement 403, api-bff 115, connector 87, cost-writer 60, contracts 185; emulator tests skipped here) |
 | Web unit tests (Vitest, includes localisation and no-hard-coded-options checks) | 216 pass |
-| Spanish browser tests (Playwright on Chromium, backends mocked, axe checks) | 35 pass (plus 4 evidence captures that run only on request) |
+| Spanish browser tests (Playwright on Chromium, backends mocked, axe checks) | 39 pass (plus 4 evidence captures that run only on request) |
 | PostgreSQL 16 migrations, upgrade and downgrade, all six schemas | 9 pass |
 | Real-process approval end-to-end (real services, real PostgreSQL, two users, fresh MFA) | 3 pass |
 | Infra tests (error codes and localisation, routing, storage policy, cost guardrails, alert rules, Compose wiring, security abuse) | 56 pass, 15 skipped (need Docker or an emulator) |
@@ -33,7 +33,7 @@ Branch `claude/mmi-002-operational-console-ibqo4g`. Synthetic data only; no real
 |---|---|---|
 | SC-001 supplier terms in under 10 minutes, shown in next proposal | `services/procurement-service/tests/test_terms_*.py`, `test_allocation_terms.py`; `apps/web/tests/e2e/suppliers.spec.ts` | functional behaviour covered; the 10-minute usability time was not measured |
 | SC-002 import and rollback times | `services/forecast-service/tests/test_seed_activation.py`, `test_seed_rollback.py`, `test_imports_api.py`; `tests/e2e/import.spec.ts` | flow covered; the service-level journey for 1,000 products (45,000 rows) took about 5 s to activation and under 1 s to roll back on the unit-test database, far inside 15 and 2 minutes (`test_seed_timing.py`); human steps and production latency are not included |
-| SC-003 KPIs match reference totals; content under 3 s | `services/inventory-service/tests/test_aggregates.py`; `tests/e2e/dashboard.spec.ts`, `dashboard-perf.spec.ts` | covered |
+| SC-003 KPIs match reference totals; content under 3 s | `services/inventory-service/tests/test_aggregates.py`, `test_drilldown.py` (drill-down rows add up to the KPI); `tests/e2e/dashboard.spec.ts`, `dashboard-perf.spec.ts` | covered |
 | SC-004 no hard-coded options | `apps/web/tests/unit/no-hardcoded-options.test.ts`; `services/inventory-service/tests/test_filter_options.py`; `tests/e2e/warehouses.spec.ts` | covered |
 | SC-005 every row accepted or listed; nothing counted as ERP movement | `test_seed_validation.py`, `test_seed_isolation.py` | covered |
 | SC-006 audit entries and version references | `test_audit_chain.py` in each service; `test_runs.py`; `test_scenarios_isolation.py` | covered |

@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -99,10 +100,9 @@ def _costs(conn: Connection) -> tuple[dict[tuple[int, str], Decimal], dict[int, 
     return {k: v[1] for k, v in by_lot.items()}, {k: v[1] for k, v in by_variant.items()}
 
 
-def compute_summary(conn: Connection, today: date, f: Filters | None = None, forecast: ForecastMeans | None = None) -> Summary:
-    f = f or Filters()
-    scope = variant_scope(conn, f)
-    out = Summary(today, variant_count=len(scope))
+def valued_lots(conn: Connection, today: date, f: Filters, scope: set[int], summary: Summary | None = None) -> Iterator[tuple[int, Decimal, bool, bool]]:
+    """(variant, value, estimated, expiring soon) for each lot in scope that has a cost. A lot with no cost at all is counted on ``summary`` (when
+    given) and skipped, never valued at zero. One calculation serves both the KPI and the drill-down, so the rows always add up to the figure."""
     by_lot, by_variant = _costs(conn)
     horizon = today + timedelta(days=EXPIRY_DAYS)
     q = select(stock_lots).where(stock_lots.c.quantity > 0)
@@ -116,12 +116,20 @@ def compute_summary(conn: Connection, today: date, f: Filters | None = None, for
         if cost is None:
             cost, estimated = by_variant.get(lot.variant_id), True
         if cost is None:
-            out.unvalued_lots += 1
+            if summary is not None:
+                summary.unvalued_lots += 1
             continue
-        value = cost * lot.quantity
+        yield lot.variant_id, cost * lot.quantity, estimated, lot.expiry_date is not None and lot.expiry_date <= horizon
+
+
+def compute_summary(conn: Connection, today: date, f: Filters | None = None, forecast: ForecastMeans | None = None) -> Summary:
+    f = f or Filters()
+    scope = variant_scope(conn, f)
+    out = Summary(today, variant_count=len(scope))
+    for _vid, value, estimated, expiring in valued_lots(conn, today, f, scope, out):
         out.inventory_value += value
         out.valued_with_estimate += 1 if estimated else 0
-        if lot.expiry_date is not None and lot.expiry_date <= horizon:
+        if expiring:
             out.expiring_value += value
     risks = [r for r in evaluate_risks(conn, warehouse_id=f.warehouse_id, as_of=today, expiry_horizon_days=EXPIRY_DAYS) if r["variant_id"] in scope]
     out.stockout_risk = sum(1 for r in risks if r["risk_type"] == "stockout")
@@ -139,23 +147,32 @@ def _on_hand(conn: Connection, today: date, warehouse_id: int | None) -> dict[in
     return {r.variant_id: r.on_hand for r in rows}
 
 
-def _coverage(conn: Connection, today: date, f: Filters, scope: set[int], forecast: ForecastMeans | None, out: Summary) -> None:
+def coverage_by_variant(conn: Connection, today: date, f: Filters, scope: set[int], forecast: ForecastMeans | None) -> tuple[dict[int, tuple[Decimal, str]], int]:
+    """variant -> (days of cover, basis) for the variants with demand, and the number of variants in scope without any demand."""
     means = forecast.daily_means() if forecast is not None else {}
     since = today - timedelta(days=ACTUAL_DAYS)
     dq = select(demand_observations.c.variant_id, func.sum(demand_observations.c.demand_qty).label("q")).where(demand_observations.c.day > since, demand_observations.c.day <= today)
     if f.warehouse_id is not None:
         dq = dq.where(demand_observations.c.warehouse_id == f.warehouse_id)
     actual = {r.variant_id: Decimal(str(r.q)) / ACTUAL_DAYS for r in conn.execute(dq.group_by(demand_observations.c.variant_id)).all()}
-    days: list[Decimal] = []
+    out: dict[int, tuple[Decimal, str]] = {}
+    without = 0
     for vid, on_hand in _on_hand(conn, today, f.warehouse_id).items():
         if vid not in scope:
             continue
         rate, basis = (Decimal(str(means[vid])), "forecast") if vid in means else (actual.get(vid, ZERO), "actual_90d")
         if rate <= 0:
-            out.variants_without_demand += 1
+            without += 1
             continue
+        out[vid] = (Decimal(max(on_hand, 0)) / rate, basis)
+    return out, without
+
+
+def _coverage(conn: Connection, today: date, f: Filters, scope: set[int], forecast: ForecastMeans | None, out: Summary) -> None:
+    per, out.variants_without_demand = coverage_by_variant(conn, today, f, scope, forecast)
+    for _days, basis in per.values():
         out.basis[basis] += 1
-        days.append(Decimal(max(on_hand, 0)) / rate)
+    days = [d for d, _b in per.values()]
     out.coverage_days_avg = sum(days, ZERO) / len(days) if days else None
 
 

@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
+from dashboard.drilldown import KINDS, DrillError, drilldown
 from dashboard.kpis import (
     CATEGORIES,
     Filters,
@@ -54,6 +55,17 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
         today = datetime.now(UTC).date()
         return {"from": (today - timedelta(days=days)).isoformat(), "to": date.isoformat(today), "series": demand_trend(conn, today, days, filters(warehouse_id, category, family)),
                 "estimated": [], "note": "estimated_series_come_from_forecast_service"}
+
+    @router.get("/drilldown")
+    def drill(kind: str = Query(max_length=20), abc: str | None = Query(default=None, max_length=1), xyz: str | None = Query(default=None, max_length=1),
+              day: str | None = Query(default=None, max_length=10), warehouse_id: int | None = None, category: str | None = None, family: str | None = None,
+              limit: int = Query(default=50, ge=1, le=200), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        if kind not in KINDS:
+            raise HTTPException(422, "request_invalid")
+        try:
+            return drilldown(conn, kind, datetime.now(UTC).date(), filters(warehouse_id, category, family), means(), abc, xyz, day, limit)
+        except DrillError as exc:
+            raise HTTPException(422, exc.code) from exc
 
     @router.get("/abc-xyz")
     def abc_xyz(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

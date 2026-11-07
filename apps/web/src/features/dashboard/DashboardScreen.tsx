@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { api, DashOverview, errorMessage } from "../../api/client";
+import { api, DashOverview, DrillRequest, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate, formatNumber, formatPercent } from "../../i18n/formatters";
 import { ChartWithTable } from "./ChartWithTable";
 import { ageInDays, coverageDays, isStale, PERIODS, trendStats } from "./dashboardModel";
+import { DrillDownPanel } from "./DrillDownPanel";
 import { ProductDetail } from "./ProductDetail";
+import { SupplierPanel } from "./SupplierPanel";
 
 interface Props {
   selectedWarehouse?: number | undefined;
@@ -27,9 +29,22 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const [warehouse, setWarehouse] = useState<number | undefined>(selectedWarehouse);
   const [category, setCategory] = useState<string>("");
   const [family, setFamily] = useState<string>("");
+  const [drill, setDrill] = useState<{ request: DrillRequest; title: string } | null>(null);
+  const [supplierOpen, setSupplierOpen] = useState<string | null>(null);
   const [days, setDays] = useState<number>(60);
   const [supplier, setSupplier] = useState<string>("");
   const [detail, setDetail] = useState<number | null>(null);
+  const scope = { warehouse_id: warehouse, category: category || undefined, family: family || undefined };
+  const openDrill = (request: Omit<DrillRequest, "warehouse_id" | "category" | "family">, title: string) => {
+    setDetail(null);
+    setSupplierOpen(null);
+    setDrill({ request: { ...request, ...scope }, title });
+  };
+  const viewProducts = (kind: DrillRequest["kind"]) => (
+    <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={() => openDrill({ kind }, t(`dashboard.drill.title.${kind}`))}>
+      {t("dashboard.drill.view")}
+    </button>
+  );
 
   const load = useCallback(async () => {
     try {
@@ -113,6 +128,13 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
               ))}
             </select>
           </div>
+          {supplier && (
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={() => { setDrill(null); setDetail(null); setSupplierOpen(supplier); }}>
+                {t("dashboard.supplier.view")}
+              </button>
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label htmlFor="f-days">{t("dashboard.filter.days")}</label>
             <select id="f-days" value={days} onChange={(e) => setDays(parseInt(e.target.value, 10))}>
@@ -147,6 +169,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                   <p className="mmi-stat-card-desc">{t("dashboard.kpi.value_basis")}</p>
                   {s.valued_with_estimate > 0 && <p className="mmi-stat-card-desc">{t("dashboard.kpi.value_estimated", { n: s.valued_with_estimate })}</p>}
                   {s.unvalued_lots > 0 && <p className="mmi-stat-card-desc">{t("dashboard.kpi.value_unvalued", { n: s.unvalued_lots })}</p>}
+                  {viewProducts("inventory_value")}
                 </>
               ) : (
                 <Unavailable />
@@ -159,6 +182,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                   <div className="mmi-stat-card-value">{cov === null ? t("dashboard.kpi.coverage_none") : t("dashboard.kpi.coverage_days", { n: formatNumber(cov, 1) })}</div>
                   <p className="mmi-stat-card-desc">{t("dashboard.kpi.coverage_basis", { forecast: s.coverage_basis.forecast, actual: s.coverage_basis.actual_90d })}</p>
                   {s.variants_without_demand > 0 && <p className="mmi-stat-card-desc">{t("dashboard.kpi.coverage_no_demand", { n: s.variants_without_demand })}</p>}
+                  {viewProducts("coverage")}
                 </>
               ) : (
                 <Unavailable />
@@ -166,7 +190,14 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
             </div>
             <div className="mmi-stat-card" aria-label={t("dashboard.kpi.stockout")}>
               <h3 className="mmi-stat-card-title">{t("dashboard.kpi.stockout")}</h3>
-              {s ? <div className="mmi-stat-card-value">{s.stockout_risk}</div> : <Unavailable />}
+              {s ? (
+                <>
+                  <div className="mmi-stat-card-value">{s.stockout_risk}</div>
+                  {viewProducts("stockout_risk")}
+                </>
+              ) : (
+                <Unavailable />
+              )}
             </div>
             <div className="mmi-stat-card" aria-label={t("dashboard.kpi.expiring")}>
               <h3 className="mmi-stat-card-title">{t("dashboard.kpi.expiring")}</h3>
@@ -174,6 +205,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                 <>
                   <div className="mmi-stat-card-value">{s.expiring_value === null ? "—" : formatCurrencyEUR(s.expiring_value)}</div>
                   <p className="mmi-stat-card-desc">{t("dashboard.kpi.expiry_count", { n: s.expiry_risk })}</p>
+                  {viewProducts("expiry_risk")}
                 </>
               ) : (
                 <Unavailable />
@@ -190,6 +222,19 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                     <p className="mmi-stat-card-desc">{t("dashboard.kpi.spend_week", { week: data.spend.data.week, status: t(`proposals.status.${data.spend.data.status}`, { defaultValue: String(data.spend.data.status) }) })}</p>
                     {data.spend.data.budget !== null && <p className="mmi-stat-card-desc">{t("dashboard.kpi.spend_budget", { value: formatCurrencyEUR(data.spend.data.budget) })}</p>}
                     {data.spend.data.over_budget && <p role="note">{t("dashboard.kpi.spend_over")}</p>}
+                    {data.spend.data.by_supplier.length > 0 && (
+                      <ul className="mmi-stat-card-desc" aria-label={t("dashboard.supplier.spend_list")}>
+                        {data.spend.data.by_supplier.map((b) => (
+                          <li key={b.supplier_id}>
+                            {b.supplier_name ?? b.supplier_id}: {formatCurrencyEUR(b.total)}{" "}
+                            <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={() => { setDrill(null); setDetail(null); setSupplierOpen(b.supplier_id); }}
+                              aria-label={`${t("dashboard.supplier.view")} ${b.supplier_name ?? b.supplier_id}`}>
+                              {t("dashboard.supplier.view")}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </>
                 )
               ) : (
@@ -239,6 +284,10 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                   summary={t("dashboard.chart.trend_summary", { total: stats.total, days: stats.days, max: stats.max, day: formatDate(stats.maxDay) })}
                   columns={[t("dashboard.chart.col.day"), t("dashboard.chart.col.units")]}
                   rows={data.trend.data.series.map((p) => [formatDate(p.day), p.actual])}
+                  rowAction={(i) => {
+                    const day = data.trend.ok && data.trend.data ? data.trend.data.series[i]?.day ?? "" : "";
+                    return { label: t("dashboard.drill.day_action", { day: formatDate(day) }), onClick: () => openDrill({ kind: "trend_day", day }, t("dashboard.drill.title.trend_day", { day: formatDate(day) })) };
+                  }}
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.trend.data.series}>
@@ -246,7 +295,8 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                       <XAxis dataKey="day" tickFormatter={(d: string) => formatDate(d)} />
                       <YAxis allowDecimals={false} />
                       <Tooltip labelFormatter={(d) => formatDate(String(d))} />
-                      <Bar dataKey="actual" fill="#1f5f6b" name={t("dashboard.chart.col.units")} />
+                      <Bar dataKey="actual" fill="#1f5f6b" name={t("dashboard.chart.col.units")} cursor="pointer"
+                        onClick={(p: { day?: string }) => p.day && openDrill({ kind: "trend_day", day: p.day }, t("dashboard.drill.title.trend_day", { day: formatDate(p.day) }))} />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartWithTable>
@@ -267,6 +317,11 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                   summary={t("dashboard.chart.abc_summary", { count: cells.reduce((n, c) => n + c.variant_count, 0), cells: cells.length })}
                   columns={[t("dashboard.chart.col.group"), t("dashboard.chart.col.variants"), t("dashboard.chart.col.value")]}
                   rows={cells.map((c) => [`${c.abc}${c.xyz}`, c.variant_count, formatCurrencyEUR(c.value)])}
+                  rowAction={(i) => {
+                    const c = cells[i];
+                    const group = c ? `${c.abc}${c.xyz}` : "";
+                    return { label: t("dashboard.drill.group_action", { group }), onClick: () => c && openDrill({ kind: "abc_xyz", abc: c.abc, xyz: c.xyz }, t("dashboard.drill.title.abc_xyz", { group })) };
+                  }}
                 >
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={cells.map((c) => ({ group: `${c.abc}${c.xyz}`, count: c.variant_count }))}>
@@ -274,7 +329,8 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                       <XAxis dataKey="group" />
                       <YAxis allowDecimals={false} />
                       <Tooltip />
-                      <Bar dataKey="count" fill="#c97b2a" name={t("dashboard.chart.col.variants")} />
+                      <Bar dataKey="count" fill="#c97b2a" name={t("dashboard.chart.col.variants")} cursor="pointer"
+                        onClick={(p: { group?: string }) => p.group && openDrill({ kind: "abc_xyz", abc: p.group.slice(0, 1), xyz: p.group.slice(1) }, t("dashboard.drill.title.abc_xyz", { group: p.group }))} />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartWithTable>
@@ -318,6 +374,17 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
             )}
           </div>
         </>
+      )}
+      {drill !== null && (
+        <DrillDownPanel request={drill.request} title={drill.title} onClose={() => setDrill(null)} onOpenProduct={(id) => setDetail(id)} />
+      )}
+      {supplierOpen !== null && (
+        <SupplierPanel
+          supplierId={supplierOpen}
+          name={(data?.suppliers.ok ? data.suppliers.data?.find((x) => x.id === supplierOpen)?.name : undefined) ?? supplierOpen}
+          spend={(data?.spend.ok ? data.spend.data?.by_supplier.find((b) => b.supplier_id === supplierOpen)?.total : undefined) ?? null}
+          onClose={() => setSupplierOpen(null)}
+        />
       )}
       {detail !== null && <ProductDetail variantId={detail} onClose={() => setDetail(null)} />}
     </section>

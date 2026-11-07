@@ -89,3 +89,18 @@ def test_the_product_family_is_forwarded_to_the_cards_and_validated():
     assert calls["/dashboard/summary"]["params"] == {"category": "B", "family": "Familia sintética A"}
     assert call("/api/dashboard/overview?family=" + "x" * 121, headers_for("v", ["viewer"]), inv).status_code == 422
     assert call("/api/dashboard/overview?family=", headers_for("v", ["viewer"]), inv).status_code == 422
+
+
+def test_the_drilldown_forwards_the_figure_and_filters_for_the_signed_in_user_and_checks_the_shape():
+    inv = AsyncMock()
+    inv.forward.return_value = {"kind": "abc_xyz", "rows": [], "truncated": False, "total": 0}
+    res = call("/api/dashboard/drilldown?kind=abc_xyz&abc=B&xyz=Y&warehouse_id=2&family=Fam", headers_for("v", ["viewer"]), inv)
+    assert res.status_code == 200 and res.json()["kind"] == "abc_xyz"
+    kw = inv.forward.call_args
+    assert kw.args[:2] == ("GET", "/dashboard/drilldown") and kw.kwargs["params"] == {"kind": "abc_xyz", "abc": "B", "xyz": "Y", "warehouse_id": 2, "family": "Fam"}
+    assert kw.kwargs["user_id"] == "v"
+    inv.reset_mock()
+    for bad in ("kind=drop_table", "kind=abc_xyz&abc=Q", "kind=trend_day&day=yesterday", "kind=coverage&category=Z", "kind=coverage&family="):
+        assert call("/api/dashboard/drilldown?" + bad, headers_for("v", ["viewer"]), inv).status_code == 422, bad
+    inv.forward.assert_not_called()
+    assert call("/api/dashboard/drilldown?kind=coverage", {}, inv).status_code == 401

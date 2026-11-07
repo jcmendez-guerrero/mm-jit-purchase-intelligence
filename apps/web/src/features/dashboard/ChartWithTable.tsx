@@ -6,11 +6,12 @@ interface Props {
   summary: string;
   columns: string[];
   rows: Array<Array<string | number>>;
+  rowAction?: ((rowIndex: number) => { label: string; onClick: () => void }) | undefined;   // drill-down from a table row (keyboard path)
   children: React.ReactNode;
 }
 
 /** Every chart has a text summary and a table alternative reachable by keyboard (FR-009). */
-export const ChartWithTable: React.FC<Props> = ({ title, summary, columns, rows, children }) => {
+export const ChartWithTable: React.FC<Props> = ({ title, summary, columns, rows, rowAction, children }) => {
   const { t } = useTranslation();
   const [asTable, setAsTable] = useState(false);
   return (
@@ -32,6 +33,7 @@ export const ChartWithTable: React.FC<Props> = ({ title, summary, columns, rows,
                     {c}
                   </th>
                 ))}
+                {rowAction && <th scope="col">{t("common.actions")}</th>}
               </tr>
             </thead>
             <tbody>
@@ -40,6 +42,13 @@ export const ChartWithTable: React.FC<Props> = ({ title, summary, columns, rows,
                   {r.map((c, j) => (
                     <td key={j}>{c}</td>
                   ))}
+                  {rowAction && (
+                    <td>
+                      <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={rowAction(i).onClick}>
+                        {rowAction(i).label}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

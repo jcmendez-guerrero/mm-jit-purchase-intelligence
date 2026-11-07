@@ -354,4 +354,4 @@
 
 ## Phase 13: Convergence
 
-- [ ] T174 Add drill-down from every dashboard KPI card and chart to the products behind the figure (for example the variants in a stock-out risk, an ABC/XYZ cell, or a trend day), and a supplier detail panel opened from the supplier filter and the spend-by-supplier figures, with es-ES strings and keyboard access, backed by the existing inventory and procurement endpoints (add a read-only endpoint only where one is missing, contract first), in apps/web/src/features/dashboard/ and a Spanish browser test in apps/web/tests/e2e/dashboard.spec.ts per FR-007 (partial)
+- [X] T174 Add drill-down from every dashboard KPI card and chart to the products behind the figure (for example the variants in a stock-out risk, an ABC/XYZ cell, or a trend day), and a supplier detail panel opened from the supplier filter and the spend-by-supplier figures, with es-ES strings and keyboard access, backed by the existing inventory and procurement endpoints (add a read-only endpoint only where one is missing, contract first), in apps/web/src/features/dashboard/ and a Spanish browser test in apps/web/tests/e2e/dashboard.spec.ts per FR-007 (partial)

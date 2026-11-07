@@ -58,3 +58,20 @@ async def overview(
         _card(proc.forward("GET", "/summary/spend", params={"supplier_id": supplier_id} if supplier_id else None, **who)),
         _card(_supplier_options(proc, who)))
     return {"summary": summary, "trend": trend, "abc_xyz": abc, "risks": risks, "options": options, "accuracy": accuracy, "spend": spend, "suppliers": suppliers}
+
+
+@router.get("/drilldown")
+async def drilldown(
+    kind: str = Query(pattern="^(inventory_value|coverage|stockout_risk|expiry_risk|abc_xyz|trend_day)$"),
+    abc: str | None = Query(default=None, pattern="^[ABC]$"),
+    xyz: str | None = Query(default=None, pattern="^[XYZ]$"),
+    day: str | None = Query(default=None, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
+    warehouse_id: int | None = Query(default=None, ge=0),
+    category: str | None = Query(default=None, pattern="^(A|B|C|critical)$"),
+    family: str | None = Query(default=None, min_length=1, max_length=120),
+    session: SessionData = Depends(require_roles(*READ)),
+    inv: InventoryClient = Depends(get_inventory_client),
+) -> Any:
+    """The products behind one dashboard figure. The rules live in inventory; this only checks the request shape and forwards the signed-in user."""
+    params = {k: v for k, v in (("kind", kind), ("abc", abc), ("xyz", xyz), ("day", day), ("warehouse_id", warehouse_id), ("category", category), ("family", family)) if v is not None}
+    return await inv.forward("GET", "/dashboard/drilldown", params=params, user_id=session.user_id, roles=session.roles)

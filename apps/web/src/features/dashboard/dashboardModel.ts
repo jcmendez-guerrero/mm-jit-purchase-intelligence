@@ -31,3 +31,7 @@ export function trendStats(series: DashTrend["series"]): TrendStats | null {
 }
 
 export const coverageDays = (s: DashSummary): number | null => (s.coverage_days_avg === null ? null : Math.round(parseFloat(s.coverage_days_avg) * 10) / 10);
+
+/** Column heading for the figure shown next to each product in a drill-down. */
+export const figureColumnKey = (kind: string): string =>
+  ({ inventory_value: "dashboard.drill.col.value", coverage: "dashboard.drill.col.days", trend_day: "dashboard.drill.col.units", abc_xyz: "dashboard.drill.col.value" })[kind] ?? "dashboard.drill.col.value";

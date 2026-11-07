@@ -516,6 +516,25 @@ export interface DashOverview {
   suppliers: DashCard<Array<{ id: string; name: string }>>;
 }
 
+export type DrillKind = "inventory_value" | "coverage" | "stockout_risk" | "expiry_risk" | "abc_xyz" | "trend_day";
+
+export interface DrillRequest {
+  kind: DrillKind;
+  abc?: string | undefined;
+  xyz?: string | undefined;
+  day?: string | undefined;
+  warehouse_id?: number | undefined;
+  category?: string | undefined;
+  family?: string | undefined;
+}
+
+export interface DrillResponse {
+  kind: DrillKind;
+  truncated: boolean;
+  total: number;
+  rows: Array<{ variant_id: number; sku: string | null; name: string | null; figure: string | null }>;
+}
+
 export interface DashFilters {
   warehouse_id?: number | undefined;
   category?: string | undefined;
@@ -691,6 +710,17 @@ export class ApiClient {
   async logout(): Promise<void> {
     await this.request<void>("/auth/logout", { method: "POST" });
     setCsrfToken(null);
+  }
+
+  async getDrilldown(r: DrillRequest): Promise<DrillResponse> {
+    const q = new URLSearchParams({ kind: r.kind });
+    if (r.abc) q.set("abc", r.abc);
+    if (r.xyz) q.set("xyz", r.xyz);
+    if (r.day) q.set("day", r.day);
+    if (r.warehouse_id !== undefined) q.set("warehouse_id", String(r.warehouse_id));
+    if (r.category) q.set("category", r.category);
+    if (r.family) q.set("family", r.family);
+    return this.request<DrillResponse>(`/dashboard/drilldown?${q.toString()}`);
   }
 
   async getDashboardOverview(f: DashFilters = {}): Promise<DashOverview> {
