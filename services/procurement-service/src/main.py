@@ -11,6 +11,7 @@ from pathlib import Path
 from api.costs import build_router, get_engine
 from api.policies import build_router as build_policy_router
 from api.proposals import build_router as build_proposal_router
+from api.scenarios import build_router as build_scenario_router
 from api.summary import build_router as build_summary_router
 from mmi_common.service import create_service_app
 from mmi_common.servicetoken import service_token
@@ -20,6 +21,7 @@ app.include_router(build_router(app))
 app.include_router(build_proposal_router(app))
 app.include_router(build_policy_router(app))
 app.include_router(build_summary_router(app))
+app.include_router(build_scenario_router(app))
 
 
 def configure() -> None:

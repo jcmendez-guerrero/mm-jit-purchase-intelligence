@@ -652,5 +652,11 @@
   "dashboard.accuracy.stockout_rate": "Variantes con stock agotado en el periodo",
   "dashboard.accuracy.all": "Todas",
   "dashboard.accuracy.group": "Grupo {{g}}",
-  "dashboard.accuracy.na": "—"
+  "dashboard.accuracy.na": "—",
+  "errors.scenario_invalid": "Los parámetros del escenario no son válidos: revise el presupuesto, los plazos y los importes.",
+  "errors.scenario_stale": "Los datos han cambiado desde que se calculó el escenario: calcúlelo de nuevo antes de convertirlo en propuesta.",
+  "errors.unknown_scenario": "El escenario no existe.",
+  "errors.scenario_not_ready": "El escenario todavía no está listo.",
+  "errors.scenario_already_promoted": "Este escenario ya se convirtió en propuesta.",
+  "errors.idempotency_key_required": "Falta la clave de idempotencia; recargue la página e inténtelo de nuevo."
 }

@@ -80,6 +80,12 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | import_unknown_dataset | 404 | The dataset does not exist |
 | import_nothing_to_activate | 409 | The dataset has no accepted rows |
 | import_mapping_name_taken | 409 | A mapping with that name already exists |
+| scenario_invalid | 422 | The scenario parameters are not valid |
+| scenario_stale | 409 | The inputs changed since the scenario was computed |
+| unknown_scenario | 404 | The scenario does not exist |
+| scenario_not_ready | 409 | The scenario is not ready |
+| scenario_already_promoted | 409 | The scenario was already turned into a proposal |
+| idempotency_key_required | 422 | An Idempotency-Key header is required |
 | proposal_conflict | 409 | This week already has an approved proposal |
 | unknown_role | 422 | A role is not valid |
 | invalid_cost | 422 | A cost value is not valid |

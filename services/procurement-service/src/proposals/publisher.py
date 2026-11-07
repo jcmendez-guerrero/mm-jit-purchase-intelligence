@@ -15,7 +15,8 @@ ORDER_CONFIRMED = "procurement.order.confirmed.v1"
 WRITE_REQUESTED = "procurement.cost.write_requested.v1"
 TERMS_CHANGED = "procurement.terms.changed.v1"
 LOT_COST_CHANGED = "procurement.lot_cost.changed.v1"
-SUBSCRIPTIONS = {PROPOSAL_GENERATED: ["bff-notifications"], ORDER_CONFIRMED: ["inventory-in"], WRITE_REQUESTED: ["costwriter-in"], TERMS_CHANGED: ["bff-notifications"], LOT_COST_CHANGED: ["inventory-in"]}
+SCENARIO_READY = "procurement.scenario.ready.v1"
+SUBSCRIPTIONS = {PROPOSAL_GENERATED: ["bff-notifications"], ORDER_CONFIRMED: ["inventory-in"], WRITE_REQUESTED: ["costwriter-in"], TERMS_CHANGED: ["bff-notifications"], LOT_COST_CHANGED: ["inventory-in"], SCENARIO_READY: ["bff-notifications"]}
 
 
 class BlobWriter(Protocol):
@@ -49,3 +50,7 @@ def lot_cost_changed(conn: Connection, writer: BlobWriter, variant_id: int, supp
     """Carries the cost so inventory can value stock without calling procurement (the projection is a read-only copy)."""
     return publish(conn, writer, LOT_COST_CHANGED, f"{variant_id}.{supplier_id}.{lot}.{version}".replace(":", "_").replace("/", "_"),
                    {"variant_id": variant_id, "supplier_id": supplier_id, "lot": lot, "unit_cost": unit_cost, "source": source}, correlation_id)
+
+
+def scenario_ready(conn: Connection, writer: BlobWriter, scenario_id: str, status: str, correlation_id: str) -> dict[str, Any]:
+    return publish(conn, writer, SCENARIO_READY, scenario_id, {"scenario_id": scenario_id, "status": status}, correlation_id)

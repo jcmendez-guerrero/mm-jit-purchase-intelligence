@@ -16,7 +16,8 @@ def upgrade() -> None:
     op.create_table("scenarios", sa.Column("id", sa.String(36), primary_key=True), sa.Column("name", sa.String(200), nullable=False),
                     sa.Column("parameters", sa.JSON, nullable=False), sa.Column("status", sa.String(10), nullable=False), sa.Column("input_versions", sa.JSON),
                     sa.Column("result_hash", sa.String(64)), sa.Column("idempotency_key", sa.String(120), unique=True),
-                    sa.Column("created_by", sa.String(120), nullable=False), sa.Column("created_at", sa.DateTime(timezone=True), nullable=False))
+                    sa.Column("created_by", sa.String(120), nullable=False), sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+                    sa.Column("summary", sa.JSON))
     op.create_table("scenario_results", sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
                     sa.Column("scenario_id", sa.String(36), sa.ForeignKey("scenarios.id"), nullable=False), sa.Column("supplier_id", sa.String(36), nullable=False),
                     sa.Column("lines", sa.JSON, nullable=False), sa.Column("order_total", sa.Numeric(18, 4), nullable=False), sa.Column("expected_delivery", sa.Date),

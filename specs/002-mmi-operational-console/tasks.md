@@ -257,19 +257,19 @@
 
 ### Tests first
 
-- [ ] T135 [P] [US6] Test scenario computation never writes live tables or ERP data and is reproducible from recorded versions in services/procurement-service/tests/test_scenarios_isolation.py
-- [ ] T136 [P] [US6] Test MOQ, lead time, shipping, pack multiple and budget changes alter allocation with stated reasons in services/procurement-service/tests/test_scenarios_constraints.py
-- [ ] T137 [P] [US6] Test infeasible scenarios explain the shortfall and clinical-critical needs are shown under a low cap in services/procurement-service/tests/test_scenarios_infeasible.py
-- [ ] T138 [P] [US6] Test sensitivity is bounded to top binding constraints within the runtime budget in services/procurement-service/tests/test_scenarios_sensitivity.py
-- [ ] T139 [P] [US6] Test promotion creates a draft proposal that needs a different approver with fresh second factor in services/procurement-service/tests/test_scenarios_promote.py
-- [ ] T140 [P] [US6] Test Spanish CSV/XLSX export formats and formula safety in services/procurement-service/tests/test_scenarios_export.py
+- [X] T135 [P] [US6] Test scenario computation never writes live tables or ERP data and is reproducible from recorded versions in services/procurement-service/tests/test_scenarios_isolation.py
+- [X] T136 [P] [US6] Test MOQ, lead time, shipping, pack multiple and budget changes alter allocation with stated reasons in services/procurement-service/tests/test_scenarios_constraints.py
+- [X] T137 [P] [US6] Test infeasible scenarios explain the shortfall and clinical-critical needs are shown under a low cap in services/procurement-service/tests/test_scenarios_infeasible.py
+- [X] T138 [P] [US6] Test sensitivity is bounded to top binding constraints within the runtime budget in services/procurement-service/tests/test_scenarios_sensitivity.py
+- [X] T139 [P] [US6] Test promotion creates a draft proposal that needs a different approver with fresh second factor in services/procurement-service/tests/test_scenarios_promote.py
+- [X] T140 [P] [US6] Test Spanish CSV/XLSX export formats and formula safety in services/procurement-service/tests/test_scenarios_export.py
 - [ ] T141 [US6] Write Spanish browser test of scenario creation, comparison, promotion and export in apps/web/tests/e2e/scenarios.spec.ts
 
 ### Implementation
 
-- [ ] T142 [US6] Run the allocation engine in no-write mode against a scenario parameter set in services/procurement-service/src/scenarios/engine.py (reuse services/procurement-service/src/allocation/)
-- [ ] T143 [US6] Persist scenarios, results, constraint explanations and sensitivity in services/procurement-service/src/scenarios/store.py
-- [ ] T144 [US6] Implement scenario routes (create with Idempotency-Key, get, list, promote, export) in services/procurement-service/src/api/scenarios.py and emit procurement.scenario.ready.v1
+- [X] T142 [US6] Run the allocation engine in no-write mode against a scenario parameter set in services/procurement-service/src/scenarios/engine.py (reuse services/procurement-service/src/allocation/)
+- [X] T143 [US6] Persist scenarios, results, constraint explanations and sensitivity in services/procurement-service/src/scenarios/store.py
+- [X] T144 [US6] Implement scenario routes (create with Idempotency-Key, get, list, promote, export) in services/procurement-service/src/api/scenarios.py and emit procurement.scenario.ready.v1
 - [ ] T145 [US6] Add BFF scenario routes and client in services/api-bff/src/routes/scenarios.py and services/api-bff/src/clients/procurement.py
 - [ ] T146 [US6] Build scenario builder, side-by-side comparison, constraint explanations, sensitivity and budget utilisation in apps/web/src/features/scenarios/
 - [ ] T147 [US6] Add promote-to-proposal and export actions with es-ES strings in apps/web/src/features/scenarios/ and apps/web/src/i18n/es-ES/scenarios.json

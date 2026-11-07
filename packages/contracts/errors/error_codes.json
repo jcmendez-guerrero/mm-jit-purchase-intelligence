@@ -415,6 +415,36 @@
       "http": 409,
       "kind": "request",
       "meaning": "A mapping with that name already exists"
+    },
+    "scenario_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The scenario parameters are not valid"
+    },
+    "scenario_stale": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The inputs changed since the scenario was computed"
+    },
+    "unknown_scenario": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The scenario does not exist"
+    },
+    "scenario_not_ready": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The scenario is not ready"
+    },
+    "scenario_already_promoted": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The scenario was already turned into a proposal"
+    },
+    "idempotency_key_required": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "An Idempotency-Key header is required"
     }
   }
 }

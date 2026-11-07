@@ -29,6 +29,17 @@ class ExportError(Exception):
         self.code = code
 
 
+DANGEROUS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def neutralise(value: Any) -> Any:
+    """Text that a spreadsheet could execute is made inert (supplier and product names come from the ERP and are not trusted). Numbers stay numbers."""
+    if value is None or isinstance(value, bool | int | float | Decimal):
+        return value
+    text = str(value)
+    return "'" + text if text.startswith(DANGEROUS) else text
+
+
 def es_decimal(value: Decimal, places: int = 2) -> str:
     q = Decimal(1).scaleb(-places)
     return f"{value.quantize(q):f}".replace(".", ",")
@@ -58,7 +69,7 @@ def export_csv(rows: list[list[Any]]) -> bytes:
     w = csv.writer(buf, delimiter=";", lineterminator="\r\n")
     w.writerow([t(h) for h in HEADERS])
     for r in rows:
-        w.writerow([r[0], r[1], r[2], r[3], r[4], es_decimal(r[5], 4), es_decimal(r[6]), es_date(r[7])])
+        w.writerow([neutralise(r[0]), neutralise(r[1]), neutralise(r[2]), r[3], r[4], es_decimal(r[5], 4), es_decimal(r[6]), es_date(r[7])])
     return b"\xef\xbb\xbf" + buf.getvalue().encode("utf-8")
 
 
@@ -70,7 +81,7 @@ def export_xlsx(rows: list[list[Any]]) -> bytes:
     ws.title = t("export.sheet")
     ws.append([t(h) for h in HEADERS])
     for r in rows:
-        ws.append([r[0], r[1], r[2], r[3], r[4], float(r[5]), float(r[6]), r[7]])
+        ws.append([neutralise(r[0]), neutralise(r[1]), neutralise(r[2]), r[3], r[4], float(r[5]), float(r[6]), r[7]])
     for row in ws.iter_rows(min_row=2):
         row[5].number_format = '#,##0.0000 "€"'
         row[6].number_format = '#,##0.00 "€"'

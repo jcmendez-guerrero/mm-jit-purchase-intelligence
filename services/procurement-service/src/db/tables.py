@@ -383,6 +383,7 @@ scenarios = Table(
     Column("idempotency_key", String(120), unique=True),
     Column("created_by", String(120), nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("summary", JSON),                                            # baseline and scenario totals, changes with reasons, binding constraints, notes
 )
 scenario_results = Table(
     "scenario_results", metadata,
