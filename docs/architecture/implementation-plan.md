@@ -260,3 +260,24 @@ Owners are roles, not people. "Decision" means the business must choose before t
 | MMI-002 T064 | Constitution v1.2.0 (median value, margin check, admin override) reviewed and merged; then update ADR-006 | Product owner | Decision |
 | MMI-002 T006 | Single owner of service levels (inventory and procurement both hold them today) | Product owner | Decision |
 
+
+## 10. MMI 002 cost estimate and upload-scanning decision (T154)
+
+Figures are order-of-magnitude estimates from published consumption pricing, to be checked against the first real monthly invoice. They are not measurements.
+
+| Item | Assumption | Estimate per month |
+|---|---|---|
+| Seed file storage (private container, 30-day lifecycle) | at most 20 uploads of at most 5 MB (hard cap), kept 30 days, locally redundant hot tier | well under EUR 0.10 |
+| Raw and derived blobs added by MMI 002 | seed-derived snapshots and scenario exports are small database rows or short-lived files | negligible |
+| Validation job minutes (files over 10,000 rows) | at most 20 runs of at most 5 minutes on the smallest job size, one replica | inside the monthly free consumption grant of the Container Apps environment; if not, under EUR 1 |
+| Admin and web traffic | scale-to-zero, one replica cap | already budgeted in the base plan |
+| Alert rules added (3) | scheduled log queries every 15 minutes | a few EUR at most (each log alert rule is billed per rule per month); within the shared alert line |
+| Malware scanning (paid) | not enabled, see below | EUR 0 |
+
+Total added by MMI 002: **a few EUR per month**, which fits the shared EUR 120/month budget. `infra/tests/test_cost_guardrails.py` fails the build if any app stops scaling to zero, a replica or job cap is raised, an always-on service type appears, or an extra storage container has no lifecycle rule.
+
+### Malware scanning of uploads: evaluation and decision
+
+- **Option A, Microsoft Defender for Storage with on-upload malware scanning.** Billed per storage account per month plus per GB scanned. At list prices of the time of writing this is roughly USD 10 a month for the account plus a small per-GB charge, and the account is shared with the raw-payload container. Not free; it is a noticeable share of the margin left in the shared budget for a feature used a few times a month.
+- **Option B, compensating controls (chosen).** Uploads are limited to CSV and XLSX by extension, declared type and file signature; macros, external links and formulas are rejected; size, decompression ratio and row limits apply before parsing; parsing runs in a short-lived scale-to-zero job with no extra privileges; the original is kept in a private, encrypted container that no browser can read, deleted after 30 days; only a buyer or admin with multi-factor sign-in can upload; the file content is never rendered or opened by the system, and exports neutralise formula prefixes.
+- **Decision:** Option B. Residual risk: a crafted file that exploits a parser library bug or carries a payload for a person who later downloads the retained original. **Accepted risk**, to be confirmed by the owner when reviewing ADR-020; revisit if uploads become frequent, if non-staff users get upload rights, or if the budget allows Option A. Parser dependencies are covered by the dependency vulnerability scan (T159).
