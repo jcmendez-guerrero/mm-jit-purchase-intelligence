@@ -864,5 +864,7 @@
   "dashboard.detail.forecast_col.upper": "Hasta (95 %)",
   "dashboard.detail.risks": "Riesgos de este producto",
   "dashboard.detail.no_risks": "No se ha detectado ningún riesgo en este producto.",
-  "safety.queue_changed": "La recomendación ha cambiado desde la solicitud: era {{was}} y ahora es {{now}}. Revise la solicitud antes de decidir."
+  "safety.queue_changed": "La recomendación ha cambiado desde la solicitud: era {{was}} y ahora es {{now}}. Revise la solicitud antes de decidir.",
+  "imports.dryrun_overlap": "Las ventas reales del ERP prevalecen en {{days}} días de {{variants}} productos: los datos importados de esos días no se usan.",
+  "imports.dryrun_overlap_none": "Los datos importados no coinciden con días que ya tengan ventas reales del ERP."
 }

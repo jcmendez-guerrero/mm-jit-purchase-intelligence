@@ -32,6 +32,8 @@ class ActiveSeeds:
 class SeedReport:
     used: set[int] = field(default_factory=set)
     skipped_sparse: set[int] = field(default_factory=set)
+    overlap_variants: int = 0          # variants with seed rows on days that already have actual ERP demand (the actuals prevail)
+    overlap_days: int = 0              # how many such seed days there are in total
 
 
 def load_active(conn: Connection) -> ActiveSeeds | None:
@@ -49,6 +51,13 @@ def apply_seeds(series: list[dict[str, Any]], seeds: ActiveSeeds, min_history: i
     out: list[dict[str, Any]] = []
     for s in series:
         rows = seeds.by_variant.get(int(s["variant_id"]))
+        if rows and s["demand"]:
+            first_actual = date.fromisoformat(s["start_day"])
+            last_actual = first_actual + timedelta(days=len(s["demand"]) - 1)
+            on_actuals = sum(1 for d in rows if first_actual <= d <= last_actual)
+            if on_actuals:
+                report.overlap_variants += 1
+                report.overlap_days += on_actuals
         if not rows or len(s["demand"]) >= min_history:
             out.append(s)                                              # enough actual history: seeds are not consulted
             continue

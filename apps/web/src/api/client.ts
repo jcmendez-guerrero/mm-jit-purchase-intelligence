@@ -289,6 +289,7 @@ export interface SeedDryRun {
   variants_gaining_history: number[];
   variants_losing_history: number[];
   skipped_sparse: number[];
+  overlap?: { variants: number; days: number };
   backtest: SeedBacktest;
 }
 

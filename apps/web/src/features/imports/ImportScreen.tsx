@@ -280,6 +280,7 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
                 <p>{t("imports.dryrun_rows", dry.rows)}</p>
                 <p>{t("imports.dryrun_gain", { count: dry.variants_gaining_history.length })}</p>
                 <p>{t("imports.dryrun_sparse", { count: dry.skipped_sparse.length })}</p>
+                {dry.overlap && (dry.overlap.days > 0 ? <p role="note">{t("imports.dryrun_overlap", dry.overlap)}</p> : <p>{t("imports.dryrun_overlap_none")}</p>)}
                 {dry.backtest.status === "ok" ? (
                   <div>
                     <p>{t("imports.dryrun_backtest_title", { basis: t(`imports.dryrun_basis.${dry.backtest.basis === "actual_demand_only" ? "actual" : "active"}`) })}</p>
