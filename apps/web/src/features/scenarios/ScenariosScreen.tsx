@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, errorMessage, ScenarioDetail, ScenarioListItem, SupplierSummary } from "../../api/client";
-import { formatCurrencyEUR, formatDateTime, formatPercent } from "../../i18n/formatters";
+import { formatCurrencyEUR, formatDate, formatDateTime, formatPercent } from "../../i18n/formatters";
 import { Field } from "../suppliers/Field";
 import { canCreate, constraintLabel, emptyForm, emptySupplier, reasonKey, ScenarioForm, SupplierForm, toRequest } from "./scenariosModel";
 
@@ -200,20 +200,36 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
             </ul>
           )}
 
-          <h4>{t("scenarios.col.supplier")}</h4>
-          <div className="mmi-table-wrapper"><table className="mmi-table">
-            <thead><tr><th>{t("scenarios.col.supplier")}</th><th>{t("scenarios.col.total")}</th><th>{t("scenarios.col.delivery")}</th><th>{t("scenarios.col.utilisation")}</th></tr></thead>
-            <tbody>
-              {detail.results.map((r) => (
-                <tr key={r.supplier_id}>
-                  <td>{r.supplier_name ?? supplierName(r.supplier_id)}</td>
-                  <td>{formatCurrencyEUR(r.order_total)}</td>
-                  <td>{r.expected_delivery ? formatDateTime(r.expected_delivery) : "—"}</td>
-                  <td>{r.budget_utilisation === null ? "—" : formatPercent(r.budget_utilisation)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
+          <h4>{t("scenarios.groups")}</h4>
+          {detail.results.filter((r) => r.lines.length > 0).length === 0 && <p>{t("scenarios.groups_none")}</p>}
+          {detail.results.filter((r) => r.lines.length > 0).map((r) => (
+            <section key={r.supplier_id} aria-label={t("scenarios.group_title", { name: r.supplier_name ?? supplierName(r.supplier_id) })} className="mmi-card" style={{ marginBottom: "0.75rem" }}>
+              <h5>{r.supplier_name ?? supplierName(r.supplier_id)}</h5>
+              <div className="mmi-table-wrapper">
+                <table className="mmi-table" aria-label={t("scenarios.group_lines", { name: r.supplier_name ?? supplierName(r.supplier_id) })}>
+                  <thead><tr><th>{t("common.variant")}</th><th>{t("scenarios.line.qty")}</th><th>{t("scenarios.line.unit_cost")}</th><th>{t("scenarios.line.total")}</th></tr></thead>
+                  <tbody>
+                    {r.lines.map((ln) => (
+                      <tr key={ln.variant_id}>
+                        <td>#{ln.variant_id}{ln.clinical_critical ? ` · ${t("scenarios.line.critical")}` : ""}</td>
+                        <td>{ln.qty}</td>
+                        <td>{formatCurrencyEUR(ln.unit_cost)}</td>
+                        <td>{formatCurrencyEUR(ln.line_total)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <ul>
+                {r.subtotal != null && <li>{t("scenarios.group.subtotal", { value: formatCurrencyEUR(r.subtotal) })}</li>}
+                {r.delivery_charge != null && <li>{r.free_delivery ? t("scenarios.group.shipping_free") : t("scenarios.group.shipping", { value: formatCurrencyEUR(r.delivery_charge) })}</li>}
+                {r.discount != null && Number(r.discount) > 0 && <li>{t("scenarios.group.discount", { value: formatCurrencyEUR(r.discount) })}</li>}
+                <li><strong>{t("scenarios.group.total", { value: formatCurrencyEUR(r.order_total) })}</strong></li>
+                <li>{r.expected_delivery ? t("scenarios.group.delivery", { value: formatDate(r.expected_delivery) }) : t("scenarios.group.delivery_unknown")}</li>
+                <li>{r.budget_utilisation === null ? t("scenarios.group.utilisation_none") : t("scenarios.group.utilisation", { value: formatPercent(r.budget_utilisation) })}</li>
+              </ul>
+            </section>
+          ))}
 
           <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.75rem" }}>
             {editable && detail.status === "ready" && <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void promote()}>{t("scenarios.promote")}</button>}

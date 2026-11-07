@@ -393,6 +393,10 @@ scenario_results = Table(
     Column("supplier_id", String(36), nullable=False),
     Column("lines", JSON, nullable=False),
     Column("order_total", MONEY, nullable=False),
+    Column("subtotal", MONEY),                                        # lines before shipping and discount (FR-029)
+    Column("delivery_charge", MONEY),
+    Column("discount", MONEY),
+    Column("free_delivery", Boolean),
     Column("expected_delivery", Date),
     Column("budget_utilisation", Numeric(8, 4)),
     Column("binding_constraints", JSON),

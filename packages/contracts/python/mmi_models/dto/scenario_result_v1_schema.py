@@ -43,6 +43,10 @@ class ScenarioResult(BaseModel):
     supplier_id: str
     lines: list[Line]
     order_total: money_v1_schema.Money
+    subtotal: money_v1_schema.Money | None = None
+    delivery_charge: money_v1_schema.Money | None = None
+    discount: money_v1_schema.Money | None = None
+    free_delivery: bool | None = None
     expected_delivery: date | None = None
     budget_utilisation: BudgetUtilisation | None = None
     binding_constraints: list[BindingConstraint] | None = None

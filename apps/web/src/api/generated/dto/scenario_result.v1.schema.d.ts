@@ -16,6 +16,10 @@ export interface ScenarioResult {
     shipping?: Money | null;
   }[];
   order_total: Money;
+  subtotal?: Money | null;
+  delivery_charge?: Money | null;
+  discount?: Money | null;
+  free_delivery?: boolean | null;
   expected_delivery?: string | null;
   budget_utilisation?: string | null;
   binding_constraints?: {

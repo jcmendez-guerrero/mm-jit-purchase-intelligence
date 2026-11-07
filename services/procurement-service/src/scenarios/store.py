@@ -85,7 +85,8 @@ def _persist(conn: Connection, sid: str, params: ScenarioParams, base: ProposalI
                  for ln in draft.lines if ln.supplier_id == g.supplier_id]
         budget = params.budget if params.budget is not None else base.budget
         util = None if not budget else (g.total / budget).quantize(Decimal("0.0001"))
-        conn.execute(insert(scenario_results).values(scenario_id=sid, supplier_id=g.supplier_id, lines=lines, order_total=g.total, expected_delivery=g.expected_delivery,
+        conn.execute(insert(scenario_results).values(scenario_id=sid, supplier_id=g.supplier_id, lines=lines, order_total=g.total, subtotal=g.subtotal, delivery_charge=g.delivery_charge, discount=g.discount, free_delivery=g.free_delivery,
+                                                     expected_delivery=g.expected_delivery,
                                                      budget_utilisation=util, binding_constraints=[c for c in binding if c["key"].endswith(f":{g.supplier_id}")]))
     for s in sensitivity(base, params, draft):
         conn.execute(insert(scenario_sensitivity).values(scenario_id=sid, constraint_key=s["constraint_key"], delta=s["delta"], cost_impact=s["cost_impact"]))
@@ -106,6 +107,8 @@ def get(conn: Connection, sid: str) -> dict[str, Any]:
     s = _get_row(conn, sid)
     names = {r.id: r.name for r in conn.execute(select(suppliers.c.id, suppliers.c.name)).all()}
     results = [{"supplier_id": r.supplier_id, "supplier_name": names.get(r.supplier_id), "lines": r.lines, "order_total": str(Decimal(str(r.order_total)).quantize(Q2)),
+                **{k: None if getattr(r, k) is None else str(Decimal(str(getattr(r, k))).quantize(Q2)) for k in ("subtotal", "delivery_charge", "discount")},
+                "free_delivery": r.free_delivery,
                 "expected_delivery": r.expected_delivery.isoformat() if r.expected_delivery else None,
                 "budget_utilisation": None if r.budget_utilisation is None else str(r.budget_utilisation), "binding_constraints": r.binding_constraints or []}
                for r in conn.execute(select(scenario_results).where(scenario_results.c.scenario_id == sid).order_by(scenario_results.c.supplier_id)).all()]

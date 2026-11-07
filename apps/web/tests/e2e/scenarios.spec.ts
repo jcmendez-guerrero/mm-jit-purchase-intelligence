@@ -15,7 +15,7 @@ const SUMMARY = {
 };
 const DETAIL = {
   id: "sc1", name: "Sin proveedor A", status: "ready", parameters: {}, result_hash: "h", created_by: "buyer-1", created_at: "2026-11-09T08:00:00Z", summary: SUMMARY,
-  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "1100.0000", expected_delivery: null, budget_utilisation: "0.9167", lines: [] }],
+  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "102.5000", subtotal: "108.00", delivery_charge: "4.50", discount: "10.00", free_delivery: false, expected_delivery: "2026-11-16", budget_utilisation: "0.9167", lines: [{ variant_id: 9001, qty: 12, unit_cost: "5.0000", line_total: "60.0000", clinical_critical: true }, { variant_id: 9002, qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false }] }],
   sensitivity: [{ constraint_key: "budget", delta: "100.0000", cost_impact: "-20.0000" }],
 };
 
@@ -58,6 +58,13 @@ test.describe("Purchasing scenarios (T141)", () => {
     await expect(page.getByText(/Variante 9001: Proveedor A \(12\) → Proveedor B \(12\) — proveedor desactivado/)).toBeVisible();
     await expect(page.getByText(/Pedido mínimo de Proveedor B \(completado para llegar\)/)).toBeVisible();
     await expect(page.getByRole("row", { name: /Uso del presupuesto.*91,7\s?%/ }).first()).toBeVisible();      // a fraction from the service, shown as a percentage
+    const group = page.getByRole("region", { name: "Pedido a Proveedor B" });
+    await expect(group.getByRole("row", { name: /#9001 · clínicamente crítico\s+12\s+5,00 €\s+60,00 €/ })).toBeVisible();
+    await expect(group).toContainText("Importe de las líneas: 108,00 €");
+    await expect(group).toContainText("Gastos de envío: 4,50 €");
+    await expect(group).toContainText("Descuento: 10,00 €");
+    await expect(group).toContainText("Total del pedido: 102,50 €");
+    await expect(group).toContainText("Entrega prevista: 16/11/2026");
     await page.click("button:has-text('Convertir en propuesta')");
     await expect(page.getByText(/Propuesta creada como borrador para la semana 2026-11-09/)).toBeVisible();
     expect(state.promoted).toBe(1);

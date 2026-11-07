@@ -822,5 +822,22 @@
   "dashboard.supplier.disabled": "Proveedor desactivado en las condiciones.",
   "dashboard.supplier.spend": "Gasto propuesto con este proveedor: {{value}}",
   "dashboard.supplier.no_spend": "No hay gasto propuesto con este proveedor en la propuesta actual.",
-  "dashboard.supplier.spend_list": "Gasto propuesto por proveedor"
+  "dashboard.supplier.spend_list": "Gasto propuesto por proveedor",
+  "scenarios.groups": "Resultado por proveedor",
+  "scenarios.groups_none": "El escenario no compra nada.",
+  "scenarios.group_title": "Pedido a {{name}}",
+  "scenarios.group_lines": "Líneas del pedido a {{name}}",
+  "scenarios.line.qty": "Cantidad",
+  "scenarios.line.unit_cost": "Coste unitario",
+  "scenarios.line.total": "Importe",
+  "scenarios.line.critical": "clínicamente crítico",
+  "scenarios.group.subtotal": "Importe de las líneas: {{value}}",
+  "scenarios.group.shipping": "Gastos de envío: {{value}}",
+  "scenarios.group.shipping_free": "Envío gratis",
+  "scenarios.group.discount": "Descuento: {{value}}",
+  "scenarios.group.total": "Total del pedido: {{value}}",
+  "scenarios.group.delivery": "Entrega prevista: {{value}}",
+  "scenarios.group.delivery_unknown": "Entrega prevista: sin calcular",
+  "scenarios.group.utilisation": "Uso del presupuesto: {{value}}",
+  "scenarios.group.utilisation_none": "Uso del presupuesto: sin presupuesto fijado"
 }

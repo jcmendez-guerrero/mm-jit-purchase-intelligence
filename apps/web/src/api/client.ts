@@ -336,7 +336,8 @@ export interface ScenarioDetail {
   created_by: string;
   created_at: string;
   summary: ScenarioSummary | null;
-  results: Array<{ supplier_id: string; supplier_name: string | null; order_total: string; expected_delivery: string | null; budget_utilisation: string | null;
+  results: Array<{ supplier_id: string; supplier_name: string | null; order_total: string; subtotal?: string | null; delivery_charge?: string | null; discount?: string | null; free_delivery?: boolean | null;
+    expected_delivery: string | null; budget_utilisation: string | null;
     lines: Array<{ variant_id: number; qty: number; unit_cost: string; line_total: string; clinical_critical: boolean }> }>;
   sensitivity: Array<{ constraint_key: string; delta: string; cost_impact: string }>;
 }

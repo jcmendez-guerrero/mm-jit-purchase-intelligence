@@ -20,7 +20,8 @@ def upgrade() -> None:
                     sa.Column("summary", sa.JSON))
     op.create_table("scenario_results", sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
                     sa.Column("scenario_id", sa.String(36), sa.ForeignKey("scenarios.id"), nullable=False), sa.Column("supplier_id", sa.String(36), nullable=False),
-                    sa.Column("lines", sa.JSON, nullable=False), sa.Column("order_total", sa.Numeric(18, 4), nullable=False), sa.Column("expected_delivery", sa.Date),
+                    sa.Column("lines", sa.JSON, nullable=False), sa.Column("order_total", sa.Numeric(18, 4), nullable=False), sa.Column("subtotal", sa.Numeric(18, 4)),
+                    sa.Column("delivery_charge", sa.Numeric(18, 4)), sa.Column("discount", sa.Numeric(18, 4)), sa.Column("free_delivery", sa.Boolean), sa.Column("expected_delivery", sa.Date),
                     sa.Column("budget_utilisation", sa.Numeric(8, 4)), sa.Column("binding_constraints", sa.JSON))
     op.create_index("ix_scenario_results_scenario_id", "scenario_results", ["scenario_id"])
     op.create_table("scenario_sensitivity", sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),

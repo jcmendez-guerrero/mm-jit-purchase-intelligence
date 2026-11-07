@@ -16,7 +16,7 @@ const SUMMARY = {
 };
 const DETAIL = {
   id: "sc1", name: "Sin proveedor A", status: "ready", parameters: {}, result_hash: "h", created_by: "buyer-1", created_at: recent, summary: SUMMARY,
-  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "1100.0000", expected_delivery: null, budget_utilisation: "0.9167", lines: [] }],
+  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "102.5000", subtotal: "108.00", delivery_charge: "4.50", discount: "10.00", free_delivery: false, expected_delivery: "2026-11-16", budget_utilisation: "0.9167", lines: [{ variant_id: 9001, qty: 12, unit_cost: "5.0000", line_total: "60.0000", clinical_critical: true }, { variant_id: 9002, qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false }] }],
   sensitivity: [{ constraint_key: "budget", delta: "100.0000", cost_impact: "-20.0000" }],
 };
 

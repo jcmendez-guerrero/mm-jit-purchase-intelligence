@@ -66,6 +66,18 @@
     "order_total": {
       "$ref": "money.v1.schema.json"
     },
+    "subtotal": {
+      "oneOf": [{ "$ref": "money.v1.schema.json" }, { "type": "null" }]
+    },
+    "delivery_charge": {
+      "oneOf": [{ "$ref": "money.v1.schema.json" }, { "type": "null" }]
+    },
+    "discount": {
+      "oneOf": [{ "$ref": "money.v1.schema.json" }, { "type": "null" }]
+    },
+    "free_delivery": {
+      "type": ["boolean", "null"]
+    },
     "expected_delivery": {
       "oneOf": [
         {
