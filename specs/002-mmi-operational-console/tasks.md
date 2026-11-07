@@ -307,8 +307,8 @@
 - [X] T158 [P] Update quickstart with final commands and add a synthetic demo path in specs/002-mmi-operational-console/quickstart.md
 - [X] T159 Run secret scan, vulnerability scan and contract compatibility checks locally and in CI configuration under .github/workflows/ (local: pattern secret scan, pip-audit on the installed environment, npm audit and contract tests run; gitleaks and Trivy only run in CI because they are not installed here)
 - [X] T160 Run RUN_PG_MIGRATIONS=1 and RUN_E2E=1 suites and fix failures before reporting (PostgreSQL 16 migrations and the real-process approval end-to-end passed against a local cluster; the Docker-based RUN_E2E pipeline suite was not run because Docker is unavailable here)
-- [ ] T161 Write the final technical report mapping SC-001..SC-011 and AC1..AC9 to evidence in specs/002-mmi-operational-console/report.md
-- [ ] T162 Mark completed tasks [X] in this file and update ADR statuses (018–020) after review
+- [X] T161 Write the final technical report mapping SC-001..SC-011 and AC1..AC9 to evidence in specs/002-mmi-operational-console/report.md
+- [X] T162 Mark completed tasks [X] in this file and update ADR statuses (018–020) after review (task list is current; ADR-018 to ADR-020 deliberately stay `proposed` until the owner reviews them, as the task says)
 
 ---
 
