@@ -51,6 +51,7 @@ Out of scope: any ERP write other than the existing buyer-released, fresh-MFA su
 - Q: Are ADR-018 (configuration ownership) and ADR-020 (seed provenance and activation) accepted? → A: Yes, accepted by the owner on 2026-11-07, including the accepted risk of no paid malware scanning. ADR-019 stays proposed.
 - Q: Is ADR-019 (precedence between ERP facts, local overrides and uploaded estimates) accepted as written? → A: Yes, accepted by the owner on 2026-11-07. ADR-018, ADR-019 and ADR-020 are now all accepted.
 - Q: May the web app keep loading its typefaces from a third-party host, and where is that recorded? → A: Yes, as a recorded exception: Inter and Bricolage Grotesque may be loaded from Google Fonts (the constitution has no rule against third-party runtime hosts; FR-035 is about language, not hosting). It is the only permitted third-party host, for styles and fonts only; scripts, connections and everything else stay `'self'`, enforced by `infra/tests/test_web_headers.py`. Self-hosting is optional later.
+- Q: When a proposal line rests on a forecast extended with imported estimates, should the system only label it or also make the buyer confirm it? → A: Label only. Such a figure carries a visible "based on imported estimates" label on the proposal line, its explanation and the product detail; no extra confirmation step is added to submit or approval.
 
 ### Session 2026-11-05 (resolved autonomously from the authoritative sources, for reviewer confirmation)
 
@@ -245,7 +246,7 @@ The admin sees sync status and source freshness, import jobs, supplier-policy hi
 - **FR-005b**: Coverage days MUST be stock on hand divided by average daily forecast demand for the next 30 days, or by average actual daily demand over the last 90 days when the product is not forecast-eligible; the basis MUST be labelled per product, and products with no demand MUST show a Spanish "no demand" state, never infinity or zero.
 - **FR-006**: Filters for date range, category (the ABC/XYZ demand group and clinical-critical flag, plus the ERP product family once it is synchronised), supplier and warehouse MUST be populated from live data and apply consistently to every KPI and chart; server-side filtering and pagination MUST be used for lists.
 - **FR-007**: Every KPI and chart MUST support drill-down to product and supplier detail and show data freshness; empty, loading, error and stale states MUST be explicit.
-- **FR-008**: Views MUST distinguish actual ERP data from imported estimates and manual forecasts everywhere they appear.
+- **FR-008**: Views MUST distinguish actual ERP data from imported estimates and manual forecasts everywhere they appear. Where a forecast rests on imported estimates the figure MUST carry a visible label saying so (on the proposal line, its explanation and the product detail); the label is informative only and adds no extra approval step.
 - **FR-009**: Charts MUST have accessible text or table alternatives and be keyboard operable.
 
 **Acquisition cost of stock**
