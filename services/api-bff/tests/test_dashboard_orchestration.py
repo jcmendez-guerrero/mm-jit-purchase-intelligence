@@ -73,3 +73,19 @@ def test_spend_and_accuracy_come_from_their_own_services_and_fail_alone(role_sto
     spend_call = next(c for c in proc.forward.call_args_list if c.args[1] == "/summary/spend")
     assert spend_call.kwargs["params"] == {"supplier_id": "s1"}
     assert body["suppliers"] == {"ok": True, "data": [{"id": "s1", "name": "Proveedor A"}]}
+
+
+def test_the_product_family_is_forwarded_to_the_cards_and_validated():
+    inv = AsyncMock()
+    calls = {}
+
+    async def fwd(method, path, **kw):
+        calls[path] = kw
+        return {}
+
+    inv.forward.side_effect = fwd
+    res = call("/api/dashboard/overview?family=Familia%20sint%C3%A9tica%20A&category=B", headers_for("v", ["viewer"]), inv)
+    assert res.status_code == 200
+    assert calls["/dashboard/summary"]["params"] == {"category": "B", "family": "Familia sintética A"}
+    assert call("/api/dashboard/overview?family=" + "x" * 121, headers_for("v", ["viewer"]), inv).status_code == 422
+    assert call("/api/dashboard/overview?family=", headers_for("v", ["viewer"]), inv).status_code == 422

@@ -13,4 +13,8 @@ export interface Variant {
   pack_size: number;
   uom: string;
   reorder_point?: number | null;
+  /**
+   * ERP product family as synchronised; used only as a dashboard filter option, never parsed or used in decisions
+   */
+  category?: string | null;
 }

@@ -47,6 +47,7 @@ class ForecastMeans(Protocol):
 class Filters:
     warehouse_id: int | None = None
     category: str | None = None          # A / B / C / critical
+    family: str | None = None            # ERP product family name, exactly as synchronised
 
 
 @dataclass
@@ -73,6 +74,10 @@ class Summary:
 
 def variant_scope(conn: Connection, f: Filters) -> set[int]:
     ids = {r.external_id for r in conn.execute(select(variants.c.external_id)).all()}
+    if f.family is not None:
+        in_family = {r.external_id for r in conn.execute(select(variants.c.external_id).join(products, products.c.external_id == variants.c.product_id)
+                                                         .where(products.c.family == f.family)).all()}
+        ids &= in_family
     if f.category is None:
         return ids
     if f.category == "critical":
@@ -205,4 +210,5 @@ def filter_options(conn: Connection) -> dict[str, Any]:
     cats = [{"id": c, "kind": "demand_group"} for c in ("A", "B", "C") if c in present]
     if conn.execute(select(func.count()).select_from(products).where(products.c.clinical_critical)).scalar():
         cats.append({"id": "critical", "kind": "clinical_critical"})
-    return {"warehouses": whs, "categories": cats, "family_available": False}
+    fams = [r.family for r in conn.execute(select(products.c.family).where(products.c.family.is_not(None)).distinct().order_by(products.c.family)).all()]
+    return {"warehouses": whs, "categories": cats, "families": [{"id": f} for f in fams], "family_available": bool(fams)}

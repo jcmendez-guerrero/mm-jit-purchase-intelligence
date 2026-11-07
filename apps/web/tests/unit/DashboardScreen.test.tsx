@@ -42,6 +42,21 @@ afterEach(() => {
 });
 
 describe("DashboardScreen", () => {
+  it("offers the product family filter only when families exist, and sends the choice with the other filters", async () => {
+    const spy = vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview());
+    const first = render(<DashboardScreen />);
+    await screen.findByLabelText("Valor del inventario");
+    expect(screen.queryByLabelText("Familia de producto")).toBeNull();                       // none synchronised: no empty filter
+    first.unmount();
+    const withFamilies = overview({
+      options: { ok: true, data: { warehouses: [{ id: 1, name: "Almacén sintético A" }], categories: [{ id: "A", kind: "demand_group" }], family_available: true, families: [{ id: "Familia sintética A" }, { id: "Familia sintética B" }] } },
+    });
+    spy.mockResolvedValue(withFamilies);
+    render(<DashboardScreen />);
+    fireEvent.change(await screen.findByLabelText("Familia de producto"), { target: { value: "Familia sintética B" } });
+    await waitFor(() => expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ family: "Familia sintética B" })));
+  });
+
   it("shows the four KPIs in Spanish with their basis and the estimated and unvalued counts", async () => {
     render(<DashboardScreen />);
     const value = await screen.findByLabelText("Valor del inventario");

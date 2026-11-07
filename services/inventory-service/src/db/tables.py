@@ -41,6 +41,7 @@ products = Table(
     Column("missed_syncs", Integer, nullable=False, default=0),
     Column("vat_rate", Numeric(5, 2)),                               # buyer-maintained unless Siweb provides it
     Column("clinical_critical", Boolean, nullable=False, default=False),
+    Column("family", String(120)),                                    # ERP product family as synchronised: a dashboard filter option only
 )
 variants = Table(
     "variants", metadata,

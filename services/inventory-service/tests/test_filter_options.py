@@ -8,12 +8,12 @@ from test_aggregates import NOW, seed
 
 def test_options_reflect_the_data_and_nothing_else(client, engine):
     r = client.get("/dashboard/filters/options", headers=auth()).json()
-    assert r == {"warehouses": [], "categories": [], "family_available": False}                # an empty database offers nothing
+    assert r == {"warehouses": [], "categories": [], "families": [], "family_available": False}                # an empty database offers nothing
     seed(engine)
     r = client.get("/dashboard/filters/options", headers=auth()).json()
     assert [w["name"] for w in r["warehouses"]] == ["Almacén sintético A", "Almacén sintético B"]
     assert [c["id"] for c in r["categories"]] == ["B", "A", "critical"] or {c["id"] for c in r["categories"]} == {"A", "B", "critical"}
-    assert r["family_available"] is False                                                        # the ERP product family is not synchronised yet
+    assert r["family_available"] is False and r["families"] == []                                # no product has a synchronised family yet
 
 
 def test_a_new_warehouse_or_category_appears_without_any_code_change(client, engine):

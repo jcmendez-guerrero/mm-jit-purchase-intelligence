@@ -20,3 +20,10 @@ class Variant(BaseModel):
     pack_size: Annotated[int, Field(ge=1)]
     uom: str
     reorder_point: int | None = None
+    category: Annotated[
+        str | None,
+        Field(
+            description='ERP product family as synchronised; used only as a dashboard filter option, never parsed or used in decisions',
+            max_length=120,
+        ),
+    ] = None

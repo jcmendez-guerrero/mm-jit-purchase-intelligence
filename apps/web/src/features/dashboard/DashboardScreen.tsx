@@ -26,6 +26,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const [error, setError] = useState<string | null>(null);
   const [warehouse, setWarehouse] = useState<number | undefined>(selectedWarehouse);
   const [category, setCategory] = useState<string>("");
+  const [family, setFamily] = useState<string>("");
   const [days, setDays] = useState<number>(60);
   const [supplier, setSupplier] = useState<string>("");
   const [detail, setDetail] = useState<number | null>(null);
@@ -34,13 +35,13 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
     try {
       setLoading(true);
       setError(null);
-      setData(await api.getDashboardOverview({ warehouse_id: warehouse, category: category || undefined, days, supplier_id: supplier || undefined }));
+      setData(await api.getDashboardOverview({ warehouse_id: warehouse, category: category || undefined, family: family || undefined, days, supplier_id: supplier || undefined }));
     } catch (err) {
       setError(errorMessage(err, t("common.error")));
     } finally {
       setLoading(false);
     }
-  }, [warehouse, category, days, supplier, t]);
+  }, [warehouse, category, family, days, supplier, t]);
 
   useEffect(() => {
     void load();
@@ -88,6 +89,19 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
               ))}
             </select>
           </div>
+          {opts?.family_available && (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <label htmlFor="f-family">{t("dashboard.filter.family")}</label>
+              <select id="f-family" value={family} onChange={(e) => setFamily(e.target.value)}>
+                <option value="">{t("dashboard.filter.all_families")}</option>
+                {(opts.families ?? []).map((fam) => (
+                  <option key={fam.id} value={fam.id}>
+                    {fam.id}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <label htmlFor="f-supplier">{t("dashboard.filter.supplier")}</label>
             <select id="f-supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)}>

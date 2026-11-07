@@ -793,5 +793,7 @@
   "imports.dryrun_backtest_after": "Con este conjunto: {{variants}} variantes previsibles, coste simulado {{cost}}",
   "imports.dryrun_backtest_delta": "Diferencia de coste simulado: {{value}}",
   "imports.dryrun_backtest_note": "El coste simulado suma roturas de stock, almacenamiento y caducidad sobre el historial; es una estimación para comparar, no una previsión de gasto.",
-  "imports.dryrun_backtest_insufficient": "No hay historial suficiente para comparar la simulación antes y después. La validación del modelo se ejecuta al activar y queda registrada en la previsión."
+  "imports.dryrun_backtest_insufficient": "No hay historial suficiente para comparar la simulación antes y después. La validación del modelo se ejecuta al activar y queda registrada en la previsión.",
+  "dashboard.filter.family": "Familia de producto",
+  "dashboard.filter.all_families": "Todas las familias"
 }

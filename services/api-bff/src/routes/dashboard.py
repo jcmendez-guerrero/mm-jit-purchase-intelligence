@@ -38,6 +38,7 @@ async def _supplier_options(proc: ProcurementClient, who: dict[str, Any]) -> lis
 async def overview(
     warehouse_id: int | None = Query(default=None, ge=0),
     category: str | None = Query(default=None, pattern="^(A|B|C|critical)$"),
+    family: str | None = Query(default=None, min_length=1, max_length=120),
     days: int = Query(default=60, ge=7, le=365),
     session: SessionData = Depends(require_roles(*READ)),
     inv: InventoryClient = Depends(get_inventory_client),
@@ -46,7 +47,7 @@ async def overview(
     supplier_id: str | None = Query(default=None, max_length=36),
 ) -> dict[str, Any]:
     who = {"user_id": session.user_id, "roles": session.roles}
-    f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category)) if v is not None}
+    f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category), ("family", family)) if v is not None}
     summary, trend, abc, risks, options, accuracy, spend, suppliers = await asyncio.gather(
         _card(inv.forward("GET", "/dashboard/summary", params=f, **who)),
         _card(inv.forward("GET", "/dashboard/demand-trend", params={**f, "days": days}, **who)),

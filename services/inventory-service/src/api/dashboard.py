@@ -23,10 +23,12 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
     require: Callable[..., Any] = app.state.require_roles
     router = APIRouter(prefix="/dashboard")
 
-    def filters(warehouse_id: int | None, category: str | None) -> Filters:
+    def filters(warehouse_id: int | None, category: str | None, family: str | None = None) -> Filters:
         if category is not None and category not in CATEGORIES:
             raise HTTPException(422, "request_invalid")
-        return Filters(warehouse_id, category)
+        if family is not None and not 0 < len(family) <= 120:
+            raise HTTPException(422, "request_invalid")
+        return Filters(warehouse_id, category, family)
 
     def means() -> Any:
         return getattr(app.state, "forecast_means", None)
@@ -36,8 +38,8 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
         return filter_options(conn)
 
     @router.get("/summary")
-    def summary(warehouse_id: int | None = None, category: str | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
-        f = filters(warehouse_id, category)
+    def summary(warehouse_id: int | None = None, category: str | None = None, family: str | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        f = filters(warehouse_id, category, family)
         today = datetime.now(UTC).date()
         try:
             s = compute_summary(conn, today, f, means())
@@ -47,10 +49,10 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
         return {**s.as_json(), "forecast_available": forecast_ok and means() is not None}
 
     @router.get("/demand-trend")
-    def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, conn: Connection = Depends(conn_dep),
+    def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, family: str | None = None, conn: Connection = Depends(conn_dep),
               _p: Any = Depends(require())) -> dict[str, Any]:
         today = datetime.now(UTC).date()
-        return {"from": (today - timedelta(days=days)).isoformat(), "to": date.isoformat(today), "series": demand_trend(conn, today, days, filters(warehouse_id, category)),
+        return {"from": (today - timedelta(days=days)).isoformat(), "to": date.isoformat(today), "series": demand_trend(conn, today, days, filters(warehouse_id, category, family)),
                 "estimated": [], "note": "estimated_series_come_from_forecast_service"}
 
     @router.get("/abc-xyz")

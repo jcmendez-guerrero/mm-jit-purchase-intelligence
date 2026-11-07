@@ -510,7 +510,7 @@ export interface DashOverview {
   trend: DashCard<DashTrend>;
   abc_xyz: DashCard<{ cells: Array<{ abc: string; xyz: string; variant_count: number; value: string }> }>;
   risks: DashCard<RiskItem[]>;
-  options: DashCard<{ warehouses: Array<{ id: number; name: string }>; categories: Array<{ id: string; kind: string }>; family_available: boolean }>;
+  options: DashCard<{ warehouses: Array<{ id: number; name: string }>; categories: Array<{ id: string; kind: string }>; families?: Array<{ id: string }>; family_available: boolean }>;
   accuracy: DashCard<{ run_id: string | null; window_days: number; metrics: Record<string, Record<string, string>> }>;
   spend: DashCard<{ proposal_id: string | null; week: string | null; status: string | null; total: string; by_supplier: Array<{ supplier_id: string; supplier_name: string | null; total: string }>; budget: string | null; over_budget: boolean }>;
   suppliers: DashCard<Array<{ id: string; name: string }>>;
@@ -519,6 +519,7 @@ export interface DashOverview {
 export interface DashFilters {
   warehouse_id?: number | undefined;
   category?: string | undefined;
+  family?: string | undefined;
   days?: number | undefined;
   supplier_id?: string | undefined;
 }
@@ -696,6 +697,7 @@ export class ApiClient {
     const q = new URLSearchParams();
     if (f.warehouse_id !== undefined) q.set("warehouse_id", String(f.warehouse_id));
     if (f.category) q.set("category", f.category);
+    if (f.family) q.set("family", f.family);
     if (f.days) q.set("days", String(f.days));
     if (f.supplier_id) q.set("supplier_id", f.supplier_id);
     const qs = q.toString();
