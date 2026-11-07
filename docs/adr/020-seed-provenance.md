@@ -1,6 +1,6 @@
 # ADR-020: Predictive seed datasets, provenance and activation
 
-- Status: proposed
+- Status: accepted (owner, 2026-11-07)
 - Date: 2026-11-05
 - Feature: specs/002-mmi-operational-console
 

@@ -47,6 +47,7 @@ Out of scope: any ERP write other than the existing buyer-released, fresh-MFA su
 - Q: Does the variant price include VAT? → A: It is treated as net of VAT for every product (the ERP may hold either form, the target is net), so PVP is used as is and a missing VAT rate never makes the margin unavailable. The margin is unavailable only when a product has no variant price at all, and then the release is blocked as in the edge case. An operator checks what the ERP actually returns for a sample of variants (net or gross) on the real system and records the result before go-live; the system does not read the real ERP from this repository.
 - Q: How old can the selling price (PVP) be before the margin check treats it as stale? → A: More than 7 days since the variant price was last confirmed by a successful sync; the release is then blocked like a missing price (admin override still possible) and the price age is shown.
 - Q: Should the old inventory service-level history be copied once into the procurement policy sets? → A: No. Policy sets start empty; inventory values stay read-only history so earlier proposals reproduce, and the computed defaults apply until a buyer sets a value.
+- Q: Are ADR-018 (configuration ownership) and ADR-020 (seed provenance and activation) accepted? → A: Yes, accepted by the owner on 2026-11-07, including the accepted risk of no paid malware scanning. ADR-019 stays proposed.
 
 ### Session 2026-11-05 (resolved autonomously from the authoritative sources, for reviewer confirmation)
 

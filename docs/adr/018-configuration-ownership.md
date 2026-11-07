@@ -1,6 +1,6 @@
 # ADR-018: Ownership of operational configuration and durable roles
 
-- Status: proposed
+- Status: accepted (owner, 2026-11-07)
 - Date: 2026-11-05
 - Feature: specs/002-mmi-operational-console
 
