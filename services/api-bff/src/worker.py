@@ -17,6 +17,7 @@ from db.roles import RoleStore
 
 log = logging.getLogger("api_bff.worker")
 MAX_ATTEMPTS = 8
+LAG_ALERT_SECONDS = 900                  # the alert rule watches for ROLE_MIRROR_LAG; a change older than this has not reached procurement
 
 
 class RoleMirror(Protocol):
@@ -37,6 +38,9 @@ def drain_once(store: RoleStore, client: RoleMirror, now: datetime | None = None
         else:
             store.mark_sent(row.id, now)
             sent += 1
+    lag = store.mirror_status(now)
+    if lag["oldest_pending_seconds"] > LAG_ALERT_SECONDS or lag["failed"] > 0:
+        log.error("ROLE_MIRROR_LAG seconds=%d pending=%d failed=%d", lag["oldest_pending_seconds"], lag["pending"], lag["failed"])
     return {"considered": len(due), "sent": sent, "failed_attempts": failed}
 
 

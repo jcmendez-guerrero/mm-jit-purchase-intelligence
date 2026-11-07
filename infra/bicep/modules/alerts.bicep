@@ -91,6 +91,30 @@ var rules = [
     evaluationFrequency: 'PT15M'
     windowSize: 'PT15M'
   }
+  {
+    key: 'import-failed'
+    description: 'A background predictive-data import failed. The dataset stays unchanged; an admin can re-run it from the status page.'
+    severity: 2
+    query: '${logTable} | where Log_s has "IMPORT_FAILED"'
+    evaluationFrequency: 'PT15M'
+    windowSize: 'PT15M'
+  }
+  {
+    key: 'upload-rejected'
+    description: 'Several uploads were refused in a short time (size, type, decompression or row limits): possible misuse or a broken template.'
+    severity: 3
+    query: '${logTable} | where Log_s has "UPLOAD_REJECTED" | summarize n = count() | where n >= 5'
+    evaluationFrequency: 'PT15M'
+    windowSize: 'PT15M'
+  }
+  {
+    key: 'role-mirror-lag'
+    description: 'A role change has not reached procurement for 15 minutes or failed; permissions may differ between the console and the service.'
+    severity: 1
+    query: '${logTable} | where Log_s has "ROLE_MIRROR_LAG"'
+    evaluationFrequency: 'PT15M'
+    windowSize: 'PT15M'
+  }
 ]
 
 resource logRules 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = [for r in rules: {

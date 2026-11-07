@@ -51,3 +51,20 @@ def test_mirror_rerun_requeues_failed_rows_and_is_audited(role_store):
     res = post("/api/admin/rerun/mirror", admin_headers(), AsyncMock())
     assert res.status_code == 202 and "requeued" in res.json()
     assert any(r["action"] == "admin.rerun" and r["target_user"] == "mirror" for r in get_store().audit_view())
+
+
+def test_a_stuck_mirror_leaves_the_lag_marker(role_store, caplog):
+    import logging
+    from datetime import UTC, datetime, timedelta
+
+    from worker import drain_once
+
+    class Down:
+        def put_user_roles(self, *a):
+            raise RuntimeError("down")
+
+    caplog.set_level(logging.WARNING)
+    role_store.set_roles("buyer-9", ["viewer"], actor="admin-1")
+    drain_once(role_store, Down(), now=datetime.now(UTC) + timedelta(hours=1))
+    assert any(r.getMessage().startswith("ROLE_MIRROR_LAG seconds=") for r in caplog.records)
+    assert "buyer-9" not in "".join(r.getMessage() for r in caplog.records if "LAG" in r.getMessage())

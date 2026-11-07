@@ -288,13 +288,13 @@
 
 - [X] T148 [P] [US7] Test admin status aggregates sync freshness, import jobs, model runs and mirror lag in services/api-bff/tests/test_admin_status.py
 - [X] T149 [P] [US7] Test permitted job re-runs are idempotent, admin-only and audited in services/api-bff/tests/test_admin_rerun.py
-- [ ] T150 [P] [US7] Test cost guardrails (minReplicas 0, replica and job caps, no new always-on resource, one lifecycle-limited container) against infra/bicep/guardrails.json in infra/tests/test_cost_guardrails.py
+- [X] T150 [P] [US7] Test cost guardrails (minReplicas 0, replica and job caps, no new always-on resource, one lifecycle-limited container) against infra/bicep/guardrails.json in infra/tests/test_cost_guardrails.py
 
 ### Implementation
 
 - [X] T151 [US7] Implement admin status and re-run routes in services/api-bff/src/routes/admin_status.py
 - [ ] T152 [US7] Build admin screens for sync, import jobs, supplier-policy history, model runs and cost indicators in apps/web/src/features/admin/
-- [ ] T153 [US7] Add metrics and alerts for import failures, upload rejections and role-mirror lag in infra/bicep/modules/ and the services' logging (no secrets, no personal data)
+- [X] T153 [US7] Add metrics and alerts for import failures, upload rejections and role-mirror lag in infra/bicep/modules/ and the services' logging (no secrets, no personal data)
 - [ ] T154 [US7] Write the monthly cost estimate for storage and job minutes and evaluate malware scanning feasibility; record the decision or accepted risk in docs/architecture/implementation-plan.md and docs/adr/020-seed-provenance.md
 
 ---

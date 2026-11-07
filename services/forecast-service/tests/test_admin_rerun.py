@@ -103,3 +103,19 @@ def test_an_admin_can_rerun_the_forecast_and_the_second_call_reuses_the_run(api,
     with engine.connect() as c:
         assert c.execute(select(func.count()).select_from(forecast_runs)).scalar_one() == 1
     assert audit_actions(engine).count("forecast.rerun") == 2
+
+
+def test_failures_and_rejections_leave_a_stable_marker_for_the_alerts(engine, store, api, caplog):
+    import logging
+
+    from seeds.jobs import process_queued
+
+    caplog.set_level(logging.WARNING)
+    with engine.begin() as c:
+        up = register_upload(c, store, "datos.csv", sf.static("valid.csv"), "Hoja", "buyer-1", L, NOW)
+        enqueue_validation(c, up["id"], {"nonsense": "nothing"}, "buyer-1", now=NOW)
+    process_queued(engine, store, KNOWN, L, now=NOW)
+    assert any(r.getMessage().startswith("IMPORT_FAILED job=") for r in caplog.records)
+    assert api.post("/imports/zzz/activate", headers=h("admin")).status_code == 404
+    assert any(r.getMessage() == "UPLOAD_REJECTED reason=import_unknown_dataset" for r in caplog.records)
+    assert "valid.csv" not in caplog.text and "Hoja" not in caplog.text

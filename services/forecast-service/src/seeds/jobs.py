@@ -7,6 +7,7 @@ a queued or running job is reused rather than duplicated, and a job left ``runni
 
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Collection
 from datetime import UTC, datetime, timedelta
@@ -24,6 +25,7 @@ from seeds.storage import SeedFileError
 SYNC_ROWS = 10_000
 STALE_AFTER = timedelta(minutes=15)
 STAGE = "validate"
+log = logging.getLogger("forecast.imports")
 
 
 def enqueue_validation(conn: Connection, dataset_id: str, column_map: dict[str, str], actor: str, mapping_id: str | None = None, now: datetime | None = None) -> dict[str, Any]:
@@ -75,6 +77,8 @@ def process_queued(engine: Engine, store: BlobStore, known_variants: Collection[
             error = exc.code
         except Exception:
             error = "import_failed"
+        if error:
+            log.error("IMPORT_FAILED job=%s reason=%s", jid, error)                      # a stable code only: never file content or names
         with engine.begin() as conn:
             conn.execute(update(import_jobs).where(import_jobs.c.id == jid).values(state="failed" if error else "done", finished_at=datetime.now(UTC), error_key=error))
         done, failed = done + (error is None), failed + (error is not None)

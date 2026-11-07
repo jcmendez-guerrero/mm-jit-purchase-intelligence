@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -25,6 +26,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
 from upload_settings import load_limits
 
+log = logging.getLogger("forecast.imports")
 _engine: Engine | None = None
 HTTP = {"import_file_too_large": 413, "import_decompression_limit": 413, "import_too_many_rows": 413, "import_type_not_allowed": 415, "import_mixed_origin": 409,
         "import_duplicate_file": 409, "import_dataset_state": 409, "import_nothing_to_activate": 409, "import_unknown_dataset": 404, "import_unknown_job": 404, "import_job_not_rerunnable": 409, "import_missing_column": 422,
@@ -82,6 +84,8 @@ def build_router(app: FastAPI) -> APIRouter:
         return {int(s["variant_id"]) for s in series}, series
 
     def refuse(exc: Exception) -> HTTPException:
+        if error_code(exc).startswith("import_"):
+            log.warning("UPLOAD_REJECTED reason=%s", error_code(exc))                   # for the rejection alert; the code only
         return HTTPException(HTTP.get(error_code(exc), 422), error_code(exc))
 
     @router.get("/template")
