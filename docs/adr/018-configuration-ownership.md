@@ -18,11 +18,11 @@ MMI 002 adds buyer-editable supplier terms, policies, forecast parameters, seed 
 
 ### Service-level ownership (T006 / T085) — decided 2026-11-06: procurement (option A)
 
-The owner confirmed **procurement-service**. Remaining work: remove inventory `PUT /service-levels` and the BFF `PUT /config/service-levels`, and optionally import the inventory history once. Applied as follows:
+The owner confirmed **procurement-service**. Both edit routes (inventory `PUT /service-levels`, BFF `PUT /config/service-levels`) are removed. The owner decided on 2026-11-07 **not** to import the inventory history: policy sets start empty. Applied as follows:
 
 - Editing moves to procurement `policy_sets` (effective-dated, revisioned, audited; scopes product > segment > global).
 - The proposal builder uses the procurement value when one is in force on the run date and otherwise the inventory-computed target (clinical-critical 99 %, ABC A/B/C 97/95/90 %, sparse 85 %), which stays as the **default**, not as an editable source.
-- Inventory's `service_level_config` and `PUT /service-levels` are left in place, read-only in the UI, so earlier proposals keep reproducing; no data is copied or deleted. A later migration can import its history into `policy_sets` once the owner confirms.
+- Inventory's `service_level_config` and `PUT /service-levels` are left in place, read-only in the UI, so earlier proposals keep reproducing; no data is copied or deleted. No import of its history is planned (decided 2026-11-07); it can be revisited if the owner asks.
 - Rolling back is a matter of deleting the procurement policy rows; nothing in inventory was changed.
 
 ### Consequences
