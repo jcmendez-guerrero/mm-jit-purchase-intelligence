@@ -19,4 +19,15 @@ test.describe("Warehouse breakdown and company-wide views (T108)", () => {
     await select.selectOption("2");
     await expect.poll(() => seen.at(-1)).toBe("2");
   });
+
+  test("a warehouse view is labelled informational because the proposal stays company-wide", async ({ page }) => {
+    await signIn(page);
+    await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview())));
+    await page.goto("/");
+    await expect(page.getByText(/Vista informativa por almacén/)).toHaveCount(0);
+    await page.locator("#f-warehouse").selectOption("1");
+    await expect(page.getByText(/Vista informativa por almacén: la propuesta de compra es única para toda la empresa/)).toBeVisible();
+    await page.locator("#f-warehouse").selectOption("all");
+    await expect(page.getByText(/Vista informativa por almacén/)).toHaveCount(0);
+  });
 });

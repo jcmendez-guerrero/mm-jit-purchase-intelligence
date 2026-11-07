@@ -89,6 +89,8 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
             "flows": [{"day": r.day.isoformat(), "warehouse_id": r.warehouse_id, "flow": r.flow, "qty": r.qty} for r in flows],
             "history": [{"day": r.day.isoformat(), "on_hand": r.on_hand_reconstructed, "censored": r.censored} for r in hist],
             "history_reconciled": all(r.reconciled_ok for r in hist) if hist else None,
+            "risks": [{"risk_type": r["risk_type"], "explanation_key": r["explanation_key"], "params": r.get("params") or {}}
+                      for r in evaluate_risks(conn) if r["variant_id"] == variant_id],
         }
 
     @router.get("/review")

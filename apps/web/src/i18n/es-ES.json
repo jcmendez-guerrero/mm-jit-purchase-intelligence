@@ -853,5 +853,15 @@
   "dashboard.chart.forecast_basis": "Previsión de {{variants}} productos previsibles; el límite superior suma los límites de cada producto, por lo que es prudente.",
   "dashboard.chart.forecast_seeded": "{{n}} de ellos apoyan su previsión en datos importados (estimaciones), no solo en ventas reales.",
   "dashboard.chart.forecast_none": "No hay previsión disponible: se muestran solo las ventas reales del ERP.",
-  "dashboard.chart.forecast_company_wide": "La previsión es global de la empresa: quite el filtro de almacén para verla junto a las ventas reales."
+  "dashboard.chart.forecast_company_wide": "La previsión es global de la empresa: quite el filtro de almacén para verla junto a las ventas reales.",
+  "dashboard.warehouse_informational": "Vista informativa por almacén: la propuesta de compra es única para toda la empresa y es la que vale. El gasto propuesto y la previsión no cambian con el filtro de almacén.",
+  "dashboard.detail.forecast": "Previsión estadística (no son ventas reales)",
+  "dashboard.detail.forecast_none": "Todavía no hay previsión para este producto.",
+  "dashboard.detail.forecast_minmax": "Este producto usa mínimos y máximos conservadores: no tiene previsión estadística.",
+  "dashboard.detail.forecast_note": "Unidades previstas para cada horizonte; el límite superior es el nivel con un 95 % de probabilidad de no superarse. Se muestra aparte de la demanda real.",
+  "dashboard.detail.forecast_col.horizon": "Horizonte (días)",
+  "dashboard.detail.forecast_col.mean": "Media prevista",
+  "dashboard.detail.forecast_col.upper": "Hasta (95 %)",
+  "dashboard.detail.risks": "Riesgos de este producto",
+  "dashboard.detail.no_risks": "No se ha detectado ningún riesgo en este producto."
 }

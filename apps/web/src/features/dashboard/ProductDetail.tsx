@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, errorMessage, VariantDetail } from "../../api/client";
-import { formatDate } from "../../i18n/formatters";
+import { api, errorMessage, ForecastBasis, VariantDetail } from "../../api/client";
+import { formatDate, formatNumber } from "../../i18n/formatters";
 
 interface Props {
   variantId: number;
@@ -13,7 +13,8 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
   const { t } = useTranslation();
   const [d, setD] = useState<VariantDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [estimateBased, setEstimateBased] = useState(false);
+  const [basis, setBasis] = useState<ForecastBasis | null>(null);
+  const estimateBased = basis?.seed_used === true;
 
   useEffect(() => {
     let live = true;
@@ -28,10 +29,10 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
 
   useEffect(() => {
     let live = true;
-    setEstimateBased(false);
+    setBasis(null);
     api
       .getForecastBasis(variantId)
-      .then((b) => live && setEstimateBased(b.seed_used))
+      .then((b) => live && setBasis(b))
       .catch(() => undefined);                                  // no run yet, or no forecast for this product: nothing to label
     return () => {
       live = false;
@@ -58,6 +59,46 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
               <p>{d.segment.forecast_eligible ? t("dashboard.detail.eligible") : t("dashboard.detail.not_eligible", { reasons: d.segment.reasons.join(", ") })}</p>
               {estimateBased && <p role="note" className="mmi-badge mmi-badge-warning">{t("dashboard.detail.estimate_based")}</p>}
             </>
+          )}
+          <h4>{t("dashboard.detail.forecast")}</h4>
+          {basis === null ? (
+            <p>{t("dashboard.detail.forecast_none")}</p>
+          ) : (basis.horizons ?? []).length === 0 ? (
+            <p>{t("dashboard.detail.forecast_minmax")}</p>
+          ) : (
+            <>
+              <p className="mmi-muted">{t("dashboard.detail.forecast_note")}</p>
+              <table aria-label={t("dashboard.detail.forecast")} className="mmi-table">
+                <thead>
+                  <tr>
+                    <th>{t("dashboard.detail.forecast_col.horizon")}</th>
+                    <th>{t("dashboard.detail.forecast_col.mean")}</th>
+                    <th>{t("dashboard.detail.forecast_col.upper")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(basis.horizons ?? []).map((h) => (
+                    <tr key={h.days}>
+                      <td>{h.days}</td>
+                      <td>{formatNumber(h.mean, 1)}</td>
+                      <td>{formatNumber(h.upper, 1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+          <h4>{t("dashboard.detail.risks")}</h4>
+          {(d.risks ?? []).length === 0 ? (
+            <p>{t("dashboard.detail.no_risks")}</p>
+          ) : (
+            <ul>
+              {(d.risks ?? []).map((r, i) => (
+                <li key={`${r.risk_type}-${i}`}>
+                  <strong>{t(r.risk_type === "stockout" ? "dashboard.risk_stockout" : r.risk_type === "expiry" ? "dashboard.risk_expiry" : "dashboard.risk_quality")}</strong>: {String(t(r.explanation_key, r.params))}
+                </li>
+              ))}
+            </ul>
           )}
           <h4>{t("dashboard.detail.demand")}</h4>
           {d.demand.length === 0 ? (

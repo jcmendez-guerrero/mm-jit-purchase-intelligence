@@ -518,6 +518,16 @@ export interface DashOverview {
   suppliers: DashCard<Array<{ id: string; name: string }>>;
 }
 
+export interface ForecastBasis {
+  run_id: string;
+  variant_id: number;
+  eligible: boolean;
+  policy: string;
+  seed_used: boolean;
+  horizons?: Array<{ days: number; mean: number; upper: number }>;
+  upper_level?: string;
+}
+
 export type DrillKind = "inventory_value" | "coverage" | "stockout_risk" | "expiry_risk" | "abc_xyz" | "trend_day";
 
 export interface DrillRequest {
@@ -563,6 +573,7 @@ export interface VariantDetail {
   demand: Array<{ day: string; warehouse_id: number; qty: number; censored: boolean }>;
   flows: Array<{ day: string; warehouse_id: number; flow: string; qty: number }>;
   history: Array<{ day: string; on_hand: number; censored: boolean }>;
+  risks?: Array<{ risk_type: string; explanation_key: string; params: Record<string, unknown> }>;
   segment?: {
     abc: string;
     xyz: string;
@@ -715,7 +726,7 @@ export class ApiClient {
     setCsrfToken(null);
   }
 
-  async getForecastBasis(variantId: number): Promise<{ run_id: string; variant_id: number; eligible: boolean; policy: string; seed_used: boolean }> {
+  async getForecastBasis(variantId: number): Promise<ForecastBasis> {
     return this.request(`/dashboard/variants/${variantId}/forecast-basis`);
   }
 

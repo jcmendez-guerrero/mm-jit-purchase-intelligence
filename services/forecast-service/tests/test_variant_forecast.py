@@ -48,3 +48,19 @@ def test_an_unknown_variant_is_a_404_with_a_code(client, engine, tmp_path):
     res = client.get("/forecasts/variant/424242", headers=H)
     assert res.status_code == 404 and res.json()["detail"] == "no_forecast_for_variant"
     assert client.get("/forecasts/variant/0", headers=H).status_code == 422
+
+
+def test_an_eligible_variant_returns_its_mean_and_upper_bound_per_horizon(client, engine, store, tmp_path):
+    activate_valid(engine, store, dense_csv())
+    run_forecast(engine, FakeSource(export_with_new_variant()), NullWriter(tmp_path), RunConfig(), clock=CLOCK)
+    body = client.get("/forecasts/variant/9001", headers=H).json()
+    hs = body["horizons"]
+    assert [h["days"] for h in hs] == sorted(h["days"] for h in hs) and len(hs) >= 3
+    assert all(h["mean"] is not None and h["upper"] is not None and h["upper"] >= h["mean"] for h in hs)
+    assert body["upper_level"] == "0.95"
+
+
+def test_a_conservative_min_max_variant_has_no_horizon_figures(client, engine, tmp_path):
+    run_forecast(engine, FakeSource(export_with_new_variant()), NullWriter(tmp_path), RunConfig(), clock=CLOCK)
+    body = client.get("/forecasts/variant/9001", headers=H).json()
+    assert body["eligible"] is False and body["horizons"] == []                        # no mean to show; the page says it uses min/max

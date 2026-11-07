@@ -34,6 +34,9 @@ def get_engine() -> Engine:
     return _engine
 
 
+UPPER_LEVEL = "0.95"          # the service level shown as the upper end of the uncertainty
+
+
 def build_router(app: FastAPI) -> APIRouter:
     require: Callable[..., Any] = app.state.require_roles
     router = APIRouter()
@@ -61,10 +64,19 @@ def build_router(app: FastAPI) -> APIRouter:
         run = conn.execute(select(forecast_runs).where(forecast_runs.c.status == "completed").order_by(forecast_runs.c.finished_at.desc()).limit(1)).first()
         if run is None:
             raise HTTPException(404, "no_forecast_run")
-        row = conn.execute(select(forecast_values).where(forecast_values.c.run_id == run.id, forecast_values.c.variant_id == variant_id).limit(1)).first()
-        if row is None:
+        rows = conn.execute(select(forecast_values).where(forecast_values.c.run_id == run.id, forecast_values.c.variant_id == variant_id)
+                            .order_by(forecast_values.c.horizon_days)).all()
+        if not rows:
             raise HTTPException(404, "no_forecast_for_variant")
-        return {"run_id": run.id, "variant_id": variant_id, "eligible": bool(row.eligible), "policy": row.policy_used, "seed_used": "seed_used" in (row.reasons or "").split(",")}
+        row = rows[0]
+        horizons = []
+        for r in rows:
+            if not r.eligible or r.mean is None:
+                continue                                                          # a min/max line has no mean to show
+            q = (r.quantiles or {}).get(UPPER_LEVEL)
+            horizons.append({"days": r.horizon_days, "mean": float(r.mean), "upper": max(float(q), float(r.mean)) if q is not None else float(r.mean)})
+        return {"run_id": run.id, "variant_id": variant_id, "eligible": bool(row.eligible), "policy": row.policy_used, "seed_used": "seed_used" in (row.reasons or "").split(","),
+                "horizons": horizons, "upper_level": UPPER_LEVEL}
 
     @router.get("/accuracy")
     def accuracy(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

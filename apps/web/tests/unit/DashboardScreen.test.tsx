@@ -101,6 +101,18 @@ describe("DashboardScreen", () => {
     expect(screen.queryByRole("table", { name: "Demanda diaria real y previsión" })).toBeNull();
   });
 
+  it("labels the warehouse view as informational and says the proposal and forecast stay company-wide", async () => {
+    render(<DashboardScreen />);
+    await screen.findByLabelText("Valor del inventario");
+    expect(screen.queryByText(/Vista informativa por almacén/)).toBeNull();                  // company-wide: nothing to qualify
+    fireEvent.change(screen.getByLabelText("Almacén"), { target: { value: "2" } });
+    const note = await screen.findByText(/Vista informativa por almacén/);
+    expect(note.textContent).toContain("única para toda la empresa");
+    expect(note.textContent).toContain("no cambian con el filtro de almacén");
+    fireEvent.change(screen.getByLabelText("Almacén"), { target: { value: "all" } });
+    await waitFor(() => expect(screen.queryByText(/Vista informativa por almacén/)).toBeNull());
+  });
+
   const withForecast = (estimated: Array<{ day: string; mean: string; upper: string; kind: string }>, basis: object) => {
     const base = overview();
     if (!base.trend.ok || !base.trend.data) throw new Error("fixture");
@@ -197,5 +209,43 @@ describe("DashboardScreen", () => {
     expect(panel.textContent).toContain("historial de stock sin reconciliar");
     fireEvent.click(screen.getByRole("button", { name: "Cerrar detalle" }));
     await waitFor(() => expect(screen.queryByLabelText("Detalle de la variante 7")).toBeNull());
+  });
+
+  const detail = (risks: Array<{ risk_type: string; explanation_key: string; params: Record<string, unknown> }>) => ({
+    variant: { id: 7, sku: "SYN-7", name: "Variante sintética", pack_size: 1, uom: "u", product: { id: 1 } }, stock: { on_hand: 2, available: 2, reserved: 0, as_of: today },
+    demand: [{ day: "2026-11-01", warehouse_id: 1, qty: 3, censored: false }], flows: [], history: [], history_reconciled: true, risks,
+    segment: { abc: "A", xyz: "X", pattern: "smooth", forecast_eligible: true, reasons: [], metrics: {} },
+  });
+
+  it("shows a product's forecast with its uncertainty apart from actual demand, and its own risk reasons", async () => {
+    vi.spyOn(api, "getVariant").mockResolvedValue(detail([{ risk_type: "stockout", explanation_key: "risk.stockout.imminent", params: { sku: "SYN-7", available: 2 } }]));
+    vi.spyOn(api, "getForecastBasis").mockResolvedValue({ run_id: "r1", variant_id: 7, eligible: true, policy: "minmax_poisson", seed_used: true, upper_level: "0.95",
+      horizons: [{ days: 7, mean: 10.5, upper: 14 }, { days: 14, mean: 21, upper: 27.5 }] });
+    render(<DashboardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
+    const panel = await screen.findByLabelText("Detalle de la variante 7");
+    const table = await within(panel).findByRole("table", { name: "Previsión estadística (no son ventas reales)" });
+    const rows = within(table).getAllByRole("row").map((r) => within(r).queryAllByRole("cell").map((c) => c.textContent));
+    expect(rows).toEqual([[], ["7", "10,5", "14,0"], ["14", "21,0", "27,5"]]);
+    expect(panel.textContent).toContain("Se muestra aparte de la demanda real");
+    expect(panel.textContent).toContain("Previsión con datos importados");                 // the imported-estimates note stays
+    expect(within(panel).getByText("Riesgos de este producto")).toBeTruthy();
+    expect(within(panel).getByText("Riesgo de rotura de stock")).toBeTruthy();
+    expect(within(panel).getByRole("table", { name: "Demanda reciente (datos reales del ERP)" })).toBeTruthy();
+  });
+
+  it("says why there is no forecast table for a min/max product or when no forecast exists, and when no risk was found", async () => {
+    vi.spyOn(api, "getVariant").mockResolvedValue(detail([]));
+    const basis = vi.spyOn(api, "getForecastBasis").mockResolvedValue({ run_id: "r1", variant_id: 7, eligible: false, policy: "minmax_conservative", seed_used: false, horizons: [] });
+    const first = render(<DashboardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
+    const panel = await screen.findByLabelText("Detalle de la variante 7");
+    await waitFor(() => expect(panel.textContent).toContain("mínimos y máximos conservadores"));
+    expect(panel.textContent).toContain("No se ha detectado ningún riesgo en este producto");
+    first.unmount();
+    basis.mockRejectedValue(new Error("404"));
+    render(<DashboardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
+    expect((await screen.findByLabelText("Detalle de la variante 7")).textContent).toContain("Todavía no hay previsión para este producto");
   });
 });

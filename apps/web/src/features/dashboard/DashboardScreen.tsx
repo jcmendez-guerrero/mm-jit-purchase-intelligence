@@ -150,6 +150,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           </div>
         </div>
         <p className="mmi-muted">{t("dashboard.filter.supplier_note")}</p>
+        {warehouse !== undefined && <p role="note">{t("dashboard.warehouse_informational")}</p>}
         {opts && !opts.family_available && <p className="mmi-muted">{t("dashboard.family_pending")}</p>}
         {loading && <p>{t("dashboard.loading_state")}</p>}
         {error && <p role="alert">{error}</p>}

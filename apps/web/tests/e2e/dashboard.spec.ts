@@ -45,10 +45,12 @@ test.describe("Dashboard (T124)", () => {
   });
 
   test("the product detail says when the forecast rests on imported estimates", async ({ page }) => {
-    await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ run_id: "r1", variant_id: 100, eligible: true, policy: "minmax_poisson", seed_used: true })));
+    await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ run_id: "r1", variant_id: 100, eligible: true, policy: "minmax_poisson", seed_used: true, upper_level: "0.95", horizons: [{ days: 14, mean: 21, upper: 27.5 }] })));
     await page.goto("/");
     await page.getByRole("button", { name: "Ver detalle" }).first().click();
     await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Previsión con datos importados");
+    await expect(page.getByRole("table", { name: "Previsión estadística (no son ventas reales)" })).toContainText("27,5");
+    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Riesgos de este producto");
   });
 
   test("a product with no forecast basis shows no estimate label", async ({ page }) => {
