@@ -154,7 +154,9 @@ def test_the_summary_for_about_1000_variants_is_computed_well_inside_the_3_secon
         c.execute(insert(stock_lots).values([{"variant_id": i, "warehouse_id": 1, "batch_number": "L", "expiry_date": TODAY + timedelta(days=30 * (i % 20)), "quantity": 5, "seen_at": NOW} for i in range(1, 1001)]))
         c.execute(insert(lot_cost_projection).values([{"variant_id": i, "supplier_id": "s", "lot": "L", "unit_cost": D("2.00"), "source": "confirmed_order", "updated_at": NOW} for i in range(1, 1001)]))
         c.execute(insert(stock_snapshots).values([{"variant_id": i, "warehouse_id": ALL_WAREHOUSES, "snapshot_date": TODAY, "on_hand": 5, "available": 5, "reserved": 0} for i in range(1, 1001)]))
-        c.execute(insert(demand_observations).values([{"variant_id": i, "warehouse_id": 1, "day": TODAY - timedelta(days=d), "demand_qty": 1, "censored": False, "lineage": "m"} for i in range(1, 1001) for d in range(0, 90, 6)]))
+        demand = [{"variant_id": i, "warehouse_id": 1, "day": TODAY - timedelta(days=d), "demand_qty": 1, "censored": False, "lineage": "m"} for i in range(1, 1001) for d in range(0, 90, 6)]
+        for start in range(0, len(demand), 1000):                # stay under SQLite's bound-variable limit on older builds
+            c.execute(insert(demand_observations).values(demand[start:start + 1000]))
     t0 = time.perf_counter()
     with engine.connect() as c:
         s = compute_summary(c, TODAY)
