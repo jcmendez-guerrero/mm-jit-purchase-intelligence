@@ -355,3 +355,8 @@
 ## Phase 13: Convergence
 
 - [X] T174 Add drill-down from every dashboard KPI card and chart to the products behind the figure (for example the variants in a stock-out risk, an ABC/XYZ cell, or a trend day), and a supplier detail panel opened from the supplier filter and the spend-by-supplier figures, with es-ES strings and keyboard access, backed by the existing inventory and procurement endpoints (add a read-only endpoint only where one is missing, contract first), in apps/web/src/features/dashboard/ and a Spanish browser test in apps/web/tests/e2e/dashboard.spec.ts per FR-007 (partial)
+
+## Phase 14: Convergence
+
+- [ ] T175 Carry the `seed_used` forecast reason through to the buyer: store it with the forecast in procurement's view of the run, add it to the proposal line explanation and to the product detail, and label such figures in Spanish as based on imported estimates (never as actual ERP demand), with tests in services/procurement-service/tests/, services/inventory-service/tests/ and apps/web/tests/ per FR-008 (partial)
+- [ ] T176 Show the full per-supplier-group result in the scenario view: persist shipping and discount per group with the scenario result (contract first, migration edited in place), and render the lines, quantities, unit costs, shipping, discounts, order total, expected delivery and budget utilisation for each group in apps/web/src/features/scenarios/ with es-ES strings and tests per FR-029 (partial)
