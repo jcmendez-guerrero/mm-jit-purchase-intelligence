@@ -351,3 +351,7 @@
 - [X] T171 Fix the colour-contrast failures in apps/web/src/index.css and remove `disableRules(["color-contrast"])` from apps/web/tests/e2e/dashboard.spec.ts and a11y.spec.ts so the accessibility run enforces it per SC-010 (partial)
 - [X] T172 Add a timing test on a synthetic 1,000-product import (upload to activation under 15 minutes) and a rollback (under 2 minutes) in services/forecast-service/tests/test_seed_timing.py per SC-002 (partial)
 - [X] T173 Self-host the Inter and Bricolage Grotesque font files in apps/web/public/fonts, drop the Google Fonts links from apps/web/index.html and the third-party hosts from the Content-Security-Policy in apps/web/nginx.conf, and update infra/tests/test_web_headers.py, or record why the third-party hosts stay (unrequested) (resolved by decision 2026-11-07: the fonts stay on Google Fonts as a recorded exception, FR-049; the existing header test already enforces the two allowed hosts)
+
+## Phase 13: Convergence
+
+- [ ] T174 Add drill-down from every dashboard KPI card and chart to the products behind the figure (for example the variants in a stock-out risk, an ABC/XYZ cell, or a trend day), and a supplier detail panel opened from the supplier filter and the spend-by-supplier figures, with es-ES strings and keyboard access, backed by the existing inventory and procurement endpoints (add a read-only endpoint only where one is missing, contract first), in apps/web/src/features/dashboard/ and a Spanish browser test in apps/web/tests/e2e/dashboard.spec.ts per FR-007 (partial)
