@@ -168,7 +168,7 @@ def build_router(app: FastAPI) -> APIRouter:
         _, series = known_variants()
         if conn.execute(select(seed_datasets.c.id).where(seed_datasets.c.id == dataset_id)).first() is None:
             raise HTTPException(404, "import_unknown_dataset")
-        return dry_run(conn, dataset_id, series, RunConfig().backtest.min_history)
+        return dry_run(conn, dataset_id, series, RunConfig().backtest)
 
     @router.post("/{dataset_id}/activate")
     def activate(dataset_id: str, body: ActivateBody | None = None, conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:

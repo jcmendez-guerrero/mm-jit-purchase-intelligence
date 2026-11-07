@@ -23,7 +23,7 @@ async function backend(page: Page, roles: string[]) {
     return r.fulfill(json({ id: "d1", origin: "synthetic", accepted: 1, quarantined: 1, kinds: { estimated: 1 } }));
   });
   await page.route("**/api/imports/d1/quarantine", (r) => r.fulfill(json({ rows: [{ row_no: 3, reason_key: "import_unknown_variant", params: {} }] })));
-  await page.route("**/api/imports/d1/dry-run", (r) => r.fulfill(json({ dataset_id: "d1", compared_with: null, rows: { added: 1, removed: 0, changed: 0, unchanged: 0 }, variants_gaining_history: [9001], variants_losing_history: [], skipped_sparse: [], backtest: "x" })));
+  await page.route("**/api/imports/d1/dry-run", (r) => r.fulfill(json({ dataset_id: "d1", compared_with: null, rows: { added: 1, removed: 0, changed: 0, unchanged: 0 }, variants_gaining_history: [9001], variants_losing_history: [], skipped_sparse: [], backtest: { status: "ok", basis: "actual_demand_only", before: { variants: 3, windows: 90, cost: "120.00" }, after: { variants: 4, windows: 120, cost: "110.50" }, delta_cost: "-9.50" } })));
   await page.route("**/api/imports/d1/activate", (r) => {
     state.activated.push(r.request().postDataJSON());
     state.datasets = [{ id: "d1", version: 1, name: "Hoja", status: "active", origin: "synthetic", uploader: "buyer-1", uploaded_at: "2026-11-09T00:00:00Z", activated_by: "buyer-1", activated_at: null, accepted: 1, quarantined: 1, kinds: {} }];
@@ -57,6 +57,7 @@ test.describe("Predictive data import (T105)", () => {
     expect(JSON.stringify(state.validated[0])).not.toContain("Notas");
     await page.click("button:has-text('Comparar con el conjunto activo')");
     await expect(page.getByText(/Filas nuevas 1/)).toBeVisible();
+    await expect(page.getByText(/Diferencia de coste simulado/)).toBeVisible();
     await page.click("button:has-text('Activar conjunto')");
     await expect(page.getByText(/Conjunto activado/)).toBeVisible();
     await expect(page.getByRole("cell", { name: "Activo" })).toBeVisible();

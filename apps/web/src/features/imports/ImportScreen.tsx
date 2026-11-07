@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, errorMessage, SeedDataset, SeedDryRun, SeedJob, SeedQuarantineRow, SeedUpload, SeedValidation } from "../../api/client";
-import { formatDateTime } from "../../i18n/formatters";
+import { formatCurrencyEUR, formatDateTime } from "../../i18n/formatters";
 import { Field } from "../suppliers/Field";
 import { ALL_FIELDS, canImport, fileProblem, hasLiveJob, isQueued, missingFields, setMapping } from "./importsModel";
 
@@ -280,7 +280,19 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
                 <p>{t("imports.dryrun_rows", dry.rows)}</p>
                 <p>{t("imports.dryrun_gain", { count: dry.variants_gaining_history.length })}</p>
                 <p>{t("imports.dryrun_sparse", { count: dry.skipped_sparse.length })}</p>
-                <p className="mmi-muted">{t("imports.dryrun_backtest")}</p>
+                {dry.backtest.status === "ok" ? (
+                  <div>
+                    <p>{t("imports.dryrun_backtest_title", { basis: t(`imports.dryrun_basis.${dry.backtest.basis === "actual_demand_only" ? "actual" : "active"}`) })}</p>
+                    <ul>
+                      <li>{t("imports.dryrun_backtest_before", { variants: dry.backtest.before.variants, cost: formatCurrencyEUR(dry.backtest.before.cost) })}</li>
+                      <li>{t("imports.dryrun_backtest_after", { variants: dry.backtest.after.variants, cost: formatCurrencyEUR(dry.backtest.after.cost) })}</li>
+                      <li>{t("imports.dryrun_backtest_delta", { value: formatCurrencyEUR(dry.backtest.delta_cost ?? "0") })}</li>
+                    </ul>
+                    <p className="mmi-muted">{t("imports.dryrun_backtest_note")}</p>
+                  </div>
+                ) : (
+                  <p className="mmi-muted">{t("imports.dryrun_backtest_insufficient")}</p>
+                )}
               </div>
             )}
 

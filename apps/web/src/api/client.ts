@@ -288,7 +288,15 @@ export interface SeedDryRun {
   variants_gaining_history: number[];
   variants_losing_history: number[];
   skipped_sparse: number[];
-  backtest: string;
+  backtest: SeedBacktest;
+}
+
+export interface SeedBacktest {
+  status: "ok" | "insufficient_history";
+  basis: string;
+  before: { variants: number; windows: number; cost: string };
+  after: { variants: number; windows: number; cost: string };
+  delta_cost: string | null;
 }
 
 export interface MappingInfo {

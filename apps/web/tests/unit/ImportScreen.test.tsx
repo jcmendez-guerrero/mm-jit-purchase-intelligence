@@ -49,7 +49,7 @@ describe("ImportScreen", () => {
     vi.spyOn(api, "uploadSeed").mockResolvedValue(upload());
     const validate = vi.spyOn(api, "validateSeed").mockResolvedValue({ id: "d1", origin: "synthetic", accepted: 4, quarantined: 1, kinds: { estimated: 4 } });
     vi.spyOn(api, "getSeedQuarantine").mockResolvedValue({ rows: [{ row_no: 3, reason_key: "import_unknown_variant", params: {} }] });
-    vi.spyOn(api, "dryRunSeed").mockResolvedValue({ dataset_id: "d1", compared_with: null, rows: { added: 4, removed: 0, changed: 0, unchanged: 0 }, variants_gaining_history: [9001], variants_losing_history: [], skipped_sparse: [], backtest: "x" });
+    vi.spyOn(api, "dryRunSeed").mockResolvedValue({ dataset_id: "d1", compared_with: null, rows: { added: 4, removed: 0, changed: 0, unchanged: 0 }, variants_gaining_history: [9001], variants_losing_history: [], skipped_sparse: [], backtest: { status: "ok", basis: "actual_demand_only", before: { variants: 3, windows: 90, cost: "120.00" }, after: { variants: 4, windows: 120, cost: "110.50" }, delta_cost: "-9.50" } });
     const activate = vi.spyOn(api, "activateSeed").mockResolvedValue({});
     render(<ImportScreen userRoles={["buyer"]} />);
     await pick(file());
@@ -63,6 +63,9 @@ describe("ImportScreen", () => {
     expect(screen.getByRole("link", { name: "Descargar cuarentena (CSV)" }).getAttribute("href")).toBe("/api/imports/d1/quarantine?format=csv");
     fireEvent.click(screen.getByRole("button", { name: "Comparar con el conjunto activo" }));
     expect(await screen.findByText(/Filas nuevas 4/)).toBeTruthy();
+    expect(screen.getByText(/Sin este conjunto: 3 variantes previsibles, coste simulado 120,00/)).toBeTruthy();
+    expect(screen.getByText(/Con este conjunto: 4 variantes previsibles, coste simulado 110,50/)).toBeTruthy();
+    expect(screen.getByText(/Diferencia de coste simulado: -9,50/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Activar conjunto" }));
     await waitFor(() => expect(activate).toHaveBeenCalledWith("d1", false));
     expect((await screen.findByRole("status")).textContent).toContain("Conjunto activado");

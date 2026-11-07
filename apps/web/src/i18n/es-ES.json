@@ -524,7 +524,6 @@
   "imports.dryrun_rows": "Filas nuevas {{added}} · retiradas {{removed}} · modificadas {{changed}} · iguales {{unchanged}}",
   "imports.dryrun_gain": "Variantes que ganan historial: {{count}}",
   "imports.dryrun_sparse": "Variantes omitidas por datos demasiado dispersos: {{count}}",
-  "imports.dryrun_backtest": "La validación del modelo se ejecuta al activar y queda registrada en la previsión.",
   "imports.acknowledge_duplicate": "Entiendo que es un archivo repetido y quiero activarlo igualmente",
   "imports.activate": "Activar conjunto",
   "imports.activated": "Conjunto activado. Se ha pedido una nueva previsión que usará estos datos.",
@@ -786,5 +785,13 @@
   "admin.status.policy.status.reverted": "Revertido",
   "errors.import_failed": "La importación falló de forma inesperada. Puede repetirla; si vuelve a fallar, revise el archivo.",
   "costs.pvp_age": "Precio confirmado por la última sincronización hace (días): {{days}}",
-  "costs.flag.pvp_stale": "El precio de venta (PVP) lleva más de 7 días sin confirmarse en la sincronización: se trata como si faltara y la liberación queda bloqueada hasta que se confirme o un administrador fije un valor."
+  "costs.flag.pvp_stale": "El precio de venta (PVP) lleva más de 7 días sin confirmarse en la sincronización: se trata como si faltara y la liberación queda bloqueada hasta que se confirme o un administrador fije un valor.",
+  "imports.dryrun_backtest_title": "Simulación de la previsión sobre el historial (comparada con {{basis}})",
+  "imports.dryrun_basis.actual": "solo la demanda real del ERP",
+  "imports.dryrun_basis.active": "el conjunto activo",
+  "imports.dryrun_backtest_before": "Sin este conjunto: {{variants}} variantes previsibles, coste simulado {{cost}}",
+  "imports.dryrun_backtest_after": "Con este conjunto: {{variants}} variantes previsibles, coste simulado {{cost}}",
+  "imports.dryrun_backtest_delta": "Diferencia de coste simulado: {{value}}",
+  "imports.dryrun_backtest_note": "El coste simulado suma roturas de stock, almacenamiento y caducidad sobre el historial; es una estimación para comparar, no una previsión de gasto.",
+  "imports.dryrun_backtest_insufficient": "No hay historial suficiente para comparar la simulación antes y después. La validación del modelo se ejecuta al activar y queda registrada en la previsión."
 }
