@@ -86,6 +86,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
   };
 
   const s = detail?.summary ?? null;
+  const groups = (detail?.results ?? []).filter((r) => r.lines.length !== 0);
   return (
     <section aria-labelledby="scenarios-title">
       <h2 id="scenarios-title">{t("scenarios.title")}</h2>
@@ -201,8 +202,8 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
           )}
 
           <h4>{t("scenarios.groups")}</h4>
-          {detail.results.filter((r) => r.lines.length > 0).length === 0 && <p>{t("scenarios.groups_none")}</p>}
-          {detail.results.filter((r) => r.lines.length > 0).map((r) => (
+          {groups.length === 0 && <p>{t("scenarios.groups_none")}</p>}
+          {groups.map((r) => (
             <section key={r.supplier_id} aria-label={t("scenarios.group_title", { name: r.supplier_name ?? supplierName(r.supplier_id) })} className="mmi-card" style={{ marginBottom: "0.75rem" }}>
               <h5>{r.supplier_name ?? supplierName(r.supplier_id)}</h5>
               <div className="mmi-table-wrapper">
