@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
@@ -10,9 +11,11 @@ class FileWriter:
         self.root = root
 
     def put(self, name: str, data: bytes) -> str:
-        p = (self.root / name).resolve()
-        if self.root.resolve() not in p.parents:
+        root = os.path.realpath(self.root)
+        target = os.path.realpath(os.path.join(root, name))
+        if not target.startswith(root + os.sep):                  # the name must stay inside the store (also rejects absolute names and "..")
             raise ValueError("blob name escapes the store")
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_bytes(data)
-        return p.as_uri()
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "wb") as handle:
+            handle.write(data)
+        return Path(target).as_uri()

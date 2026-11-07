@@ -35,5 +35,5 @@ def test_the_content_security_policy_is_strict():
 
 def test_the_built_page_needs_no_inline_script():
     index = (ROOT / "apps/web/index.html").read_text(encoding="utf-8")
-    inline = [m for m in re.findall(r"<script(?![^>]*\bsrc=)[^>]*>(.+?)</script>", index, re.S) if m.strip()]
+    inline = [m for m in re.findall(r"<script(?![^>]*\bsrc=)[^>]*>(.+?)</script\s*>", index, re.S | re.I) if m.strip()]
     assert not inline
