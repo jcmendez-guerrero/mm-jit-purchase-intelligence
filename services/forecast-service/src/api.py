@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
 from parameters import ParameterConflict, ParameterError, listing, save_parameter
 from pydantic import BaseModel
+from runs.accuracy import latest_accuracy
 from runs.runner import run_forecast
 from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
@@ -52,6 +53,16 @@ def build_router(app: FastAPI) -> APIRouter:
             v["horizons"][str(r.horizon_days)] = {"mean": r.mean, "quantiles": r.quantiles}
         return {"run_id": run.id, "input_hash": run.input_hash, "through_day": run.through_day, "total": run.total_count, "eligible": run.eligible_count,
                 "variants": {str(k): v for k, v in variants.items()}}
+
+    @router.get("/accuracy")
+    def accuracy(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        return latest_accuracy(conn)
+
+    @router.get("/runs")
+    def runs(limit: int = 20, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        rows = conn.execute(select(forecast_runs).order_by(forecast_runs.c.started_at.desc()).limit(max(1, min(limit, 100)))).all()
+        return {"runs": [{"id": r.id, "started_at": r.started_at.isoformat(), "status": r.status, "through_day": r.through_day, "total": r.total_count, "eligible": r.eligible_count,
+                          "dataset_version_id": r.dataset_version_id, "parameter_version_ids": r.parameter_version_ids} for r in rows]}
 
     @router.get("/parameters")
     def read_parameters(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

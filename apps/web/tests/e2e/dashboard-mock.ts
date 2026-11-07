@@ -12,6 +12,9 @@ export function overview(risks = 1, over: Record<string, unknown> = {}) {
     abc_xyz: { ok: true, data: { cells: [{ abc: "A", xyz: "X", variant_count: 4, value: "100.00" }, { abc: "B", xyz: "Y", variant_count: 6, value: "50.00" }] } },
     risks: { ok: true, data: Array.from({ length: risks }, (_, i) => ({ variant_id: 100 + i, risk_type: "stockout", explanation_key: "risk.stockout.imminent", params: { sku: `SYN-${100 + i}`, available: 2 } })) },
     options: { ok: true, data: { warehouses: [{ id: 1, name: "Almacén sintético A" }, { id: 2, name: "Almacén sintético B" }], categories: [{ id: "A", kind: "demand_group" }], family_available: false } },
+    accuracy: { ok: true, data: { run_id: null, window_days: 7, metrics: {} } },
+    spend: { ok: true, data: { proposal_id: null, week: null, status: null, total: "0.00", by_supplier: [], budget: null, over_budget: false } },
+    suppliers: { ok: true, data: [{ id: "s1", name: "Proveedor Sintético A" }] },
     ...over,
   };
 }

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api, DashOverview, errorMessage } from "../../api/client";
-import { formatCurrencyEUR, formatDate, formatNumber } from "../../i18n/formatters";
+import { formatCurrencyEUR, formatDate, formatNumber, formatPercent } from "../../i18n/formatters";
 import { ChartWithTable } from "./ChartWithTable";
 import { ageInDays, coverageDays, isStale, PERIODS, trendStats } from "./dashboardModel";
 import { ProductDetail } from "./ProductDetail";
@@ -11,6 +11,8 @@ interface Props {
   selectedWarehouse?: number | undefined;
   onSelectWarehouse?: ((id: number | undefined) => void) | undefined;
 }
+
+const METRICS = ["wape", "bias", "stockout_rate"] as const;
 
 const Unavailable: React.FC = () => {
   const { t } = useTranslation();
@@ -25,19 +27,20 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const [warehouse, setWarehouse] = useState<number | undefined>(selectedWarehouse);
   const [category, setCategory] = useState<string>("");
   const [days, setDays] = useState<number>(60);
+  const [supplier, setSupplier] = useState<string>("");
   const [detail, setDetail] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      setData(await api.getDashboardOverview({ warehouse_id: warehouse, category: category || undefined, days }));
+      setData(await api.getDashboardOverview({ warehouse_id: warehouse, category: category || undefined, days, supplier_id: supplier || undefined }));
     } catch (err) {
       setError(errorMessage(err, t("common.error")));
     } finally {
       setLoading(false);
     }
-  }, [warehouse, category, days, t]);
+  }, [warehouse, category, days, supplier, t]);
 
   useEffect(() => {
     void load();
@@ -86,6 +89,17 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
             </select>
           </div>
           <div style={{ display: "flex", flexDirection: "column" }}>
+            <label htmlFor="f-supplier">{t("dashboard.filter.supplier")}</label>
+            <select id="f-supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+              <option value="">{t("dashboard.filter.all_suppliers")}</option>
+              {(data?.suppliers.ok ? (data.suppliers.data ?? []) : []).map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {sp.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
             <label htmlFor="f-days">{t("dashboard.filter.days")}</label>
             <select id="f-days" value={days} onChange={(e) => setDays(parseInt(e.target.value, 10))}>
               {PERIODS.map((p) => (
@@ -96,6 +110,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
             </select>
           </div>
         </div>
+        <p className="mmi-muted">{t("dashboard.filter.supplier_note")}</p>
         {opts && !opts.family_available && <p className="mmi-muted">{t("dashboard.family_pending")}</p>}
         {loading && <p>{t("dashboard.loading_state")}</p>}
         {error && <p role="alert">{error}</p>}
@@ -150,6 +165,54 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                 <Unavailable />
               )}
             </div>
+            <div className="mmi-stat-card" aria-label={t("dashboard.kpi.spend")}>
+              <h3 className="mmi-stat-card-title">{t("dashboard.kpi.spend")}</h3>
+              {data.spend.ok && data.spend.data ? (
+                data.spend.data.proposal_id === null ? (
+                  <p className="mmi-stat-card-desc">{t("dashboard.kpi.spend_none")}</p>
+                ) : (
+                  <>
+                    <div className="mmi-stat-card-value">{formatCurrencyEUR(data.spend.data.total)}</div>
+                    <p className="mmi-stat-card-desc">{t("dashboard.kpi.spend_week", { week: data.spend.data.week, status: t(`proposals.status.${data.spend.data.status}`, { defaultValue: String(data.spend.data.status) }) })}</p>
+                    {data.spend.data.budget !== null && <p className="mmi-stat-card-desc">{t("dashboard.kpi.spend_budget", { value: formatCurrencyEUR(data.spend.data.budget) })}</p>}
+                    {data.spend.data.over_budget && <p role="note">{t("dashboard.kpi.spend_over")}</p>}
+                  </>
+                )
+              ) : (
+                <Unavailable />
+              )}
+            </div>
+          </div>
+
+          <div className="mmi-card">
+            <h3>{t("dashboard.accuracy")}</h3>
+            {!data.accuracy.ok || !data.accuracy.data ? (
+              <Unavailable />
+            ) : Object.keys(data.accuracy.data.metrics).length === 0 ? (
+              <p>{t("dashboard.accuracy_none")}</p>
+            ) : (
+              <table aria-label={t("dashboard.accuracy")} className="mmi-table">
+                <thead>
+                  <tr>
+                    <th>{t("dashboard.chart.col.group")}</th>
+                    {METRICS.map((m) => (
+                      <th key={m}>{t(`dashboard.accuracy.${m}`)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(data.accuracy.data.metrics).map(([group, vals]) => (
+                    <tr key={group}>
+                      <td>{group === "all" ? t("dashboard.accuracy.all") : t("dashboard.accuracy.group", { g: group })}</td>
+                      {METRICS.map((m) => (
+                        <td key={m}>{vals[m] === undefined ? t("dashboard.accuracy.na") : formatPercent(vals[m], 1)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            <p className="mmi-muted">{t("dashboard.accuracy_note")}</p>
           </div>
 
           <div className="mmi-card">

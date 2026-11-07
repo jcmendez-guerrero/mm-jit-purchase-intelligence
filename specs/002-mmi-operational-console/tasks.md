@@ -227,7 +227,7 @@
 - [X] T118 [P] [US2] Test aggregate read models equal reference totals on the synthetic dataset (value, coverage, risk, ABC/XYZ, trend) in services/inventory-service/tests/test_aggregates.py
 - [X] T119 [P] [US2] Test filter options come from live warehouses, categories and suppliers and none are hard-coded in services/inventory-service/tests/test_filter_options.py and apps/web/tests/unit/no-hardcoded-options.test.ts
 - [X] T120 [P] [US2] Test coverage days (forecast basis, 90-day actual fallback, labelled basis, zero-demand state) and inventory value equals quantity per lot times lot acquisition cost, ignores ERP movement price (PVP), uses the labelled fallback for lots without cost and counts them in the estimated-cost indicator in services/inventory-service/tests/test_inventory_value.py
-- [ ] T121 [P] [US2] Test forecast accuracy and spend summaries in services/forecast-service/tests/test_accuracy.py and services/procurement-service/tests/test_spend_summary.py
+- [X] T121 [P] [US2] Test forecast accuracy and spend summaries in services/forecast-service/tests/test_accuracy.py and services/procurement-service/tests/test_spend_summary.py
 - [X] T122 [P] [US2] Test actual ERP series and imported estimates are separate in the trend response in services/inventory-service/tests/test_trend_series_separation.py
 - [X] T123 [P] [US2] Test BFF merges card-level results only and degrades per card on a failing service in services/api-bff/tests/test_dashboard_orchestration.py
 - [X] T124 [P] [US2] Write Spanish browser tests for KPIs, charts, filters, drill-down, empty/loading/error/stale states, keyboard use and axe accessibility in apps/web/tests/e2e/dashboard.spec.ts
@@ -238,8 +238,8 @@
 - [X] T126 [US2] Implement daily aggregate refresh in the existing inventory worker pass in services/inventory-service/src/projections/aggregates.py and services/inventory-service/src/worker.py
 - [X] T127 [US2] Project lot acquisition costs from procurement.lot_cost.changed.v1 into lot_cost_projection and compute inventory value from it in services/inventory-service/src/projections/lot_costs.py and services/inventory-service/src/projections/aggregates.py
 - [X] T128 [US2] Implement dashboard routes (summary, demand-trend, abc-xyz, risks, filters/options) in services/inventory-service/src/api/dashboard.py
-- [ ] T129 [US2] Implement forecast accuracy, runs list and variant forecast routes in services/forecast-service/src/api.py and services/forecast-service/src/runs/accuracy.py
-- [ ] T130 [US2] Implement proposed-spend summary in services/procurement-service/src/api/summary.py
+- [X] T129 [US2] Implement forecast accuracy, runs list and variant forecast routes in services/forecast-service/src/api.py and services/forecast-service/src/runs/accuracy.py
+- [X] T130 [US2] Implement proposed-spend summary in services/procurement-service/src/api/summary.py
 - [X] T131 [US2] Implement BFF dashboard orchestration and filter options in services/api-bff/src/routes/dashboard.py
 - [X] T132 [US2] Build KPI cards, charts with table alternative, filter bar and freshness indicator in apps/web/src/features/dashboard/ (replace the hard-coded warehouse list)
 - [X] T133 [US2] Build drill-down panels and the product detail view (demand, forecast with uncertainty, stock, risk reasons, data used) in apps/web/src/features/dashboard/ProductDetail.tsx

@@ -27,6 +27,9 @@ const overview = (over: Partial<DashOverview> = {}): DashOverview => ({
   abc_xyz: { ok: true, data: { cells: [{ abc: "A", xyz: "X", variant_count: 4, value: "100.00" }, { abc: "B", xyz: "Y", variant_count: 6, value: "50.00" }] } },
   risks: { ok: true, data: [{ variant_id: 7, risk_type: "stockout", explanation_key: "risk.stockout.out_of_stock", params: {} }] },
   options: { ok: true, data: { warehouses: [{ id: 1, name: "Almacén sintético A" }, { id: 2, name: "Almacén sintético B" }], categories: [{ id: "A", kind: "demand_group" }, { id: "critical", kind: "clinical_critical" }], family_available: false } },
+  accuracy: { ok: true, data: { run_id: "r1", window_days: 7, metrics: { all: { wape: "0.2500", bias: "-0.0500", stockout_rate: "0.1000" }, A: { stockout_rate: "1.0000" } } } },
+  spend: { ok: true, data: { proposal_id: "p1", week: "2026-W46", status: "draft", total: "300.00", by_supplier: [], budget: "250.00", over_budget: true } },
+  suppliers: { ok: true, data: [{ id: "s1", name: "Proveedor Sintético A" }] },
   ...over,
 });
 
@@ -81,6 +84,29 @@ describe("DashboardScreen", () => {
     expect(within(table).getAllByRole("row")).toHaveLength(3);
     fireEvent.click(screen.getByRole("button", { name: "Ver como gráfico" }));
     expect(screen.queryByRole("table", { name: "Demanda diaria real" })).toBeNull();
+  });
+
+  it("shows the proposed spend against the budget and the forecast accuracy by group", async () => {
+    render(<DashboardScreen />);
+    const spend = await screen.findByLabelText("Gasto propuesto");
+    expect(spend.textContent).toContain("300,00");
+    expect(spend.textContent).toContain("Propuesta de la semana 2026-W46 (Borrador)");
+    expect(spend.textContent).toContain("Presupuesto semanal: 250,00");
+    expect(spend.textContent).toContain("Supera el presupuesto semanal");
+    const acc = screen.getByRole("table", { name: "Precisión de la previsión" });
+    expect(acc.textContent).toContain("25,0");
+    expect(within(acc).getByText("Grupo A")).toBeTruthy();
+    expect(within(acc).getAllByText("—").length).toBeGreaterThan(0);                           // a metric that was not computed is not invented
+  });
+
+  it("explains empty accuracy and sends the supplier filter on, noting it only affects spend", async () => {
+    const spy = vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview({ accuracy: { ok: true, data: { run_id: null, window_days: 7, metrics: {} } } }));
+    render(<DashboardScreen />);
+    expect(await screen.findByText(/Todavía no hay una previsión con siete días/)).toBeTruthy();
+    expect(screen.getByText(/El proveedor filtra el gasto propuesto/)).toBeTruthy();
+    await waitFor(() => expect(within(screen.getByLabelText("Proveedor")).getAllByRole("option")).toHaveLength(2));
+    fireEvent.change(screen.getByLabelText("Proveedor"), { target: { value: "s1" } });
+    await waitFor(() => expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ supplier_id: "s1" })));
   });
 
   it("degrades one card without hiding the others", async () => {

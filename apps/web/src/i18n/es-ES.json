@@ -635,5 +635,22 @@
   "dashboard.detail.no_demand": "Sin ventas en el periodo.",
   "dashboard.detail.data_used": "Datos utilizados: movimientos del ERP{{reconciled}}",
   "dashboard.detail.unreconciled": ", historial de stock sin reconciliar",
-  "dashboard.loading_state": "Cargando indicadores…"
+  "dashboard.loading_state": "Cargando indicadores…",
+  "dashboard.filter.supplier": "Proveedor",
+  "dashboard.filter.all_suppliers": "Todos los proveedores",
+  "dashboard.filter.supplier_note": "El proveedor filtra el gasto propuesto; el stock no se asigna a proveedores.",
+  "dashboard.kpi.spend": "Gasto propuesto",
+  "dashboard.kpi.spend_week": "Propuesta de la semana {{week}} ({{status}})",
+  "dashboard.kpi.spend_none": "Todavía no hay propuesta.",
+  "dashboard.kpi.spend_budget": "Presupuesto semanal: {{value}}",
+  "dashboard.kpi.spend_over": "Supera el presupuesto semanal.",
+  "dashboard.accuracy": "Precisión de la previsión",
+  "dashboard.accuracy_none": "Todavía no hay una previsión con siete días de resultados reales para compararla.",
+  "dashboard.accuracy_note": "Compara la previsión de 7 días de la ejecución anterior con las ventas reales. Menor error = mejor.",
+  "dashboard.accuracy.wape": "Error medio ponderado (WAPE)",
+  "dashboard.accuracy.bias": "Sesgo (positivo = se previó de más)",
+  "dashboard.accuracy.stockout_rate": "Variantes con stock agotado en el periodo",
+  "dashboard.accuracy.all": "Todas",
+  "dashboard.accuracy.group": "Grupo {{g}}",
+  "dashboard.accuracy.na": "—"
 }

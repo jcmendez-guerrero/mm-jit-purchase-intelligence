@@ -92,6 +92,9 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
 
         cfg, versions = config_from_parameters(conn, clock().date())
     export = source.fetch()
+    from runs.accuracy import evaluate_previous
+
+    evaluate_previous(conn, export)          # score the previous run against what really happened (real demand only, before any seed is applied)
     from runs.seeds import SeedReport, apply_seeds, load_active
 
     seeds, report = load_active(conn), SeedReport()
