@@ -3,6 +3,7 @@
 Each service's tests need that service's own import path, so they run in their own process, exactly as in CI.
 """
 
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
@@ -35,6 +36,11 @@ def test_every_abuse_class_has_tests(name):
         assert "def test_" in path.read_text(), f"{name}: {service}/{f} has no tests"
 
 
+SERVICE_DEPENDENCIES = ("fastapi", "ortools", "openpyxl", "multipart", "sqlalchemy")
+MISSING = [m for m in SERVICE_DEPENDENCIES if importlib.util.find_spec(m) is None]
+
+
+@pytest.mark.skipif(bool(MISSING), reason=f"service dependencies not installed here ({', '.join(MISSING)}); the per-service CI jobs run these files with their own dependencies")
 def test_the_abuse_tests_pass():
     failures = []
     by_service: dict[str, list[str]] = {}
