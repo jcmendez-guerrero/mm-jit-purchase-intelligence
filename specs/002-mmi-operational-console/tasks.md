@@ -373,3 +373,8 @@
 ## Phase 17: Convergence
 
 - [X] T180 Offer the Excel export of a proposal next to the CSV one: add a `proposals.export_xlsx` es-ES label and a download link for `/api/proposals/{id}/export?format=xlsx` in apps/web/src/features/proposals/ProposalsScreen.tsx, with a unit test in apps/web/tests/unit/ProposalsScreen.test.tsx and a browser test that the file downloads per FR-032 and US6/AC5 (partial)
+
+## Phase 18: Convergence
+
+- [ ] T181 Report when an imported dataset overlaps days that already have actual ERP demand: count the overlapping days and variants where the actuals prevail, return them from the dry-run (and the validation result) in services/forecast-service/src/seeds/ and runs/seeds.py, record them with the run, show them on the import screen in Spanish ("las ventas reales prevalecen en N días de M productos"), with tests in services/forecast-service/tests/ and apps/web/tests/ per the edge case on overlapping periods and FR-025 (missing)
+- [ ] T182 Flag a pending safety-stock override whose recommendation has changed since it was requested: when listing pending requests compute the current recommendation and return `recommendation_changed` with the current value (services/procurement-service/src/policies/overrides.py and src/api/policies.py), and show in apps/web/src/features/policies/SafetyStockSection.tsx the recommendation it was made against, the current one and a Spanish warning, with tests in services/procurement-service/tests/ and apps/web/tests/ per the edge case on pending override requests (partial)
