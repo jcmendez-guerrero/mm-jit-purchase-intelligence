@@ -22,6 +22,7 @@ export const ProposalLineExplanation: React.FC<{ line: ProposalLine }> = ({ line
         {t("proposals.why.position", { total: e.position.total, on_hand: e.position.on_hand, expiring: e.position.expiring, inbound: e.position.inbound, need: e.need })}
       </p>
       {!e.forecast_eligible && <p>{t("proposals.why.fallback")}</p>}
+      {e.forecast_basis === "imported_estimates" && <p role="note">{t("proposals.why.estimate")}</p>}
       {e.clinical_critical && <p>{t("proposals.why.critical")}</p>}
       <p>{t("proposals.why.supplier", { reason: known("proposals.why.supplier_reason", e.supplier.reason) })}</p>
       {terms && (

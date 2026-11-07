@@ -9,7 +9,7 @@ from typing import Any
 
 from audit import append
 from db.tables import forecast_runs, forecast_values
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Path
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
 from parameters import ParameterConflict, ParameterError, listing, save_parameter
@@ -54,6 +54,17 @@ def build_router(app: FastAPI) -> APIRouter:
             v["horizons"][str(r.horizon_days)] = {"mean": r.mean, "quantiles": r.quantiles}
         return {"run_id": run.id, "input_hash": run.input_hash, "through_day": run.through_day, "total": run.total_count, "eligible": run.eligible_count,
                 "variants": {str(k): v for k, v in variants.items()}}
+
+    @router.get("/forecasts/variant/{variant_id}")
+    def variant_forecast(variant_id: int = Path(ge=1), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """Whether this product's figure in the latest run rests on imported estimates (FR-008). Read-only; no quantities."""
+        run = conn.execute(select(forecast_runs).where(forecast_runs.c.status == "completed").order_by(forecast_runs.c.finished_at.desc()).limit(1)).first()
+        if run is None:
+            raise HTTPException(404, "no_forecast_run")
+        row = conn.execute(select(forecast_values).where(forecast_values.c.run_id == run.id, forecast_values.c.variant_id == variant_id).limit(1)).first()
+        if row is None:
+            raise HTTPException(404, "no_forecast_for_variant")
+        return {"run_id": run.id, "variant_id": variant_id, "eligible": bool(row.eligible), "policy": row.policy_used, "seed_used": "seed_used" in (row.reasons or "").split(",")}
 
     @router.get("/accuracy")
     def accuracy(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

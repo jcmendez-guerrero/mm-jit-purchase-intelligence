@@ -146,7 +146,7 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
             {"supplier_id": x.supplier_id, "unit_cost": str(money(x.unit_ticks)), "qty": x.qty, "line_total": str(money(x.line_ticks)),
              "lead_time_days": x.lead, "chosen": x.supplier_id == c.supplier_id} for x in ln.cands)
         explanation = {
-            "version": 1, "policy": t.policy, "forecast_eligible": not t.fallback, "service_level": str(t.service_level),
+            "version": 1, "policy": t.policy, "forecast_eligible": not t.fallback, "forecast_basis": "imported_estimates" if t.estimate_based else "actual_demand", "service_level": str(t.service_level),
             "horizon_days": t.horizon_days, "expected_demand": t.expected_demand, "safety_stock": t.safety_stock, "order_up_to": t.order_up_to,
             "reorder_point": t.reorder_point,
             "position": {"on_hand": t.on_hand, "expiring": t.expiring_qty, "usable": t.usable_on_hand, "inbound": t.inbound_counted, "total": t.inventory_position},

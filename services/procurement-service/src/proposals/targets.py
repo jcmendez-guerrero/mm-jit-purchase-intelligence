@@ -35,6 +35,7 @@ class Target:
     fallback: bool
     service_level: Decimal
     floor_reason: str | None = None
+    estimate_based: bool = False            # the forecast rests on imported estimates (FR-008): shown as a label, never changes a quantity
 
 
 def _interp(points: list[tuple[int, float]], h: float) -> float:
@@ -99,4 +100,4 @@ def compute_target(v: VariantInput, lead_time_days: int) -> Target:
         need, floor_reason = 1, "always_stocked_monthly"
     return Target(
         v.variant_id, horizon, lead_time_days, mean, up_to, reorder, None if mean is None else max(0, up_to - math.ceil(mean)),
-        v.on_hand, v.expiring_qty, usable, inbound, position, need, fc.policy, not fc.eligible, v.service_level, floor_reason)
+        v.on_hand, v.expiring_qty, usable, inbound, position, need, fc.policy, not fc.eligible, v.service_level, floor_reason, fc.eligible and "seed_used" in fc.reasons)

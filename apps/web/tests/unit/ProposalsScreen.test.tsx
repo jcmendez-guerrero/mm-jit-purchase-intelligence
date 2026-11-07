@@ -53,6 +53,22 @@ describe("ProposalsScreen", () => {
     expect(screen.getByText("menor coste total con las condiciones del proveedor", { exact: false })).toBeTruthy();
   });
 
+  it("labels a line whose forecast rests on imported estimates, in the row and in the explanation, and not an ordinary one", async () => {
+    const base = proposal();
+    const line = base.lines[0]!;
+    vi.spyOn(api, "getProposal").mockResolvedValue({ ...base, lines: [{ ...line, explanation: { ...line.explanation, forecast_basis: "imported_estimates" } }] });
+    const first = render(<ProposalsScreen userRoles={["viewer"]} />);
+    expect(await screen.findByText(/previsión con datos importados/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ver justificación" }));
+    expect(screen.getByText(/se apoya en datos importados/)).toBeTruthy();
+    expect(screen.getByText(/La cantidad es la calculada/)).toBeTruthy();
+    first.unmount();
+    vi.spyOn(api, "getProposal").mockResolvedValue({ ...base, lines: [{ ...line, explanation: { ...line.explanation, forecast_basis: "actual_demand" } }] });
+    render(<ProposalsScreen userRoles={["viewer"]} />);
+    await screen.findByText(/SYN-001/);
+    expect(screen.queryByText(/previsión con datos importados/)).toBeNull();
+  });
+
   it("edits a quantity with the version on screen", async () => {
     const edit = vi.spyOn(api, "editProposalLine").mockResolvedValue(proposal());
     render(<ProposalsScreen userRoles={["viewer", "buyer"]} />);

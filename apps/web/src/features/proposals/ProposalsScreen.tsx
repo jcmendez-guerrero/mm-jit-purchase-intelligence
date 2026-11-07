@@ -170,6 +170,7 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
                         <td>
                           <strong>{l.sku ?? l.variant_id}</strong> — {name}
                           {l.manual_override && <span role="note"> · {t("proposals.warning.manual")}</span>}
+                          {l.explanation.forecast_basis === "imported_estimates" && <span role="note" className="mmi-badge mmi-badge-warning"> {t("proposals.badge.estimate")}</span>}
                         </td>
                         <td>{l.supplier_name ?? l.supplier_id}</td>
                         <td>

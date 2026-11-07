@@ -33,6 +33,21 @@ test.describe("Dashboard (T124)", () => {
     await expect(page.getByRole("table", { name: "Demanda diaria real" })).toHaveCount(0);
   });
 
+  test("the product detail says when the forecast rests on imported estimates", async ({ page }) => {
+    await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ run_id: "r1", variant_id: 100, eligible: true, policy: "minmax_poisson", seed_used: true })));
+    await page.goto("/");
+    await page.getByRole("button", { name: "Ver detalle" }).first().click();
+    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Previsión con datos importados");
+  });
+
+  test("a product with no forecast basis shows no estimate label", async ({ page }) => {
+    await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ detail: "no_forecast_run" }, 404)));
+    await page.goto("/");
+    await page.getByRole("button", { name: "Ver detalle" }).first().click();
+    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Previsión estadística disponible");
+    await expect(page.getByLabel("Detalle de la variante 100")).not.toContainText("Previsión con datos importados");
+  });
+
   test("drills down from an alert to the product detail and closes it", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Ver detalle" }).first().click();

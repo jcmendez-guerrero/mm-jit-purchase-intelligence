@@ -839,5 +839,8 @@
   "scenarios.group.delivery": "Entrega prevista: {{value}}",
   "scenarios.group.delivery_unknown": "Entrega prevista: sin calcular",
   "scenarios.group.utilisation": "Uso del presupuesto: {{value}}",
-  "scenarios.group.utilisation_none": "Uso del presupuesto: sin presupuesto fijado"
+  "scenarios.group.utilisation_none": "Uso del presupuesto: sin presupuesto fijado",
+  "proposals.badge.estimate": "· previsión con datos importados",
+  "proposals.why.estimate": "Esta previsión se apoya en datos importados (estimaciones del historial anterior al ERP), no solo en ventas reales del ERP. La cantidad es la calculada; esta nota solo indica su origen.",
+  "dashboard.detail.estimate_based": "Previsión con datos importados: parte del historial son estimaciones, no ventas reales del ERP."
 }

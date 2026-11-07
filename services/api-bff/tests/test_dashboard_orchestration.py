@@ -104,3 +104,22 @@ def test_the_drilldown_forwards_the_figure_and_filters_for_the_signed_in_user_an
         assert call("/api/dashboard/drilldown?" + bad, headers_for("v", ["viewer"]), inv).status_code == 422, bad
     inv.forward.assert_not_called()
     assert call("/api/dashboard/drilldown?kind=coverage", {}, inv).status_code == 401
+
+
+def test_the_forecast_basis_of_a_product_is_forwarded_as_the_signed_in_user():
+    from routes.policies import get_forecast_client
+
+    fc = AsyncMock()
+    fc.forward.return_value = {"variant_id": 9001, "eligible": True, "seed_used": True}
+    from main import app
+
+    app.dependency_overrides[get_forecast_client] = lambda: fc
+    try:
+        client = TestClient(app)
+        ok = client.get("/api/dashboard/variants/9001/forecast-basis", headers=headers_for("v", ["viewer"]))
+        assert ok.status_code == 200 and ok.json()["seed_used"] is True
+        assert fc.forward.call_args.args[:2] == ("GET", "/forecasts/variant/9001") and fc.forward.call_args.kwargs["user_id"] == "v"
+        assert client.get("/api/dashboard/variants/0/forecast-basis", headers=headers_for("v", ["viewer"])).status_code == 422
+        assert client.get("/api/dashboard/variants/9001/forecast-basis").status_code == 401
+    finally:
+        app.dependency_overrides.clear()

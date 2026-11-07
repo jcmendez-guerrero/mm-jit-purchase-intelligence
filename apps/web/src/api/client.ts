@@ -576,6 +576,7 @@ export interface VariantDetail {
 export interface ProposalExplanation {
   policy: string;
   forecast_eligible: boolean;
+  forecast_basis?: "imported_estimates" | "actual_demand";
   service_level: string;
   horizon_days: number;
   expected_demand: number;
@@ -711,6 +712,10 @@ export class ApiClient {
   async logout(): Promise<void> {
     await this.request<void>("/auth/logout", { method: "POST" });
     setCsrfToken(null);
+  }
+
+  async getForecastBasis(variantId: number): Promise<{ run_id: string; variant_id: number; eligible: boolean; policy: string; seed_used: boolean }> {
+    return this.request(`/dashboard/variants/${variantId}/forecast-basis`);
   }
 
   async getDrilldown(r: DrillRequest): Promise<DrillResponse> {

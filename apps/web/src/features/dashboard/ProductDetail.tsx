@@ -13,6 +13,7 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
   const { t } = useTranslation();
   const [d, setD] = useState<VariantDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [estimateBased, setEstimateBased] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -24,6 +25,18 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
       live = false;
     };
   }, [variantId, t]);
+
+  useEffect(() => {
+    let live = true;
+    setEstimateBased(false);
+    api
+      .getForecastBasis(variantId)
+      .then((b) => live && setEstimateBased(b.seed_used))
+      .catch(() => undefined);                                  // no run yet, or no forecast for this product: nothing to label
+    return () => {
+      live = false;
+    };
+  }, [variantId]);
 
   return (
     <aside className="mmi-card" aria-label={t("dashboard.detail.title", { id: variantId })}>
@@ -43,6 +56,7 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
             <>
               <p>{t("dashboard.detail.segment", { abc: d.segment.abc, xyz: d.segment.xyz, pattern: d.segment.pattern })}</p>
               <p>{d.segment.forecast_eligible ? t("dashboard.detail.eligible") : t("dashboard.detail.not_eligible", { reasons: d.segment.reasons.join(", ") })}</p>
+              {estimateBased && <p role="note" className="mmi-badge mmi-badge-warning">{t("dashboard.detail.estimate_based")}</p>}
             </>
           )}
           <h4>{t("dashboard.detail.demand")}</h4>
