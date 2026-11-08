@@ -22,6 +22,7 @@ from allowlist.allowlist import Allowlist
 from client.reader import AuthExpiredError, ReaderClient
 from client.token import provider_from_env
 from db.tables import outbox
+from mixing_guard import LocalDataPresentError, assert_no_local_data
 from mmi_common.busfactory import bus_from_env
 from mmi_common.logging import configure_logging
 from mmi_common.outbox import relay_once
@@ -66,6 +67,11 @@ def run(kinds: list[str], enforce_window: bool = True, bus=None) -> int:  # type
         http=httpx.Client(timeout=30), base_url=base, allowlist=allowlist,
         bucket=TokenBucket(per_hour=int(os.environ.get("MMI_SIWEB_REQUESTS_PER_HOUR", "500"))), tokens=provider_from_env())
     engine, store = create_engine(os.environ["MMI_DATABASE_URL"]), build_store()
+    try:
+        assert_no_local_data(engine, base)            # MMI 004: locally loaded data and the real ERP are never mixed
+    except LocalDataPresentError as exc:
+        log.error("SYNC_FAILED reason=%s", exc.code)
+        return 1
     code = 0
     for kind in kinds:
         try:

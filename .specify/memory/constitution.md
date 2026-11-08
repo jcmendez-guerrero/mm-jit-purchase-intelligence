@@ -1,5 +1,31 @@
 <!--
 Sync Impact Report
+Version change: 1.2.0 -> 1.3.0 (MINOR: one additional permitted Siweb write, a narrowed notes
+  rule, and a new local-only real-data loading clause)
+Modified principles:
+  - I. Least-Privilege Integrations (second permitted write: the app-owned supplier-conditions
+    block in the supplier note, with read-merge-write, concurrency, marker and gating rules;
+    the closed allowlist now contains exactly two operations)
+  - II. Privacy and Synthetic Data (adds the local-only loader clause for real exports)
+  - III. Explainable and Human-Controlled Purchasing (notes rule narrowed; permitted writes
+    now refer to both operations in Principle I)
+Added sections: none
+Removed sections: none
+Modified sections: Additional Constraints (outbound allowlist now lists both writes)
+Rationale: feature MMI 004 (specs/004-local-test-data-suppliers, clarification session
+  2026-11-08, FR-027 to FR-032 and FR-022 to FR-026). The ERP holds only payment terms for a
+  supplier; lead time, minimums and delivery conditions are owned by the app and mirrored in the
+  ERP note so other tools and the ERP console see them. Owner decision 2026-11-08.
+Follow-up TODOs:
+  - Update AGENTS.md rules 3 and 7 and specs/001-mmi-purchase-intelligence/contracts/
+    siweb-allowlist.md to match this version (deferred, outside this command's scope)
+  - Gate 0: confirm the exact ERP operation and field that carries the supplier note and verify
+    it on a non-production record (same gate as T135); until then no note write is permitted
+  - TODO(RATIFICATION_DATE): still open (see 1.2.0 note); the owner accepted this text on
+    2026-11-08, the formal merge date is set when the pull request is merged
+-->
+<!--
+Sync Impact Report
 Version change: 1.1.0 -> 1.2.0 (MINOR: materially expanded guidance in Principle I, plus a
   matching clarification in Principle III)
 Modified principles:
@@ -51,9 +77,10 @@ Follow-up TODOs:
 ### I. Least-Privilege Integrations
 External integrations MUST enforce host, path, and HTTP-method allowlists before sending
 requests. The Siweb connector MUST be read-only and refuse every method or path outside its
-documented GET allowlist, with exactly one exception: updating a supplier's cost on a product
-(the Siweb `PUT /inventory/products/{id}/suppliers/{contact_id}` operation). That write is
-human-initiated and buyer-reviewed. An update request MUST be created only:
+documented GET allowlist, with exactly two exceptions: (1) updating a supplier's cost on a
+product (the Siweb `PUT /inventory/products/{id}/suppliers/{contact_id}` operation), and
+(2) updating the app-owned conditions block in a supplier's note, defined below. Both writes
+are human-initiated and buyer-reviewed. A cost update request MUST be created only:
 - when goods are received and matched to a confirmed supplier order; or
 - when the buyer enters a cost for a product-supplier pair that has no cost in Siweb.
 
@@ -72,10 +99,23 @@ after, who, and when.
 The admin who sets an override MUST NOT be the person who releases it; a different buyer MUST
 release it.
 
-Every such write, including an override, MUST:
+The supplier-conditions note write is permitted only for conditions that Siweb has no field
+for and the application owns (lead time, minimum order value or quantity, free-delivery
+threshold, delivery charge, order days). The application is the source of truth for them. The
+write MUST maintain one delimited, versioned, machine-readable block inside the supplier's
+note and MUST:
+- target a single supplier per request, and be refused for any other target;
+- read the current note immediately before writing, replace or append only its own block, and
+  leave every character outside the block unchanged;
+- be refused, with a review item raised, when the block markers are damaged or duplicated or
+  when the note changed between the read and the write;
+- be limited to the operation and field confirmed in Gate 0 and verified on a non-production
+  record before any write reaches the real ERP; until then it MUST NOT be sent.
+
+Every such write (cost update, override, or note block) MUST:
 - use an identity and permissions separate from the read-only collection;
-- pass through a closed allowlist containing only that operation;
-- be shown to the buyer for review before it is sent;
+- pass through a closed allowlist containing only the two permitted operations;
+- be shown to the buyer or admin for review before it is sent;
 - require a second factor authenticated recently, and pass the writer's own pre-write checks;
 - leave an audit record of who, when, previous value, new value, and outcome;
 - be retried visibly on failure and never silently dropped.
@@ -93,14 +133,25 @@ to documented business needs; fields not required for those needs MUST be discar
 storage. Sanitized contract examples and aggregate patterns MAY inform synthetic fixtures,
 but real rows and identifiers MUST never be copied.
 
+The owner's real exports (inventory, stock movements, suppliers) MAY be loaded only on a
+local machine, through a local-only loader (a command, and a screen upload available only in
+the local environment) that reads from a private, version-control-ignored folder. The loader
+MUST be absent or disabled in every cloud configuration, MUST refuse and record any attempt to
+use it there, and MUST NOT send, store or back up real data outside the local machine or use
+it in Azure. Committed fixtures and automated tests MUST remain synthetic.
+
 ### III. Explainable and Human-Controlled Purchasing
 Purchasing recommendations MUST be reproducible from identified inputs, rules, and data
 provenance. Monetary values MUST use decimal arithmetic, and supplier costs MUST retain
-their source, verification time, and version. Free-text notes MUST NOT drive automated
-business decisions. The system MUST explain recommendations and require human approval for
+their source, verification time, and version. Free-text notes MUST NOT be stored, logged,
+displayed or used in decisions; the only exception is the transient, in-memory handling by the
+writer defined in Principle I, solely to preserve note content outside the application's own
+block and to read that block for discrepancy detection, with only a "has note" indicator
+retained. The system MUST explain recommendations and require human approval for
 purchase actions. It MUST NOT autonomously write to Siweb, approve its own proposals, or
-perform any Siweb write other than the human-initiated, buyer-reviewed supplier-cost update
-defined in Principle I (including its median value and admin override). Approval controls
+perform any Siweb write other than the two human-initiated, reviewed writes defined in
+Principle I: the supplier-cost update (including its median value and admin override) and the
+supplier-conditions note block. Approval controls
 MUST separate proposal creation from approval.
 
 ### IV. Contract-First Service Boundaries
@@ -125,9 +176,9 @@ infrastructure requires a documented decision and cost justification.
   PostgreSQL, and Azure hosting. Infrastructure as Code uses Bicep unless an amended
   architecture decision adopts another tool.
 - The Siweb integration MUST restrict outbound traffic to the approved Siweb host, the
-  allowlisted read-only API paths, and the single permitted supplier-cost update operation.
-  The value rules in Principle I (median, margin check, admin override) do not widen this
-  allowlist.
+  allowlisted read-only API paths, and the two permitted write operations (supplier-cost update
+  and supplier-conditions note block). The value rules in Principle I (median, margin check,
+  admin override) do not widen this allowlist.
   Tests MUST prove that every other method and path is refused before a request is sent.
   Rate use MUST remain within the agreed per-application share of the shared limit.
 - PostgreSQL data MUST be isolated by service schema and role. Database migrations MUST be
@@ -172,4 +223,4 @@ clarification or non-semantic wording changes. Pull request authors and reviewer
 assess compliance during planning and review; unresolved violations require an explicit
 exception documented with rationale, owner, and review date.
 
-**Version**: 1.2.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm formal adoption date | **Last Amended**: 2026-11-05
+**Version**: 1.3.0 | **Ratified**: TODO(RATIFICATION_DATE): confirm formal adoption date | **Last Amended**: 2026-11-08

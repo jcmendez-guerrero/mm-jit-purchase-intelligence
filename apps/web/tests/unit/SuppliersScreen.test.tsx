@@ -34,6 +34,8 @@ beforeEach(() => {
   vi.spyOn(api, "getSuppliers").mockResolvedValue(suppliers);
   vi.spyOn(api, "getSupplierTerms").mockResolvedValue(view());
   vi.spyOn(api, "getOverrideTerms").mockResolvedValue(override);
+  vi.spyOn(api, "getSupplierLinks").mockResolvedValue([]);
+  vi.spyOn(api, "getSupplierReviewItems").mockResolvedValue([]);
 });
 afterEach(() => {
   cleanup();

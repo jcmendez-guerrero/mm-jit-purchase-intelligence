@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from urllib.parse import unquote, urlsplit
 
 API = "/api/public/inventory/products"
+LOCAL_ID_FLOOR = 9_000_000          # ids assigned by the local export loader: they never exist in the ERP and are never sent, to any host
 PUT_PATH = re.compile(rf"^{API}/[0-9]+/suppliers/[0-9]+$")
 GET_PATH = re.compile(rf"^{API}/[0-9]+/suppliers$")
 
@@ -48,6 +49,8 @@ class WriterAllowlist:
             raise AllowlistViolation("host_not_allowed", method, url)
         if unquote(p.path) != p.path or ".." in p.path or "//" in p.path or "\\" in p.path:
             raise AllowlistViolation("path_not_normalised", method, url)
+        if any(seg.isdigit() and int(seg) >= LOCAL_ID_FLOOR for seg in p.path.split("/")):
+            raise AllowlistViolation("local_id_refused", method, url)
         if method == "PUT" and not PUT_PATH.match(p.path):
             raise AllowlistViolation("path_not_allowed", method, url)
         if method == "GET" and not GET_PATH.match(p.path):

@@ -186,10 +186,14 @@ async def resolve_import_error(
 
 @router.get("/suppliers")
 async def list_suppliers(
+    status: str | None = Query(default=None, pattern="^(active|deactivated)$"),
+    classification: str | None = Query(default=None, pattern="^(purchasing|non_purchasing|unclassified)$"),
+    q: str | None = Query(default=None, max_length=100),
     session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> list[dict[str, Any]]:
-    return await client.get_suppliers(roles=session.roles)
+    params = {k: v for k, v in (("status", status), ("classification", classification), ("q", q)) if v}
+    return await client.get_suppliers(roles=session.roles, params=params or None)
 
 
 @router.get("/suppliers/{supplier_id}/terms")

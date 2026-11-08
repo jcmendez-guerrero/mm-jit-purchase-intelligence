@@ -114,6 +114,7 @@ class InputsProvider:
         rules, now = load_rules(conn), datetime.now().astimezone()
         inbound = open_inbound(conn, today)
         names = {r.id for r in conn.execute(select(suppliers.c.id)).all()}
+        blocked = {r.id for r in conn.execute(select(suppliers.c.id).where((suppliers.c.status != "active") | (suppliers.c.classification == "non_purchasing"))).all()}
         report = InputsReport(variants=len(stock["variants"]))
         out: list[VariantInput] = []
         stocking = stocking_map(conn)
@@ -138,6 +139,9 @@ class InputsProvider:
             cands = {r.supplier_id for r in conn.execute(select(supplier_costs.c.supplier_id).where(
                 supplier_costs.c.product_id == pid, supplier_costs.c.superseded_by.is_(None), (supplier_costs.c.variant_id.is_(None)) | (supplier_costs.c.variant_id == vid))).all()}
             for sid in sorted(cands & names):
+                if sid in blocked:                                  # deactivated or non-purchasing suppliers are never proposed (FR-017)
+                    report.disabled_pairs.append((vid, sid))
+                    continue
                 res = resolve_cost(conn, int(pid), sid, rules, vid, now)
                 if res.cost is None:
                     continue

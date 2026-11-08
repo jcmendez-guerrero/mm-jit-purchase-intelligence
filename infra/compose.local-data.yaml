@@ -1,0 +1,38 @@
+# Local-only override: adds the export loader and turns on its flag. Use as
+#   docker compose -f infra/compose.yaml -f infra/compose.local-data.yaml up --build
+# Never referenced by Bicep, workflows or any cloud deployment (specs/004-local-test-data-suppliers, R11).
+# Files are read from ../data/local-exports (ignored by version control) or uploaded through the screen.
+services:
+  dev-issuer:
+    ports: ["127.0.0.1:8090:8090"]          # so the local command can ask for its own service token
+  local-loader:
+    build: { context: .., dockerfile: packages/testing/Dockerfile }
+    command: ["python", "-m", "uvicorn", "export_loader.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8091"]
+    ports: ["127.0.0.1:8091:8091"]
+    environment:
+      MMI_ENV: dev
+      MMI_LOCAL_LOADER: "1"
+      MMI_DEV_ISSUER_URL: http://dev-issuer:8090
+      MMI_SIWEB_MOCK_URL: http://siweb-mock:8089
+      MMI_CONNECTOR_URL: http://siweb-connector:8000
+      MMI_PROCUREMENT_URL: http://procurement-service:8000
+      MMI_LOADER_STATE_DIR: /state
+    volumes:
+      - loader-state:/state
+    depends_on:
+      siweb-mock: { condition: service_healthy }
+      dev-issuer: { condition: service_healthy }
+  api-bff:
+    environment:
+      MMI_LOCAL_LOADER: "1"
+      MMI_LOCAL_LOADER_URL: http://local-loader:8091
+  procurement-service:
+    ports: ["127.0.0.1:8093:8000"]
+    environment:
+      MMI_LOCAL_LOADER: "1"
+  siweb-connector:
+    ports: ["127.0.0.1:8092:8000"]
+    environment:
+      MMI_LOCAL_LOADER: "1"
+volumes:
+  loader-state: {}

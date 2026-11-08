@@ -65,6 +65,11 @@ export const STATUS_VOCABULARY: Record<StatusDomain, Record<string, StatusInfo>>
   tag: {
     preferred: s("suppliers.badge.preferred", "info", "check"),
     disabled: s("suppliers.badge.disabled", "neutral", "close"),
+    inactive: s("suppliers.badge.inactive", "neutral", "close"),
+    non_purchasing: s("suppliers.badge.non_purchasing", "neutral", "info"),
+    unclassified: s("suppliers.badge.unclassified", "warning", "warning"),
+    pending_link: s("suppliers.badge.pending_link", "warning", "warning"),
+    source_inventory_export: s("ui.tag.source_inventory_export", "neutral", "imports"),
     source_erp: s("suppliers.source.erp", "neutral", "info"),
     source_import: s("suppliers.source.import", "neutral", "imports"),
     source_manual: s("suppliers.source.manual", "info", "user"),

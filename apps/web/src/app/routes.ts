@@ -18,6 +18,8 @@ export interface NavItem {
   /** Empty means any signed-in role. */
   roles: string[];
   order: number;
+  /** Offered only when the application reports this optional capability (for example the local-only loader). */
+  feature?: string;
 }
 
 export interface NavGroup {
@@ -43,19 +45,21 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "proveedores", path: "/proveedores", labelKey: "nav.suppliers", descriptionKey: "nav.desc.suppliers", group: "configuracion", icon: "suppliers", roles: [], order: 1 },
   { id: "importaciones", path: "/importaciones", labelKey: "nav.imports", descriptionKey: "nav.desc.imports", group: "configuracion", icon: "imports", roles: [], order: 2 },
   { id: "configuracion", path: "/configuracion", labelKey: "nav.config", descriptionKey: "nav.desc.config", group: "configuracion", icon: "config", roles: [], order: 3 },
+  { id: "carga-local", path: "/carga-local", labelKey: "nav.localLoad", descriptionKey: "nav.desc.localLoad", group: "configuracion", icon: "imports", roles: ["buyer", "admin"], order: 4, feature: "localLoad" },
   { id: "administracion", path: "/administracion", labelKey: "nav.admin", descriptionKey: "nav.desc.admin", group: "administracion", icon: "admin", roles: ["admin"], order: 1 },
 ];
 
-export function canSee(item: NavItem, roles: readonly string[]): boolean {
+export function canSee(item: NavItem, roles: readonly string[], features: readonly string[] = []): boolean {
+  if (item.feature !== undefined && !features.includes(item.feature)) return false;
   return item.roles.length === 0 || item.roles.some((r) => roles.includes(r));
 }
 
-export function itemsFor(roles: readonly string[]): NavItem[] {
-  return NAV_ITEMS.filter((i) => canSee(i, roles));
+export function itemsFor(roles: readonly string[], features: readonly string[] = []): NavItem[] {
+  return NAV_ITEMS.filter((i) => canSee(i, roles, features));
 }
 
-export function groupedItems(roles: readonly string[]): Array<NavGroup & { items: NavItem[] }> {
-  const visible = itemsFor(roles);
+export function groupedItems(roles: readonly string[], features: readonly string[] = []): Array<NavGroup & { items: NavItem[] }> {
+  const visible = itemsFor(roles, features);
   return GROUPS.map((g) => ({ ...g, items: visible.filter((i) => i.group === g.id).sort((a, b) => a.order - b.order) })).filter((g) => g.items.length > 0);
 }
 

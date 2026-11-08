@@ -30,6 +30,26 @@ suppliers = Table(
     Column("id", String(36), primary_key=True),
     Column("external_contact_id", Integer, unique=True),   # Siweb contact id; supplier_cif is never stored
     Column("name", String(200), nullable=False),
+    # MMI 004 (migration 0011): suppliers can be created and configured in the platform. Never stored: tax id, bank, notes.
+    Column("name_key", String(200), nullable=False, server_default="", index=True),   # folded name, duplicate detection only
+    Column("status", String(12), nullable=False, server_default="active"),            # active / deactivated
+    Column("classification", String(16), nullable=False, server_default="unclassified"),   # purchasing / non_purchasing / unclassified
+    Column("origin", String(10), nullable=False, server_default="platform"),          # platform / imported / erp
+    Column("erp_link_state", String(12), nullable=False, server_default="none"),      # none / unverified / linked / pending_link
+    Column("fiscal_type", String(16), nullable=False, server_default="national"),
+    Column("country", String(2), nullable=False, server_default="ES"),
+    Column("currency", String(3), nullable=False, server_default="EUR"),
+    Column("payment_terms_days", Integer),
+    Column("order_channel", String(8)),
+    Column("has_note", Boolean, nullable=False, server_default=false()),
+    Column("version", Integer, nullable=False, server_default="1"),
+    Column("created_by", String(120)),
+    Column("created_at", DateTime(timezone=True)),
+    Column("updated_by", String(120)),
+    Column("updated_at", DateTime(timezone=True)),
+    Column("deactivated_by", String(120)),
+    Column("deactivated_at", DateTime(timezone=True)),
+    Column("merged_into", String(36)),                       # explicit merge pointer (the merged supplier is deactivated, history kept)
 )
 supplier_terms = Table(
     "supplier_terms", metadata,
@@ -425,3 +445,40 @@ lot_acquisition_costs = Table(
     Column("recorded_at", DateTime(timezone=True), nullable=False),
 )
 Index("ix_lot_acquisition_costs_pair", lot_acquisition_costs.c.variant_id, lot_acquisition_costs.c.supplier_id, lot_acquisition_costs.c.lot)
+
+# MMI 004 (migration 0011)
+supplier_review_items = Table(
+    "supplier_review_items", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("kind", String(32), nullable=False),            # possible_duplicate / payment_terms_unparsed / link_no_match / link_ambiguous / link_inactive_supplier / currency_mismatch
+    Column("supplier_id", String(36), ForeignKey("suppliers.id")),
+    Column("detail", String(200), nullable=False, server_default=""),   # never personal data
+    Column("status", String(10), nullable=False, server_default="open"),   # open / resolved / ignored
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("resolved_by", String(120)),
+    Column("resolved_at", DateTime(timezone=True)),
+)
+link_assignment_batches = Table(
+    "link_assignment_batches", metadata,
+    Column("id", String(36), primary_key=True),
+    Column("created_by", String(120), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("criteria", JSON, nullable=False),
+    Column("supplier_id", String(36), ForeignKey("suppliers.id"), nullable=False),
+    Column("products_matched", Integer, nullable=False, server_default="0"),
+    Column("products_changed", Integer, nullable=False, server_default="0"),
+    Column("conflicts", Integer, nullable=False, server_default="0"),
+    Column("status", String(10), nullable=False, server_default="previewed"),   # previewed / applied / cancelled
+    Column("applied_at", DateTime(timezone=True)),
+)
+export_costs = Table(
+    "export_costs", metadata,
+    Column("sku", String(60), primary_key=True),
+    Column("export_cost", MONEY),                           # reference only; never a supplier cost, never written to the ERP
+    Column("pvp_gross", MONEY),                             # tax-inclusive selling price for the margin check
+    Column("tax_rate", Numeric(5, 2)),
+    Column("tax_included", Boolean, nullable=False, server_default=false()),
+    Column("currency", String(3), nullable=False, server_default="EUR"),
+    Column("loaded_at", DateTime(timezone=True), nullable=False),
+    Column("load_run_id", String(36)),
+)

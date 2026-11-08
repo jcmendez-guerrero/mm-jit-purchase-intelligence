@@ -233,6 +233,8 @@ __marimo__/
 *.parquet
 *.duckdb
 /data/
+# The owner's real exports for local-only loading live in data/local-exports/ (see
+# specs/004-local-test-data-suppliers/contracts/local-loader.md); the loader state files are inside it.
 **/samples/real/
 !packages/testing/**/fixtures/**/*.csv
 !packages/testing/**/fixtures/**/*.xlsx

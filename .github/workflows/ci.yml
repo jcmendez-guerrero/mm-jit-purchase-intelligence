@@ -106,6 +106,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_CONFIG: .gitleaks.toml
+      - name: Block real-shaped export files (header signatures, synthetic fixtures only)
+        run: |
+          python3 scripts/check_export_signatures.py
+          python3 -m pip install --quiet openpyxl pytest
+          python3 -m pytest -q scripts/tests
 
   python:
     needs: changes

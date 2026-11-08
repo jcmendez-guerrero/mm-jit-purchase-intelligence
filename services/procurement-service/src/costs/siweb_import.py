@@ -17,6 +17,7 @@ from typing import Any
 from db.tables import erp_supplier_links, suppliers
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
+from suppliers.dedupe import name_key
 
 from costs.directory import SqlProductDirectory
 from costs.recargo import RecargoTable, UnknownVatError, net_from_gross
@@ -40,10 +41,12 @@ def get_or_create_supplier(conn: Connection, contact_id: int, name: str | None) 
     row = conn.execute(select(suppliers.c.id, suppliers.c.name).where(suppliers.c.external_contact_id == contact_id)).first()
     if row:
         if name and row.name != name:
-            conn.execute(update(suppliers).where(suppliers.c.id == row.id).values(name=name))
+            conn.execute(update(suppliers).where(suppliers.c.id == row.id).values(name=name, name_key=name_key(name)))
         return str(row.id)
     sid = str(uuid.uuid4())
-    conn.execute(insert(suppliers).values(id=sid, external_contact_id=contact_id, name=name or f"Proveedor {contact_id}"))
+    shown = name or f"Proveedor {contact_id}"
+    conn.execute(insert(suppliers).values(id=sid, external_contact_id=contact_id, name=shown, name_key=name_key(shown), origin="erp", erp_link_state="linked",
+                                          classification="purchasing"))
     return sid
 
 

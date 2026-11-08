@@ -30,6 +30,9 @@
 - [X] T009 [P] Create ADR index and MADR template plus ADRs 001, 002, 005, 006 (amended), 012, 017 in docs/adr/
 - [ ] T129 Gate 0 live read-only checks, results recorded in the internal wiki (not in repo): movement timezone (V1), ticket reference_type (V2), history depth, page sizes and 429 behaviour (V3), VAT-rate source and rounding (V5), rate split (V6), loss-reason cutover date (V7). Blocks live collection (T045 against the real ERP) and the defaults baked into US1/US2; mock-based work may proceed meanwhile
 - [X] T135 Gate 0 supplier-cost PUT verification on a non-production record (V4): body, merge semantics, whether a link can be created; record outcome in the internal wiki and update research.md R4/V4. Blocks T100 and T101 against the real ERP and any cost write to production
+- [ ] T158 Gate 0 (feature 004, G0-L1): verify on a non-production record that the supplier export `ID` equals the API `contact_id`; until then imported suppliers stay `erp_link_state = unverified` and cost writes for them are blocked; record the outcome in the internal wiki and in specs/004-local-test-data-suppliers/research.md R7
+- [ ] T159 Gate 0 (feature 004, G0-N1..N3): confirm which ERP operation and field carry a supplier's note, that a read-merge-write round trip preserves all foreign note content exactly, and the maximum note length; record in the wiki and in specs/004-local-test-data-suppliers/research.md; blocks enabling the supplier-conditions note write (constitution v1.3.0)
+- [ ] T160 Gate 0 (feature 004, G0-M1): confirm the time zone and minute precision of UI-exported movement timestamps (assumed Europe/Madrid) against a few known sales; record in specs/004-local-test-data-suppliers/research.md
 
 ---
 

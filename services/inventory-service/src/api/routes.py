@@ -156,7 +156,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
             lots.setdefault(r.variant_id, []).append({"warehouse_id": r.warehouse_id, "batch_number": r.batch_number, "quantity": r.quantity,
                                                       "expiry_date": r.expiry_date.isoformat() if r.expiry_date else None})
         out = []
-        for v in conn.execute(select(variants).order_by(variants.c.external_id)).all():
+        for v in conn.execute(select(variants).where(variants.c.is_service.is_(False)).order_by(variants.c.external_id)).all():
             seg, snap = segs.get(v.external_id), snaps.get(v.external_id)
             pid = v.product_id or 0
             out.append({

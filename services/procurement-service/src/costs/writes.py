@@ -23,6 +23,7 @@ from proposals.publisher import WRITE_REQUESTED, BlobWriter, publish
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.engine import Connection, Row
 
+from costs.directory import is_local_id
 from costs.margin import BELOW_MINIMUM, UNAVAILABLE, Evaluation, evaluate
 from costs.recargo import erp_cents
 from costs.store import get as get_cost
@@ -89,7 +90,7 @@ def request_write(conn: Connection, cost_id: str, trigger: str, actor: str, now:
     warnings = ["variant_conflict"] if _variant_conflict(conn, cost.product_id, cost.variant_id) else []
     if existing is not None:
         return WriteRequestResult(existing, existing.status, warnings)
-    status = "pending_link" if link is None else "pending_review"
+    status = "pending_link" if link is None or is_local_id(cost.product_id) else "pending_review"     # a local id is never sent to the ERP
     rid = str(uuid.uuid4())
     conn.execute(insert(cost_write_requests).values(
         id=rid, cost_id=cost_id, product_id=cost.product_id, supplier_id=cost.supplier_id, trigger=trigger, proposed_value=proposed,
@@ -131,8 +132,8 @@ def approve_write(conn: Connection, request_id: str, principal: Principal, write
     cost = get_cost(conn, r.cost_id)
     if cost.superseded_by is not None:
         raise WriteError("cost_superseded")
-    if _link(conn, r.product_id, r.supplier_id) is None:
-        raise WriteError("pending_link")          # no ERP record: no request is made until the buyer creates the link
+    if _link(conn, r.product_id, r.supplier_id) is None or is_local_id(r.product_id) or not _erp_contact_ready(conn, r.supplier_id):
+        raise WriteError("pending_link")          # no ERP record (or only a locally assigned id): no request is made until the buyer creates the link
     if _variant_conflict(conn, r.product_id, cost.variant_id) and not acknowledge_variant_conflict:
         raise WriteError("variant_conflict_unacknowledged")
     conn.execute(update(cost_write_requests).where(cost_write_requests.c.id == request_id).values(
@@ -164,6 +165,14 @@ def writer_view(conn: Connection, request_id: str) -> dict[str, Any] | None:
     return {"id": r.id, "status": r.status, "product_id": r.product_id, "supplier_id": r.supplier_id, "cents": erp_cents(Decimal(str(r.proposed_value))),
             "previous_cents": None if r.previous_siweb_value is None else erp_cents(Decimal(str(r.previous_siweb_value))), "idempotency_key": r.idempotency_key,
             "supplier_contact_id": _contact_id(conn, r.supplier_id)}
+
+
+def _erp_contact_ready(conn: Connection, supplier_id: str) -> bool:
+    """The supplier's contact id is a real ERP id: present, outside the local range and not awaiting verification (Gate 0, G0-L1)."""
+    from db.tables import suppliers
+
+    row = conn.execute(select(suppliers.c.external_contact_id, suppliers.c.erp_link_state).where(suppliers.c.id == supplier_id)).first()
+    return row is not None and row.external_contact_id is not None and not is_local_id(row.external_contact_id) and row.erp_link_state != "unverified"
 
 
 def _contact_id(conn: Connection, supplier_id: str) -> int | None:

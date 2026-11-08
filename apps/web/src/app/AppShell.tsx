@@ -17,10 +17,12 @@ interface Props {
   roles: string[];
   sessionExpired: boolean;
   onLogout: () => void;
+  /** Optional capabilities the application reports (for example ``localLoad``). */
+  features?: string[];
 }
 
 /** Layout route: skip link, rail with grouped navigation, top bar, page header and the content outlet. */
-export const AppShell: React.FC<Props> = ({ session, roles, sessionExpired, onLogout }) => {
+export const AppShell: React.FC<Props> = ({ session, roles, sessionExpired, onLogout, features = [] }) => {
   const { t } = useTranslation();
   const location = useLocation();
   const item = findItem(location.pathname);
@@ -40,7 +42,7 @@ export const AppShell: React.FC<Props> = ({ session, roles, sessionExpired, onLo
     document.title = item ? `${t(item.labelKey)} · ${t("app.title")}` : t("app.title");
   }, [item, t]);
 
-  const groups = groupedItems(roles);
+  const groups = groupedItems(roles, features);
 
   return (
     <div className="mmi-app">
@@ -72,7 +74,7 @@ export const AppShell: React.FC<Props> = ({ session, roles, sessionExpired, onLo
           </Link>
           <span className="mmi-topbar__spacer" />
           <ThemeToggle />
-          <CommandPalette items={itemsFor(roles)} />
+          <CommandPalette items={itemsFor(roles, features)} />
           <div className="mmi-user">
             <Icon name="user" />
             {session ? (

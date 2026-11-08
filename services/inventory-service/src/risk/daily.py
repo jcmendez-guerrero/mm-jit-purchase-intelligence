@@ -148,7 +148,7 @@ def evaluate_risks(
     vat_stmt = (
         select(variants.c.external_id, products.c.name)
         .join(products, products.c.external_id == variants.c.product_id)
-        .where(products.c.status == "active", products.c.vat_rate.is_(None))
+        .where(products.c.status == "active", products.c.vat_rate.is_(None), variants.c.is_service.is_(False))
     )
     for v in conn.execute(vat_stmt).all():
         risks.append({

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/supplier.v1",
+  "title": "Supplier",
+  "description": "Purchasing counterparty. Tax identifiers, bank details and free-text notes are never part of this contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "status",
+    "classification",
+    "origin",
+    "erp_link_state",
+    "fiscal_type",
+    "country",
+    "currency",
+    "has_note",
+    "version"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "external_contact_id": {
+      "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "status": { "enum": ["active", "deactivated"] },
+    "classification": {
+      "enum": ["purchasing", "non_purchasing", "unclassified"]
+    },
+    "origin": { "enum": ["platform", "imported", "erp"] },
+    "erp_link_state": {
+      "enum": ["none", "unverified", "linked", "pending_link"]
+    },
+    "fiscal_type": { "enum": ["national", "intracommunity", "foreign"] },
+    "country": { "type": "string", "pattern": "^[A-Z]{2}$" },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "payment_terms_days": {
+      "oneOf": [
+        { "type": "integer", "minimum": 0, "maximum": 365 },
+        { "type": "null" }
+      ]
+    },
+    "order_channel": { "enum": ["email", "phone", "web", "other"] },
+    "has_note": { "type": "boolean" },
+    "version": { "type": "integer", "minimum": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

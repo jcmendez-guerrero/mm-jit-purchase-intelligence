@@ -635,6 +635,13 @@
   display: inline-flex;
   flex-wrap: wrap;
   gap: var(--mmi-space-2);
+  max-width: 100%;
+}
+
+/* A select sized by its longest option (for example a long supplier name) must never push the page wider than the window. */
+.mmi-actions select {
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* Form field */
@@ -989,8 +996,20 @@
     grid-template-columns: 22.5rem minmax(0, 1fr);
   }
 
+  /* Wraps to one column when the content area is too narrow (for example with enlarged text) instead of squeezing the main column to nothing. */
   .mmi-split--wide-aside {
-    grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .mmi-split--wide-aside > .mmi-split__aside {
+    flex: 1 1 18rem;
+    max-width: 26rem;
+  }
+
+  .mmi-split--wide-aside > .mmi-split__main {
+    flex: 1 1 24rem;
   }
 }
 
