@@ -8,8 +8,8 @@ from decimal import Decimal
 from typing import Any
 
 from dashboard.drilldown import KINDS, DrillError, drilldown
+from dashboard.filters import FilterError, FilterSet
 from dashboard.kpis import (
-    CATEGORIES,
     Filters,
     abc_xyz_distribution,
     compute_summary,
@@ -25,12 +25,11 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
     require: Callable[..., Any] = app.state.require_roles
     router = APIRouter(prefix="/dashboard")
 
-    def filters(warehouse_id: int | None, category: str | None, family: str | None = None) -> Filters:
-        if category is not None and category not in CATEGORIES:
-            raise HTTPException(422, "request_invalid")
-        if family is not None and not 0 < len(family) <= 120:
-            raise HTTPException(422, "request_invalid")
-        return Filters(warehouse_id, category, family)
+    def filters(warehouse_id: int | None, category: str | None, family: str | None = None, supplier_id: str | None = None) -> Filters:
+        try:
+            return FilterSet.parse(datetime.now(UTC).date(), warehouse_id=warehouse_id, category=category, family=family, supplier_id=supplier_id).to_filters()
+        except FilterError as exc:
+            raise HTTPException(422, "request_invalid") from exc
 
     def means() -> Any:
         return getattr(app.state, "forecast_means", None)
@@ -40,8 +39,8 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
         return filter_options(conn)
 
     @router.get("/summary")
-    def summary(warehouse_id: int | None = None, category: str | None = None, family: str | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
-        f = filters(warehouse_id, category, family)
+    def summary(warehouse_id: int | None = None, category: str | None = None, family: str | None = None, supplier_id: str | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        f = filters(warehouse_id, category, family, supplier_id)
         today = datetime.now(UTC).date()
         try:
             s = compute_summary(conn, today, f, means())
@@ -51,10 +50,10 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
         return {**s.as_json(), "forecast_available": forecast_ok and means() is not None}
 
     @router.get("/demand-trend")
-    def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, family: str | None = None, conn: Connection = Depends(conn_dep),
-              _p: Any = Depends(require())) -> dict[str, Any]:
+    def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, family: str | None = None, supplier_id: str | None = None,
+              conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         today = datetime.now(UTC).date()
-        f = filters(warehouse_id, category, family)
+        f = filters(warehouse_id, category, family, supplier_id)
         fc = forecast_series(conn, today, f, means())
         return {"from": (today - timedelta(days=days)).isoformat(), "to": date.isoformat(today), "series": demand_trend(conn, today, days, f),
                 "estimated": fc["points"], "estimated_basis": {"variants": fc["variants"], "seed_assisted": fc["seed_assisted"], "reason": fc["reason"], "upper_level": "0.95"}}
@@ -62,11 +61,11 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
     @router.get("/drilldown")
     def drill(kind: str = Query(max_length=20), abc: str | None = Query(default=None, max_length=1), xyz: str | None = Query(default=None, max_length=1),
               day: str | None = Query(default=None, max_length=10), warehouse_id: int | None = None, category: str | None = None, family: str | None = None,
-              limit: int = Query(default=50, ge=1, le=200), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+              supplier_id: str | None = None, limit: int = Query(default=50, ge=1, le=200), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         if kind not in KINDS:
             raise HTTPException(422, "request_invalid")
         try:
-            return drilldown(conn, kind, datetime.now(UTC).date(), filters(warehouse_id, category, family), means(), abc, xyz, day, limit)
+            return drilldown(conn, kind, datetime.now(UTC).date(), filters(warehouse_id, category, family, supplier_id), means(), abc, xyz, day, limit)
         except DrillError as exc:
             raise HTTPException(422, exc.code) from exc
 

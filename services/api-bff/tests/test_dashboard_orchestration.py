@@ -123,3 +123,14 @@ def test_the_forecast_basis_of_a_product_is_forwarded_as_the_signed_in_user():
         assert client.get("/api/dashboard/variants/9001/forecast-basis").status_code == 401
     finally:
         app.dependency_overrides.clear()
+
+
+def test_the_supplier_filter_reaches_the_inventory_figures_and_a_bad_one_is_refused(role_store):
+    inv = inventory(**{"/dashboard/summary": {"inventory_value": "40.00"}, "/dashboard/demand-trend": {"series": []}, "/dashboard/abc-xyz": {"cells": []},
+                       "/risk": [], "/dashboard/filters/options": {"warehouses": [], "categories": []}})
+    res = call("/api/dashboard/overview?supplier_id=sup-a", headers_for("v", ["viewer"]), inv)
+    calls = {c.args[1]: c.kwargs for c in inv.forward.call_args_list}
+    assert res.status_code == 200 and calls["/dashboard/summary"]["params"] == {"supplier_id": "sup-a"} and calls["/dashboard/demand-trend"]["params"] == {"supplier_id": "sup-a", "days": 60}
+    assert call("/api/dashboard/overview?supplier_id=a%20b", headers_for("v", ["viewer"]), inventory()).status_code == 422
+    drill = call("/api/dashboard/drilldown?kind=inventory_value&supplier_id=sup-a", headers_for("v", ["viewer"]), inv)
+    assert drill.status_code == 200 and inv.forward.call_args.kwargs["params"] == {"kind": "inventory_value", "supplier_id": "sup-a"}

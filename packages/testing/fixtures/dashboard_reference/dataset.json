@@ -1,0 +1,45 @@
+{
+  "_comment": "Synthetic reference dataset for the executive dashboard (feature 006). Fictional names and codes only. Dates are offsets in days from 'today'. Expected figures are in TOTALS.md.",
+  "today": "2026-11-09",
+  "warehouses": [
+    {"external_id": 1, "name": "Almacén sintético A"},
+    {"external_id": 2, "name": "Almacén sintético B"}
+  ],
+  "products": [
+    {"external_id": 5, "name": "Producto sintético P", "clinical_critical": false},
+    {"external_id": 6, "name": "Producto sintético Q", "clinical_critical": true}
+  ],
+  "variants": [
+    {"external_id": 1, "product_id": 5, "sku": "SYN-001", "name": "Variante sintética 1"},
+    {"external_id": 2, "product_id": 5, "sku": "SYN-002", "name": "Variante sintética 2"},
+    {"external_id": 3, "product_id": 6, "sku": "SYN-003", "name": "Variante sintética 3"},
+    {"external_id": 4, "product_id": 6, "sku": "SYN-004", "name": "Variante sintética 4"}
+  ],
+  "lots": [
+    {"variant_id": 1, "warehouse_id": 1, "batch": "L1", "expiry_offset_days": 400, "quantity": 10},
+    {"variant_id": 1, "warehouse_id": 2, "batch": "L2", "expiry_offset_days": 10, "quantity": 5},
+    {"variant_id": 2, "warehouse_id": 1, "batch": "L9", "expiry_offset_days": 400, "quantity": 4},
+    {"variant_id": 3, "warehouse_id": 1, "batch": null, "expiry_offset_days": 400, "quantity": 6},
+    {"variant_id": 4, "warehouse_id": 2, "batch": "L4", "expiry_offset_days": 45, "quantity": 8}
+  ],
+  "lot_costs": [
+    {"variant_id": 1, "supplier_id": "sup-a", "lot": "L1", "unit_cost": "2.00", "source": "confirmed_order"},
+    {"variant_id": 1, "supplier_id": "sup-a", "lot": "L2", "unit_cost": "4.00", "source": "confirmed_order"},
+    {"variant_id": 2, "supplier_id": "sup-b", "lot": "OLD", "unit_cost": "3.00", "source": "buyer_entry"},
+    {"variant_id": 4, "supplier_id": "sup-b", "lot": "L4", "unit_cost": "5.00", "source": "confirmed_order"}
+  ],
+  "segments": [
+    {"variant_id": 1, "abc": "A", "xyz": "X", "pattern": "smooth", "eligible": true, "value": 100},
+    {"variant_id": 2, "abc": "B", "xyz": "Y", "pattern": "smooth", "eligible": true, "value": 50},
+    {"variant_id": 3, "abc": "B", "xyz": "Y", "pattern": "lumpy", "eligible": false, "value": 25},
+    {"variant_id": 4, "abc": "C", "xyz": "Z", "pattern": "lumpy", "eligible": false, "value": 10}
+  ],
+  "demand": {
+    "days": 90,
+    "per_day": [
+      {"variant_id": 1, "warehouse_id": 1, "qty": 3},
+      {"variant_id": 2, "warehouse_id": 1, "qty": 1}
+    ],
+    "censored_today_for": [2]
+  }
+}

@@ -810,6 +810,11 @@ export function onUnauthorized(listener: (() => void) | null): void {
 export class ApiClient {
   private baseUrl = "/api";
 
+  /** Public GET for feature modules that keep their own typed calls (keeps this file from growing further). */
+  getJson<T>(path: string): Promise<T> {
+    return this.request<T>(path);
+  }
+
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const headers = new Headers(options.headers);
     headers.set("Accept", "application/json");

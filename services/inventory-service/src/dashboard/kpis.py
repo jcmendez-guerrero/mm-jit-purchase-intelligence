@@ -53,6 +53,7 @@ class Filters:
     warehouse_id: int | None = None
     category: str | None = None          # A / B / C / critical
     family: str | None = None            # ERP product family name, exactly as synchronised
+    supplier_id: str | None = None       # supplier of the lot cost the stock is valued with (lot_cost_projection)
 
 
 @dataclass
@@ -83,6 +84,8 @@ def variant_scope(conn: Connection, f: Filters) -> set[int]:
         in_family = {r.external_id for r in conn.execute(select(variants.c.external_id).join(products, products.c.external_id == variants.c.product_id)
                                                          .where(products.c.family == f.family)).all()}
         ids &= in_family
+    if f.supplier_id is not None:
+        ids &= {r.variant_id for r in conn.execute(select(lot_cost_projection.c.variant_id).where(lot_cost_projection.c.supplier_id == f.supplier_id)).all()}
     if f.category is None:
         return ids
     if f.category == "critical":
@@ -91,17 +94,17 @@ def variant_scope(conn: Connection, f: Filters) -> set[int]:
     return {r.variant_id for r in conn.execute(select(product_segments.c.variant_id).where(product_segments.c.abc == f.category)).all()} & ids
 
 
-def _costs(conn: Connection) -> tuple[dict[tuple[int, str], Decimal], dict[int, Decimal]]:
-    """(variant, lot) -> latest cost, and variant -> latest cost of any lot (the labelled fallback)."""
-    by_lot: dict[tuple[int, str], tuple[datetime, Decimal]] = {}
-    by_variant: dict[int, tuple[datetime, Decimal]] = {}
+def _costs(conn: Connection) -> tuple[dict[tuple[int, str], tuple[Decimal, str]], dict[int, tuple[Decimal, str]]]:
+    """(variant, lot) -> (latest cost, its supplier), and variant -> (latest cost of any lot, its supplier) (the labelled fallback)."""
+    by_lot: dict[tuple[int, str], tuple[datetime, Decimal, str]] = {}
+    by_variant: dict[int, tuple[datetime, Decimal, str]] = {}
     for r in conn.execute(select(lot_cost_projection)).all():
         at, cost = r.updated_at, Decimal(str(r.unit_cost))
         if (r.variant_id, r.lot) not in by_lot or by_lot[(r.variant_id, r.lot)][0] <= at:
-            by_lot[(r.variant_id, r.lot)] = (at, cost)
+            by_lot[(r.variant_id, r.lot)] = (at, cost, r.supplier_id)
         if r.variant_id not in by_variant or by_variant[r.variant_id][0] <= at:
-            by_variant[r.variant_id] = (at, cost)
-    return {k: v[1] for k, v in by_lot.items()}, {k: v[1] for k, v in by_variant.items()}
+            by_variant[r.variant_id] = (at, cost, r.supplier_id)
+    return {k: (v[1], v[2]) for k, v in by_lot.items()}, {k: (v[1], v[2]) for k, v in by_variant.items()}
 
 
 def valued_lots(conn: Connection, today: date, f: Filters, scope: set[int], summary: Summary | None = None) -> Iterator[tuple[int, Decimal, bool, bool]]:
@@ -115,13 +118,16 @@ def valued_lots(conn: Connection, today: date, f: Filters, scope: set[int], summ
     for lot in conn.execute(q).all():
         if lot.variant_id not in scope:
             continue
-        cost = by_lot.get((lot.variant_id, lot.batch_number or ""))
+        found = by_lot.get((lot.variant_id, lot.batch_number or ""))
         estimated = False
-        if cost is None:
-            cost, estimated = by_variant.get(lot.variant_id), True
-        if cost is None:
-            if summary is not None:
+        if found is None:
+            found, estimated = by_variant.get(lot.variant_id), True
+        if found is None:
+            if summary is not None and f.supplier_id is None:    # a lot with no cost has no supplier: only the unfiltered view counts it
                 summary.unvalued_lots += 1
+            continue
+        cost, supplier = found
+        if f.supplier_id is not None and supplier != f.supplier_id:
             continue
         yield lot.variant_id, cost * lot.quantity, estimated, lot.expiry_date is not None and lot.expiry_date <= horizon
 
