@@ -15,6 +15,8 @@ param registryId = '<resource id of the shared container registry>'
 param keyVaultId = '<resource id of the shared Key Vault>'
 param postgresHost = '<postgres server host name>'
 param entraTenantId = '<directory (tenant) id>'
+param entraClientId = '<application (client) id of the sign-in app registration>'
+param publicBaseUrl = 'https://<public host of the web app>'
 param alertEmail = '<alert recipient>'
 
 // Siweb. Only the secret NAMES live here; the values are in Key Vault.
