@@ -19,11 +19,13 @@ server {
     add_header Content-Type text/plain;
   }
 
+  # API_BFF_URL / API_BFF_HOST are substituted at container start (nginx image templates).
+  # Compose: http://api-bff:8000 and api-bff:8000. Azure: the internal https FQDN of api-bff.
   location /api/ {
-    resolver 127.0.0.11 valid=10s ipv6=off;
-    set $upstream_api http://api-bff:8000;
-    proxy_pass $upstream_api;
-    proxy_set_header Host $host;
+    proxy_pass ${API_BFF_URL};
+    proxy_http_version 1.1;
+    proxy_ssl_server_name on;
+    proxy_set_header Host ${API_BFF_HOST};
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
