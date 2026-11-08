@@ -32,5 +32,5 @@ tags = ["azure"]
 
 [allowlist]
 description = "Generic placeholders in examples; example.test hosts; public Azure built-in role definition ids (not secrets)"
-regexes = ['''00000000-0000-0000-0000-000000000000''', '''<[a-z-]+>''', '''app\.siweb360\.com''', '''siweb\.example\.test''', '''4633458b-17de-408a-b874-0151c9ac4a8d''', '''(?i)(ba92f5b4-2d11-453d-a403-e96b0029c9fe|2a2b9908-6ea1-4ae2-8e65-a410df84e7d1|8a0f0c08-91a1-4084-bc3d-661d67233fed|c6a89b2d-59bc-44d0-9896-0f6e12d7b80c)''', '''sygna\.es''', '''Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq''']
+regexes = ['''00000000-0000-0000-0000-000000000000''', '''<[a-z-]+>''', '''app\.siweb360\.com''', '''siweb\.example\.test''', '''siweb\.example\.es''','''4633458b-17de-408a-b874-0151c9ac4a8d''', '''(?i)(ba92f5b4-2d11-453d-a403-e96b0029c9fe|2a2b9908-6ea1-4ae2-8e65-a410df84e7d1|8a0f0c08-91a1-4084-bc3d-661d67233fed|c6a89b2d-59bc-44d0-9896-0f6e12d7b80c)''', '''sygna\.es''', '''Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq''']
 paths = ['''^\.gitleaks\.toml$''']
