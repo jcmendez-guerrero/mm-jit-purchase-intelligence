@@ -6,6 +6,11 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Browser script served as is from public/ (sets the theme before first paint)
+    files: ["public/**/*.js"],
+    languageOptions: { sourceType: "script", globals: { window: "readonly", document: "readonly" } },
+  },
+  {
     // Node build scripts (bundle budget check)
     files: ["scripts/**/*.mjs"],
     languageOptions: { globals: { URL: "readonly", console: "readonly", process: "readonly" } },

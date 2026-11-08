@@ -42,3 +42,31 @@ describe("dashboard model", () => {
     expect(forecastStats([{ day: "2026-11-10", mean: "3.50", upper: "5.00", kind: "forecast" }, { day: "2026-11-11", mean: "3.50", upper: "5.00", kind: "forecast" }])).toEqual({ mean: 3.5, upper: 5, days: 2 });
   });
 });
+
+import { severitySplitIsReliable, stockoutSeverityCounts } from "../../src/features/dashboard/dashboardModel";
+
+describe("stockout severity split (ruler)", () => {
+  const risks = [
+    { risk_type: "stockout", explanation_key: "risk.stockout.out_of_stock" },
+    { risk_type: "stockout", explanation_key: "risk.stockout.imminent" },
+    { risk_type: "stockout", explanation_key: "risk.stockout.imminent" },
+    { risk_type: "stockout", explanation_key: "risk.stockout.below_reorder_point" },
+    { risk_type: "expiry", explanation_key: "risk.expiry.near" },
+    { risk_type: "data_quality", explanation_key: "risk.data_quality.missing_vat" },
+  ];
+
+  it("counts only stockout items, by severity", () => {
+    expect(stockoutSeverityCounts(risks)).toEqual({ out_of_stock: 1, imminent: 2, below_reorder_point: 1 });
+  });
+
+  it("ignores stockout items with an unknown severity key", () => {
+    expect(stockoutSeverityCounts([{ risk_type: "stockout", explanation_key: "risk.stockout.something_new" }])).toEqual({ out_of_stock: 0, imminent: 0, below_reorder_point: 0 });
+  });
+
+  it("trusts the split only when it adds up to the summary's stockout count", () => {
+    const counts = stockoutSeverityCounts(risks);
+    expect(severitySplitIsReliable(counts, 4)).toBe(true);
+    expect(severitySplitIsReliable(counts, 7)).toBe(false); // the list ignores the category filter
+    expect(severitySplitIsReliable(counts, undefined)).toBe(false);
+  });
+});

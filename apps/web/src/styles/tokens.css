@@ -1,0 +1,126 @@
+/*
+ * MMI design tokens (design.md §4). The only file that may contain colour literals (tokens-usage test).
+ * Brand manual colours: petroleo #016581, azul-medio #2F8198, turquesa #60ABB8, azul-noche #002028, blanco-hielo #F2F8F9.
+ * Contrast (computed): petroleo on white 6.6, azul-noche on blanco-hielo 15.8, azul-medio-texto on white 5.1.
+ * Azul medio is for icons, rules and large text only; turquesa never carries text or meaningful graphics on light surfaces.
+ * The dark appearance ("storeroom at night") re-maps the colour roles below; the brand colours themselves never change,
+ * and the logo stays on its white plate. Contrast of both themes is checked by tests/unit/ui/theme-contrast.test.ts.
+ */
+:root {
+  color-scheme: light;
+
+  /* Brand */
+  --mmi-petroleo: #016581;
+  --mmi-azul-medio: #2f8198;
+  --mmi-azul-medio-texto: #2a778d;
+  --mmi-turquesa: #60abb8;
+  --mmi-azul-noche: #002028;
+  --mmi-blanco-hielo: #f2f8f9;
+  --mmi-blanco: #fff;
+
+  /* Roles */
+  --mmi-bg: var(--mmi-blanco-hielo);
+  --mmi-surface: var(--mmi-blanco);
+  --mmi-surface-sunken: var(--mmi-blanco-hielo);
+  --mmi-text: var(--mmi-azul-noche);
+  --mmi-text-note: var(--mmi-azul-medio-texto);
+  --mmi-title: var(--mmi-petroleo);
+  --mmi-subtitle: var(--mmi-azul-medio);
+  --mmi-link: var(--mmi-petroleo);
+  --mmi-primary: var(--mmi-petroleo);
+  --mmi-primary-hover: #004e63;
+  --mmi-on-primary: var(--mmi-blanco);
+  --mmi-border: #d3e4e7;
+  --mmi-border-control: #6b8288;
+  --mmi-focus: var(--mmi-petroleo);
+  --mmi-selected: #e1eff3;
+  --mmi-hover: var(--mmi-blanco-hielo);
+  --mmi-overlay: rgb(0 32 40 / 45%);
+
+  /* Status tones: text on tint, always with icon and word */
+  --mmi-danger: #b3261e;
+  --mmi-danger-bg: #fbe9e7;
+  --mmi-warning: #8a4b00;
+  --mmi-warning-bg: #fff1d6;
+  --mmi-success: #0d7849;
+  --mmi-success-bg: #e3f4ea;
+  --mmi-info: var(--mmi-petroleo);
+  --mmi-info-bg: #e1eff3;
+  --mmi-neutral: #3d555b;
+  --mmi-neutral-bg: #e8eff0;
+
+  /* Typography */
+  --mmi-font-title: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --mmi-font-text: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mmi-text-xs: 0.78rem;
+  --mmi-text-sm: 0.875rem;
+  --mmi-text-base: 0.9375rem;
+  --mmi-text-md: 1.125rem;
+  --mmi-text-subtitle: 1.2rem; /* 19.2px bold: large text, so Azul medio (4.15:1) is allowed for subtitles */
+  --mmi-text-lg: 1.34rem;
+  --mmi-text-xl: 1.625rem;
+  --mmi-text-2xl: 1.94rem;
+  --mmi-text-3xl: 2.31rem;
+  --mmi-leading: 1.5;
+  --mmi-measure: 70ch;
+
+  /* Spacing, radius, elevation, motion */
+  --mmi-space-1: 0.25rem;
+  --mmi-space-2: 0.5rem;
+  --mmi-space-3: 0.75rem;
+  --mmi-space-4: 1rem;
+  --mmi-space-5: 1.5rem;
+  --mmi-space-6: 2rem;
+  --mmi-space-7: 3rem;
+  --mmi-radius-control: 8px;
+  --mmi-radius-panel: 12px;
+  --mmi-radius-pill: 999px;
+  --mmi-shadow-overlay: 0 12px 32px rgb(0 32 40 / 22%);
+  --mmi-motion-fast: 120ms;
+  --mmi-motion-base: 200ms;
+  --mmi-ruler-grow: 600ms;
+
+  /* Layout and targets */
+  --mmi-rail-width: 16rem;
+  --mmi-content-max: 90rem;
+  --mmi-target: 2.5rem;
+  --mmi-target-touch: 2.75rem;
+  --mmi-focus-ring: 2px solid var(--mmi-focus);
+  --mmi-focus-offset: 2px;
+}
+
+/* Dark appearance: Azul noche as the dark background (brand manual), Turquesa as the accent, status tones lightened. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --mmi-bg: var(--mmi-azul-noche);
+  --mmi-surface: #012b36;
+  --mmi-surface-sunken: #01333f;
+  --mmi-text: var(--mmi-blanco-hielo);
+  --mmi-text-note: #9cd3dd;
+  --mmi-title: var(--mmi-blanco);
+  --mmi-subtitle: var(--mmi-turquesa);
+  --mmi-link: #9cd3dd;
+  --mmi-primary: var(--mmi-turquesa);
+  --mmi-primary-hover: #7cc0cb;
+  --mmi-on-primary: var(--mmi-azul-noche);
+  --mmi-border: #1d4a57;
+  --mmi-border-control: #6f9ba7;
+  --mmi-focus: #9cd3dd;
+  --mmi-selected: #0b3f4c;
+  --mmi-hover: #0a3440;
+  --mmi-overlay: rgb(0 0 0 / 60%);
+
+  --mmi-danger: #ffb4ab;
+  --mmi-danger-bg: #3d1511;
+  --mmi-warning: #ffcf8a;
+  --mmi-warning-bg: #3a2500;
+  --mmi-success: #8fe0b6;
+  --mmi-success-bg: #0a3320;
+  --mmi-info: #9cd3dd;
+  --mmi-info-bg: #0a3a46;
+  --mmi-neutral: #cfe6ea;
+  --mmi-neutral-bg: #1c3a42;
+
+  --mmi-shadow-overlay: 0 12px 32px rgb(0 0 0 / 55%);
+}

@@ -1,0 +1,107 @@
+/* Base rules: typography, focus ring, reduced motion, print (design.md §4, §9, §11). Tokens only, no colour literals. */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--mmi-font-text);
+  font-size: var(--mmi-text-base);
+  line-height: var(--mmi-leading);
+  color: var(--mmi-text);
+  background: var(--mmi-bg);
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--mmi-font-title);
+  font-optical-sizing: auto;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+:focus-visible {
+  outline: var(--mmi-focus-ring);
+  outline-offset: var(--mmi-focus-offset);
+}
+
+/* Visible only to assistive technology */
+.mmi-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --mmi-target: var(--mmi-target-touch);
+  }
+
+  /* Small variants grow to the touch size; tick boxes get a 24 px minimum with room around them.
+     The :root prefix beats the later component rules at equal specificity. */
+  :root .mmi-button--small,
+  :root .mmi-segmented__option,
+  :root .mmi-chip,
+  :root .mmi-chip button,
+  :root .mmi-table__sort,
+  :root .mmi-link-button {
+    min-height: var(--mmi-target-touch);
+  }
+
+  :root .mmi-chip button {
+    min-width: var(--mmi-target-touch);
+    justify-content: center;
+  }
+
+  :root input[type="checkbox"],
+  :root input[type="radio"] {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .mmi-no-print,
+  .mmi-rail,
+  .mmi-drawer,
+  .mmi-topbar,
+  .mmi-skip-link {
+    display: none !important;
+  }
+
+  .mmi-sticky,
+  .mmi-table th,
+  .mmi-table__th,
+  .mmi-table__cell--sticky {
+    position: static !important;
+  }
+
+  .mmi-table-region,
+  .mmi-table-wrapper {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  body {
+    background: var(--mmi-blanco);
+  }
+}

@@ -3,6 +3,11 @@ import { useTranslation } from "react-i18next";
 import { api, DrillRequest, DrillResponse, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatNumber } from "../../i18n/formatters";
 import { figureColumnKey } from "./dashboardModel";
+import { ScreenState } from "../../ui/ScreenState";
+import { EmptyState } from "../../ui/EmptyState";
+import { DataTable, type Column } from "../../ui/DataTable";
+import { Button } from "../../ui/Button";
+import { Card } from "../../ui/Card";
 
 interface Props {
   request: DrillRequest;
@@ -39,48 +44,42 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
     return formatNumber(figure, request.kind === "coverage" ? 1 : 0);
   };
 
+  const columns: Column<DrillResponse["rows"][number]>[] = [
+    {
+      id: "variant",
+      header: t("common.variant"),
+      cell: (r) => `#${r.variant_id}${r.name ? ` · ${r.name}` : ""}${r.sku ? ` (${r.sku})` : ""}`,
+      sortValue: (r) => r.variant_id,
+    },
+    ...(request.kind !== "stockout_risk" && request.kind !== "expiry_risk"
+      ? [{ id: "figure", header: t(figureColumnKey(request.kind)), cell: (r: DrillResponse["rows"][number]) => shown(r.figure), align: "end" as const }]
+      : []),
+    {
+      id: "actions",
+      header: t("common.actions"),
+      cell: (r) => (
+        <Button variant="secondary" small onClick={() => onOpenProduct(r.variant_id)} aria-label={`${t("dashboard.risk_open")} #${r.variant_id}`}>
+          {t("dashboard.risk_open")}
+        </Button>
+      ),
+    },
+  ];
+
   return (
-    <aside className="mmi-card" aria-label={title} onKeyDown={(e) => e.key === "Escape" && onClose()}>
+    <Card as="aside" aria-label={title} onKeyDown={(e) => e.key === "Escape" && onClose()}>
       <h3>{title}</h3>
-      <button type="button" ref={closeRef} className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={onClose}>
+      <Button variant="secondary" small ref={closeRef} onClick={onClose}>
         {t("dashboard.drill.close")}
-      </button>
-      {error && <p role="alert">{error}</p>}
-      {!data && !error && <p>{t("dashboard.loading_state")}</p>}
-      {data && data.rows.length === 0 && <p>{t("dashboard.drill.empty")}</p>}
+      </Button>
+      {error && <ScreenState state="error" errorHint={error} />}
+      {!data && !error && <ScreenState state="loading" skeletonLines={4} />}
+      {data && data.rows.length === 0 && <EmptyState title={t("dashboard.drill.empty")} hint="" />}
       {data && data.rows.length > 0 && (
         <>
-          <div className="mmi-table-wrapper">
-            <table className="mmi-table" aria-label={title}>
-              <thead>
-                <tr>
-                  <th scope="col">{t("common.variant")}</th>
-                  {request.kind !== "stockout_risk" && request.kind !== "expiry_risk" && <th scope="col">{t(figureColumnKey(request.kind))}</th>}
-                  <th scope="col">{t("common.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows.map((r) => (
-                  <tr key={r.variant_id}>
-                    <td>
-                      #{r.variant_id}
-                      {r.name ? ` · ${r.name}` : ""}
-                      {r.sku ? ` (${r.sku})` : ""}
-                    </td>
-                    {request.kind !== "stockout_risk" && request.kind !== "expiry_risk" && <td>{shown(r.figure)}</td>}
-                    <td>
-                      <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={() => onOpenProduct(r.variant_id)} aria-label={`${t("dashboard.risk_open")} #${r.variant_id}`}>
-                        {t("dashboard.risk_open")}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable ariaLabel={title} columns={columns} rows={data.rows} rowKey={(r) => r.variant_id} hideToolbar />
           {data.truncated && <p className="mmi-muted">{t("dashboard.drill.truncated", { shown: data.rows.length, total: data.total })}</p>}
         </>
       )}
-    </aside>
+    </Card>
   );
 };

@@ -1,0 +1,388 @@
+/* Application shell: skip link, rail, top bar, content, quick-jump palette (design.md §5). Tokens only. */
+
+.mmi-skip-link {
+  position: absolute;
+  left: var(--mmi-space-3);
+  top: -4rem;
+  z-index: 100;
+  padding: var(--mmi-space-2) var(--mmi-space-4);
+  background: var(--mmi-primary);
+  color: var(--mmi-on-primary);
+  border-radius: var(--mmi-radius-control);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mmi-skip-link:focus {
+  top: var(--mmi-space-3);
+}
+
+.mmi-app {
+  min-height: 100vh;
+  display: block;
+}
+
+.mmi-rail {
+  display: none; /* below 1024 px the navigation lives in the drawer */
+  background: var(--mmi-surface);
+  flex-direction: column;
+  gap: var(--mmi-space-3);
+}
+
+.mmi-logo-plate {
+  padding: 1.25rem; /* clear space: at least the height of the "M" of the wordmark on every side */
+  background: var(--mmi-blanco);
+}
+
+.mmi-logo-plate img {
+  display: block;
+  height: 2.25rem;
+  width: auto;
+  max-width: 100%;
+}
+
+.mmi-nav {
+  padding: 0 var(--mmi-space-3) var(--mmi-space-3);
+}
+
+.mmi-nav__group {
+  min-width: 0;
+  margin-bottom: var(--mmi-space-4);
+}
+
+.mmi-nav__group-title {
+  margin: 0 0 var(--mmi-space-1) var(--mmi-space-3);
+  font-family: var(--mmi-font-text);
+  font-size: var(--mmi-text-sm);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--mmi-text-note);
+}
+
+.mmi-nav__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.mmi-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--mmi-space-3);
+  min-height: var(--mmi-target);
+  padding: 0 var(--mmi-space-3);
+  border-radius: var(--mmi-radius-control);
+  color: var(--mmi-text);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.mmi-nav__link:hover {
+  background: var(--mmi-hover);
+}
+
+.mmi-nav__link[aria-current="page"] {
+  background: var(--mmi-primary);
+  color: var(--mmi-on-primary);
+  font-weight: 600;
+}
+
+
+.mmi-main-col {
+  min-width: 0;
+}
+
+.mmi-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--mmi-space-3);
+  padding: var(--mmi-space-3) var(--mmi-space-5);
+}
+
+.mmi-user {
+  display: flex;
+  align-items: center;
+  gap: var(--mmi-space-2);
+  color: var(--mmi-text);
+}
+
+.mmi-user__roles {
+  font-size: var(--mmi-text-sm);
+  color: var(--mmi-text-note);
+}
+
+.mmi-content {
+  max-width: var(--mmi-content-max);
+  padding: var(--mmi-space-3) var(--mmi-space-5) var(--mmi-space-7);
+}
+
+.mmi-content:focus {
+  outline: none;
+}
+
+.mmi-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mmi-space-3);
+  margin-bottom: var(--mmi-space-5);
+  padding: var(--mmi-space-4);
+  border-radius: var(--mmi-radius-panel);
+  background: var(--mmi-warning-bg);
+  color: var(--mmi-warning);
+}
+
+.mmi-banner p {
+  margin: 0;
+}
+
+.mmi-banner__title {
+  font-weight: 700;
+}
+
+/* Quick-jump */
+.mmi-palette-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mmi-space-2);
+  min-height: var(--mmi-target);
+  padding: 0 var(--mmi-space-3);
+  border: 1px solid var(--mmi-border-control);
+  border-radius: var(--mmi-radius-control);
+  background: var(--mmi-surface);
+  color: var(--mmi-text);
+  font-family: var(--mmi-font-text);
+  font-size: var(--mmi-text-base);
+  cursor: pointer;
+}
+
+.mmi-palette-trigger kbd {
+  padding: 0 var(--mmi-space-2);
+  border: 1px solid var(--mmi-border);
+  border-radius: 6px;
+  font-family: var(--mmi-font-text);
+  font-size: var(--mmi-text-xs);
+  color: var(--mmi-text-note);
+}
+
+.mmi-palette {
+  width: min(35rem, calc(100vw - 2rem));
+  margin: 12vh auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mmi-radius-panel);
+  background: var(--mmi-surface);
+  color: var(--mmi-text);
+  box-shadow: var(--mmi-shadow-overlay);
+}
+
+.mmi-palette::backdrop {
+  background: var(--mmi-overlay);
+}
+
+.mmi-palette__box {
+  display: grid;
+}
+
+.mmi-palette__input {
+  padding: var(--mmi-space-4);
+  border: 0;
+  border-bottom: 1px solid var(--mmi-border);
+  border-radius: var(--mmi-radius-panel) var(--mmi-radius-panel) 0 0;
+  font-size: var(--mmi-text-md);
+  background: var(--mmi-surface);
+  color: var(--mmi-text);
+}
+
+.mmi-palette__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--mmi-space-2);
+  max-height: 20rem;
+  overflow: auto;
+}
+
+.mmi-palette__option {
+  display: flex;
+  align-items: center;
+  gap: var(--mmi-space-3);
+  min-height: var(--mmi-target);
+  padding: 0 var(--mmi-space-3);
+  border-radius: var(--mmi-radius-control);
+  cursor: pointer;
+}
+
+.mmi-palette__option--active {
+  background: var(--mmi-selected);
+}
+
+.mmi-palette__group {
+  margin-left: auto;
+  font-size: var(--mmi-text-sm);
+  color: var(--mmi-text-note);
+}
+
+.mmi-palette__empty {
+  margin: 0;
+  padding: var(--mmi-space-4);
+  color: var(--mmi-text-note);
+}
+
+/* Narrow layout: menu button, isotipo and the drawer */
+.mmi-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--mmi-target);
+  height: var(--mmi-target);
+  border: 1px solid var(--mmi-border-control);
+  border-radius: var(--mmi-radius-control);
+  background: var(--mmi-surface);
+  color: var(--mmi-text);
+  cursor: pointer;
+}
+
+.mmi-isotipo {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mmi-isotipo img {
+  display: block;
+  height: 2.25rem;
+  width: auto;
+}
+
+.mmi-topbar__spacer {
+  flex: 1;
+}
+
+.mmi-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  margin: 0;
+  width: min(20rem, 88vw);
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  padding: 0 0 var(--mmi-space-4);
+  border: 0;
+  background: var(--mmi-surface);
+  color: var(--mmi-text);
+  overflow-y: auto;
+  box-shadow: var(--mmi-shadow-overlay);
+}
+
+.mmi-drawer::backdrop {
+  background: var(--mmi-overlay);
+}
+
+.mmi-drawer__close {
+  position: absolute;
+  top: var(--mmi-space-2);
+  right: var(--mmi-space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--mmi-target);
+  height: var(--mmi-target);
+  border: 0;
+  border-radius: var(--mmi-radius-control);
+  background: transparent;
+  color: var(--mmi-text);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mmi-drawer[open] {
+    animation: mmi-drawer-in var(--mmi-motion-base) ease-out;
+  }
+}
+
+@keyframes mmi-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+/* Wide layout: rail on the left, content beside it */
+@media (min-width: 64rem) {
+  .mmi-app {
+    display: grid;
+    grid-template-columns: var(--mmi-rail-width) minmax(0, 1fr);
+  }
+
+  .mmi-rail {
+    display: flex;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid var(--mmi-border);
+  }
+
+  .mmi-menu-button,
+  .mmi-isotipo,
+  .mmi-topbar__spacer {
+    display: none;
+  }
+
+  .mmi-topbar {
+    justify-content: flex-end;
+  }
+
+}
+
+/* Very narrow content areas keep their padding modest */
+@media (max-width: 47.99rem) {
+  .mmi-content {
+    padding-inline: var(--mmi-space-4);
+  }
+}
+
+/* Sign-in page: shown whenever there is no session */
+.mmi-login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--mmi-space-5);
+  background: var(--mmi-surface-sunken, var(--mmi-surface));
+}
+
+.mmi-login__panel {
+  width: min(100%, 34rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mmi-space-4);
+}
+
+.mmi-login__logo {
+  max-width: 14rem;
+  height: auto;
+  align-self: flex-start;
+}
+
+.mmi-login__roles {
+  display: grid;
+  gap: var(--mmi-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mmi-login__role {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--mmi-space-2);
+  padding: var(--mmi-space-3);
+  border: 1px solid var(--mmi-border);
+  border-radius: var(--mmi-radius-control);
+}
+
+.mmi-login__role p {
+  margin: 0;
+}

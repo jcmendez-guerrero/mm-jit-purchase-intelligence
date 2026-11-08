@@ -2,8 +2,19 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, CostRecord, CostWriteRecord, SupplierSummary, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate, formatPercent } from "../../i18n/formatters";
-import { Field } from "../suppliers/Field";
+import { FormField } from "../../ui/FormField";
 import { canOverride, canRelease, canRequestUpdate, flagKey, parseAmount, parseOpening } from "./costsModel";
+import { ScreenState } from "../../ui/ScreenState";
+import { EmptyState } from "../../ui/EmptyState";
+import { StatusBadge } from "../../ui/StatusBadge";
+import { useActionNotice } from "../../ui/NoticeProvider";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { Card } from "../../ui/Card";
+import { Button } from "../../ui/Button";
+import { useFieldErrors } from "../../ui/useFieldErrors";
+import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
+import { DataTable } from "../../ui/DataTable";
+import { PageActions } from "../../ui/PageActions";
 
 interface Props {
   userRoles: string[];
@@ -15,8 +26,12 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
   const [costs, setCosts] = useState<CostRecord[]>([]);
   const [writes, setWrites] = useState<CostWriteRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const fe = useFieldErrors();
+  const [releasing, setReleasing] = useState<CostWriteRecord | null>(null);
+  const [overriding, setOverriding] = useState<CostWriteRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useActionNotice();
   const [fixing, setFixing] = useState<Record<string, string>>({});
   const [overrideValue, setOverrideValue] = useState<Record<string, string>>({});
   const [overrideReason, setOverrideReason] = useState<Record<string, string>>({});
@@ -28,11 +43,13 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadFailed(false);
       const [costList, writeList] = await Promise.all([api.getCosts(), api.getCostWrites()]);
       setCosts(costList);
       setWrites(writeList);
     } catch (err) {
       fail(err);
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -50,7 +67,9 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
     }
     const p = parseOpening(opening.product, opening.variant, opening.amount);
     if ("invalid" in p) {
-      setError(t("costs.opening.invalid", { field: t(`costs.opening.field.${p.invalid}`) }));
+      const message = t("costs.opening.invalid", { field: t(`costs.opening.field.${p.invalid}`) });
+      setError(message);
+      fe.flag({ [`op-${p.invalid}`]: message });
       return null;
     }
     return p;
@@ -105,6 +124,15 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
     );
   };
 
+  /** Checks the value first, so the confirmation never opens for input the screen would refuse. */
+  const askOverride = (w: CostWriteRecord) => {
+    if (parseAmount(overrideValue[w.id] ?? "") === null) {
+      fail(new ApiError(422, "negative_value"));
+      return;
+    }
+    setOverriding(w);
+  };
+
   const override = (w: CostWriteRecord) => {
     const value = parseAmount(overrideValue[w.id] ?? "");
     if (value === null) {
@@ -116,49 +144,85 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
 
   const pct = (v: string | null) => (v === null ? t("costs.margin_unavailable") : formatPercent(v, 1));
 
+  const dirty = opening.product.trim() !== "" || opening.variant.trim() !== "" || opening.amount.trim() !== "" || Object.values(overrideValue).some((v) => v.trim() !== "") || Object.values(overrideReason).some((v) => v.trim() !== "") || Object.values(fixing).some((v) => v.trim() !== "");
+
   return (
     <section aria-labelledby="costs-title">
-      <div className="mmi-card">
+      <UnsavedChangesPrompt dirty={dirty} />
+      <ConfirmDialog
+        open={overriding !== null}
+        title={t("costs.confirm.override.title")}
+        objectLabel={
+          overriding
+            ? t("costs.confirm.override.object", {
+                product: t("costs.request_label", { product: overriding.product_id }),
+                supplier: suppliers.find((s) => s.id === overriding.supplier_id)?.name ?? overriding.supplier_id,
+                value: formatCurrencyEUR(parseAmount(overrideValue[overriding.id] ?? "") ?? "0"),
+              })
+            : ""
+        }
+        effect={t("costs.confirm.override.effect")}
+        confirmLabel={t("costs.override_save")}
+        onCancel={() => setOverriding(null)}
+        onConfirm={() => {
+          const w = overriding;
+          setOverriding(null);
+          if (w) void override(w);
+        }}
+      />
+      <ConfirmDialog
+        open={releasing !== null}
+        title={t("costs.confirm.release.title")}
+        objectLabel={
+          releasing
+            ? t("costs.confirm.release.object", {
+                product: t("costs.request_label", { product: releasing.product_id }),
+                supplier: suppliers.find((s) => s.id === releasing.supplier_id)?.name ?? releasing.supplier_id,
+                value: formatCurrencyEUR(releasing.proposed_value),
+              })
+            : ""
+        }
+        effect={t("costs.confirm.release.effect")}
+        confirmLabel={t("costs.send_write")}
+        onCancel={() => setReleasing(null)}
+        onConfirm={() => {
+          const w = releasing;
+          setReleasing(null);
+          if (w) void release(w);
+        }}
+      />
+      <Card as="div">
         <h2 id="costs-title">{t("costs.title")}</h2>
         <p className="mmi-muted">{t("costs.subtitle")}</p>
-        {loading && <p>{t("common.loading")}</p>}
-        {error && <p role="alert">{error}</p>}
+        {loading && <ScreenState state="loading" skeletonShape="table" skeletonLines={3} />}
+        {error && !loadFailed && <p role="alert">{error}</p>}
+        {loadFailed && <ScreenState state="error" errorHint={error ?? ""} onRetry={() => void load()} />}
         {notice && <p role="status">{notice}</p>}
 
         <h3>{t("costs.registered")}</h3>
-        {!loading && costs.length === 0 && <p>{t("costs.none")}</p>}
+        {!loading && costs.length === 0 && <EmptyState title={t("costs.none")} hint="" />}
         {costs.length > 0 && (
-          <table aria-label={t("costs.registered")} className="mmi-table">
-            <thead>
-              <tr>
-                <th>{t("common.product")}</th>
-                <th>{t("common.supplier")}</th>
-                <th>{t("common.cost")}</th>
-                <th>{t("costs.source")}</th>
-                <th>{t("costs.verified_at")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {costs.map((c) => (
-                <tr key={c.id}>
-                  <td>#{c.product_id}</td>
-                  <td>{c.supplier_id}</td>
-                  <td>{formatCurrencyEUR(c.cost_with_recargo)}</td>
-                  <td>{c.source}</td>
-                  <td>{formatDate(c.verified_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            ariaLabel={t("costs.registered")}
+            rows={costs}
+            rowKey={(c) => c.id}
+            columns={[
+              { id: "product", header: t("common.product"), cell: (c) => `#${c.product_id}`, sortValue: (c) => c.product_id },
+              { id: "supplier", header: t("common.supplier"), cell: (c) => c.supplier_id, sortValue: (c) => c.supplier_id },
+              { id: "cost", header: t("common.cost"), cell: (c) => formatCurrencyEUR(c.cost_with_recargo), sortValue: (c) => Number(c.cost_with_recargo), align: "end" },
+              { id: "source", header: t("costs.source"), cell: (c) => c.source, sortValue: (c) => c.source },
+              { id: "verified", header: t("costs.verified_at"), cell: (c) => formatDate(c.verified_at), sortValue: (c) => c.verified_at },
+            ]}
+          />
         )}
-      </div>
+      </Card>
 
       {canRequestUpdate(userRoles) && (
-        <div className="mmi-card">
+        <Card as="div">
           <h3>{t("costs.opening.title")}</h3>
           <p className="mmi-muted">{t("costs.opening.help")}</p>
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "end" }}>
-            <div style={{ display: "flex", flexDirection: "column" }}>
+          <div className="mmi-cluster">
+            <div className="mmi-stack">
               <label htmlFor="op-supplier">{t("costs.opening.supplier")}</label>
               <select id="op-supplier" value={opening.supplier} onChange={(e) => setOpening({ ...opening, supplier: e.target.value })}>
                 <option value="">—</option>
@@ -169,39 +233,41 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
                 ))}
               </select>
             </div>
-            <Field id="op-product" label={t("costs.opening.product")} value={opening.product} onChange={(v) => setOpening({ ...opening, product: v })} inputMode="numeric" />
-            <Field id="op-variant" label={t("costs.opening.variant")} value={opening.variant} onChange={(v) => setOpening({ ...opening, variant: v })} inputMode="numeric" />
-            <Field id="op-amount" label={t("costs.opening.amount")} value={opening.amount} onChange={(v) => setOpening({ ...opening, amount: v })} inputMode="decimal" />
+            <FormField id="op-product" label={t("costs.opening.product")} value={opening.product} error={fe.errors["op-product"]} onChange={(v) => { setOpening({ ...opening, product: v }); fe.clear("op-product"); }} inputMode="numeric" />
+            <FormField id="op-variant" label={t("costs.opening.variant")} value={opening.variant} error={fe.errors["op-variant"]} onChange={(v) => { setOpening({ ...opening, variant: v }); fe.clear("op-variant"); }} inputMode="numeric" />
+            <FormField id="op-amount" label={t("costs.opening.amount")} value={opening.amount} error={fe.errors["op-amount"]} onChange={(v) => { setOpening({ ...opening, amount: v }); fe.clear("op-amount"); }} inputMode="decimal" />
             <label>
               <input type="checkbox" checked={opening.recargo} onChange={(e) => setOpening({ ...opening, recargo: e.target.checked })} /> {t("costs.opening.recargo")}
             </label>
           </div>
-          <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void saveOpening()}>
-            {t("costs.opening.save")}
-          </button>{" "}
-          <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void requestUpdate()}>
+          <PageActions>
+            <Button variant="secondary" onClick={() => void saveOpening()}>
+              {t("costs.opening.save")}
+            </Button>
+          </PageActions>
+          <Button onClick={() => void requestUpdate()}>
             {t("costs.opening.request")}
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
 
-      <div className="mmi-card">
+      <Card as="div">
         <h3>{t("costs.pending_writes")}</h3>
         <p className="mmi-muted">{t("costs.median_explained")}</p>
-        {!loading && writes.length === 0 && <p>{t("costs.no_pending")}</p>}
+        {!loading && writes.length === 0 && <EmptyState title={t("costs.no_pending")} hint="" />}
         {writes.map((w) => (
-          <article key={w.id} aria-label={t("costs.request_label", { product: w.product_id })} className="mmi-card">
+          <Card as="article" key={w.id} aria-label={t("costs.request_label", { product: w.product_id })}>
             <h4>{t("costs.request_label", { product: w.product_id })}</h4>
             <p>
               {t("costs.value_sent")}: <strong>{formatCurrencyEUR(w.proposed_value)}</strong>
               {w.median_cost !== null && w.override && <span> · {t("costs.median_was", { value: formatCurrencyEUR(w.median_cost) })}</span>}
               {w.previous_siweb_value !== null && <span> · {t("costs.erp_current", { value: formatCurrencyEUR(w.previous_siweb_value) })}</span>}
             </p>
-            <span className="mmi-badge">{t(`costs.status.${w.status}`, { defaultValue: w.status })}</span>
+            <StatusBadge domain="cost_write" code={w.status} />
             {w.last_error && <p role="note">{w.last_error}</p>}
 
             <h5>{t("costs.lots_behind")}</h5>
-            <table aria-label={t("costs.lots_behind")} className="mmi-table">
+            <div className="mmi-table-wrapper"><table aria-label={t("costs.lots_behind")} className="mmi-table">
               <thead>
                 <tr>
                   <th>{t("costs.lot")}</th>
@@ -227,16 +293,16 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
                             value={fixing[key] ?? ""}
                             onChange={(ev) => setFixing({ ...fixing, [key]: ev.target.value })}
                           />
-                          <button type="button" className="mmi-btn mmi-btn-sm" onClick={() => void correct(w, l.variant_id, l.lot)}>
+                          <Button variant="secondary" small onClick={() => void correct(w, l.variant_id, l.lot)}>
                             {t("costs.correct_lot")}
-                          </button>
+                          </Button>
                         </td>
                       )}
                     </tr>
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
 
             <h5>{t("costs.margin_panel")}</h5>
             <ul>
@@ -274,20 +340,20 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
                   {t("costs.override_reason")}
                   <input type="text" value={overrideReason[w.id] ?? ""} onChange={(ev) => setOverrideReason({ ...overrideReason, [w.id]: ev.target.value })} />
                 </label>
-                <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void override(w)}>
+                <Button variant="secondary" onClick={() => askOverride(w)}>
                   {t("costs.override_save")}
-                </button>
+                </Button>
               </fieldset>
             )}
 
             {canRelease(userRoles, userId, w) && (
-              <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void release(w)}>
+              <Button onClick={() => setReleasing(w)}>
                 {t("costs.send_write")}
-              </button>
+              </Button>
             )}
-          </article>
+          </Card>
         ))}
-      </div>
+      </Card>
     </section>
   );
 };

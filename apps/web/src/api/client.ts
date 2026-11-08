@@ -480,6 +480,8 @@ export function errorMessage(err: unknown, fallback: string): string {
   if (err instanceof ApiError) {
     const key = `errors.${err.code}`;
     if (i18n.exists(key)) return i18n.t(key);
+    // A refusal for lack of permission always gets the no-permission sentence, whatever code the server used.
+    if (err.status === 403) return i18n.t("errors.auth_forbidden_role");
   }
   return fallback;
 }
@@ -685,6 +687,13 @@ export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
   warnings?: string[];
 }
 
+let unauthorizedListener: (() => void) | null = null;
+
+/** Registers a callback for HTTP 401 answers from any call except the session probe and sign-in (FR-020). */
+export function onUnauthorized(listener: (() => void) | null): void {
+  unauthorizedListener = listener;
+}
+
 export class ApiClient {
   private baseUrl = "/api";
 
@@ -707,6 +716,8 @@ export class ApiClient {
       credentials: "same-origin",
     });
 
+    if (response.status === 401 && path !== "/me" && !path.startsWith("/auth/")) unauthorizedListener?.();
+
     if (!response.ok) {
       const err = await response.json().catch(() => ({}) as { detail?: unknown });
       const detail = (err as { detail?: unknown }).detail;
@@ -728,6 +739,10 @@ export class ApiClient {
       setCsrfToken(data.csrf_token);
     }
     return data;
+  }
+
+  async getAuthConfig(): Promise<{ mode: "dev" | "entra" | "none" }> {
+    return this.request("/auth/config");
   }
 
   async devLogin(userId: string, roles: string[]): Promise<UserSession> {

@@ -33,4 +33,4 @@
 
 - Validated in one pass; no clarification markers were needed. Reasonable defaults are recorded under Assumptions (WCAG 2.2 AA, 768 px minimum width, browser-local preferences, incremental rollout).
 - The gap inventory table describes the current app in user-visible terms only.
-- Items to confirm during `/speckit-clarify` if desired: whether the 2-second and 20 % targets (SC-003, SC-006) match team expectations, and whether dark appearance (P3) should stay in this release.
+- Items to confirm during `/speckit-clarify` if desired: whether the 2-second target (SC-005) matches team expectations, and whether dark appearance (P3) should stay in this release.

@@ -20,10 +20,16 @@ const DETAIL = {
   sensitivity: [{ constraint_key: "budget", delta: "100.0000", cost_impact: "-20.0000" }],
 };
 
+/** Runs axe in the light and then the dark appearance (the app follows the emulated device preference). */
 async function check(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  expect(bad.flatMap((v) => v.nodes.map((n) => `${v.id}: ${n.target.join(" ")}`))).toEqual([]);
+  for (const scheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute("data-theme"))).toBe(scheme);
+    await page.waitForTimeout(300); // let colour transitions finish before measuring contrast
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+    expect(bad.flatMap((v) => v.nodes.map((n) => `${scheme} ${v.id}: ${n.target.join(" ")} ${JSON.stringify(n.any[0]?.data ?? {})}`))).toEqual([]);
+  }
 }
 
 test("scenarios", async ({ page }) => {
@@ -33,7 +39,7 @@ test("scenarios", async ({ page }) => {
   await page.route("**/api/scenarios", (r) => r.fulfill(json({ scenarios: [{ id: "sc1", name: "Sin proveedor A", status: "ready", created_by: "buyer-1", created_at: recent, delta_total: "100.0000" }] })));
   await page.route("**/api/scenarios/sc1", (r) => r.fulfill(json(DETAIL)));
   await page.goto("/");
-  await page.click("button:has-text('Escenarios')");
+  await page.getByRole("navigation").getByRole("link", { name: "Escenarios", exact: true }).click();
   await page.getByRole("button", { name: "Abrir Sin proveedor A" }).click();
   await page.getByText("Qué cambia y por qué").waitFor();
   await check(page);
@@ -45,7 +51,7 @@ test("predictive data import", async ({ page }) => {
   await page.route("**/api/imports", (r) => r.fulfill(json({ datasets: [] })));
   await page.route("**/api/imports/jobs", (r) => r.fulfill(json({ jobs: [], background_over_rows: 10000 })));
   await page.goto("/");
-  await page.click("button:has-text('Datos predictivos')");
+  await page.getByRole("navigation").getByRole("link", { name: "Datos predictivos", exact: true }).click();
   await page.getByRole("link", { name: "Plantilla CSV" }).waitFor();
   await check(page);
 });
@@ -61,7 +67,7 @@ test("administration", async ({ page }) => {
     cost: { budget_eur: 120, estimate_eur: 0, guardrails: { min_replicas: 0, max_replicas: 1, job_parallelism: 1 } },
   })));
   await page.goto("/");
-  await page.click("button:has-text('Administración')");
+  await page.getByRole("navigation").getByRole("link", { name: "Administración", exact: true }).click();
   await page.getByText("Estado del sistema").waitFor();
   await check(page);
 });

@@ -39,7 +39,7 @@ async function backend(page: Page, roles: string[]) {
 
 async function open(page: Page) {
   await page.goto("/");
-  await page.click("button:has-text('Datos predictivos')");
+  await page.getByRole("navigation").getByRole("link", { name: "Datos predictivos", exact: true }).click();
 }
 
 test.describe("Predictive data import (T105)", () => {
@@ -60,9 +60,11 @@ test.describe("Predictive data import (T105)", () => {
     await expect(page.getByText(/Diferencia de coste simulado/)).toBeVisible();
     await expect(page.getByText(/no coinciden con días que ya tengan ventas reales del ERP/)).toBeVisible();
     await page.click("button:has-text('Activar conjunto')");
+    await page.getByRole("dialog").getByRole("button", { name: "Activar conjunto" }).click();
     await expect(page.getByText(/Conjunto activado/)).toBeVisible();
     await expect(page.getByRole("cell", { name: "Activo" })).toBeVisible();
     await page.click("button:has-text('Volver a la versión anterior')");
+    await page.getByRole("dialog").getByRole("button", { name: "Volver a la versión anterior" }).click();
     await expect(page.getByText(/Versión anterior restaurada/)).toBeVisible();
     expect(state.rolledBack).toBe(1);
   });

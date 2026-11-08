@@ -42,7 +42,7 @@ test("scenarios", async ({ page }) => {
   await page.route("**/api/scenarios", (r) => r.fulfill(json({ scenarios: [{ id: "sc1", name: "Sin proveedor A", status: "ready", created_by: "buyer-1", created_at: recent, delta_total: "100.0000" }] })));
   await page.route("**/api/scenarios/sc1", (r) => r.fulfill(json(DETAIL)));
   await page.goto("/");
-  await page.click("button:has-text('Escenarios')");
+  await page.getByRole("navigation").getByRole("link", { name: "Escenarios", exact: true }).click();
   await page.getByRole("button", { name: "Abrir Sin proveedor A" }).click();
   await page.getByText("Qué cambia y por qué").waitFor();
   await shot(page, "escenarios");
@@ -53,7 +53,7 @@ test("imports", async ({ page }) => {
   await page.route("**/api/imports", (r) => r.fulfill(json({ datasets: [] })));
   await page.route("**/api/imports/jobs", (r) => r.fulfill(json({ jobs: [], background_over_rows: 10000 })));
   await page.goto("/");
-  await page.click("button:has-text('Datos predictivos')");
+  await page.getByRole("navigation").getByRole("link", { name: "Datos predictivos", exact: true }).click();
   await page.getByRole("link", { name: "Plantilla CSV" }).waitFor();
   await shot(page, "datos-predictivos");
 });
@@ -70,7 +70,7 @@ test("admin", async ({ page }) => {
     cost: { budget_eur: 120, estimate_eur: 0, guardrails: { min_replicas: 0, max_replicas: 1, job_parallelism: 1 } },
   })));
   await page.goto("/");
-  await page.click("button:has-text('Administración')");
+  await page.getByRole("navigation").getByRole("link", { name: "Administración", exact: true }).click();
   await page.getByText("Estado del sistema").waitFor();
   await shot(page, "administracion");
 });

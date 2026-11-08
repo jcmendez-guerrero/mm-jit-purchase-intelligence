@@ -3,6 +3,11 @@ import { useTranslation } from "react-i18next";
 import { api, errorMessage, ForecastBasis, SegmentHistoryRow, VariantDetail } from "../../api/client";
 import { formatDate, formatNumber } from "../../i18n/formatters";
 import { CategoryHistory } from "../policies/CategoryHistory";
+import { ScreenState } from "../../ui/ScreenState";
+import { StatusBadge } from "../../ui/StatusBadge";
+import { Card } from "../../ui/Card";
+import { Button } from "../../ui/Button";
+import { DataTable } from "../../ui/DataTable";
 
 interface Props {
   variantId: number;
@@ -54,16 +59,16 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
   }, [variantId]);
 
   return (
-    <aside className="mmi-card" aria-label={t("dashboard.detail.title", { id: variantId })}>
+    <Card as="aside" aria-label={t("dashboard.detail.title", { id: variantId })}>
       <h3>
         {t("dashboard.detail.title", { id: variantId })}
         {d ? ` · ${d.variant.sku} · ${d.variant.name}` : ""}
       </h3>
-      <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={onClose}>
+      <Button variant="secondary" small onClick={onClose}>
         {t("dashboard.detail.close")}
-      </button>
-      {error && <p role="alert">{error}</p>}
-      {!d && !error && <p>{t("common.loading")}</p>}
+      </Button>
+      {error && <ScreenState state="error" errorHint={error} />}
+      {!d && !error && <ScreenState state="loading" skeletonLines={4} />}
       {d && (
         <>
           {d.stock && <p>{t("dashboard.detail.stock", { on_hand: d.stock.on_hand, available: d.stock.available, reserved: d.stock.reserved })}</p>}
@@ -71,7 +76,7 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
             <>
               <p>{t("dashboard.detail.segment", { abc: d.segment.abc, xyz: d.segment.xyz, pattern: d.segment.pattern })}</p>
               <p>{d.segment.forecast_eligible ? t("dashboard.detail.eligible") : t("dashboard.detail.not_eligible", { reasons: d.segment.reasons.join(", ") })}</p>
-              {estimateBased && <p role="note" className="mmi-badge mmi-badge-warning">{t("dashboard.detail.estimate_based")}</p>}
+              {estimateBased && <p role="note"><StatusBadge domain="tag" code="estimate" label={t("dashboard.detail.estimate_based")} /></p>}
             </>
           )}
           <h4>{t("dashboard.detail.category_history")}</h4>
@@ -84,24 +89,17 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
           ) : (
             <>
               <p className="mmi-muted">{t("dashboard.detail.forecast_note")}</p>
-              <table aria-label={t("dashboard.detail.forecast")} className="mmi-table">
-                <thead>
-                  <tr>
-                    <th>{t("dashboard.detail.forecast_col.horizon")}</th>
-                    <th>{t("dashboard.detail.forecast_col.mean")}</th>
-                    <th>{t("dashboard.detail.forecast_col.upper")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(basis.horizons ?? []).map((h) => (
-                    <tr key={h.days}>
-                      <td>{h.days}</td>
-                      <td>{formatNumber(h.mean, 1)}</td>
-                      <td>{formatNumber(h.upper, 1)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <DataTable
+                ariaLabel={t("dashboard.detail.forecast")}
+                rows={basis.horizons ?? []}
+                rowKey={(h) => h.days}
+                hideToolbar
+                columns={[
+                  { id: "horizon", header: t("dashboard.detail.forecast_col.horizon"), cell: (h) => h.days, sortValue: (h) => h.days, align: "end" },
+                  { id: "mean", header: t("dashboard.detail.forecast_col.mean"), cell: (h) => formatNumber(h.mean, 1), sortValue: (h) => h.mean, align: "end" },
+                  { id: "upper", header: t("dashboard.detail.forecast_col.upper"), cell: (h) => formatNumber(h.upper, 1), sortValue: (h) => h.upper, align: "end" },
+                ]}
+              />
             </>
           )}
           <h4>{t("dashboard.detail.risks")}</h4>
@@ -120,28 +118,20 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
           {d.demand.length === 0 ? (
             <p>{t("dashboard.detail.no_demand")}</p>
           ) : (
-            <table aria-label={t("dashboard.detail.demand")} className="mmi-table">
-              <thead>
-                <tr>
-                  <th>{t("dashboard.chart.col.day")}</th>
-                  <th>{t("dashboard.chart.col.units")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {d.demand.slice(-30).map((r) => (
-                  <tr key={`${r.day}-${r.warehouse_id}`}>
-                    <td>{formatDate(r.day)}</td>
-                    <td>{r.qty}</td>
-                    <td>{r.censored ? t("dashboard.detail.censored") : ""}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              ariaLabel={t("dashboard.detail.demand")}
+              rows={d.demand.slice(-30)}
+              rowKey={(r) => `${r.day}-${r.warehouse_id}`}
+              columns={[
+                { id: "day", header: t("dashboard.chart.col.day"), cell: (r) => formatDate(r.day), sortValue: (r) => r.day },
+                { id: "units", header: t("dashboard.chart.col.units"), cell: (r) => r.qty, sortValue: (r) => r.qty, align: "end" },
+                { id: "censored", header: "", cell: (r) => (r.censored ? t("dashboard.detail.censored") : "") },
+              ]}
+            />
           )}
           <p className="mmi-muted">{t("dashboard.detail.data_used", { reconciled: d.history_reconciled === false ? t("dashboard.detail.unreconciled") : "" })}</p>
         </>
       )}
-    </aside>
+    </Card>
   );
 };

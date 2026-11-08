@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError, SeedDataset, SeedJob, SeedUpload } from "../../src/api/client";
 import { ImportScreen } from "../../src/features/imports/ImportScreen";
 import "../../src/i18n";
+import { confirmAction } from "./confirm";
 
 const upload = (over: Partial<SeedUpload> = {}): SeedUpload => ({
   id: "d1", version: 1, format: "csv", headers: ["ID de variante Siweb", "Fecha", "Cantidad", "Tipo de dato", "Origen", "Sintético/Real", "Notas"], row_count: 5,
@@ -68,6 +69,7 @@ describe("ImportScreen", () => {
     expect(screen.getByText(/Con este conjunto: 4 variantes previsibles, coste simulado 110,50/)).toBeTruthy();
     expect(screen.getByText(/Diferencia de coste simulado: -9,50/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Activar conjunto" }));
+    confirmAction();
     await waitFor(() => expect(activate).toHaveBeenCalledWith("d1", false));
     expect((await screen.findByRole("status")).textContent).toContain("Conjunto activado");
   });
@@ -93,10 +95,42 @@ describe("ImportScreen", () => {
     expect(await screen.findByText(/Este archivo ya se subió antes/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Validar" }));
     fireEvent.click(await screen.findByRole("button", { name: "Activar conjunto" }));
+    confirmAction();
     expect((await screen.findByRole("alert")).textContent).toContain("archivo");
     fireEvent.click(screen.getByLabelText(/archivo repetido/));
     fireEvent.click(screen.getByRole("button", { name: "Activar conjunto" }));
+    confirmAction();
     await waitFor(() => expect(activate).toHaveBeenLastCalledWith("d1", true));
+  });
+
+  it("lists each required field that has no column, one line each, and marks the mapped required columns", async () => {
+    vi.spyOn(api, "uploadSeed").mockResolvedValue(upload());
+    render(<ImportScreen userRoles={["admin"]} />);
+    await pick(file());
+    fireEvent.click(screen.getByRole("button", { name: "Subir archivo" }));
+    await screen.findByLabelText("Campo: Cantidad");
+    expect(screen.queryByText(/Falta una columna para/)).toBeNull();
+    expect(screen.getAllByText("Obligatorio").length).toBeGreaterThan(0);
+    fireEvent.change(screen.getByLabelText("Campo: Cantidad"), { target: { value: "" } });
+    expect(screen.getByText("Falta una columna para «Cantidad».")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Validar" }).getAttribute("aria-describedby")).toBe("imp-missing");
+  });
+
+  it("asks before discarding an uploaded file and sends nothing on cancel", async () => {
+    vi.spyOn(api, "uploadSeed").mockResolvedValue(upload());
+    const reject = vi.spyOn(api, "rejectSeed").mockResolvedValue();
+    render(<ImportScreen userRoles={["buyer"]} />);
+    await pick(file());
+    fireEvent.click(screen.getByRole("button", { name: "Subir archivo" }));
+    await screen.findByText(/Archivo recibido: 5 filas/);
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    const dialog = screen.getByRole("dialog", { name: "Descartar el archivo subido" });
+    expect(dialog.textContent).toContain(".csv");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(reject).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    confirmAction();
+    await waitFor(() => expect(reject).toHaveBeenCalled());
   });
 
   it("rolls back the active version", async () => {
@@ -104,6 +138,7 @@ describe("ImportScreen", () => {
     const rb = vi.spyOn(api, "rollbackSeed").mockResolvedValue({});
     render(<ImportScreen userRoles={["buyer"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Volver a la versión anterior" }));
+    confirmAction();
     await waitFor(() => expect(rb).toHaveBeenCalled());
     expect((await screen.findByRole("status")).textContent).toContain("Versión anterior restaurada");
   });

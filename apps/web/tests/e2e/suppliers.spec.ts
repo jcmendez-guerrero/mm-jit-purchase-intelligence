@@ -33,14 +33,14 @@ test.describe("Supplier terms (T050)", () => {
   test("a buyer edits the lead time, reloads and sees it and the history", async ({ page }) => {
     await backend(page, ["viewer", "buyer"]);
     await page.goto("/");
-    await page.click("button:has-text('Proveedores')");
+    await page.getByRole("navigation").getByRole("link", { name: "Proveedores", exact: true }).click();
     await page.click("button:has-text('Proveedor Sintético A')");
     await page.getByLabel("Plazo de entrega (días)").fill("5");
     await page.getByLabel("Motivo del cambio").fill("nuevo transportista");
     await page.click("button:has-text('Guardar nueva versión')");
     await expect(page.getByText("Condiciones guardadas (versión 2)")).toBeVisible();
     await page.reload();
-    await page.click("button:has-text('Proveedores')");
+    await page.getByRole("navigation").getByRole("link", { name: "Proveedores", exact: true }).click();
     await page.click("button:has-text('Proveedor Sintético A')");
     await expect(page.getByLabel("Plazo de entrega (días)")).toHaveValue("5");
     await expect(page.getByRole("cell", { name: "nuevo transportista" })).toBeVisible();
@@ -49,7 +49,7 @@ test.describe("Supplier terms (T050)", () => {
   test("a stale save shows the conflict message in Spanish", async ({ page }) => {
     const b = await backend(page, ["viewer", "buyer"]);
     await page.goto("/");
-    await page.click("button:has-text('Proveedores')");
+    await page.getByRole("navigation").getByRole("link", { name: "Proveedores", exact: true }).click();
     await page.click("button:has-text('Proveedor Sintético A')");
     b.makeNextSaveStale();
     await page.getByLabel("Plazo de entrega (días)").fill("7");
@@ -60,7 +60,7 @@ test.describe("Supplier terms (T050)", () => {
   test("a viewer sees the terms read-only", async ({ page }) => {
     await backend(page, ["viewer"]);
     await page.goto("/");
-    await page.click("button:has-text('Proveedores')");
+    await page.getByRole("navigation").getByRole("link", { name: "Proveedores", exact: true }).click();
     await page.click("button:has-text('Proveedor Sintético A')");
     await expect(page.getByText(/Solo lectura/)).toBeVisible();
     await expect(page.getByLabel("Plazo de entrega (días)")).toBeDisabled();

@@ -5,6 +5,7 @@ import { api, ApiError, CostWriteRecord } from "../../src/api/client";
 import { CostsScreen } from "../../src/features/costs/CostsScreen";
 import { canOverride, canRelease, parseAmount, parseOpening } from "../../src/features/costs/costsModel";
 import "../../src/i18n";
+import { confirmAction } from "./confirm";
 
 const write = (over: Partial<CostWriteRecord> = {}): CostWriteRecord => ({
   id: "w1", product_id: 10, supplier_id: "s1", trigger: "receipt_matched", proposed_value: "9.0000", previous_siweb_value: "8.0000", status: "pending_review", attempts: 0,
@@ -69,8 +70,20 @@ describe("CostsScreen", () => {
     fireEvent.change(await screen.findByLabelText("Coste (€)"), { target: { value: "8,5" } });
     fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "oferta puntual" } });
     fireEvent.click(screen.getByRole("button", { name: "Guardar valor propio" }));
+    expect(spy).not.toHaveBeenCalled(); // asks first
+    expect(screen.getByRole("dialog", { name: "Sustituir el valor propuesto del coste" })).toBeTruthy();
+    confirmAction();
     await waitFor(() => expect(spy).toHaveBeenCalledWith("w1", "8.5", "oferta puntual"));
     expect((await screen.findByRole("status")).textContent).toContain("Otra persona con rol de comprador");
+  });
+
+  it("does not open the confirmation for a value the screen would refuse", async () => {
+    const spy = vi.spyOn(api, "overrideCostWrite").mockResolvedValue({});
+    render(<CostsScreen userRoles={["viewer", "admin"]} userId="admin-1" />);
+    fireEvent.change(await screen.findByLabelText("Coste (€)"), { target: { value: "abc" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar valor propio" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it("corrects a lot cost on arrival and has no free supplier-cost entry", async () => {
@@ -87,6 +100,7 @@ describe("CostsScreen", () => {
     const spy = vi.spyOn(api, "approveCostWrite").mockRejectedValue(new ApiError(403, "auth_mfa_stale"));
     render(<CostsScreen userRoles={["viewer", "buyer"]} userId="b1" />);
     fireEvent.click(await screen.findByRole("button", { name: /Liberar coste/ }));
+    confirmAction();
     expect((await screen.findByRole("alert")).textContent).toContain("segundo factor");
     expect(spy).toHaveBeenCalledWith("w1");
   });

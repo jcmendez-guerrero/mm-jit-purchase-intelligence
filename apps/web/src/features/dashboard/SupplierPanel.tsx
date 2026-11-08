@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, errorMessage, SupplierTermsView } from "../../api/client";
 import { formatCurrencyEUR } from "../../i18n/formatters";
+import { ScreenState } from "../../ui/ScreenState";
+import { Card } from "../../ui/Card";
+import { Button } from "../../ui/Button";
 
 interface Props {
   supplierId: string;
@@ -32,13 +35,13 @@ export const SupplierPanel: React.FC<Props> = ({ supplierId, name, spend, onClos
   const c = view?.current ?? null;
   const dash = "—";
   return (
-    <aside className="mmi-card" aria-label={t("dashboard.supplier.title", { name })}>
+    <Card as="aside" aria-label={t("dashboard.supplier.title", { name })}>
       <h3>{t("dashboard.supplier.title", { name })}</h3>
-      <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={onClose}>
+      <Button variant="secondary" small onClick={onClose}>
         {t("dashboard.drill.close")}
-      </button>
-      {error && <p role="alert">{error}</p>}
-      {!view && !error && <p>{t("dashboard.loading_state")}</p>}
+      </Button>
+      {error && <ScreenState state="error" errorHint={error} />}
+      {!view && !error && <ScreenState state="loading" skeletonLines={3} />}
       {view && !c && <p>{t("dashboard.supplier.no_terms")}</p>}
       {c && (
         <ul>
@@ -51,6 +54,6 @@ export const SupplierPanel: React.FC<Props> = ({ supplierId, name, spend, onClos
         </ul>
       )}
       <p>{spend === null ? t("dashboard.supplier.no_spend") : t("dashboard.supplier.spend", { value: formatCurrencyEUR(spend) })}</p>
-    </aside>
+    </Card>
   );
 };

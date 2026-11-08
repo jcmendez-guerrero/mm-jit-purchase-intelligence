@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError, Proposal } from "../../src/api/client";
 import { ProposalsScreen } from "../../src/features/proposals/ProposalsScreen";
 import "../../src/i18n";
+import { confirmAction } from "./confirm";
 
 const proposal = (over: Partial<Proposal> = {}): Proposal => ({
   id: "p1", week: "2026-W45", status: "draft", version: 3, created_by: "buyer-1", last_edited_by: null, terms_version_ids: null, approval: null,
@@ -115,6 +116,7 @@ describe("ProposalsScreen", () => {
     unmount();
     render(<ProposalsScreen userRoles={["viewer", "approver"]} />);
     fireEvent.click(await screen.findByRole("button", { name: /Aprobar propuesta/ }));
+    confirmAction();
     await waitFor(() => expect(approve).toHaveBeenCalledWith("p1", 5));
   });
 
@@ -122,6 +124,7 @@ describe("ProposalsScreen", () => {
     vi.spyOn(api, "submitProposal").mockRejectedValue(new ApiError(409, "version_conflict", 4));
     render(<ProposalsScreen userRoles={["buyer"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Enviar a aprobación" }));
+    confirmAction();
     expect((await screen.findByRole("alert")).textContent).toContain("Otra persona ha modificado");
     await waitFor(() => expect(api.getProposal).toHaveBeenCalledTimes(2));
   });

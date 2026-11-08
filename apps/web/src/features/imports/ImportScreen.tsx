@@ -2,8 +2,19 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, errorMessage, SeedDataset, SeedDryRun, SeedJob, SeedQuarantineRow, SeedUpload, SeedValidation } from "../../api/client";
 import { formatCurrencyEUR, formatDateTime } from "../../i18n/formatters";
-import { Field } from "../suppliers/Field";
-import { ALL_FIELDS, canImport, fileProblem, hasLiveJob, isQueued, missingFields, setMapping } from "./importsModel";
+import { FormField } from "../../ui/FormField";
+import { ALL_FIELDS, canImport, fileProblem, hasLiveJob, isQueued, missingFields, REQUIRED_FIELDS, setMapping } from "./importsModel";
+import { StatusBadge } from "../../ui/StatusBadge";
+import { ScreenState } from "../../ui/ScreenState";
+import { EmptyState } from "../../ui/EmptyState";
+import { useActionNotice } from "../../ui/NoticeProvider";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { Card } from "../../ui/Card";
+import { Button } from "../../ui/Button";
+import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
+import { PageActions } from "../../ui/PageActions";
+import { DataTable } from "../../ui/DataTable";
+import { Icon } from "../../ui/Icon";
 
 interface Props {
   userRoles: string[];
@@ -14,6 +25,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
   const { t } = useTranslation();
   const [datasets, setDatasets] = useState<SeedDataset[]>([]);
+  const [datasetsLoading, setDatasetsLoading] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [upload, setUpload] = useState<SeedUpload | null>(null);
@@ -24,15 +36,21 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
   const [ack, setAck] = useState(false);
   const [jobs, setJobs] = useState<SeedJob[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [confirming, setConfirming] = useState<"activate" | "rollback" | "reject" | null>(null);
+  const [notice, setNotice] = useActionNotice();
   const canEdit = canImport(userRoles);
 
   const fail = useCallback((err: unknown) => setError(errorMessage(err, t("common.error"))), [t]);
   const loadList = useCallback(async () => {
     try {
+      setLoadFailed(false);
       setDatasets((await api.getSeedDatasets()).datasets);
     } catch (err) {
       fail(err);
+      setLoadFailed(true);
+    } finally {
+      setDatasetsLoading(false);
     }
   }, [fail]);
   const loadJobs = useCallback(async () => {
@@ -152,36 +170,59 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
 
   const missing = missingFields(map);
 
+  const dirty = canEdit && upload !== null;
+
   return (
     <section aria-labelledby="imports-title">
-      <div className="mmi-card">
+      <UnsavedChangesPrompt dirty={dirty} />
+      <ConfirmDialog
+        open={confirming !== null}
+        tone={confirming === "reject" ? "danger" : "default"}
+        title={confirming === "rollback" ? t("imports.confirm.rollback.title") : confirming === "reject" ? t("imports.confirm.reject.title") : t("imports.confirm.activate.title")}
+        {...(confirming === "activate" && validation ? { objectLabel: t("imports.confirm.activate.object", { accepted: validation.accepted }) } : {})}
+        {...(confirming === "reject" && file ? { objectLabel: t("imports.confirm.reject.object", { name: file.name }) } : {})}
+        effect={confirming === "rollback" ? t("imports.confirm.rollback.effect") : confirming === "reject" ? t("imports.confirm.reject.effect") : t("imports.confirm.activate.effect")}
+        confirmLabel={confirming === "rollback" ? t("imports.rollback") : confirming === "reject" ? t("imports.reject") : t("imports.activate")}
+        onCancel={() => setConfirming(null)}
+        onConfirm={() => {
+          const kind = confirming;
+          setConfirming(null);
+          if (kind === "activate") void doActivate();
+          if (kind === "rollback") void doRollback();
+          if (kind === "reject") void doReject();
+        }}
+      />
+      <Card as="div">
         <h2 id="imports-title">{t("imports.title")}</h2>
         <p className="mmi-muted">{t("imports.subtitle")}</p>
-        {error && <p role="alert">{error}</p>}
+        {error && !loadFailed && <p role="alert">{error}</p>}
+        {loadFailed && <ScreenState state="error" errorHint={error ?? ""} onRetry={() => void (async () => { await loadList(); await loadJobs(); })()} />}
         {notice && <p role="status">{notice}</p>}
         {!canEdit && <p className="mmi-muted">{t("imports.read_only")}</p>}
 
         {canEdit && (
           <>
             <h3>{t("imports.step.template")}</h3>
-            <a className="mmi-btn mmi-btn-secondary" href="/api/imports/template?format=csv" download>
+            <a className="mmi-button mmi-button--secondary" href="/api/imports/template?format=csv" download>
               {t("imports.template_csv")}
             </a>{" "}
-            <a className="mmi-btn mmi-btn-secondary" href="/api/imports/template?format=xlsx" download>
+            <a className="mmi-button mmi-button--secondary" href="/api/imports/template?format=xlsx" download>
               {t("imports.template_xlsx")}
             </a>
 
             <h3>{t("imports.step.upload")}</h3>
             <p className="mmi-muted">{t("imports.limits", { mb: MAX_BYTES / (1024 * 1024) })}</p>
-            <div style={{ display: "flex", gap: "0.75rem", alignItems: "end", flexWrap: "wrap" }}>
-              <div style={{ display: "flex", flexDirection: "column" }}>
+            <div className="mmi-cluster">
+              <div className="mmi-stack">
                 <label htmlFor="imp-file">{t("imports.file")}</label>
                 <input id="imp-file" type="file" accept=".csv,.xlsx" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
               </div>
-              <Field id="imp-name" label={t("imports.name")} value={name} onChange={setName} />
-              <button type="button" className="mmi-btn mmi-btn-primary" disabled={!file} onClick={() => void doUpload()}>
-                {t("imports.upload")}
-              </button>
+              <FormField id="imp-name" label={t("imports.name")} value={name} onChange={setName} />
+              <PageActions>
+                <Button disabled={!file} onClick={() => void doUpload()}>
+                  {t("imports.upload")}
+                </Button>
+              </PageActions>
             </div>
           </>
         )}
@@ -190,11 +231,12 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
           <>
             {upload.duplicate_of && <p role="note">{t("imports.duplicate")}</p>}
             <h3>{t("imports.step.map")}</h3>
-            <table aria-label={t("imports.step.map")} className="mmi-table">
+            <div className="mmi-table-wrapper"><table aria-label={t("imports.step.map")} className="mmi-table">
               <thead>
                 <tr>
                   <th>{t("imports.mapping.header")}</th>
                   <th>{t("imports.mapping.field")}</th>
+                  <th>{t("imports.mapping.use")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -211,14 +253,25 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
                         ))}
                       </select>
                     </td>
+                    <td>{(REQUIRED_FIELDS as readonly string[]).includes(map[h] ?? "") && <StatusBadge domain="tag" code="required" />}</td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-            {missing.length > 0 && <p role="alert">{t("imports.mapping.missing", { fields: missing.map((f) => t(`imports.field.${f}`)).join(", ") })}</p>}
+            </table></div>
+            {missing.length > 0 && (
+              <ul className="mmi-missing-list" aria-label={t("imports.mapping.use")}>
+                {missing.map((f) => (
+                  <li key={f}>
+                    <Icon name="error" />
+                    {t("imports.mapping.missing_one", { field: t(`imports.field.${f}`) })}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {missing.length > 0 && <p role="alert" id="imp-missing">{t("imports.mapping.missing", { fields: missing.map((f) => t(`imports.field.${f}`)).join(", ") })}</p>}
 
             <h4>{t("imports.preview")}</h4>
-            <table aria-label={t("imports.preview")} className="mmi-table">
+            <div className="mmi-table-wrapper"><table aria-label={t("imports.preview")} className="mmi-table">
               <thead>
                 <tr>
                   {Object.values(map).map((f) => (
@@ -235,15 +288,15 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
 
             <h3>{t("imports.step.validate")}</h3>
-            <button type="button" className="mmi-btn mmi-btn-primary" disabled={missing.length > 0} onClick={() => void doValidate()}>
+            <Button disabled={missing.length > 0} {...(missing.length > 0 ? { "aria-describedby": "imp-missing" } : {})} onClick={() => void doValidate()}>
               {t("imports.validate")}
-            </button>{" "}
-            <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void doReject()}>
+            </Button>{" "}
+            <Button variant="secondary" onClick={() => setConfirming("reject")}>
               {t("imports.reject")}
-            </button>
+            </Button>
           </>
         )}
 
@@ -262,19 +315,19 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
                     </li>
                   ))}
                 </ul>
-                <a className="mmi-btn mmi-btn-secondary" href={`/api/imports/${upload.id}/quarantine?format=csv`} download>
+                <a className="mmi-button mmi-button--secondary" href={`/api/imports/${upload.id}/quarantine?format=csv`} download>
                   {t("imports.download_csv")}
                 </a>{" "}
-                <a className="mmi-btn mmi-btn-secondary" href={`/api/imports/${upload.id}/quarantine?format=xlsx`} download>
+                <a className="mmi-button mmi-button--secondary" href={`/api/imports/${upload.id}/quarantine?format=xlsx`} download>
                   {t("imports.download_xlsx")}
                 </a>
               </>
             )}
 
             <h3>{t("imports.step.dryrun")}</h3>
-            <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void doDry()}>
+            <Button variant="secondary" onClick={() => void doDry()}>
               {t("imports.dryrun")}
-            </button>
+            </Button>
             {dry && (
               <div role="region" aria-label={t("imports.step.dryrun")}>
                 <p>{t("imports.dryrun_rows", dry.rows)}</p>
@@ -303,80 +356,57 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
                 <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} /> {t("imports.acknowledge_duplicate")}
               </label>
             )}
-            <button type="button" className="mmi-btn mmi-btn-primary" disabled={validation.accepted === 0} onClick={() => void doActivate()}>
+            <Button disabled={validation.accepted === 0} onClick={() => setConfirming("activate")}>
               {t("imports.activate")}
-            </button>
+            </Button>
           </>
         )}
 
         <h3>{t("imports.jobs")}</h3>
-        <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void loadJobs()}>
+        <Button variant="secondary" onClick={() => void loadJobs()}>
           {t("imports.jobs_refresh")}
-        </button>
+        </Button>
         {jobs.length === 0 ? (
           <p>{t("imports.jobs_empty")}</p>
         ) : (
-          <table aria-label={t("imports.jobs")} className="mmi-table">
-            <thead>
-              <tr>
-                <th>{t("imports.job.col.dataset")}</th>
-                <th>{t("imports.job.col.stage")}</th>
-                <th>{t("imports.job.col.state")}</th>
-                <th>{t("imports.job.col.queued")}</th>
-                <th>{t("imports.job.col.finished")}</th>
-                <th>{t("imports.job.col.error")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.map((j) => (
-                <tr key={j.id}>
-                  <td>
-                    v{j.version} · {j.name}
-                  </td>
-                  <td>{t(`imports.job.stage.${j.stage}`, { defaultValue: j.stage })}</td>
-                  <td>{t(`imports.job.state.${j.state}`)}</td>
-                  <td>{j.queued_at ? formatDateTime(j.queued_at) : "—"}</td>
-                  <td>{j.finished_at ? formatDateTime(j.finished_at) : "—"}</td>
-                  <td>{j.error_key ? t(`errors.${j.error_key}`, { defaultValue: j.error_key }) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            ariaLabel={t("imports.jobs")}
+            rows={jobs}
+            rowKey={(j) => j.id}
+            columns={[
+              { id: "dataset", header: t("imports.job.col.dataset"), cell: (j) => `v${j.version} · ${j.name}`, sortValue: (j) => j.name },
+              { id: "stage", header: t("imports.job.col.stage"), cell: (j) => t(`imports.job.stage.${j.stage}`, { defaultValue: j.stage }), sortValue: (j) => j.stage },
+              { id: "state", header: t("imports.job.col.state"), cell: (j) => t(`imports.job.state.${j.state}`), sortValue: (j) => j.state },
+              { id: "queued", header: t("imports.job.col.queued"), cell: (j) => (j.queued_at ? formatDateTime(j.queued_at) : "—"), sortValue: (j) => j.queued_at ?? null },
+              { id: "finished", header: t("imports.job.col.finished"), cell: (j) => (j.finished_at ? formatDateTime(j.finished_at) : "—"), sortValue: (j) => j.finished_at ?? null },
+              { id: "error", header: t("imports.job.col.error"), cell: (j) => (j.error_key ? t(`errors.${j.error_key}`, { defaultValue: j.error_key }) : "—") },
+            ]}
+          />
         )}
 
         <h3>{t("imports.datasets")}</h3>
         {datasets.length === 0 ? (
-          <p>{t("imports.none")}</p>
+          datasetsLoading ? <ScreenState state="loading" skeletonLines={3} /> : <EmptyState title={t("imports.none")} hint="" />
         ) : (
-          <table aria-label={t("imports.datasets")} className="mmi-table">
-            <thead>
-              <tr>
-                <th>{t("imports.col.version")}</th>
-                <th>{t("imports.col.status")}</th>
-                <th>{t("imports.col.origin")}</th>
-                <th>{t("imports.col.rows")}</th>
-                <th>{t("imports.col.by")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {datasets.map((d) => (
-                <tr key={d.id}>
-                  <td>{d.version}</td>
-                  <td>{t(`imports.status.${d.status}`)}</td>
-                  <td>{t(`imports.origin.${d.origin}`)}</td>
-                  <td>{d.accepted}</td>
-                  <td>{d.uploader}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            ariaLabel={t("imports.datasets")}
+            rows={datasets}
+            rowKey={(d) => d.id}
+            columns={[
+              { id: "version", header: t("imports.col.version"), cell: (d) => d.version, sortValue: (d) => d.version, align: "end" },
+              { id: "status", header: t("imports.col.status"), cell: (d) => <StatusBadge domain="import" code={d.status} />, sortValue: (d) => d.status },
+              { id: "origin", header: t("imports.col.origin"), cell: (d) => t(`imports.origin.${d.origin}`), sortValue: (d) => d.origin },
+              { id: "rows", header: t("imports.col.rows"), cell: (d) => d.accepted, sortValue: (d) => d.accepted, align: "end" },
+              { id: "by", header: t("imports.col.by"), cell: (d) => d.uploader, sortValue: (d) => d.uploader },
+            ]}
+          />
         )}
         {canEdit && datasets.some((d) => d.status === "active") && (
-          <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void doRollback()}>
+          <Button variant="secondary" onClick={() => setConfirming("rollback")}>
             {t("imports.rollback")}
-          </button>
+          </Button>
         )}
-      </div>
+      </Card>
     </section>
   );
 };

@@ -143,3 +143,37 @@ export function overrideToPayload(f: OverrideForm): Record<string, unknown> {
 export function sourceKey(source: string | undefined): string {
   return ["override", "supplier", "cost", "default"].includes(source ?? "") ? `suppliers.source.${source}` : "suppliers.source.default";
 }
+
+/**
+ * Format checks only (the server owns the business rules): blank is allowed, anything else must be a number of the
+ * right kind. Keys are the ids of the inputs in the editors, so a message lands beside its field.
+ */
+const NUMBER = /^\d+(\.\d+)?$/;
+const INTEGER = /^\d+$/;
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+const bad = (value: string, ok: RegExp, normalise = false): boolean => {
+  const v = normalise ? value.trim().replace(",", ".") : value.trim();
+  return v !== "" && !ok.test(v);
+};
+
+export function validateTerms(f: TermsForm): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const decimals: Array<[string, string]> = [["f-min", f.min_order_value], ["f-free", f.free_delivery_threshold], ["f-charge", f.delivery_charge]];
+  const integers: Array<[string, string]> = [["f-lead", f.lead_time_days], ["f-minq", f.min_qty_for_delivery], ["f-pay", f.payment_terms_days], ["f-rel", f.reliability]];
+  for (const [id, v] of decimals) if (bad(v, NUMBER, true)) errors[id] = "suppliers.error.number";
+  for (const [id, v] of integers) if (bad(v, INTEGER)) errors[id] = "suppliers.error.integer";
+  if (bad(f.order_cutoff_time, TIME)) errors["f-cutoff"] = "suppliers.error.time";
+  f.discounts.forEach((d, i) => {
+    if (bad(d.threshold, NUMBER, true)) errors[`d-thr-${i}`] = "suppliers.error.number";
+    if (bad(d.value, NUMBER, true)) errors[`d-val-${i}`] = "suppliers.error.number";
+  });
+  return errors;
+}
+
+export function validateOverride(f: OverrideForm): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const integers: Array<[string, string]> = [["o-pack", f.pack_multiple], ["o-minq", f.min_qty_units], ["o-lead", f.lead_time_days], ["o-pay", f.payment_terms_days], ["o-rel", f.reliability]];
+  for (const [id, v] of integers) if (bad(v, INTEGER)) errors[id] = "suppliers.error.integer";
+  return errors;
+}

@@ -10,7 +10,7 @@ test("a proposal offers a CSV and an Excel download", async ({ page }) => {
   await page.route("**/api/proposals", (r) => r.fulfill(json([summary])));
   await page.route("**/api/proposals/prop-12345678", (r) => r.fulfill(json({ ...summary, last_edited_by: null, terms_version_ids: null, approval: null, supplier_groups: [], lines: [] })));
   await page.goto("/");
-  await page.click("button:has-text('Propuestas de compra')");
+  await page.getByRole("navigation").getByRole("link", { name: "Propuestas de compra", exact: true }).click();
   // A link with the download attribute is handled by the browser's download manager, which Playwright can neither stub nor observe as a request;
   // so the links are checked here, and the file content by the service tests for the proposal export (CSV and Excel, es-ES).
   for (const [label, fmt] of [["Exportar CSV (formato es-ES)", "csv"], ["Exportar Excel", "xlsx"]] as const) {

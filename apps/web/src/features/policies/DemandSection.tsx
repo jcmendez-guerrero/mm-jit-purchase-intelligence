@@ -2,8 +2,12 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, CensoringRule, CriticalProduct, DemandExclusion, errorMessage } from "../../api/client";
 import { formatDate } from "../../i18n/formatters";
-import { Field } from "../suppliers/Field";
+import { FormField } from "../../ui/FormField";
 import { canEditPolicies, parseId } from "./policiesModel";
+import { useActionNotice } from "../../ui/NoticeProvider";
+import { Button } from "../../ui/Button";
+import { useFieldErrors } from "../../ui/useFieldErrors";
+import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
 
 interface Props {
   roles: string[];
@@ -21,8 +25,9 @@ export const DemandSection: React.FC<Props> = ({ roles, exclusions, rules, onCha
   const [ruleValue, setRuleValue] = useState<Record<string, string>>({});
   const [products, setProducts] = useState<CriticalProduct[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useActionNotice();
   const canEdit = canEditPolicies(roles);
+  const fe = useFieldErrors();
 
   const run = async (action: () => Promise<unknown>, done: string, reload = true) => {
     setError(null);
@@ -39,8 +44,22 @@ export const DemandSection: React.FC<Props> = ({ roles, exclusions, rules, onCha
   const add = () => {
     const text = variantText.trim();
     const variant = text === "" ? null : parseId(text);
-    if (text !== "" && variant === null) return setError(t("policies.variant_invalid"));
+    if (text !== "" && variant === null) {
+      fe.flag({ "ex-variant": t("policies.variant_invalid") });
+      return setError(t("policies.variant_invalid"));
+    }
+    fe.clear();
     return run(() => api.addExclusion({ variant_id: variant, from_day: from, to_day: to, reason }), t("demand.added"));
+  };
+
+  const saveRule = (rule: string, text: string, fallback: number) => {
+    if (!/^\d+$/.test(text.trim())) {
+      const message = t("policies.invalid_field", { field: t(`demand.rule.${rule}`) });
+      fe.flag({ [`rule-${rule}`]: message });
+      return setError(message);
+    }
+    fe.clear();
+    return run(() => api.putCensoringRule(rule, Number(text.trim() === "" ? fallback : text)), t("demand.rule_saved"));
   };
 
   const loadProducts = async () => {
@@ -56,8 +75,11 @@ export const DemandSection: React.FC<Props> = ({ roles, exclusions, rules, onCha
     await loadProducts();
   };
 
+  const dirty = canEdit && (variantText.trim() !== "" || from !== "" || to !== "" || reason.trim() !== "" || rules.some((r) => ruleValue[r.rule] !== undefined && ruleValue[r.rule]!.trim() !== String(r.value)));
+
   return (
     <div>
+      <UnsavedChangesPrompt dirty={dirty} />
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
 
@@ -76,9 +98,9 @@ export const DemandSection: React.FC<Props> = ({ roles, exclusions, rules, onCha
               {canEdit && (
                 <>
                   {" "}
-                  <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={() => void run(() => api.toggleExclusion(x.id, !x.active), t("demand.added"))}>
+                  <Button variant="secondary" small onClick={() => void run(() => api.toggleExclusion(x.id, !x.active), t("demand.added"))}>
                     {x.active ? t("demand.deactivate") : t("demand.reactivate")}
-                  </button>
+                  </Button>
                 </>
               )}
             </li>
@@ -86,26 +108,26 @@ export const DemandSection: React.FC<Props> = ({ roles, exclusions, rules, onCha
         </ul>
       )}
       {canEdit && (
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "end" }}>
-          <Field id="ex-variant" label={t("demand.variant_optional")} value={variantText} onChange={setVariantText} inputMode="numeric" />
-          <Field id="ex-from" label={t("demand.from")} value={from} onChange={setFrom} type="date" />
-          <Field id="ex-to" label={t("demand.to")} value={to} onChange={setTo} type="date" />
-          <Field id="ex-reason" label={t("demand.reason")} value={reason} onChange={setReason} />
-          <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void add()}>
+        <div className="mmi-cluster">
+          <FormField id="ex-variant" label={t("demand.variant_optional")} value={variantText} onChange={(v) => { setVariantText(v); fe.clear("ex-variant"); }} error={fe.errors["ex-variant"]} inputMode="numeric" />
+          <FormField id="ex-from" label={t("demand.from")} value={from} onChange={setFrom} type="date" />
+          <FormField id="ex-to" label={t("demand.to")} value={to} onChange={setTo} type="date" />
+          <FormField id="ex-reason" label={t("demand.reason")} value={reason} onChange={setReason} />
+          <Button onClick={() => void add()}>
             {t("demand.add")}
-          </button>
+          </Button>
         </div>
       )}
 
       <h3>{t("demand.rules")}</h3>
       {rules.map((r) => (
-        <div key={r.rule} style={{ display: "flex", gap: "0.75rem", alignItems: "end" }}>
-          <Field id={`rule-${r.rule}`} label={t(`demand.rule.${r.rule}`)} value={ruleValue[r.rule] ?? String(r.value)} disabled={!canEdit} inputMode="numeric"
-                 hint={t("forecast.range", { min: r.min, max: r.max, default: r.default })} onChange={(v) => setRuleValue({ ...ruleValue, [r.rule]: v })} />
+        <div className="mmi-cluster" key={r.rule}>
+          <FormField id={`rule-${r.rule}`} label={t(`demand.rule.${r.rule}`)} value={ruleValue[r.rule] ?? String(r.value)} disabled={!canEdit} inputMode="numeric"
+                 hint={t("forecast.range", { min: r.min, max: r.max, default: r.default })} error={fe.errors[`rule-${r.rule}`]} onChange={(v) => { setRuleValue({ ...ruleValue, [r.rule]: v }); fe.clear(`rule-${r.rule}`); }} />
           {canEdit && (
-            <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void run(() => api.putCensoringRule(r.rule, Number(ruleValue[r.rule] ?? r.value)), t("demand.rule_saved"))}>
+            <Button onClick={() => void saveRule(r.rule, String(ruleValue[r.rule] ?? r.value), r.value)}>
               {t("demand.rule_save")}
-            </button>
+            </Button>
           )}
         </div>
       ))}
@@ -113,9 +135,9 @@ export const DemandSection: React.FC<Props> = ({ roles, exclusions, rules, onCha
       <h3>{t("demand.criticality")}</h3>
       <p className="mmi-muted">{t("demand.criticality_help")}</p>
       {products === null ? (
-        <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void loadProducts()}>
+        <Button variant="secondary" onClick={() => void loadProducts()}>
           {t("policies.load")}
-        </button>
+        </Button>
       ) : (
         <ul>
           {products.map((p) => (

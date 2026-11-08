@@ -67,3 +67,25 @@ export function forecastStats(estimated: DashTrend["estimated"]): ForecastStats 
   if (!first) return null;
   return { mean: Number(first.mean), upper: Math.max(Number(first.upper), Number(first.mean)), days: estimated.length };
 }
+
+/** Stockout severity split from the existing risk list (design.md §6). */
+export type StockoutSeverity = "out_of_stock" | "imminent" | "below_reorder_point";
+
+export function stockoutSeverityCounts(risks: Array<{ risk_type: string; explanation_key: string }>): Record<StockoutSeverity, number> {
+  const counts: Record<StockoutSeverity, number> = { out_of_stock: 0, imminent: 0, below_reorder_point: 0 };
+  for (const r of risks) {
+    if (r.risk_type !== "stockout") continue;
+    const key = r.explanation_key.replace("risk.stockout.", "") as StockoutSeverity;
+    if (key in counts) counts[key] += 1;
+  }
+  return counts;
+}
+
+/**
+ * The risk list ignores the category and family filters while the summary count respects them, so the split is shown
+ * only when both agree; otherwise the ruler shows the summary count alone.
+ */
+export function severitySplitIsReliable(counts: Record<StockoutSeverity, number>, summaryStockoutRisk: number | undefined): boolean {
+  const sum = counts.out_of_stock + counts.imminent + counts.below_reorder_point;
+  return summaryStockoutRisk !== undefined && sum === summaryStockoutRisk;
+}

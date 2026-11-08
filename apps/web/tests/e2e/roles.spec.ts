@@ -47,7 +47,7 @@ test.describe("Role matrix UI permissions (T106)", () => {
   test("viewer has read-only access and cannot edit or approve proposals", async ({ page }) => {
     await page.goto("/");
     // Navigate to proposals
-    await page.click("button:has-text('Propuestas de compra')");
+    await page.getByRole("navigation").getByRole("link", { name: "Propuestas de compra", exact: true }).click();
 
     // Viewer should see the proposal table
     await expect(page.locator("text=Amoxicilina")).toBeVisible();
@@ -74,7 +74,7 @@ test.describe("Role matrix UI permissions (T106)", () => {
     });
 
     await page.goto("/");
-    await page.click("button:has-text('Propuestas de compra')");
+    await page.getByRole("navigation").getByRole("link", { name: "Propuestas de compra", exact: true }).click();
 
     await expect(page.getByLabel("Cantidad para Amoxicilina")).toBeVisible();
     await expect(page.locator("button:has-text('Enviar a aprobación')")).toBeVisible();
@@ -99,7 +99,7 @@ test.describe("Role matrix UI permissions (T106)", () => {
     await mockProposal(page, "submitted");
 
     await page.goto("/");
-    await page.click("button:has-text('Propuestas de compra')");
+    await page.getByRole("navigation").getByRole("link", { name: "Propuestas de compra", exact: true }).click();
 
     await expect(page.locator("button:has-text('Aprobar propuesta')")).toBeVisible();
     // Approver cannot edit
@@ -145,7 +145,7 @@ test.describe("Role matrix UI permissions (T106)", () => {
     });
 
     await page.goto("/");
-    await page.click("button:has-text('Administración')");
+    await page.getByRole("navigation").getByRole("link", { name: "Administración", exact: true }).click();
 
     await expect(page.locator("text=Usuarios y roles")).toBeVisible();
     await expect(page.locator("text=buyer-1")).toBeVisible();

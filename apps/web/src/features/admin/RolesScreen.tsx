@@ -2,14 +2,21 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, errorMessage, RoleMirrorStatus, RolesListing } from "../../api/client";
 import { ASSIGNABLE_ROLES, mirrorState, needsSecondApprover, oldestPendingMinutes, toggleRole } from "./rolesModel";
+import { ScreenState } from "../../ui/ScreenState";
+import { useActionNotice } from "../../ui/NoticeProvider";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { Card } from "../../ui/Card";
+import { Button } from "../../ui/Button";
+import { DataTable } from "../../ui/DataTable";
 
 export const RolesScreen: React.FC = () => {
   const { t } = useTranslation();
   const [listing, setListing] = useState<RolesListing | null>(null);
   const [mirror, setMirror] = useState<RoleMirrorStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useActionNotice();
   const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState<{ userId: string; roles: string[]; active: boolean } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -53,15 +60,28 @@ export const RolesScreen: React.FC = () => {
 
   return (
     <section aria-labelledby="roles-title">
-      <div className="mmi-card">
-        <h2 id="roles-title" style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
+      <ConfirmDialog
+        open={pending !== null}
+        title={t("admin.roles.confirm.title")}
+        objectLabel={pending ? t("admin.roles.confirm.object", { user: pending.userId }) : ""}
+        effect={t("admin.roles.confirm.effect")}
+        confirmLabel={t("admin.roles.confirm.apply")}
+        onCancel={() => setPending(null)}
+        onConfirm={() => {
+          const change = pending;
+          setPending(null);
+          if (change) void save(change.userId, change.roles, change.active);
+        }}
+      />
+      <Card as="div">
+        <h2 className="mmi-title-lg mmi-mb-2" id="roles-title">
           {t("admin.roles.title")}
         </h2>
-        <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem", marginTop: 0 }}>{t("admin.roles.subtitle")}</p>
+        <p className="mmi-muted mmi-text-sm mmi-mt-0">{t("admin.roles.subtitle")}</p>
 
-        {loading && <p>{t("common.loading")}</p>}
+        {loading && <ScreenState state="loading" skeletonLines={3} />}
         {error && (
-          <p role="alert" style={{ color: "var(--color-danger)" }}>
+          <p className="mmi-error" role="alert">
             {error}
           </p>
         )}
@@ -75,54 +95,52 @@ export const RolesScreen: React.FC = () => {
             {listing.users.length === 0 ? (
               <p>{t("admin.roles.empty")}</p>
             ) : (
-              <div className="mmi-table-wrapper">
-                <table className="mmi-table" aria-label={t("a11y.roles_table")}>
-                  <thead>
-                    <tr>
-                      <th scope="col">{t("admin.roles.user")}</th>
-                      <th scope="col">{t("admin.roles.roles")}</th>
-                      <th scope="col">{t("admin.roles.active")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {listing.users.map((u) => (
-                      <tr key={u.user_id}>
-                        <th scope="row" style={{ fontWeight: 600 }}>
-                          {u.user_id}
-                        </th>
-                        <td>
-                          {ASSIGNABLE_ROLES.map((r) => (
-                            <label key={r} style={{ marginRight: "0.75rem" }}>
-                              <input
-                                type="checkbox"
-                                checked={u.roles.includes(r)}
-                                aria-label={`${u.user_id} ${t(`roles.${r}`)}`}
-                                onChange={() => void save(u.user_id, toggleRole(u.roles, r), u.active)}
-                              />{" "}
-                              {t(`roles.${r}`)}
-                            </label>
-                          ))}
-                        </td>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={u.active}
-                            aria-label={`${u.user_id} ${t("admin.roles.active")}`}
-                            onChange={() => void save(u.user_id, u.roles, !u.active)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                ariaLabel={t("a11y.roles_table")}
+                rows={listing.users}
+                rowKey={(u) => u.user_id}
+                columns={[
+                  { id: "user", header: t("admin.roles.user"), cell: (u) => <strong>{u.user_id}</strong>, sortValue: (u) => u.user_id },
+                  {
+                    id: "roles",
+                    header: t("admin.roles.roles"),
+                    cell: (u) => (
+                      <>
+                        {ASSIGNABLE_ROLES.map((r) => (
+                          <label className="mmi-mr-3" key={r}>
+                            <input
+                              type="checkbox"
+                              checked={u.roles.includes(r)}
+                              aria-label={`${u.user_id} ${t(`roles.${r}`)}`}
+                              onChange={() => setPending({ userId: u.user_id, roles: toggleRole(u.roles, r), active: u.active })}
+                            />{" "}
+                            {t(`roles.${r}`)}
+                          </label>
+                        ))}
+                      </>
+                    ),
+                  },
+                  {
+                    id: "active",
+                    header: t("admin.roles.active"),
+                    cell: (u) => (
+                      <input
+                        type="checkbox"
+                        checked={u.active}
+                        aria-label={`${u.user_id} ${t("admin.roles.active")}`}
+                        onChange={() => setPending({ userId: u.user_id, roles: u.roles, active: !u.active })}
+                      />
+                    ),
+                  },
+                ]}
+              />
             )}
           </>
         )}
 
         {mirror && (
-          <div aria-label={t("a11y.mirror_status")} style={{ marginTop: "1.25rem" }}>
-            <h3 style={{ fontSize: "1.05rem" }}>{t("admin.roles.mirror_title")}</h3>
+          <div className="mmi-mt-5" aria-label={t("a11y.mirror_status")}>
+            <h3 className="mmi-title-md">{t("admin.roles.mirror_title")}</h3>
             {state === "ok" && <p>{t("admin.roles.mirror_ok")}</p>}
             {state !== "ok" && (
               <>
@@ -133,14 +151,14 @@ export const RolesScreen: React.FC = () => {
             {state === "failed" && (
               <>
                 <p role="alert">{t("admin.roles.mirror_failed", { count: mirror.failed })}</p>
-                <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void retry()}>
+                <Button onClick={() => void retry()}>
                   {t("admin.roles.retry")}
-                </button>
+                </Button>
               </>
             )}
           </div>
         )}
-      </div>
+      </Card>
     </section>
   );
 };

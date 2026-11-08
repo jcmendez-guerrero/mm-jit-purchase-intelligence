@@ -6,8 +6,8 @@ server {
   index index.html;
 
   # Security headers (T038). Styles allow inline attributes because the SPA sets style props; scripts are same-origin only.
-  # The two Google Fonts hosts are the only third parties; self-hosting the fonts would let them be removed.
-  add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+  # Fonts are self-hosted (MMI 003, FR-009): no third-party host is allowed anywhere in the policy.
+  add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
   add_header X-Content-Type-Options "nosniff" always;
   add_header X-Frame-Options "DENY" always;
   add_header Referrer-Policy "no-referrer" always;
