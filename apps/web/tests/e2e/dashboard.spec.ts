@@ -89,10 +89,10 @@ test.describe("Dashboard (T124)", () => {
     await page.goto("/");
     await page.getByLabel("Valor del inventario").getByRole("button", { name: "Ver productos" }).click();
     const panel = page.getByRole("complementary", { name: "Productos que forman el valor del inventario" });
-    await expect(panel).toContainText("#100 · Variante sintética (SYN-100)");
+    await expect(panel).toContainText("SYN-100 · Variante sintética");
     await expect(panel).toContainText("40,00");
-    await expect(panel).toContainText("Se muestran 1 de 80 productos.");
-    await panel.getByRole("button", { name: /Ver detalle #100/ }).click();
+    await expect(panel).toContainText("Mostrando 1–1 de 80 productos.");
+    await panel.getByRole("button", { name: /Ver detalle SYN-100/ }).click();
     await expect(page.getByLabel("Detalle de la variante 100")).toBeVisible();
     await page.getByRole("button", { name: "Cerrar detalle" }).click();
     await page.keyboard.press("Escape");

@@ -633,12 +633,16 @@ export interface DrillRequest {
   warehouse_id?: number | undefined;
   category?: string | undefined;
   family?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
 }
 
 export interface DrillResponse {
   kind: DrillKind;
   truncated: boolean;
   total: number;
+  offset?: number;
+  sum?: string | null;
   rows: Array<{ variant_id: number; sku: string | null; name: string | null; figure: string | null }>;
 }
 
@@ -891,6 +895,8 @@ export class ApiClient {
     if (r.warehouse_id !== undefined) q.set("warehouse_id", String(r.warehouse_id));
     if (r.category) q.set("category", r.category);
     if (r.family) q.set("family", r.family);
+    if (r.limit !== undefined) q.set("limit", String(r.limit));
+    if (r.offset) q.set("offset", String(r.offset));
     return this.request<DrillResponse>(`/dashboard/drilldown?${q.toString()}`);
   }
 

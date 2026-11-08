@@ -61,11 +61,11 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
     @router.get("/drilldown")
     def drill(kind: str = Query(max_length=20), abc: str | None = Query(default=None, max_length=1), xyz: str | None = Query(default=None, max_length=1),
               day: str | None = Query(default=None, max_length=10), warehouse_id: int | None = None, category: str | None = None, family: str | None = None,
-              supplier_id: str | None = None, limit: int = Query(default=50, ge=1, le=200), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+              supplier_id: str | None = None, limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         if kind not in KINDS:
             raise HTTPException(422, "request_invalid")
         try:
-            return drilldown(conn, kind, datetime.now(UTC).date(), filters(warehouse_id, category, family, supplier_id), means(), abc, xyz, day, limit)
+            return drilldown(conn, kind, datetime.now(UTC).date(), filters(warehouse_id, category, family, supplier_id), means(), abc, xyz, day, limit, offset)
         except DrillError as exc:
             raise HTTPException(422, exc.code) from exc
 

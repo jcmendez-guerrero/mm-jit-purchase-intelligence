@@ -47,7 +47,7 @@ async def overview(
     supplier_id: str | None = Query(default=None, pattern="^[A-Za-z0-9_-]{1,36}$"),
 ) -> dict[str, Any]:
     who = {"user_id": session.user_id, "roles": session.roles}
-    f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id)) if v is not None}
+    f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category), ("family", family)) if v is not None}
     summary, trend, abc, risks, options, accuracy, spend, suppliers = await asyncio.gather(
         _card(inv.forward("GET", "/dashboard/summary", params=f, **who)),
         _card(inv.forward("GET", "/dashboard/demand-trend", params={**f, "days": days}, **who)),
@@ -69,12 +69,13 @@ async def drilldown(
     warehouse_id: int | None = Query(default=None, ge=0),
     category: str | None = Query(default=None, pattern="^(A|B|C|critical)$"),
     family: str | None = Query(default=None, min_length=1, max_length=120),
-    supplier_id: str | None = Query(default=None, pattern="^[A-Za-z0-9_-]{1,36}$"),
+    limit: int | None = Query(default=None, ge=1, le=200),
+    offset: int | None = Query(default=None, ge=0),
     session: SessionData = Depends(require_roles(*READ)),
     inv: InventoryClient = Depends(get_inventory_client),
 ) -> Any:
     """The products behind one dashboard figure. The rules live in inventory; this only checks the request shape and forwards the signed-in user."""
-    params = {k: v for k, v in (("kind", kind), ("abc", abc), ("xyz", xyz), ("day", day), ("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id)) if v is not None}
+    params = {k: v for k, v in (("kind", kind), ("abc", abc), ("xyz", xyz), ("day", day), ("warehouse_id", warehouse_id), ("category", category), ("family", family), ("limit", limit), ("offset", offset)) if v is not None}
     return await inv.forward("GET", "/dashboard/drilldown", params=params, user_id=session.user_id, roles=session.roles)
 
 
