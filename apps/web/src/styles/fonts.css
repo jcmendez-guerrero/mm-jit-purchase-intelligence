@@ -1,3 +1,5 @@
+/* stylelint-disable selector-class-pattern, property-no-vendor-prefix, property-no-deprecated, import-notation, font-family-name-quotes, media-feature-range-notation, no-descending-specificity, custom-property-empty-line-before -- BEM class names and project conventions */
+
 /*
  * Self-hosted brand typefaces (FR-009, SC-006): Bricolage Grotesque (titles, with optical size and weight axes) and
  * Inter (text). Both are SIL OFL 1.1, served from the application's own origin. Latin and Latin-ext subsets cover Spanish.

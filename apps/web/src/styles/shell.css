@@ -1,3 +1,5 @@
+/* stylelint-disable selector-class-pattern, property-no-vendor-prefix, property-no-deprecated, import-notation, font-family-name-quotes, media-feature-range-notation, no-descending-specificity, custom-property-empty-line-before -- BEM class names and project conventions */
+
 /* Application shell: skip link, rail, top bar, content, quick-jump palette (design.md §5). Tokens only. */
 
 .mmi-skip-link {

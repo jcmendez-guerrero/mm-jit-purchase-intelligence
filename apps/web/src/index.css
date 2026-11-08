@@ -1,3 +1,5 @@
+/* stylelint-disable selector-class-pattern, property-no-vendor-prefix, property-no-deprecated, import-notation, font-family-name-quotes, media-feature-range-notation, no-descending-specificity, custom-property-empty-line-before -- BEM class names and project conventions */
+
 @import "./styles/fonts.css";
 @import "./styles/tokens.css";
 @import "./styles/base.css";

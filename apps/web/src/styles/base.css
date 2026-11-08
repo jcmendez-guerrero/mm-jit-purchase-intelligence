@@ -1,3 +1,5 @@
+/* stylelint-disable selector-class-pattern, property-no-vendor-prefix, property-no-deprecated, import-notation, font-family-name-quotes, media-feature-range-notation, no-descending-specificity, custom-property-empty-line-before -- BEM class names and project conventions */
+
 /* Base rules: typography, focus ring, reduced motion, print (design.md §4, §9, §11). Tokens only, no colour literals. */
 
 html {

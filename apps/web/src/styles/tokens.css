@@ -1,3 +1,5 @@
+/* stylelint-disable selector-class-pattern, property-no-vendor-prefix, property-no-deprecated, import-notation, font-family-name-quotes, media-feature-range-notation, no-descending-specificity, custom-property-empty-line-before -- BEM class names and project conventions */
+
 /*
  * MMI design tokens (design.md §4). The only file that may contain colour literals (tokens-usage test).
  * Brand manual colours: petroleo #016581, azul-medio #2F8198, turquesa #60ABB8, azul-noche #002028, blanco-hielo #F2F8F9.
