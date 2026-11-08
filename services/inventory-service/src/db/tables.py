@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from mmi_common.outbox import inbox_table, outbox_table
 from sqlalchemy import (
-    JSON,
     BigInteger,
     Boolean,
     Column,
@@ -16,11 +15,13 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    JSON,
     MetaData,
     Numeric,
     String,
     Table,
     UniqueConstraint,
+    false,
 )
 
 metadata = MetaData()
@@ -54,6 +55,7 @@ variants = Table(
     Column("reorder_point", Integer),
     Column("price", Numeric(18, 6)),  # selling price in EUR, used only to rank value (ABC)
     Column("price_confirmed_at", DateTime(timezone=True)),  # last successful sync that carried this price (stale after 7 days)
+    Column("is_service", Boolean, nullable=False, server_default=false()),  # MMI 004: services are shown but never enter stock, demand, forecasts or risks
 )
 stock_snapshots = Table(
     "stock_snapshots", metadata,

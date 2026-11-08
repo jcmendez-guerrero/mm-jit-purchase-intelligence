@@ -133,11 +133,15 @@ def build_router(app: FastAPI) -> APIRouter:
         return {"status": res.status, "warnings": res.warnings, "request_id": None if res.request is None else res.request.id}
 
     @router.get("/suppliers")
-    def list_suppliers(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
+    def list_suppliers(status: str | None = None, classification: str | None = None, q: str | None = None,
+                       conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
+        from api.suppliers import supplier_json
+        from suppliers.service import list_suppliers as find_suppliers
+
         out = []
-        for s in conn.execute(select(suppliers).order_by(suppliers.c.name)).all():
+        for s in find_suppliers(conn, status=status, classification=classification, q=q):
             t = current_terms(conn, s.id)
-            out.append({"id": s.id, "name": s.name, "terms": None if t is None else terms_json(t), "version": current_version(conn, s.id)})
+            out.append({**supplier_json(s), "supplier_version": int(s.version), "terms": None if t is None else terms_json(t), "version": current_version(conn, s.id)})
         return out
 
     @router.get("/costs")

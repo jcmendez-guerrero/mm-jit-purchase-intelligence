@@ -9,7 +9,11 @@ from decimal import Decimal
 from pathlib import Path
 
 from api.costs import build_router, get_engine
+from api.internal_export_costs import build_router as build_export_costs_router
+from api.internal_export_costs import enabled as enabled_internal_export_costs
+from api.internal_import import build_router as build_import_router
 from api.policies import build_router as build_policy_router
+from api.suppliers import build_router as build_suppliers_router
 from api.proposals import build_router as build_proposal_router
 from api.scenarios import build_router as build_scenario_router
 from api.summary import build_router as build_summary_router
@@ -22,6 +26,10 @@ app.include_router(build_proposal_router(app))
 app.include_router(build_policy_router(app))
 app.include_router(build_summary_router(app))
 app.include_router(build_scenario_router(app))
+app.include_router(build_suppliers_router(app))
+if enabled_internal_export_costs():          # local export loader only (MMI_LOCAL_LOADER=1, never prod/staging)
+    app.include_router(build_export_costs_router(app))
+    app.include_router(build_import_router(app))
 
 
 def configure() -> None:

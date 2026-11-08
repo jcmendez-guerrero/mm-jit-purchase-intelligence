@@ -14,8 +14,11 @@ from routes.api import router as api_router
 from routes.costs import router as costs_router
 from routes.dashboard import router as dashboard_router
 from routes.imports import router as imports_router
+from routes.local_load import enabled as local_load_enabled
+from routes.local_load import router as local_load_router
 from routes.policies import router as policies_router
 from routes.scenarios import router as scenarios_router
+from routes.suppliers import router as suppliers_router
 
 # In api-bff, user session cookies are used for the frontend API.
 # Service skeleton provides /healthz, /readyz.
@@ -46,6 +49,17 @@ async def downstream_status(_: Request, exc: httpx.HTTPStatusError) -> JSONRespo
         except Exception:
             detail = None
         body: dict[str, object] = {"detail": detail if isinstance(detail, str) and CODE.fullmatch(detail) else "downstream_refused"}
+        if body["detail"] != "downstream_refused":
+            try:
+                extra = exc.response.json()
+            except Exception:
+                extra = {}
+            if isinstance(extra.get("field"), str) and re.fullmatch(r"[a-z][a-z0-9_]{0,40}", extra["field"]):
+                body["field"] = extra["field"]
+            if isinstance(extra.get("duplicates"), list) and all(isinstance(d, str) and re.fullmatch(r"[A-Za-z0-9-]{1,64}", d) for d in extra["duplicates"]):
+                body["duplicates"] = extra["duplicates"][:20]
+            if isinstance(extra.get("open_lines"), int) and not isinstance(extra["open_lines"], bool):
+                body["open_lines"] = extra["open_lines"]
         try:
             current = exc.response.json().get("current_version")
         except Exception:
@@ -69,6 +83,7 @@ async def identity_unavailable(_: Request, exc: RuntimeError) -> JSONResponse:
 
 
 # Mount frontend-facing endpoints under /api per bff-api.openapi.yaml
+app.include_router(suppliers_router, prefix="/api")
 app.include_router(api_router, prefix="/api")
 app.include_router(costs_router, prefix="/api")
 app.include_router(policies_router, prefix="/api")
@@ -77,3 +92,5 @@ app.include_router(dashboard_router, prefix="/api")
 app.include_router(scenarios_router, prefix="/api")
 app.include_router(admin_status_router, prefix="/api")
 app.include_router(admin_roles_router, prefix="/api")
+if local_load_enabled():          # local export loader only (MMI_LOCAL_LOADER=1, never prod/staging): absent from every cloud configuration
+    app.include_router(local_load_router, prefix="/api")

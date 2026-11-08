@@ -14,8 +14,8 @@ class ProcurementClient(DownstreamClient):
         url = base_url or os.environ.get("MMI_PROCUREMENT_URL", "http://procurement-service:8000")
         super().__init__(url, "api://mmi-procurement-service")
 
-    async def get_suppliers(self, roles: list[str] | None = None) -> list[dict[str, Any]]:
-        res = await self.get("/suppliers", roles=roles)
+    async def get_suppliers(self, roles: list[str] | None = None, params: dict[str, str] | None = None) -> list[dict[str, Any]]:
+        res = await self.get("/suppliers", params=params, roles=roles)
         res.raise_for_status()
         return res.json()
 

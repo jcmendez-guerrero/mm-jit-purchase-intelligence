@@ -78,7 +78,7 @@ class Summary:
 
 
 def variant_scope(conn: Connection, f: Filters) -> set[int]:
-    ids = {r.external_id for r in conn.execute(select(variants.c.external_id)).all()}
+    ids = {r.external_id for r in conn.execute(select(variants.c.external_id).where(variants.c.is_service.is_(False))).all()}
     if f.family is not None:
         in_family = {r.external_id for r in conn.execute(select(variants.c.external_id).join(products, products.c.external_id == variants.c.product_id)
                                                          .where(products.c.family == f.family)).all()}

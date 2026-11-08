@@ -13,6 +13,9 @@ from dataclasses import dataclass, field
 from urllib.parse import unquote, urlsplit
 
 API_PREFIX = "/api/public"
+LOCAL_ID_FLOOR = 9_000_000          # ids at or above this are assigned by the local export loader and never exist in the real ERP
+LOCAL_HOSTS = {"siweb-mock", "localhost", "127.0.0.1", "::1"}
+ID_PARAMS = ("variant_id", "product_id", "warehouse_id", "contact_id")
 
 _ID = r"[0-9]+"
 READER_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
@@ -32,6 +35,18 @@ READER_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         rf"/purchases/{_ID}",
     )
 )
+
+
+def _has_local_id(path: str, query: str) -> bool:
+    """A locally assigned id in a path segment or in an id parameter. Only the real ERP is protected: the mock serves these ids."""
+    for seg in path.split("/"):
+        if seg.isdigit() and int(seg) >= LOCAL_ID_FLOOR:
+            return True
+    for pair in query.split("&"):
+        key, _, value = pair.partition("=")
+        if key in ID_PARAMS and value.isdigit() and int(value) >= LOCAL_ID_FLOOR:
+            return True
+    return False
 
 
 class AllowlistViolation(Exception):
@@ -75,3 +90,5 @@ class Allowlist:
             raise AllowlistViolation("path_not_normalised", method, url)
         if not any(p.match(path) for p in READER_PATTERNS):
             raise AllowlistViolation("path_not_allowed", method, url)
+        if (parts.hostname or "").lower() not in LOCAL_HOSTS and _has_local_id(parts.path, parts.query):
+            raise AllowlistViolation("local_id_refused", method, url)

@@ -23,6 +23,7 @@ from costs.recargo import RecargoTable, UnknownVatError, net_from_gross
 from costs.rules import CostRules
 from costs.store import NewCost, add_version, current, refresh_erp_verification
 from costs.writes import relink_pending
+from suppliers.dedupe import name_key
 
 SOURCE = "siweb_product_supplier"
 ACTOR = "siweb-import"
@@ -40,10 +41,12 @@ def get_or_create_supplier(conn: Connection, contact_id: int, name: str | None) 
     row = conn.execute(select(suppliers.c.id, suppliers.c.name).where(suppliers.c.external_contact_id == contact_id)).first()
     if row:
         if name and row.name != name:
-            conn.execute(update(suppliers).where(suppliers.c.id == row.id).values(name=name))
+            conn.execute(update(suppliers).where(suppliers.c.id == row.id).values(name=name, name_key=name_key(name)))
         return str(row.id)
     sid = str(uuid.uuid4())
-    conn.execute(insert(suppliers).values(id=sid, external_contact_id=contact_id, name=name or f"Proveedor {contact_id}"))
+    shown = name or f"Proveedor {contact_id}"
+    conn.execute(insert(suppliers).values(id=sid, external_contact_id=contact_id, name=shown, name_key=name_key(shown), origin="erp", erp_link_state="linked",
+                                          classification="purchasing"))
     return sid
 
 

@@ -35,11 +35,15 @@ def load_series(conn: Connection, through_day: date | None = None) -> list[Serie
     for r in conn.execute(select(stock_history.c.variant_id, stock_history.c.day, stock_history.c.censored, stock_history.c.reconciled_ok)
                           .where(stock_history.c.warehouse_id == ALL_WAREHOUSES)).all():
         hist[r.variant_id][r.day] = (bool(r.censored), bool(r.reconciled_ok))
-    info = {r.external_id: r for r in conn.execute(select(variants.c.external_id, variants.c.product_id, variants.c.price)).all()}
+    info = {r.external_id: r for r in conn.execute(select(variants.c.external_id, variants.c.product_id, variants.c.price)
+                                                   .where(variants.c.is_service.is_(False))).all()}
     status = {r.external_id: r.status for r in conn.execute(select(products.c.external_id, products.c.status)).all()}
     pending = set(conn.execute(select(stock_movements.c.variant_id).where(stock_movements.c.quarantined).distinct()).scalars())
+    services = set(conn.execute(select(variants.c.external_id).where(variants.c.is_service.is_(True))).scalars())   # FR-036: never classified
     out: list[SeriesInput] = []
     for vid, per_day in hist.items():
+        if vid in services:
+            continue
         first = min(per_day)
         n = (through_day - first).days + 1
         days = [first + timedelta(days=i) for i in range(n)]

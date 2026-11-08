@@ -20,7 +20,7 @@ from sqlalchemy.engine import Connection, Row
 
 from costs.rules import CostRules, is_abnormal_jump, status
 
-SOURCES = ("siweb_product_supplier", "csv_price_list", "manual")
+SOURCES = ("siweb_product_supplier", "csv_price_list", "manual", "inventory_export")
 
 
 class CostError(Exception):
