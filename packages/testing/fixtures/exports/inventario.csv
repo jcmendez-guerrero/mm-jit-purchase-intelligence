@@ -1,0 +1,362 @@
+﻿SKU,Nombre,Descripción,Categoría,Marca,Proveedor,Tipo,Unidad de Medida,Categoría Unidad,Precio Venta (€),Precio Coste (€),Tipo Impuesto,Tasa Impuesto (%),Impuesto Incluido,Stock Disponible,Stock Reservado,Stock Total,Punto de Reorden,Stock Objetivo,Moneda,Estado,Lote
+SYN-000001,Producto Sintetico 0001,"Descripcion sintetica 1
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,18.24,8.21,IVA21,21,No,0,0,0,0,6,EUR,Activo,
+SYN-000002,Producto Sintetico 0002,Descripcion sintetica 2,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,89.35,41.99,IVA21,21,No,0,0,0,2,12,EUR,Activo,
+SYN-000003,Producto Sintetico 0003,Descripcion sintetica 3,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,33.00,14.52,IVA,10,No,2,0,2,3,4,EUR,Activo,
+SYN-000004,Producto Sintetico 0004,Descripcion sintetica 4,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,75.78,47.74,IVA10,10,No,4,0,4,0,12,EUR,Activo,
+SYN-000005,Producto Sintetico 0005,Descripcion sintetica 5,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,29.53,21.85,IVA10,10,No,1,1,2,5,2,EUR,Activo,
+SYN-000006,Producto Sintetico 0006,"Descripcion sintetica 6
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,54.63,23.49,IVA10,10,Sí,0,5,2,5,4,EUR,Activo,
+SYN-000007,Producto Sintetico 0007,Descripcion sintetica 7,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,36.33,25.79,IVA21,21,No,-3,0,-3,2,12,EUR,Activo,
+SYN-000008,Producto Sintetico 0008,Descripcion sintetica 8,Farmacia Sintetica,Marca Sintetica C,Proveedor Sintetico Comunitario 01 Ltd,Físico,unidad,count,71.69,0.00,IVA10,10,No,2,0,2,1,2,EUR,Activo,
+SYN-000009,Producto Sintetico 0009,Descripcion sintetica 9,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,12.00,20.00,IVA21,21,No,6,1,7,0,0,EUR,Activo,
+SYN-000010,Producto Sintetico 0010,Descripcion sintetica 10,Juguetes Sinteticos,Marca Sintetica E,Proveedor Inexistente Sintetico,Físico,unidad,count,89.47,51.00,IVA10,10,Sí,0,0,0,2,12,USD,Activo,
+SYN-000011,Producto Sintetico 0011,"Descripcion sintetica 11
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,30.77,22.15,IVA,10,No,3,0,3,5,0,EUR,Inactivo,LOT-99944
+SYN-000012,Producto Sintetico 0012,Descripcion sintetica 12,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,54.60,38.77,IVA,10,No,0,0,0,2,2,EUR,Activo,
+SYN-000013,Producto Sintetico 0013,Descripcion sintetica 13,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,10.99,6.04,IVA,21,No,0,0,0,5,2,EUR,Activo,LOT-63700
+SYN-000014,Producto Sintetico 0014,Descripcion sintetica 14,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,22.53,15.77,IVA,21,No,1,0,1,5,2,EUR,Activo,
+SYN-000015,Producto Sintetico 0015,Descripcion sintetica 15,Juguetes Sinteticos,Marca Sintetica E,Proveedor Sintetico Extranjero 01 Ltd,Físico,unidad,count,52.57,34.17,IVA10,10,No,8,1,9,1,12,EUR,Activo,LOT-29452
+SYN-000016,Producto Sintetico 0016,"Descripcion sintetica 16
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,37.58,15.03,IVA,10,No,0,0,0,0,12,EUR,Activo,
+SYN-000017,Producto Sintetico 0017,Descripcion sintetica 17,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,40.49,23.08,IVA21,21,No,2,0,2,1,6,EUR,Activo,
+SYN-000018,Producto Sintetico 0018,Descripcion sintetica 18,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,68.19,35.46,IVA,10,No,0,0,0,0,0,EUR,Activo,
+SYN-000019,Producto Sintetico 0019,Descripcion sintetica 19,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,11.43,7.43,IVA10,10,No,0,0,0,3,2,EUR,Activo,
+SYN-000020,Producto Sintetico 0020,Descripcion sintetica 20,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,47.13,32.52,IVA10,10,No,0,0,0,0,12,EUR,Activo,
+SYN-000021,Producto Sintetico 0021,"Descripcion sintetica 21
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,3.91,1.76,IVA10,10,No,1,1,2,0,2,EUR,Activo,
+SYN-000022,Producto Sintetico 0022,Descripcion sintetica 22,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,63.59,25.44,IVA21,21,No,3,1,4,5,6,EUR,Activo,
+SYN-000023,Producto Sintetico 0023,Descripcion sintetica 23,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,26.86,13.97,IVA10,10,No,2,0,2,0,0,EUR,Activo,
+SYN-000024,Producto Sintetico 0024,Descripcion sintetica 24,Accesorios Sintetica,Marca Sintetica D,Proveedor Sintetico 11 S.L.,Físico,unidad,count,79.61,57.32,IVA,21,Sí,1,0,1,0,2,EUR,Activo,
+SYN-000025,Producto Sintetico 0025,Descripcion sintetica 25,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,67.65,31.80,IVA,21,No,2,0,2,5,4,EUR,Activo,
+SYN-000026,Producto Sintetico 0026,"Descripcion sintetica 26
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,44.22,23.44,IVA10,10,No,2,0,2,2,0,EUR,Activo,
+SYN-000027,Producto Sintetico 0027,Descripcion sintetica 27,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,3.02,2.08,IVA,21,No,0,0,0,2,0,EUR,Activo,LOT-27939
+SYN-000028,Producto Sintetico 0028,Descripcion sintetica 28,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,41.52,26.16,IVA10,10,No,1,1,2,5,0,EUR,Activo,
+SYN-000029,Producto Sintetico 0029,Descripcion sintetica 29,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,50.55,23.25,IVA10,10,No,3,0,3,2,12,EUR,Activo,
+SYN-000030,Producto Sintetico 0030,Descripcion sintetica 30,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,36.00,21.96,IVA10,10,Sí,3,1,4,3,4,EUR,Activo,
+SYN-000031,Producto Sintetico 0031,"Descripcion sintetica 31
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,8.72,3.49,IVA10,10,No,1,0,1,5,0,EUR,Activo,
+SYN-000032,Producto Sintetico 0032,Descripcion sintetica 32,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,19.82,8.72,IVA10,10,No,12,0,12,1,0,EUR,Activo,
+SYN-000033,Producto Sintetico 0033,Descripcion sintetica 33,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,52.00,32.76,IVA,10,No,4,0,4,5,6,EUR,Activo,
+SYN-000034,Producto Sintetico 0034,Descripcion sintetica 34,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,26.82,14.75,IVA10,10,No,1,1,2,3,2,EUR,Activo,LOT-96543
+SYN-000035,Producto Sintetico 0035,Descripcion sintetica 35,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,45.21,22.61,IVA,10,No,6,0,6,3,4,EUR,Activo,
+SYN-000036,Producto Sintetico 0036,"Descripcion sintetica 36
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,51.50,27.81,IVA10,10,No,0,0,0,0,4,EUR,Activo,
+SYN-000037,Producto Sintetico 0037,Descripcion sintetica 37,Higiene Sintetica,Marca Sintetica B,Proveedor Sintetico 14 S.L.,Físico,unidad,count,59.03,42.50,IVA21,21,No,12,0,12,2,0,EUR,Activo,
+SYN-000038,Producto Sintetico 0038,Descripcion sintetica 38,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,19.26,12.90,IVA10,10,No,4,1,5,5,2,EUR,Activo,
+SYN-000039,Producto Sintetico 0039,Descripcion sintetica 39,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,43.23,18.16,IVA21,21,No,0,0,0,1,4,EUR,Activo,
+SYN-000040,Producto Sintetico 0040,Descripcion sintetica 40,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,72.16,31.75,IVA10,10,No,4,0,4,3,4,EUR,Activo,
+SYN-000041,Producto Sintetico 0041,"Descripcion sintetica 41
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,67.42,39.10,IVA,21,No,1,0,1,1,12,EUR,Activo,
+SYN-000042,Producto Sintetico 0042,Descripcion sintetica 42,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,50.80,33.02,IVA,21,No,0,0,0,5,4,EUR,Activo,
+SYN-000043,Producto Sintetico 0043,Descripcion sintetica 43,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,77.68,52.82,IVA21,21,No,2,1,3,0,4,EUR,Activo,
+SYN-000044,Producto Sintetico 0044,Descripcion sintetica 44,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,85.95,52.43,IVA,10,Sí,2,0,2,1,6,EUR,Activo,
+SYN-000045,Producto Sintetico 0045,Descripcion sintetica 45,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,13.43,9.27,IVA21,21,No,2,1,3,0,0,EUR,Activo,
+SYN-000046,Producto Sintetico 0046,"Descripcion sintetica 46
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,71.15,38.42,IVA10,10,No,12,1,13,1,6,EUR,Activo,LOT-32663
+SYN-000047,Producto Sintetico 0047,Descripcion sintetica 47,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,88.52,66.39,IVA,21,No,4,1,5,5,6,EUR,Activo,
+SYN-000048,Producto Sintetico 0048,Descripcion sintetica 48,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,27.57,19.30,IVA21,21,No,3,0,3,3,2,EUR,Activo,
+SYN-000049,Producto Sintetico 0049,Descripcion sintetica 49,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,46.49,31.61,IVA,10,No,3,0,3,1,2,EUR,Activo,
+SYN-000050,Producto Sintetico 0050,Descripcion sintetica 50,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,39.38,25.20,IVA10,10,No,2,0,2,0,2,EUR,Activo,
+SYN-000051,Producto Sintetico 0051,"Descripcion sintetica 51
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,70.33,45.01,IVA,21,No,0,0,0,0,4,EUR,Activo,
+SYN-000052,Producto Sintetico 0052,Descripcion sintetica 52,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,50.42,32.27,IVA21,21,No,12,0,12,3,4,EUR,Activo,
+SYN-000053,Producto Sintetico 0053,Descripcion sintetica 53,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,67.74,33.87,IVA21,21,No,1,0,1,0,6,EUR,Activo,
+SYN-000054,Producto Sintetico 0054,Descripcion sintetica 54,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,23.73,16.37,IVA10,10,No,0,0,0,2,6,EUR,Activo,
+SYN-000055,Producto Sintetico 0055,Descripcion sintetica 55,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,47.08,31.07,IVA10,10,Sí,0,0,0,2,2,EUR,Activo,
+SYN-000056,Producto Sintetico 0056,"Descripcion sintetica 56
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,12.74,5.35,IVA,10,No,2,0,2,3,0,EUR,Activo,
+SYN-000057,Producto Sintetico 0057,Descripcion sintetica 57,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,37.21,25.67,IVA10,10,No,4,0,4,1,4,EUR,Activo,
+SYN-000058,Producto Sintetico 0058,Descripcion sintetica 58,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,19.21,7.88,IVA10,10,No,6,1,7,1,0,EUR,Activo,
+SYN-000059,Producto Sintetico 0059,Descripcion sintetica 59,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,50.91,23.93,IVA,21,No,0,0,0,5,4,EUR,Activo,
+SYN-000060,Producto Sintetico 0060,Descripcion sintetica 60,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,3.57,2.36,IVA21,21,No,0,0,0,3,2,EUR,Activo,
+SYN-000061,Producto Sintetico 0061,"Descripcion sintetica 61
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,72.85,37.15,IVA,21,No,3,1,4,2,2,EUR,Activo,
+SYN-000062,Producto Sintetico 0062,Descripcion sintetica 62,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,15.69,8.94,IVA21,21,No,2,1,3,3,4,EUR,Activo,
+SYN-000063,Producto Sintetico 0063,Descripcion sintetica 63,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,31.29,22.22,IVA10,10,No,4,0,4,2,12,EUR,Activo,
+SYN-000064,Producto Sintetico 0064,Descripcion sintetica 64,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,3.16,2.31,IVA10,10,No,0,0,0,1,6,EUR,Activo,
+SYN-000065,Producto Sintetico 0065,Descripcion sintetica 65,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,81.91,55.70,IVA,10,No,0,0,0,5,4,EUR,Activo,
+SYN-000066,Producto Sintetico 0066,"Descripcion sintetica 66
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,79.03,59.27,IVA,21,No,4,1,5,3,4,EUR,Activo,
+SYN-000067,Producto Sintetico 0067,Descripcion sintetica 67,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,51.73,28.97,IVA10,10,No,0,0,0,1,2,EUR,Activo,
+SYN-000068,Producto Sintetico 0068,Descripcion sintetica 68,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,36.95,25.87,IVA10,10,No,12,0,12,2,2,EUR,Activo,
+SYN-000069,Producto Sintetico 0069,Descripcion sintetica 69,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,51.02,20.41,IVA,21,No,1,0,1,1,6,EUR,Activo,LOT-07147
+SYN-000070,Producto Sintetico 0070,Descripcion sintetica 70,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,18.30,7.32,IVA,21,No,3,1,4,2,6,EUR,Activo,
+SYN-000071,Producto Sintetico 0071,"Descripcion sintetica 71
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,20.19,8.88,IVA21,21,No,8,0,8,5,4,EUR,Activo,
+SYN-000072,Producto Sintetico 0072,Descripcion sintetica 72,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,15.45,8.50,IVA,10,No,12,1,13,5,6,EUR,Activo,
+SYN-000073,Producto Sintetico 0073,Descripcion sintetica 73,Farmacia Sintetica,Marca Sintetica C,Proveedor Sintetico 09 S.L.,Físico,unidad,count,75.31,51.21,IVA10,10,No,6,0,6,1,2,EUR,Activo,
+SYN-000074,Producto Sintetico 0074,Descripcion sintetica 74,Accesorios Sintetica,Marca Sintetica D,Proveedor Inexistente Sintetico,Físico,unidad,count,44.85,20.18,IVA10,10,No,2,0,2,5,6,EUR,Activo,
+SYN-000075,Producto Sintetico 0075,Descripcion sintetica 75,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,49.21,20.67,IVA10,10,No,3,0,3,2,12,EUR,Activo,
+SYN-000076,Producto Sintetico 0076,"Descripcion sintetica 76
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,33.91,22.72,IVA,10,No,12,0,12,0,0,EUR,Activo,
+SYN-000077,Producto Sintetico 0077,Descripcion sintetica 77,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,28.68,16.92,IVA,21,No,3,1,4,2,12,EUR,Activo,LOT-90267
+SYN-000078,Producto Sintetico 0078,Descripcion sintetica 78,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,89.97,63.88,IVA21,21,No,0,0,0,5,4,EUR,Activo,
+SYN-000079,Producto Sintetico 0079,Descripcion sintetica 79,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,5.73,2.58,IVA10,10,No,0,0,0,0,2,EUR,Activo,
+SYN-000080,Producto Sintetico 0080,Descripcion sintetica 80,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,78.58,57.36,IVA21,21,No,3,0,3,0,6,EUR,Activo,
+SYN-000081,Producto Sintetico 0081,"Descripcion sintetica 81
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,58.50,38.61,IVA10,10,No,4,0,4,2,6,EUR,Activo,
+SYN-000082,Producto Sintetico 0082,Descripcion sintetica 82,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,7.51,5.18,IVA,10,No,4,0,4,5,0,EUR,Activo,
+SYN-000083,Producto Sintetico 0083,Descripcion sintetica 83,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,77.19,50.95,IVA,10,No,2,0,2,0,2,EUR,Activo,
+SYN-000084,Producto Sintetico 0084,Descripcion sintetica 84,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,45.25,33.94,IVA10,10,Sí,3,1,4,5,2,EUR,Activo,
+SYN-000085,Producto Sintetico 0085,Descripcion sintetica 85,Juguetes Sinteticos,Marca Sintetica E,Proveedor Sintetico 09 S.L.,Físico,unidad,count,27.44,16.19,IVA,21,No,0,0,0,0,2,EUR,Activo,
+SYN-000086,Producto Sintetico 0086,"Descripcion sintetica 86
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,83.15,48.23,IVA,21,No,3,1,4,5,2,EUR,Activo,
+SYN-000087,Producto Sintetico 0087,Descripcion sintetica 87,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,64.34,33.46,IVA,21,No,12,0,12,3,4,EUR,Activo,
+SYN-000088,Producto Sintetico 0088,Descripcion sintetica 88,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,84.68,48.27,IVA,10,No,3,0,3,1,6,EUR,Activo,
+SYN-000089,Producto Sintetico 0089,Descripcion sintetica 89,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,89.74,62.82,IVA10,10,No,4,1,5,1,12,EUR,Activo,
+SYN-000090,Producto Sintetico 0090,Descripcion sintetica 90,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,64.24,34.69,IVA21,21,No,0,0,0,3,6,EUR,Activo,
+SYN-000091,Producto Sintetico 0091,"Descripcion sintetica 91
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,26.42,18.76,IVA,10,No,1,0,1,5,6,EUR,Activo,
+SYN-000092,Producto Sintetico 0092,Descripcion sintetica 92,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,4.01,1.96,IVA21,21,No,1,0,1,3,0,EUR,Activo,
+SYN-000093,Producto Sintetico 0093,Descripcion sintetica 93,Farmacia Sintetica,Marca Sintetica C,Proveedor Sintetico 08 S.L.,Físico,unidad,count,55.33,40.94,IVA21,21,No,4,1,5,2,2,EUR,Activo,
+SYN-000094,Producto Sintetico 0094,Descripcion sintetica 94,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,16.30,10.92,IVA,10,No,0,0,0,0,4,EUR,Activo,
+SYN-000095,Producto Sintetico 0095,Descripcion sintetica 95,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,10.69,6.20,IVA10,10,No,4,1,5,1,2,EUR,Activo,LOT-69622
+SYN-000096,Producto Sintetico 0096,"Descripcion sintetica 96
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,30.18,13.58,IVA,21,No,6,0,6,2,6,EUR,Activo,
+SYN-000097,Producto Sintetico 0097,Descripcion sintetica 97,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,43.33,17.33,IVA21,21,No,3,0,3,3,4,EUR,Activo,LOT-45294
+SYN-000098,Producto Sintetico 0098,Descripcion sintetica 98,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,76.34,45.04,IVA10,10,No,6,1,7,2,0,EUR,Activo,LOT-49987
+SYN-000099,Producto Sintetico 0099,Descripcion sintetica 99,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,66.34,37.81,IVA,10,No,0,0,0,2,2,EUR,Activo,
+SYN-000100,Producto Sintetico 0100,Descripcion sintetica 100,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,59.22,31.98,IVA10,10,No,3,0,3,2,6,EUR,Activo,
+SYN-000101,Producto Sintetico 0101,"Descripcion sintetica 101
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,6.96,4.38,IVA10,10,No,0,0,0,1,2,EUR,Activo,
+SYN-000102,Producto Sintetico 0102,Descripcion sintetica 102,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,89.87,56.62,IVA,21,No,12,0,12,3,4,EUR,Activo,
+SYN-000103,Producto Sintetico 0103,Descripcion sintetica 103,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,56.99,26.79,IVA21,21,No,0,0,0,3,12,EUR,Activo,LOT-29572
+SYN-000104,Producto Sintetico 0104,Descripcion sintetica 104,Accesorios Sintetica,Marca Sintetica D,DISTRIBUCIONES SINTETICAS NORTE SL,Físico,unidad,count,61.42,27.64,IVA21,21,No,0,0,0,2,12,EUR,Activo,
+SYN-000105,Producto Sintetico 0105,Descripcion sintetica 105,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,63.92,40.27,IVA,10,No,2,1,3,0,6,EUR,Activo,LOT-73585
+SYN-000106,Producto Sintetico 0106,"Descripcion sintetica 106
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,51.01,33.67,IVA,10,No,1,0,1,0,2,EUR,Activo,
+SYN-000107,Producto Sintetico 0107,Descripcion sintetica 107,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,89.57,42.99,IVA21,21,No,8,0,8,3,12,EUR,Activo,
+SYN-000108,Producto Sintetico 0108,Descripcion sintetica 108,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,26.81,17.69,IVA,10,No,8,1,9,1,6,EUR,Activo,
+SYN-000109,Producto Sintetico 0109,Descripcion sintetica 109,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,74.35,40.89,IVA10,10,No,0,0,0,2,0,EUR,Activo,
+SYN-000110,Producto Sintetico 0110,Descripcion sintetica 110,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,66.73,38.04,IVA10,10,No,0,0,0,1,12,EUR,Activo,
+SYN-000111,Producto Sintetico 0111,"Descripcion sintetica 111
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,4.99,2.15,IVA10,10,No,2,0,2,5,2,EUR,Activo,
+SYN-000112,Producto Sintetico 0112,Descripcion sintetica 112,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,36.88,19.92,IVA10,10,No,1,0,1,5,4,EUR,Activo,
+SYN-000113,Producto Sintetico 0113,Descripcion sintetica 113,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,30.08,14.14,IVA,10,No,1,0,1,0,2,EUR,Activo,
+SYN-000114,Producto Sintetico 0114,Descripcion sintetica 114,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,44.97,19.34,IVA10,10,No,6,0,6,5,12,EUR,Activo,
+SYN-000115,Producto Sintetico 0115,Descripcion sintetica 115,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,19.36,13.16,IVA,21,No,2,0,2,2,6,EUR,Activo,
+SYN-000116,Producto Sintetico 0116,"Descripcion sintetica 116
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,6.60,2.84,IVA21,21,No,6,1,7,0,0,EUR,Activo,
+SYN-000117,Producto Sintetico 0117,Descripcion sintetica 117,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,54.27,26.59,IVA,10,No,1,0,1,3,12,EUR,Activo,
+SYN-000118,Producto Sintetico 0118,Descripcion sintetica 118,Farmacia Sintetica,Marca Sintetica C,Proveedor Sintetico 23 S.L.,Físico,unidad,count,88.42,51.28,IVA21,21,No,12,1,13,1,6,EUR,Activo,LOT-91984
+SYN-000119,Producto Sintetico 0119,Descripcion sintetica 119,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,75.48,40.76,IVA21,21,No,4,1,5,2,4,EUR,Activo,
+SYN-000120,Producto Sintetico 0120,Descripcion sintetica 120,Juguetes Sinteticos,Marca Sintetica E,Proveedor Sintetico 09 S.L.,Físico,unidad,count,62.82,30.78,IVA21,21,No,0,0,0,2,2,EUR,Activo,LOT-11189
+SYN-000121,Producto Sintetico 0121,"Descripcion sintetica 121
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,11.32,8.49,IVA,21,No,4,0,4,3,0,EUR,Activo,
+SYN-000122,Producto Sintetico 0122,Descripcion sintetica 122,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,48.62,28.69,IVA10,10,No,0,0,0,1,0,EUR,Activo,
+SYN-000123,Producto Sintetico 0123,Descripcion sintetica 123,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,58.86,44.15,IVA10,10,No,0,0,0,5,12,EUR,Activo,
+SYN-000124,Producto Sintetico 0124,Descripcion sintetica 124,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,5.80,3.31,IVA,10,No,1,0,1,0,2,EUR,Activo,
+SYN-000125,Producto Sintetico 0125,Descripcion sintetica 125,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,24.97,16.23,IVA,10,No,1,0,1,2,2,EUR,Activo,LOT-69532
+SYN-000126,Producto Sintetico 0126,"Descripcion sintetica 126
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,Proveedor Inexistente Sintetico,Físico,unidad,count,62.12,36.65,IVA10,10,No,0,0,0,0,0,EUR,Activo,
+SYN-000127,Producto Sintetico 0127,Descripcion sintetica 127,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,46.08,31.33,IVA21,21,No,8,1,9,2,6,EUR,Activo,
+SYN-000128,Producto Sintetico 0128,Descripcion sintetica 128,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,19.66,11.40,IVA,21,Sí,8,0,8,1,4,EUR,Activo,LOT-51808
+SYN-000129,Producto Sintetico 0129,Descripcion sintetica 129,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,36.10,17.33,IVA10,10,No,3,0,3,3,12,EUR,Activo,LOT-65194
+SYN-000130,Producto Sintetico 0130,Descripcion sintetica 130,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,39.20,28.22,IVA,21,No,4,0,4,3,0,EUR,Activo,
+SYN-000131,Producto Sintetico 0131,"Descripcion sintetica 131
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,52.79,35.37,IVA,21,No,6,1,7,1,12,EUR,Activo,
+SYN-000132,Producto Sintetico 0132,Descripcion sintetica 132,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,76.88,48.43,IVA,10,No,6,0,6,3,4,EUR,Activo,
+SYN-000133,Producto Sintetico 0133,Descripcion sintetica 133,Farmacia Sintetica,Marca Sintetica C,Proveedor Sintetico 22 S.L.,Físico,unidad,count,57.12,30.84,IVA10,10,No,1,0,1,2,4,EUR,Activo,
+SYN-000134,Producto Sintetico 0134,Descripcion sintetica 134,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,25.69,14.13,IVA,10,No,1,0,1,0,2,EUR,Activo,
+SYN-000135,Producto Sintetico 0135,Descripcion sintetica 135,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,82.45,56.89,IVA,21,No,8,0,8,0,6,EUR,Activo,
+SYN-000136,Producto Sintetico 0136,"Descripcion sintetica 136
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,Proveedor Sintetico 20 S.L.,Físico,unidad,count,73.95,43.63,IVA10,10,No,0,0,0,0,4,EUR,Activo,
+SYN-000137,Producto Sintetico 0137,Descripcion sintetica 137,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,48.53,21.35,IVA,10,No,12,1,13,0,6,EUR,Activo,
+SYN-000138,Producto Sintetico 0138,Descripcion sintetica 138,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,32.34,19.40,IVA,21,No,8,0,8,2,0,EUR,Activo,
+SYN-000139,Producto Sintetico 0139,Descripcion sintetica 139,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,84.16,42.92,IVA,10,No,2,1,3,2,4,EUR,Activo,
+SYN-000140,Producto Sintetico 0140,Descripcion sintetica 140,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,47.84,30.62,IVA21,21,Sí,4,0,4,0,12,EUR,Activo,
+SYN-000141,Producto Sintetico 0141,"Descripcion sintetica 141
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,Proveedor Inexistente Sintetico,Físico,unidad,count,64.83,37.60,IVA10,10,No,1,0,1,3,2,EUR,Activo,LOT-86981
+SYN-000142,Producto Sintetico 0142,Descripcion sintetica 142,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,15.38,9.07,IVA,21,No,6,0,6,5,0,EUR,Activo,
+SYN-000143,Producto Sintetico 0143,Descripcion sintetica 143,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,70.87,51.03,IVA10,10,No,0,0,0,3,2,EUR,Activo,
+SYN-000144,Producto Sintetico 0144,Descripcion sintetica 144,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,38.61,18.53,IVA10,10,No,0,0,0,5,12,EUR,Activo,
+SYN-000145,Producto Sintetico 0145,Descripcion sintetica 145,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,7.68,4.68,IVA,21,No,1,1,2,1,6,EUR,Activo,LOT-23704
+SYN-000146,Producto Sintetico 0146,"Descripcion sintetica 146
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,8.65,5.71,IVA10,10,No,2,1,3,1,12,EUR,Activo,
+SYN-000147,Producto Sintetico 0147,Descripcion sintetica 147,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,40.68,24.00,IVA21,21,No,2,0,2,2,6,EUR,Activo,
+SYN-000148,Producto Sintetico 0148,Descripcion sintetica 148,Farmacia Sintetica,Marca Sintetica C,DISTRIBUCIONES SINTETICAS NORTE SL,Físico,unidad,count,83.89,61.24,IVA21,21,No,1,0,1,3,4,EUR,Activo,
+SYN-000149,Producto Sintetico 0149,Descripcion sintetica 149,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,18.30,13.36,IVA,10,No,3,0,3,1,6,EUR,Activo,
+SYN-000150,Producto Sintetico 0150,Descripcion sintetica 150,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,16.52,8.92,IVA21,21,No,4,0,4,3,0,EUR,Activo,
+SYN-000151,Producto Sintetico 0151,"Descripcion sintetica 151
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,62.92,33.98,IVA,10,No,4,0,4,1,0,EUR,Activo,
+SYN-000152,Producto Sintetico 0152,Descripcion sintetica 152,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,48.50,33.95,IVA10,10,Sí,8,1,9,1,2,EUR,Activo,
+SYN-000153,Producto Sintetico 0153,Descripcion sintetica 153,Farmacia Sintetica,Marca Sintetica C,Proveedor Sintetico 19 S.L.,Físico,unidad,count,87.97,58.94,IVA,10,No,3,0,3,5,6,EUR,Activo,
+SYN-000154,Producto Sintetico 0154,Descripcion sintetica 154,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,11.79,5.54,IVA21,21,No,12,0,12,2,6,EUR,Activo,
+SYN-000155,Producto Sintetico 0155,Descripcion sintetica 155,Juguetes Sinteticos,Marca Sintetica E,Proveedor Sintetico 17 S.L.,Físico,unidad,count,1.75,1.09,IVA10,10,Sí,6,0,6,5,12,EUR,Activo,
+SYN-000156,Producto Sintetico 0156,"Descripcion sintetica 156
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,84.62,60.93,IVA,21,No,0,0,0,2,4,EUR,Activo,
+SYN-000157,Producto Sintetico 0157,Descripcion sintetica 157,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,4.16,2.58,IVA,10,No,4,0,4,2,2,EUR,Activo,
+SYN-000158,Producto Sintetico 0158,Descripcion sintetica 158,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,8.76,5.43,IVA,21,No,4,0,4,3,2,EUR,Activo,
+SYN-000159,Producto Sintetico 0159,Descripcion sintetica 159,Accesorios Sintetica,Marca Sintetica D,Proveedor Sintetico 12 S.L.,Físico,unidad,count,23.59,10.38,IVA21,21,No,0,0,0,2,4,EUR,Activo,
+SYN-000160,Producto Sintetico 0160,Descripcion sintetica 160,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,85.94,55.86,IVA,21,No,8,0,8,0,4,EUR,Activo,LOT-84791
+SYN-000161,Producto Sintetico 0161,"Descripcion sintetica 161
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,46.26,21.74,IVA10,10,No,6,1,7,1,6,EUR,Activo,
+SYN-000162,Producto Sintetico 0162,Descripcion sintetica 162,Higiene Sintetica,Marca Sintetica B,Proveedor Sintetico 25 S.L.,Físico,unidad,count,83.01,52.30,IVA,21,No,3,0,3,1,12,EUR,Activo,
+SYN-000163,Producto Sintetico 0163,Descripcion sintetica 163,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,49.63,29.78,IVA,10,No,0,0,0,3,2,EUR,Activo,
+SYN-000164,Producto Sintetico 0164,Descripcion sintetica 164,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,74.22,46.02,IVA21,21,No,0,0,0,3,4,EUR,Activo,
+SYN-000165,Producto Sintetico 0165,Descripcion sintetica 165,Juguetes Sinteticos,Marca Sintetica E,Proveedor Inexistente Sintetico,Físico,unidad,count,10.89,4.79,IVA21,21,No,4,0,4,3,0,EUR,Activo,
+SYN-000166,Producto Sintetico 0166,"Descripcion sintetica 166
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,22.18,9.76,IVA10,10,No,4,0,4,3,4,EUR,Activo,
+SYN-000167,Producto Sintetico 0167,Descripcion sintetica 167,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,62.45,42.47,IVA,10,No,1,0,1,0,0,EUR,Activo,
+SYN-000168,Producto Sintetico 0168,Descripcion sintetica 168,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,31.98,22.71,IVA,21,No,6,0,6,5,4,EUR,Activo,
+SYN-000169,Producto Sintetico 0169,Descripcion sintetica 169,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,81.97,42.62,IVA,10,No,1,0,1,0,4,EUR,Activo,
+SYN-000170,Producto Sintetico 0170,Descripcion sintetica 170,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,58.42,25.70,IVA,21,No,12,0,12,1,4,EUR,Activo,
+SYN-000171,Producto Sintetico 0171,"Descripcion sintetica 171
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,84.85,45.82,IVA,10,No,2,0,2,5,4,EUR,Activo,
+SYN-000172,Producto Sintetico 0172,Descripcion sintetica 172,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,78.07,58.55,IVA10,10,No,0,0,0,5,6,EUR,Activo,LOT-52188
+SYN-000173,Producto Sintetico 0173,Descripcion sintetica 173,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,68.58,30.18,IVA10,10,No,4,0,4,5,12,EUR,Activo,
+SYN-000174,Producto Sintetico 0174,Descripcion sintetica 174,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,31.31,15.03,IVA21,21,No,12,0,12,1,4,EUR,Activo,
+SYN-000175,Producto Sintetico 0175,Descripcion sintetica 175,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,38.44,23.83,IVA,21,No,3,0,3,1,4,EUR,Activo,
+SYN-000176,Producto Sintetico 0176,"Descripcion sintetica 176
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,88.90,40.01,IVA,21,No,1,0,1,2,12,EUR,Activo,
+SYN-000177,Producto Sintetico 0177,Descripcion sintetica 177,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,8.24,3.38,IVA,10,No,0,0,0,1,12,EUR,Activo,
+SYN-000178,Producto Sintetico 0178,Descripcion sintetica 178,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,69.75,28.60,IVA21,21,No,12,0,12,3,4,EUR,Activo,
+SYN-000179,Producto Sintetico 0179,Descripcion sintetica 179,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,75.80,33.35,IVA,10,No,1,1,2,1,4,EUR,Activo,
+SYN-000180,Producto Sintetico 0180,Descripcion sintetica 180,Juguetes Sinteticos,Marca Sintetica E,Proveedor Sintetico 13 S.L.,Físico,unidad,count,53.81,33.36,IVA21,21,No,1,0,1,2,6,EUR,Activo,
+SYN-000181,Producto Sintetico 0181,"Descripcion sintetica 181
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,42.11,20.63,IVA,10,No,0,0,0,1,2,EUR,Activo,
+SYN-000182,Producto Sintetico 0182,Descripcion sintetica 182,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,55.14,33.08,IVA10,10,No,1,1,2,3,0,EUR,Activo,
+SYN-000183,Producto Sintetico 0183,Descripcion sintetica 183,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,16.25,10.56,IVA,21,Sí,8,0,8,3,12,EUR,Activo,
+SYN-000184,Producto Sintetico 0184,Descripcion sintetica 184,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,78.60,45.59,IVA,21,No,0,0,0,2,6,EUR,Activo,
+SYN-000185,Producto Sintetico 0185,Descripcion sintetica 185,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,61.45,25.81,IVA21,21,No,0,0,0,0,6,EUR,Activo,
+SYN-000186,Producto Sintetico 0186,"Descripcion sintetica 186
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,84.11,57.19,IVA,21,No,3,0,3,2,12,EUR,Activo,LOT-12673
+SYN-000187,Producto Sintetico 0187,Descripcion sintetica 187,Higiene Sintetica,Marca Sintetica B,Proveedor Sintetico 10 S.L.,Físico,unidad,count,61.40,30.09,IVA10,10,No,12,1,13,3,12,EUR,Activo,
+SYN-000188,Producto Sintetico 0188,Descripcion sintetica 188,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,76.37,37.42,IVA,21,No,12,0,12,5,4,EUR,Activo,
+SYN-000189,Producto Sintetico 0189,Descripcion sintetica 189,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,56.61,40.76,IVA,21,No,12,1,13,2,4,EUR,Activo,
+SYN-000190,Producto Sintetico 0190,Descripcion sintetica 190,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,19.45,12.84,IVA,21,No,3,0,3,5,12,EUR,Activo,
+SYN-000191,Producto Sintetico 0191,"Descripcion sintetica 191
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,38.78,16.68,IVA,21,No,8,0,8,3,2,EUR,Activo,
+SYN-000192,Producto Sintetico 0192,Descripcion sintetica 192,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,41.18,17.30,IVA,21,No,0,0,0,3,2,EUR,Activo,
+SYN-000193,Producto Sintetico 0193,Descripcion sintetica 193,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,68.73,49.49,IVA,21,No,8,0,8,3,12,EUR,Activo,
+SYN-000194,Producto Sintetico 0194,Descripcion sintetica 194,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,63.23,37.94,IVA10,10,No,8,0,8,2,12,EUR,Activo,
+SYN-000195,Producto Sintetico 0195,Descripcion sintetica 195,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,80.82,42.03,IVA10,10,No,3,0,3,2,2,EUR,Activo,
+SYN-000196,Producto Sintetico 0196,"Descripcion sintetica 196
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,81.61,48.97,IVA21,21,No,4,0,4,3,4,EUR,Activo,
+SYN-000197,Producto Sintetico 0197,Descripcion sintetica 197,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,25.49,14.78,IVA,10,No,3,0,3,3,2,EUR,Activo,
+SYN-000198,Producto Sintetico 0198,Descripcion sintetica 198,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,34.60,25.60,IVA10,10,No,12,0,12,0,12,EUR,Activo,LOT-80699
+SYN-000199,Producto Sintetico 0199,Descripcion sintetica 199,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,38.47,20.77,IVA,10,No,0,0,0,1,0,EUR,Activo,
+SYN-000200,Producto Sintetico 0200,Descripcion sintetica 200,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,27.37,18.06,IVA21,21,No,8,0,8,0,0,EUR,Activo,
+SYN-000201,Producto Sintetico 0201,"Descripcion sintetica 201
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,39.54,29.26,IVA,10,No,1,1,2,3,6,EUR,Activo,
+SYN-000202,Producto Sintetico 0202,Descripcion sintetica 202,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,32.02,18.57,IVA,10,No,0,0,0,2,4,EUR,Activo,
+SYN-000203,Producto Sintetico 0203,Descripcion sintetica 203,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,75.94,56.20,IVA,21,No,8,0,8,0,4,EUR,Activo,
+SYN-000204,Producto Sintetico 0204,Descripcion sintetica 204,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,28.12,19.40,IVA10,10,No,1,0,1,1,2,EUR,Activo,
+SYN-000205,Producto Sintetico 0205,Descripcion sintetica 205,Juguetes Sinteticos,Marca Sintetica E,Proveedor Sintetico 10 S.L.,Físico,unidad,count,67.93,45.51,IVA,21,No,4,0,4,1,0,EUR,Activo,
+SYN-000206,Producto Sintetico 0206,"Descripcion sintetica 206
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,44.22,28.30,IVA10,10,No,8,0,8,0,4,EUR,Activo,
+SYN-000207,Producto Sintetico 0207,Descripcion sintetica 207,Higiene Sintetica,Marca Sintetica B,Proveedor Inexistente Sintetico,Físico,unidad,count,60.40,33.22,IVA,10,No,0,0,0,2,0,EUR,Activo,
+SYN-000208,Producto Sintetico 0208,Descripcion sintetica 208,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,49.83,31.39,IVA,21,No,2,0,2,5,4,EUR,Activo,
+SYN-000209,Producto Sintetico 0209,Descripcion sintetica 209,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,69.63,52.22,IVA21,21,No,12,0,12,0,12,EUR,Activo,
+SYN-000210,Producto Sintetico 0210,Descripcion sintetica 210,Juguetes Sinteticos,Marca Sintetica E,Proveedor Sintetico 23 S.L.,Físico,unidad,count,74.69,54.52,IVA10,10,No,0,0,0,1,12,EUR,Activo,
+SYN-000211,Producto Sintetico 0211,"Descripcion sintetica 211
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,89.42,43.82,IVA10,10,No,4,1,5,5,6,EUR,Activo,LOT-26923
+SYN-000212,Producto Sintetico 0212,Descripcion sintetica 212,Higiene Sintetica,Marca Sintetica B,Proveedor Sintetico 20 S.L.,Físico,unidad,count,10.61,7.32,IVA10,10,No,12,1,13,2,0,EUR,Activo,
+SYN-000213,Producto Sintetico 0213,Descripcion sintetica 213,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,66.37,37.17,IVA,10,No,2,0,2,0,0,EUR,Activo,LOT-45159
+SYN-000214,Producto Sintetico 0214,Descripcion sintetica 214,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,78.84,33.11,IVA10,10,No,6,0,6,3,4,EUR,Activo,
+SYN-000215,Producto Sintetico 0215,Descripcion sintetica 215,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,64.16,43.63,IVA21,21,No,6,0,6,2,0,EUR,Activo,
+SYN-000216,Producto Sintetico 0216,"Descripcion sintetica 216
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,30.74,22.75,IVA21,21,Sí,12,0,12,0,4,EUR,Activo,
+SYN-000217,Producto Sintetico 0217,Descripcion sintetica 217,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,77.35,57.24,IVA21,21,No,12,1,13,2,2,EUR,Activo,
+SYN-000218,Producto Sintetico 0218,Descripcion sintetica 218,Farmacia Sintetica,Marca Sintetica C,Proveedor Sintetico 25 S.L.,Físico,unidad,count,19.98,8.39,IVA21,21,Sí,0,0,0,5,0,EUR,Activo,
+SYN-000219,Producto Sintetico 0219,Descripcion sintetica 219,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,41.59,17.47,IVA21,21,No,8,0,8,1,12,EUR,Activo,
+SYN-000220,Producto Sintetico 0220,Descripcion sintetica 220,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,48.89,26.40,IVA,21,No,4,0,4,5,2,EUR,Activo,
+SYN-000221,Producto Sintetico 0221,"Descripcion sintetica 221
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,69.25,40.86,IVA10,10,No,0,0,0,1,6,EUR,Activo,
+SYN-000222,Producto Sintetico 0222,Descripcion sintetica 222,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,82.70,35.56,IVA10,10,No,6,0,6,1,12,EUR,Activo,
+SYN-000223,Producto Sintetico 0223,Descripcion sintetica 223,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,79.08,43.49,IVA10,10,No,3,0,3,3,12,EUR,Activo,
+SYN-000224,Producto Sintetico 0224,Descripcion sintetica 224,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,88.33,42.40,IVA21,21,No,2,0,2,2,0,EUR,Activo,
+SYN-000225,Producto Sintetico 0225,Descripcion sintetica 225,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,89.25,46.41,IVA,10,No,3,1,4,1,12,EUR,Activo,
+SYN-000226,Producto Sintetico 0226,"Descripcion sintetica 226
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,Proveedor Sintetico 12 S.L.,Físico,unidad,count,37.05,25.94,IVA10,10,No,4,0,4,0,6,EUR,Activo,
+SYN-000227,Producto Sintetico 0227,Descripcion sintetica 227,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,41.24,21.86,IVA21,21,No,2,0,2,2,4,EUR,Activo,
+SYN-000228,Producto Sintetico 0228,Descripcion sintetica 228,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,44.35,27.94,IVA,21,No,8,1,9,1,4,EUR,Activo,LOT-94689
+SYN-000229,Producto Sintetico 0229,Descripcion sintetica 229,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,52.76,34.82,IVA,10,No,2,0,2,3,4,EUR,Activo,LOT-72524
+SYN-000230,Producto Sintetico 0230,Descripcion sintetica 230,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,26.47,13.76,IVA10,10,No,2,1,3,2,4,EUR,Activo,
+SYN-000231,Producto Sintetico 0231,"Descripcion sintetica 231
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,81.55,57.90,IVA21,21,No,1,0,1,5,0,EUR,Activo,
+SYN-000232,Producto Sintetico 0232,Descripcion sintetica 232,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,87.34,36.68,IVA,10,No,0,0,0,1,0,EUR,Activo,
+SYN-000233,Producto Sintetico 0233,Descripcion sintetica 233,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,26.24,10.50,IVA10,10,No,12,1,13,5,6,EUR,Activo,
+SYN-000234,Producto Sintetico 0234,Descripcion sintetica 234,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,81.43,33.39,IVA,10,No,12,1,13,2,0,EUR,Activo,LOT-69392
+SYN-000235,Producto Sintetico 0235,Descripcion sintetica 235,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,83.78,56.13,IVA10,10,No,0,0,0,5,12,EUR,Activo,
+SYN-000236,Producto Sintetico 0236,"Descripcion sintetica 236
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,42.85,26.57,IVA10,10,No,6,0,6,1,4,EUR,Activo,
+SYN-000237,Producto Sintetico 0237,Descripcion sintetica 237,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,14.70,6.17,IVA,10,No,6,1,7,1,0,EUR,Activo,
+SYN-000238,Producto Sintetico 0238,Descripcion sintetica 238,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,83.39,55.87,IVA10,10,No,0,0,0,5,6,EUR,Activo,
+SYN-000239,Producto Sintetico 0239,Descripcion sintetica 239,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,45.91,19.28,IVA,10,Sí,3,0,3,1,12,EUR,Activo,
+SYN-000240,Producto Sintetico 0240,Descripcion sintetica 240,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,25.12,16.33,IVA,10,No,3,0,3,5,4,EUR,Activo,
+SYN-000241,Producto Sintetico 0241,"Descripcion sintetica 241
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,64.38,30.90,IVA,10,Sí,12,0,12,5,12,EUR,Activo,LOT-57291
+SYN-000242,Producto Sintetico 0242,Descripcion sintetica 242,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,66.49,39.89,IVA,10,No,3,1,4,3,2,EUR,Activo,
+SYN-000243,Producto Sintetico 0243,Descripcion sintetica 243,Farmacia Sintetica,Marca Sintetica C,Proveedor Sintetico 10 S.L.,Físico,unidad,count,63.77,28.70,IVA,21,No,3,0,3,1,6,EUR,Activo,
+SYN-000244,Producto Sintetico 0244,Descripcion sintetica 244,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,53.38,33.63,IVA,10,No,0,0,0,0,2,EUR,Activo,LOT-40406
+SYN-000245,Producto Sintetico 0245,Descripcion sintetica 245,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,15.80,8.06,IVA21,21,No,8,1,9,5,4,EUR,Activo,LOT-11747
+SYN-000246,Producto Sintetico 0246,"Descripcion sintetica 246
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,64.61,25.84,IVA10,10,No,6,1,7,1,12,EUR,Activo,
+SYN-000247,Producto Sintetico 0247,Descripcion sintetica 247,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,86.87,43.44,IVA21,21,No,1,0,1,1,6,EUR,Activo,
+SYN-000248,Producto Sintetico 0248,Descripcion sintetica 248,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,46.71,30.83,IVA10,10,No,8,0,8,3,12,EUR,Activo,
+SYN-000249,Producto Sintetico 0249,Descripcion sintetica 249,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,33.53,23.14,IVA,10,No,1,0,1,2,6,EUR,Activo,LOT-51865
+SYN-000250,Producto Sintetico 0250,Descripcion sintetica 250,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,56.34,37.75,IVA,21,No,1,0,1,2,2,EUR,Activo,
+SYN-000251,Producto Sintetico 0251,"Descripcion sintetica 251
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,66.74,40.04,IVA10,10,No,8,0,8,2,0,EUR,Activo,
+SYN-000252,Producto Sintetico 0252,Descripcion sintetica 252,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,34.23,25.33,IVA10,10,No,12,0,12,3,4,EUR,Activo,
+SYN-000253,Producto Sintetico 0253,Descripcion sintetica 253,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,12.83,8.47,IVA21,21,No,1,0,1,3,0,EUR,Activo,
+SYN-000254,Producto Sintetico 0254,Descripcion sintetica 254,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,75.07,52.55,IVA,21,No,6,1,7,5,12,EUR,Activo,
+SYN-000255,Producto Sintetico 0255,Descripcion sintetica 255,Juguetes Sinteticos,Marca Sintetica E,Proveedor Sintetico 18 S.L.,Físico,unidad,count,15.42,7.09,IVA10,10,No,4,0,4,2,6,EUR,Activo,
+SYN-000256,Producto Sintetico 0256,"Descripcion sintetica 256
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,18.85,7.54,IVA,10,No,3,0,3,5,2,EUR,Activo,
+SYN-000257,Producto Sintetico 0257,Descripcion sintetica 257,Higiene Sintetica,Marca Sintetica B,Proveedor Sintetico 09 S.L.,Físico,unidad,count,74.53,46.95,IVA21,21,No,8,0,8,0,0,EUR,Activo,
+SYN-000258,Producto Sintetico 0258,Descripcion sintetica 258,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,24.71,15.32,IVA10,10,No,4,1,5,0,6,EUR,Activo,
+SYN-000259,Producto Sintetico 0259,Descripcion sintetica 259,Accesorios Sintetica,Marca Sintetica D,Proveedor Sintetico 16 S.L.,Físico,unidad,count,75.62,45.37,IVA,10,No,3,0,3,1,2,EUR,Activo,
+SYN-000260,Producto Sintetico 0260,Descripcion sintetica 260,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,86.04,43.88,IVA,21,No,1,0,1,3,2,EUR,Activo,
+SYN-000261,Producto Sintetico 0261,"Descripcion sintetica 261
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,32.03,21.46,IVA21,21,No,0,0,0,3,6,EUR,Activo,
+SYN-000262,Producto Sintetico 0262,Descripcion sintetica 262,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,2.22,1.18,IVA10,10,No,3,0,3,2,4,EUR,Activo,
+SYN-000263,Producto Sintetico 0263,Descripcion sintetica 263,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,33.78,23.31,IVA,10,No,3,1,4,5,6,EUR,Activo,
+SYN-000264,Producto Sintetico 0264,Descripcion sintetica 264,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,20.21,12.53,IVA10,10,No,8,0,8,5,12,EUR,Activo,
+SYN-000265,Producto Sintetico 0265,Descripcion sintetica 265,Juguetes Sinteticos,Marca Sintetica E,Proveedor Sintetico 17 S.L.,Físico,unidad,count,15.38,7.38,IVA10,10,No,0,0,0,5,6,EUR,Activo,
+SYN-000266,Producto Sintetico 0266,"Descripcion sintetica 266
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,70.02,33.61,IVA,21,No,6,1,7,1,12,EUR,Activo,
+SYN-000267,Producto Sintetico 0267,Descripcion sintetica 267,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,28.83,20.47,IVA10,10,Sí,1,0,1,2,0,EUR,Activo,
+SYN-000268,Producto Sintetico 0268,Descripcion sintetica 268,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,80.89,38.83,IVA10,10,No,6,1,7,3,6,EUR,Activo,
+SYN-000269,Producto Sintetico 0269,Descripcion sintetica 269,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,28.90,13.01,IVA,21,Sí,0,0,0,1,12,EUR,Activo,
+SYN-000270,Producto Sintetico 0270,Descripcion sintetica 270,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,48.79,24.40,IVA21,21,No,8,0,8,2,12,EUR,Activo,
+SYN-000271,Producto Sintetico 0271,"Descripcion sintetica 271
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,8.31,5.65,IVA,21,No,2,1,3,0,6,EUR,Activo,LOT-85679
+SYN-000272,Producto Sintetico 0272,Descripcion sintetica 272,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,44.55,27.62,IVA,10,No,8,0,8,5,4,EUR,Activo,
+SYN-000273,Producto Sintetico 0273,Descripcion sintetica 273,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,71.65,35.83,IVA,21,No,1,0,1,5,4,EUR,Activo,
+SYN-000274,Producto Sintetico 0274,Descripcion sintetica 274,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,89.77,44.89,IVA10,10,No,3,0,3,0,2,EUR,Activo,
+SYN-000275,Producto Sintetico 0275,Descripcion sintetica 275,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,68.93,29.64,IVA10,10,No,1,0,1,3,6,EUR,Activo,
+SYN-000276,Producto Sintetico 0276,"Descripcion sintetica 276
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,24.79,14.13,IVA21,21,No,6,1,7,2,6,EUR,Activo,LOT-12203
+SYN-000277,Producto Sintetico 0277,Descripcion sintetica 277,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,81.46,48.88,IVA,21,No,0,0,0,3,4,EUR,Activo,
+SYN-000278,Producto Sintetico 0278,Descripcion sintetica 278,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,11.87,8.78,IVA21,21,No,2,1,3,2,4,EUR,Activo,
+SYN-000279,Producto Sintetico 0279,Descripcion sintetica 279,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,22.89,16.25,IVA10,10,No,0,0,0,0,2,EUR,Activo,LOT-82075
+SYN-000280,Producto Sintetico 0280,Descripcion sintetica 280,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,73.80,50.92,IVA,10,No,6,0,6,2,2,EUR,Activo,
+SYN-000281,Producto Sintetico 0281,"Descripcion sintetica 281
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,46.39,20.88,IVA10,10,No,3,0,3,3,4,EUR,Activo,
+SYN-000282,Producto Sintetico 0282,Descripcion sintetica 282,Higiene Sintetica,Marca Sintetica B,Proveedor Sintetico 24 S.L.,Físico,unidad,count,39.86,26.71,IVA,10,No,0,0,0,3,0,EUR,Activo,LOT-62497
+SYN-000283,Producto Sintetico 0283,Descripcion sintetica 283,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,2.82,1.72,IVA,10,No,6,0,6,0,0,EUR,Activo,
+SYN-000284,Producto Sintetico 0284,Descripcion sintetica 284,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,52.83,33.28,IVA10,10,No,1,1,2,1,0,EUR,Activo,
+SYN-000285,Producto Sintetico 0285,Descripcion sintetica 285,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,88.41,35.36,IVA,21,No,1,1,2,3,12,EUR,Activo,
+SYN-000286,Producto Sintetico 0286,"Descripcion sintetica 286
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,73.98,39.21,IVA,10,No,0,0,0,3,4,EUR,Activo,LOT-16143
+SYN-000287,Producto Sintetico 0287,Descripcion sintetica 287,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,24.40,13.42,IVA10,10,No,0,0,0,2,0,EUR,Activo,
+SYN-000288,Producto Sintetico 0288,Descripcion sintetica 288,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,50.92,26.99,IVA,21,Sí,12,0,12,1,6,EUR,Activo,
+SYN-000289,Producto Sintetico 0289,Descripcion sintetica 289,Accesorios Sintetica,Marca Sintetica D,,Físico,unidad,count,64.72,30.42,IVA10,10,No,8,0,8,2,2,EUR,Activo,
+SYN-000290,Producto Sintetico 0290,Descripcion sintetica 290,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,64.87,42.81,IVA10,10,No,12,0,12,0,12,EUR,Activo,
+SYN-000291,Producto Sintetico 0291,"Descripcion sintetica 291
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,,Físico,unidad,count,12.56,5.02,IVA10,10,No,2,0,2,2,12,EUR,Activo,
+SYN-000292,Producto Sintetico 0292,Descripcion sintetica 292,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,69.56,46.61,IVA21,21,No,0,0,0,0,4,EUR,Activo,
+SYN-000293,Producto Sintetico 0293,Descripcion sintetica 293,Farmacia Sintetica,Marca Sintetica C,,Físico,unidad,count,14.44,10.40,IVA10,10,No,1,0,1,0,4,EUR,Activo,
+SYN-000294,Producto Sintetico 0294,Descripcion sintetica 294,Accesorios Sintetica,Marca Sintetica D,Proveedor Sintetico 25 S.L.,Físico,unidad,count,73.17,40.24,IVA,10,No,2,0,2,2,2,EUR,Activo,
+SYN-000295,Producto Sintetico 0295,Descripcion sintetica 295,Juguetes Sinteticos,Marca Sintetica E,,Físico,unidad,count,21.06,8.42,IVA10,10,No,0,0,0,2,2,EUR,Activo,
+SYN-000296,Producto Sintetico 0296,"Descripcion sintetica 296
+Segunda linea sintetica",Alimentacion Sintetica,Marca Sintetica A,Proveedor Sintetico 19 S.L.,Físico,unidad,count,62.42,29.96,IVA10,10,No,0,0,0,0,4,EUR,Activo,
+SYN-000297,Producto Sintetico 0297,Descripcion sintetica 297,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,14.12,10.03,IVA21,21,No,12,0,12,0,12,EUR,Activo,LOT-74303
+SYN-000298,Producto Sintetico 0298,Descripcion sintetica 298,Servicios Sinteticos,Marca Sintetica C,,Servicio,hora,time,20.39,11.01,IVA,21,No,0,0,0,3,2,EUR,Activo,LOT-01611
+SYN-000299,Producto Sintetico 0299,Descripcion sintetica 299,Servicios Sinteticos,Marca Sintetica D,,Servicio,hora,time,30.82,12.94,IVA,21,No,6,0,6,2,0,EUR,Activo,
+SYN-000300,Producto Sintetico 0300,Descripcion sintetica 300,Servicios Sinteticos,Marca Sintetica E,,Servicio,hora,time,62.58,29.41,IVA,21,No,0,0,0,3,0,EUR,Activo,
+SYN-000012,Producto Sintetico 0012,Descripcion sintetica 12,Higiene Sintetica,Marca Sintetica B,,Físico,unidad,count,54.60,38.77,IVA,10,No,2,0,2,2,2,EUR,Activo,LOT-77777

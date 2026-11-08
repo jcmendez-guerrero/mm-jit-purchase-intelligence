@@ -25,3 +25,9 @@ repos:
         entry: Real data files must not be committed (use packages/testing fixtures)
         files: '\.(csv|xlsx|xls|har|parquet|duckdb)$'
         exclude: '^packages/testing/.*/fixtures/'
+      - id: export-signature-guard
+        name: block real-shaped Siweb export layouts outside synthetic fixtures
+        language: system
+        entry: python3 scripts/check_export_signatures.py
+        pass_filenames: false
+        always_run: true

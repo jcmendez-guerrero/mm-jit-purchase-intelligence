@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/supplier_link.v1",
+  "title": "SupplierLink",
+  "description": "Product-supplier link keyed by SKU for people; ERP ids are resolved only when an API call is built.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku", "supplier_id"],
+  "properties": {
+    "sku": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "supplier_id": { "type": "string", "minLength": 1 },
+    "cost": { "oneOf": [{ "$ref": "money.v1.schema.json" }, { "type": "null" }] },
+    "cost_source": { "enum": ["siweb_product_supplier", "csv_price_list", "manual", "inventory_export"] },
+    "includes_recargo": { "type": "boolean" },
+    "pack_size": { "type": "integer", "minimum": 1 },
+    "min_qty": { "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }] },
+    "supplier_reference": { "oneOf": [{ "type": "string", "maxLength": 60 }, { "type": "null" }] },
+    "rank": { "type": "integer", "minimum": 1 },
+    "verified_at": { "type": "string", "format": "date-time" }
+  }
+}

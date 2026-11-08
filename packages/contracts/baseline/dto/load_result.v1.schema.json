@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/load_result.v1",
+  "title": "LoadResult",
+  "description": "Counts after a local load. Invariant: loaded + updated + unchanged + quarantined + excluded + services == rows. Review details never carry note text, tax ids, bank data or personal names.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "kind", "file_sha256", "rows", "loaded", "updated", "unchanged", "quarantined", "excluded", "services"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "kind": { "enum": ["inventory", "movements", "suppliers"] },
+    "file_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "rows": { "type": "integer", "minimum": 0 },
+    "loaded": { "type": "integer", "minimum": 0 },
+    "updated": { "type": "integer", "minimum": 0 },
+    "unchanged": { "type": "integer", "minimum": 0 },
+    "quarantined": { "type": "integer", "minimum": 0 },
+    "excluded": { "type": "integer", "minimum": 0 },
+    "services": { "type": "integer", "minimum": 0 },
+    "differences": { "type": "integer", "minimum": 0 },
+    "review": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["row", "code"],
+        "properties": {
+          "row": { "type": "integer", "minimum": 1 },
+          "code": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "detail": { "type": "string", "maxLength": 200 },
+          "source": { "enum": ["loader", "platform"] }
+        }
+      }
+    },
+    "interpretations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tax_included_rows": { "type": "integer", "minimum": 0 },
+        "tax_excluded_rows": { "type": "integer", "minimum": 0 },
+        "timezone": { "type": "string" }
+      }
+    }
+  }
+}

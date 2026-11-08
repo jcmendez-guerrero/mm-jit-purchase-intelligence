@@ -9,6 +9,7 @@ Every request is logged so tests can assert exactly what a client sent.
 from __future__ import annotations
 
 import math
+import os
 import time
 from typing import Any
 
@@ -183,6 +184,18 @@ def create_app(data: Dataset | None = None, config: MockConfig | None = None) ->
                 return JSONResponse({"error": f"unknown option {k}"}, status_code=422)
             setattr(st().config, k, set(v) if k == "missing_pages" else v)
         return {"ok": True}
+
+    @app.post("/__mock__/load")
+    async def load_dataset(request: Request):
+        """Replace the whole dataset (local export loader, MMI 004). The mock is test support and refuses this in prod/staging."""
+        if os.environ.get("MMI_ENV") in {"prod", "staging"}:
+            return JSONResponse({"error": "not available in this environment"}, status_code=403)
+        body = await request.json()
+        s = st()
+        s.data = Dataset(s.data.config, body["warehouses"], body["products"], body["variants"],
+                         {int(k): v for k, v in body["suppliers"].items()}, body["lots"], body["movements"])
+        s.reset()
+        return {"ok": True, "variants": len(s.data.variants), "movements": len(s.movements)}
 
     @app.get("/__mock__/health")
     def health():
