@@ -1,6 +1,6 @@
 # Research: Executive Dashboard & Analytics
 
-Audit baseline: worktree of `main` at the start of this feature. Evidence is by file; the audit task re-verifies line numbers before implementation (FR-024).
+Audit baseline: worktree of `main` at the start of this feature. **The verified audit, with line numbers, is in [audit/dashboard-audit.md](audit/dashboard-audit.md); where it differs from this draft table, the audit file wins.** Decisions R4 and R6 below were revised by it.
 
 ## Part 1 - Audit of the current dashboard
 
@@ -61,21 +61,21 @@ Status values: **complete**, **partial**, **broken**, **missing**, **unverified*
 - **Rationale**: the spec asks for each; definitions are stored with the indicator (FR-005).
 - **Alternatives**: capital equal to stock value (rejected: duplicate card).
 
-### R4 Supplier filter on stock figures
-- **Decision**: inventory-service keeps a `supplier_variant_link` read-model populated from procurement events (supplier link and terms changed). The supplier filter joins this table inside the inventory schema.
-- **Rationale**: no cross-schema SQL; no business logic in the BFF; bounded query size.
-- **Alternatives**: BFF fetches the supplier's variant ids and passes them (rejected); procurement computes stock figures (rejected: it does not own stock).
-- **To verify** in the first task: which existing event carries supplier links and whether it includes the current set or only deltas.
+### R4 Supplier filter on stock figures (revised by the audit)
+- **Decision**: no new table and no new event. The supplier of a stock lot is the supplier of the cost that values it (the lot's own cost, or the labelled fallback), read from inventory's `lot_cost_projection`. Every figure (value, expiry, coverage, risk scope) uses the same rule (`_supplier_variants` and `valued_lots` in `kpis.py`).
+- **Rationale**: stock lives in lots and lots already carry the supplier through `ProcurementLotCostChanged`; no cross-schema SQL and no business rule in the BFF.
+- **Limits**: products with no costed lot have no supplier for this filter; an unknown supplier gives empty figures, not an error. The supplier ids in the dropdown must be the same ids stored on lot costs: verify with a real procurement id before the BFF forwards the filter to stock figures (T033).
+- **Alternatives**: a supplier-variant link table fed by events (rejected: unnecessary); the BFF passing variant ids (rejected).
 
 ### R5 Freshness, origin and staleness
 - **Decision**: each source (inventory snapshot, movements, forecast, accuracy, budget/spend) reports `refreshed_at` (UTC, with the original string), origin (`erp_sync`, `local_load`, `forecast`, `proposal`) and a state (`ok`, `no_data`, `stale`, `error`). The stale threshold comes from the server (single source), replacing the constant in the web app. Figures from local load carry the local label and are never summed with ERP-origin data.
 - **Rationale**: FR-003, FR-018, audit A16, A25.
 - **Alternatives**: keep the client-side threshold (rejected: two sources of truth).
 
-### R6 History for "over time" charts
-- **Decision**: a daily `dashboard_snapshot` table (one row per day and warehouse/category slice) written by the existing aggregate refresh. The chart shows data from the first snapshot onward and says so; it does not back-fill invented history.
-- **Rationale**: no fabricated data; past costs stay reproducible. **Risk**: stock value over time is short at first. Mitigation: the chart states the available range; the "five charts" gate is met without it (R7).
-- **Alternatives**: rebuild history from movements (rejected: past costs not reproducible); reuse the existing inventory snapshot event if it already stores values (to verify in the first task).
+### R6 History for "over time" charts (revised by the audit)
+- **Decision**: no new snapshot table. `agg_daily_kpis` already stores one row per day, warehouse and category and is written by `refresh_aggregates` after each sync. Migration 0007 adds `capital_tied_up`, `demand_units`, `forecast_units` and `origin` to it. Charts show the range available and say so; no history is invented.
+- **Rationale**: audit evidence `tables.py:223-236`, `kpis.py:183-200`; less code and one history to keep.
+- **Alternatives**: a separate `dashboard_snapshot` table (rejected: duplicates it); rebuilding history from movements (rejected: past costs not reproducible).
 
 ### R7 Visualizations (at least five, each with a table view)
 1. Demand trend with forecast and band (exists).
@@ -86,7 +86,7 @@ Status values: **complete**, **partial**, **broken**, **missing**, **unverified*
 6. Forecast error (WAPE) and bias over time (new, from accuracy history).
 7. Stock value over time (new, depends on R6).
 
-Charts 1-6 satisfy the "five or more" gate; chart 7 is added when snapshots exist. All reuse `ChartWithTable` and the chart colour hook.
+Charts 1-6 satisfy the "five or more" gate; chart 7 uses the `agg_daily_kpis` history that already exists. All reuse `ChartWithTable` and the chart colour hook.
 
 ### R8 Drill-down
 - **Decision**: keep the six existing kinds; add kinds for demand, forecast, capital, budget and expiry band. Rows identify the product by SKU first and name second; `variant_id` is used only to open the detail and is never displayed. Add offset pagination and server-side sort; a test asserts that row totals equal the figure.
@@ -111,15 +111,17 @@ Charts 1-6 satisfy the "five or more" gate; chart 7 is added when snapshots exis
 - **Rationale**: acceptance requires API-backed visualizations and API plus Playwright tests.
 
 ### R13 Cost and operations
-- **Decision**: no new container, job or schedule; snapshot and aggregate writes ride on the existing refresh. Export is synchronous with a row cap. Emit counters for refresh duration, export size and refusals.
+- **Decision**: no new container, job or schedule; the extra columns are written by the existing aggregate refresh. Export is synchronous with a row cap. Emit counters for refresh duration, export size and refusals.
 - **Rationale**: shared budget and scale-to-zero.
 
 ### R14 Parallel work
 - **Decision**: additive-only edits in shared files (`es-ES.json` under `dashboard.*`, a new `api/dashboard.ts`, `v2` schema beside `v1`). Anything that changes a shared contract is raised with Agent 00 first. Feature 005 runs in parallel; a conflict in `.specify/feature.json` is resolved at merge by keeping each branch's own value.
 
-## Open assumptions (carry into tasks)
+## Open assumptions and how the audit resolved them
 
-1. Capital tied up includes confirmed, unreceived orders (R3) - confirm with the owner.
-2. Supplier links reach inventory by an existing event (R4) - verify first.
-3. Historical snapshots start at deployment (R6) - accepted.
-4. Viewer role may currently receive money fields (R10) - verify before changing.
+1. Capital tied up includes confirmed, unreceived orders (R3): **still open, owner answer needed (T003)**.
+2. Supplier links reach inventory by an event (R4): **resolved, not needed** (lot cost projection).
+3. Historical snapshots start at deployment (R6): **resolved, history already exists** in `agg_daily_kpis`.
+4. Viewer role receives money fields (R10): **confirmed leak**; the helper exists (T012), wiring is part of T023/T026.
+5. New: the dropdown's supplier ids must match `lot_cost_projection.supplier_id` (R4): verify before T033.
+6. New: Agent 00 must approve the additive forecast and procurement changes (T075).

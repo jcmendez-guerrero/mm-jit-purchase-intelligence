@@ -41,17 +41,17 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 - [ ] T006 [P] Contract tests for v2 (valid and invalid examples, v1 untouched) in `packages/contracts/tests/test_dashboard_indicators_v2.py`
 - [X] T007 Add an Alembic migration extending the existing `agg_daily_kpis` table (capital, demand, forecast, origin columns; no new tables, per audit) in `services/inventory-service/migrations/versions/` and `services/inventory-service/src/db/tables.py` (data-model.md)
 - [X] T008 [P] Implement the shared `FilterSet` (validation rules from data-model.md, `request_invalid` on bad values) in `services/inventory-service/src/dashboard/filters.py` and migrate `Filters` usage in `kpis.py` and `drilldown.py` to it
-- [X] T009 [P] Test `FilterSet` validation (ranges, spans, unknown supplier or warehouse, injection-like strings) in `services/inventory-service/tests/test_dashboard_filters.py`
+- [X] T009 [P] Test `FilterSet` validation (ranges, spans, injection-like strings; an unknown supplier gives empty figures, not an error) in `services/inventory-service/tests/test_dashboard_filters.py`
 - [X] T010 Implement the supplier filter for stock figures as a query over `lot_cost_projection.supplier_id` (audit decision; no new table or event) in `services/inventory-service/src/dashboard/filters.py`, with `services/inventory-service/tests/test_dashboard_supplier_filter.py`
 - [X] T011 [P] Implement per-source freshness (refresh time UTC plus original string, origin, state, server-side stale threshold) in `services/inventory-service/src/dashboard/freshness.py` with `services/inventory-service/tests/test_dashboard_freshness.py`
-- [X] T012 [P] Implement role-based money hiding (viewer gets no money fields, `hidden_by_role`) in `services/inventory-service/src/dashboard/roles.py` with `services/inventory-service/tests/test_dashboard_roles.py`
+- [ ] T012 [P] (helper and tests done; still to do: use it in the summary route together with the web card, in T023/T026) Implement role-based money hiding (viewer gets no money fields, `hidden_by_role`) in `services/inventory-service/src/dashboard/roles.py` with `services/inventory-service/tests/test_dashboard_roles.py`
 - [X] T013 Extend the BFF dashboard route to accept and forward the common FilterSet parameters (`desde`, `hasta`, `almacen`, `proveedor`, `categoria`, `familia`) to every downstream call, no business rule added (done for `supplier_id` with the existing English API names; the date range is added with T031/T033), in `services/api-bff/src/routes/dashboard.py`; update `services/api-bff/tests/test_dashboard_orchestration.py`
 - [X] T014 [P] Create `apps/web/src/api/dashboard.ts` (typed calls for overview, charts, drilldown, options, freshness, export, sku) reusing the shared request helper; do not edit `apps/web/src/api/client.ts` beyond exporting the helper if needed
 - [X] T015 [P] Create the filter URL-state hook (read, validate, write, clear; unknown values ignored with notice) in `apps/web/src/features/dashboard/useDashboardFilters.ts` with `apps/web/tests/unit/dashboard-filters.test.ts`
 - [X] T016 [P] Add the additive `dashboard.*` keys needed by the shared pieces to `apps/web/src/i18n/es-ES.json`; confirm `apps/web/tests/unit/hardcoded-strings.baseline.json` does not grow
 
 - [ ] T074 [P] Add a seed loader and short run guide that bring up the existing `infra/compose.yaml` stack with `packages/testing/fixtures/dashboard_reference/` (no Azure credentials) in `scripts/live-stack/`; CI and T066 use it
-- [ ] T075 Record Agent 00's written approval of the additive forecast-service and procurement-service changes (accuracy history, budget and open orders) in the audit file; no edit outside this feature's domain starts before it
+- [ ] T075 Record Agent 00's written approval of the additive forecast-service and procurement-service changes (accuracy history, budget and open orders) in `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md` (extends the T003 decision record); no edit outside this feature's domain starts before it
 
 **Checkpoint**: contracts, tables, filters, freshness, roles, live stack and web plumbing are ready.
 
@@ -59,7 +59,7 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 
 ## Phase 3: User Story 1 - Read the business at a glance (P1) 🎯 MVP
 
-**Goal**: ten indicator families with real values, period, freshness, origin, definition and explicit states.
+**Goal**: ten indicators with real values, period, freshness, origin, definition and explicit states.
 
 **Independent Test**: load the reference dataset; every card equals `TOTALS.md`; an emptied source shows "sin datos"; a stale source shows its age.
 
@@ -91,7 +91,7 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 
 **Independent Test**: each filter alone and combined gives the independently computed subset; the copied link reproduces the view.
 
-- [ ] T028 [P] [US2] Integration tests: each filter and combinations change every indicator to the expected subset; supplier filter uses `supplier_variant_link`, in `services/inventory-service/tests/test_dashboard_filter_matrix.py`
+- [ ] T028 [P] [US2] Integration tests: each filter and combinations change every indicator to the expected subset; supplier filter uses the lot cost supplier, in `services/inventory-service/tests/test_dashboard_filter_matrix.py`
 - [ ] T078 [P] [US2] Date-boundary tests for the two Madrid daylight-saving transition days (period filter, snapshot day, trend buckets) in `services/inventory-service/tests/test_dashboard_dst.py`
 - [ ] T029 [P] [US2] Security-abuse tests for filters (oversized range, bad dates, SQL-like strings, unknown ids) in `services/api-bff/tests/test_dashboard_filter_abuse.py`
 - [ ] T030 [P] [US2] Playwright mocked spec for chips, clear, empty-result state and link restore in `apps/web/tests/e2e/dashboard-filters.spec.ts`
@@ -111,13 +111,13 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 
 **Independent Test**: a stockout card with N items lists exactly N SKUs whose sum equals the card; no `#id` appears.
 
-- [ ] T036 [P] [US3] Reconciliation tests per kind (`sum` equals indicator value; stable pagination and sort) in `services/inventory-service/tests/test_dashboard_drill_reconcile.py`
-- [ ] T037 [P] [US3] Tests that no response or rendered row exposes `variant_id` and that `detail_ref` is opaque: `services/inventory-service/tests/test_dashboard_sku_only.py`, `apps/web/tests/unit/dashboard-sku-display.test.tsx`
+- [X] T036 [P] [US3] Reconciliation tests per kind (`sum` equals indicator value; stable pagination and sort) in `services/inventory-service/tests/test_dashboard_drill_reconcile.py` (done in `services/inventory-service/tests/test_dashboard_drill_reconcile.py`, which also covers SKU-only rows on the backend)
+- [X] T037 [P] [US3] Tests that no response or rendered row exposes `variant_id` and that `detail_ref` is opaque: `services/inventory-service/tests/test_dashboard_sku_only.py`, `apps/web/tests/unit/dashboard-sku-display.test.tsx` (web part in `apps/web/tests/unit/dashboard-sku-display.test.tsx`; the backend rows-carry-a-SKU check is in the T036 file)
 - [ ] T038 [P] [US3] Playwright mocked spec for drill-down open, sort, page, keyboard and SKU detail in `apps/web/tests/e2e/dashboard-drilldown.spec.ts`
-- [ ] T039 [US3] Extend `services/inventory-service/src/dashboard/drilldown.py`: SKU-first rows, offset pagination, server sort, `sum`, new kinds (`demand`, `forecast`, `capital`, `budget`, `expiry_band`)
+- [ ] T039 (partly done: SKU-first rows, tie-break by SKU, offset paging and `sum` are in; the new kinds `demand`, `forecast`, `capital`, `budget`, `expiry_band` are still to do) [US3] Extend `services/inventory-service/src/dashboard/drilldown.py`: SKU-first rows, offset pagination, server sort, `sum`, new kinds (`demand`, `forecast`, `capital`, `budget`, `expiry_band`)
 - [ ] T040 [US3] Add the SKU detail route `/dashboard/skus/{sku}` with expiry lots, cost fields only for cost-allowed roles, in `services/inventory-service/src/api/dashboard.py`
-- [ ] T041 [US3] Forward the new drill-down and SKU routes in `services/api-bff/src/routes/dashboard.py` (request-shape validation only)
-- [ ] T042 [US3] Rewrite `apps/web/src/features/dashboard/DrillDownPanel.tsx` (SKU-first columns, pagination, sort, keyboard); fix the `#variant_id` display in the risk table of `DashboardScreen.tsx` and in `ProductDetail.tsx`
+- [ ] T041 (partly done: `limit` and `offset` are forwarded; the SKU detail route follows T040) [US3] Forward the new drill-down and SKU routes in `services/api-bff/src/routes/dashboard.py` (request-shape validation only)
+- [ ] T042 (partly done: the drill-down panel, its paging and the risk table show the SKU; `ProductDetail.tsx` still titles the panel with the id and needs T040's SKU route) [US3] Rewrite `apps/web/src/features/dashboard/DrillDownPanel.tsx` (SKU-first columns, pagination, sort, keyboard); fix the `#variant_id` display in the risk table of `DashboardScreen.tsx` and in `ProductDetail.tsx`
 - [ ] T043 [P] [US3] Add drill-down strings to `apps/web/src/i18n/es-ES.json`
 
 **Checkpoint**: P1 stories complete (MVP candidate).
@@ -134,7 +134,7 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 - [ ] T045 [P] [US4] Web unit tests: chart and table use the same rows; loading, empty, error states, in `apps/web/tests/unit/dashboard-charts.test.tsx`
 - [ ] T046 [P] [US4] Playwright mocked spec for keyboard reach of chart, legend and table toggle in `apps/web/tests/e2e/dashboard-charts.spec.ts`
 - [ ] T047 [US4] Implement `services/inventory-service/src/dashboard/series.py`; make `abc_xyz` filter-aware
-- [ ] T048 [US4] Write the new columns in the existing `refresh_aggregates` (`kpis.py:183`) into `agg_daily_kpis`, idempotent per day, with 25-month retention and the available history range exposed; test in `services/inventory-service/tests/test_dashboard_snapshot.py`
+- [ ] T048 [US4] Write the new columns in the existing `refresh_aggregates` (`kpis.py:183`) into `agg_daily_kpis`, idempotent per day, with 25-month retention and the available history range exposed; test in `services/inventory-service/tests/test_dashboard_history.py`
 - [ ] T049 [US4] Add the charts route in `services/inventory-service/src/api/dashboard.py` and forward it in `services/api-bff/src/routes/dashboard.py`
 - [ ] T050 [P] [US4] Build the new chart components reusing `ChartWithTable.tsx` and `useChartColors` in `apps/web/src/features/dashboard/charts/`
 - [ ] T051 [US4] Compose the charts on `DashboardScreen.tsx` with click-to-drill; keep the existing trend and ABC/XYZ charts
@@ -179,10 +179,10 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 - [ ] T066 (after T074) Add the live-stack Playwright project (real BFF, services, seeded PostgreSQL with the reference dataset) in `apps/web/playwright.config.ts` and `apps/web/tests/e2e/dashboard-live.spec.ts`, asserting cards, filters, drill-down reconciliation, export and charts against `TOTALS.md`, and that any indicator reaches its SKUs in two interactions or fewer (SC-002)
 - [ ] T067 [P] Extend axe scans to the new elements in `apps/web/tests/e2e/a11y-screens.spec.ts`
 - [ ] T068 [P] Run and record the 2 s performance check using `apps/web/tests/e2e/dashboard-perf.spec.ts` and `services/api-bff/tests/perf`
-- [ ] T069 [P] Add operational signals (refresh duration, export size and refusals, snapshot writes) without logging notes or secrets
+- [ ] T069 [P] Add operational signals (refresh duration, export size and refusals, snapshot writes) without logging notes or secrets (files: `services/inventory-service/src/dashboard/export.py`, `services/inventory-service/src/dashboard/kpis.py`, `services/api-bff/src/routes/dashboard.py`)
 - [ ] T077 [P] Add an automated check that fails when the dashboard feature renders a literal number as data (allowing array indexes, sizes and test ids) in `apps/web/tests/unit/dashboard-no-literal-numbers.test.ts` (SC-004, FR-002)
-- [ ] T070 [P] Run secret scan, string and colour baselines, contract validation and dependency checks
-- [ ] T071 Cost note: confirm no new container, job or schedule; record in the PR description
+- [ ] T070 [P] Run secret scan, string and colour baselines, contract validation and dependency checks (files: `.gitleaks.toml`, `apps/web/tests/unit/hardcoded-strings.baseline.json`, `apps/web/tests/unit/hardcoded-colors.baseline.json`)
+- [ ] T071 Cost note: confirm no new container, job or schedule; record in the PR description (file: `.github/pull_request_template.md` section for cost)
 - [ ] T072 Run every scenario in [quickstart.md](quickstart.md); record a manual keyboard-only pass of every chart, drill-down and export (SC-005); capture Spanish screenshots
 - [ ] T073 Finalise `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md` and prepare the single PR per `.github/pull_request_template.md` (link Jira MMI-3 and the Confluence page; note that the spec folder is 006 and the git branch name differs); no production deploy, main merge or ERP write
 

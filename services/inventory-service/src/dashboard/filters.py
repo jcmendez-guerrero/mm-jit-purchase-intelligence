@@ -9,10 +9,6 @@ import re
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from db.tables import ALL_WAREHOUSES, lot_cost_projection, warehouses
-from sqlalchemy import select
-from sqlalchemy.engine import Connection
-
 from dashboard.kpis import CATEGORIES, Filters
 
 DEFAULT_DAYS = 60
@@ -56,15 +52,6 @@ class FilterSet:
         if family is not None and not 0 < len(family) <= 120:
             raise FilterError("family")
         return cls(start, end, warehouse_id, supplier_id, category, family, clipped)
-
-    def check_known(self, conn: Connection) -> None:
-        """Refuses a warehouse or supplier the system does not know (a stale link, a typo, a probe)."""
-        if self.warehouse_id not in (None, ALL_WAREHOUSES):
-            if conn.execute(select(warehouses.c.external_id).where(warehouses.c.external_id == self.warehouse_id)).first() is None:
-                raise FilterError("unknown warehouse")
-        if self.supplier_id is not None:
-            if conn.execute(select(lot_cost_projection.c.supplier_id).where(lot_cost_projection.c.supplier_id == self.supplier_id).limit(1)).first() is None:
-                raise FilterError("unknown supplier")
 
     @property
     def days(self) -> int:

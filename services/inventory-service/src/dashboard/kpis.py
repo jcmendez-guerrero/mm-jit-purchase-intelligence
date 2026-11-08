@@ -85,13 +85,24 @@ def variant_scope(conn: Connection, f: Filters) -> set[int]:
                                                          .where(products.c.family == f.family)).all()}
         ids &= in_family
     if f.supplier_id is not None:
-        ids &= {r.variant_id for r in conn.execute(select(lot_cost_projection.c.variant_id).where(lot_cost_projection.c.supplier_id == f.supplier_id)).all()}
+        ids &= _supplier_variants(conn, f.supplier_id)
     if f.category is None:
         return ids
     if f.category == "critical":
         crit = {r.external_id for r in conn.execute(select(products.c.external_id).where(products.c.clinical_critical)).all()}
         return {r.external_id for r in conn.execute(select(variants.c.external_id, variants.c.product_id)).all() if r.product_id in crit}
     return {r.variant_id for r in conn.execute(select(product_segments.c.variant_id).where(product_segments.c.abc == f.category)).all()} & ids
+
+
+def _supplier_variants(conn: Connection, supplier_id: str) -> set[int]:
+    """Variants with stock in a lot whose cost (own or the labelled fallback) comes from this supplier: the same rule ``valued_lots`` applies, so every figure agrees."""
+    by_lot, by_variant = _costs(conn)
+    out: set[int] = set()
+    for lot in conn.execute(select(stock_lots.c.variant_id, stock_lots.c.batch_number).where(stock_lots.c.quantity > 0)).all():
+        found = by_lot.get((lot.variant_id, lot.batch_number or "")) or by_variant.get(lot.variant_id)
+        if found is not None and found[1] == supplier_id:
+            out.add(lot.variant_id)
+    return out
 
 
 def _costs(conn: Connection) -> tuple[dict[tuple[int, str], tuple[Decimal, str]], dict[int, tuple[Decimal, str]]]:

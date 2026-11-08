@@ -43,6 +43,7 @@ def test_loaded_data_reports_ok_then_stale_with_origin(engine):
         fresh = inventory_freshness(c, NOW_DT)
         old = inventory_freshness(c, NOW_DT + timedelta(days=5))
     assert {f.state for f in fresh} == {"ok"} and {f.origin for f in fresh} == {"erp_sync"}
+    assert [f.source for f in fresh] == ["inventory_snapshot", "movements", "aggregates"]        # one entry per source name
     assert {f.state for f in old} == {"stale"}
     assert fresh[0].as_json()["refreshed_at_original"] == fresh[0].refreshed_at.isoformat()
 
@@ -56,12 +57,26 @@ def test_aggregate_rows_keep_working_and_carry_the_new_columns(engine):
     assert row.origin == "erp_sync" and row.capital_tied_up is None and row.demand_units is None and row.forecast_units is None
 
 
-def test_migration_0007_chains_after_0006_and_adds_the_four_columns():
+def test_migration_0007_upgrades_and_downgrades_a_real_table():
+    import sqlalchemy as sa
+    from alembic.migration import MigrationContext
+    from alembic.operations import Operations
+
     path = Path(__file__).resolve().parents[1] / "migrations" / "versions" / "0007_dashboard_columns.py"
     spec = importlib.util.spec_from_file_location("m0007", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     assert (mod.revision, mod.down_revision) == ("0007", "0006")
-    source = path.read_text(encoding="utf-8")
-    for col in ("capital_tied_up", "demand_units", "forecast_units", "origin"):
-        assert source.count(f'"{col}"') >= 2          # added in upgrade, dropped in downgrade
+    new = {"capital_tied_up", "demand_units", "forecast_units", "origin"}
+    eng = sa.create_engine("sqlite://")
+    with eng.begin() as conn:
+        conn.exec_driver_sql("CREATE TABLE agg_daily_kpis (id INTEGER PRIMARY KEY, day DATE NOT NULL, inventory_value NUMERIC NOT NULL)")
+        conn.exec_driver_sql("INSERT INTO agg_daily_kpis (day, inventory_value) VALUES ('2026-11-09', 5)")
+        with Operations.context(MigrationContext.configure(conn)):
+            mod.upgrade()
+        assert new <= {c["name"] for c in sa.inspect(conn).get_columns("agg_daily_kpis")}
+        assert conn.exec_driver_sql("SELECT origin FROM agg_daily_kpis").scalar() == "erp_sync"      # old rows get the default
+        with Operations.context(MigrationContext.configure(conn)):
+            mod.downgrade()
+        assert not new & {c["name"] for c in sa.inspect(conn).get_columns("agg_daily_kpis")}
+        assert conn.exec_driver_sql("SELECT inventory_value FROM agg_daily_kpis").scalar() == 5       # data survives the round trip

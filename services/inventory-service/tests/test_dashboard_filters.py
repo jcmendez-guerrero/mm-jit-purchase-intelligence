@@ -4,7 +4,7 @@ from datetime import date
 
 import pytest
 from dashboard.filters import FilterError, FilterSet
-from reference_dataset import TODAY, seed_reference
+from reference_dataset import TODAY
 
 
 def test_defaults_to_the_last_sixty_days_ending_today():
@@ -28,15 +28,6 @@ def test_inverted_too_short_or_too_long_ranges_are_refused(start, end):
 def test_bad_values_are_refused_not_coerced(kw):
     with pytest.raises(FilterError):
         FilterSet.parse(TODAY, **kw)
-
-
-def test_unknown_warehouse_and_supplier_are_refused(engine):
-    seed_reference(engine)
-    with engine.connect() as c:
-        FilterSet.parse(TODAY, warehouse_id=1, supplier_id="sup-a").check_known(c)
-        for kw in ({"warehouse_id": 99}, {"supplier_id": "nobody"}):
-            with pytest.raises(FilterError):
-                FilterSet.parse(TODAY, **kw).check_known(c)
 
 
 def test_converts_to_the_filters_the_figures_use():

@@ -8,7 +8,7 @@ All entities are read models inside inventory-service (schema owned by that serv
 |-------|------|-------|
 | date_from, date_to | date | `date_from <= date_to`; span 7-730 days; default last 60 days; future end clipped with a notice |
 | warehouse_id | int, optional | must exist in the synced warehouses |
-| supplier_id | string (public id), optional | must exist in `supplier_variant_link` |
+| supplier_id | string (public id), optional | the supplier of the lot cost that values the stock; an unknown id gives empty figures |
 | category | enum A, B, C, critical, optional | |
 | family | string 1-120, optional | exact synchronised ERP family name |
 
@@ -41,32 +41,18 @@ Invalid values are refused with `request_invalid`; they are never coerced silent
 
 Rule: an indicator whose inputs mix `erp_sync` and `local_load` is not produced; the two are returned as separate labelled values.
 
-## DashboardSnapshot (stored)
+## DailyKpis extension (stored, existing table)
 
-One row per day and slice. Written by the existing aggregate refresh; idempotent on `(day, warehouse_id, category)`.
-
-| Field | Type |
-|-------|------|
-| day | date |
-| warehouse_id | int or null (all) |
-| category | enum or null (all) |
-| stock_value, expiring_value, capital_tied_up | numeric |
-| stockout_count, expiry_count | int |
-| origin | enum erp_sync / local_load |
-| created_at | datetime UTC |
-
-Retention: 25 months, then removed by the refresh job.
-
-## SupplierVariantLink (stored read-model)
+No new tables. The existing `agg_daily_kpis` table (one row per day, warehouse and category, written by the aggregate refresh) gains four columns in migration 0007:
 
 | Field | Type | Notes |
 |-------|------|-------|
-| supplier_id | string | public id |
-| variant_id | bigint | internal, never displayed |
-| sku | string | displayed |
-| updated_at | datetime UTC | |
+| capital_tied_up | numeric, nullable | stock value plus confirmed unreceived orders (definition pending, T003) |
+| demand_units | integer, nullable | real ERP sales in the day |
+| forecast_units | numeric, nullable | forecast for the next 28 days |
+| origin | string, default `erp_sync` | `local_load` for data from the local loader |
 
-Fed from procurement events; upsert by `(supplier_id, variant_id)`; idempotent.
+Existing rows keep NULL and `erp_sync`. Retention: 25 months, removed by the refresh job. The supplier filter needs no stored link: it reads `lot_cost_projection` (variant, supplier, lot, unit cost).
 
 ## ContributionRow (response value)
 

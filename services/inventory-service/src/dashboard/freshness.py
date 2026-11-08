@@ -16,7 +16,6 @@ from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
 
 DEFAULT_STALE_AFTER_HOURS = 48          # same two days the web app used as a constant
-SOURCES = ("inventory_snapshot", "movements", "forecast", "accuracy", "budget_spend")
 
 
 def stale_after_hours() -> int:
@@ -58,5 +57,5 @@ def inventory_freshness(conn: Connection, now: datetime | None = None, hours: in
     out = [Freshness("inventory_snapshot", snap, "erp_sync", classify(snap, now, hours), hours),
            Freshness("movements", moves, "erp_sync", classify(moves, now, hours), hours)]
     if latest is not None:                                    # the aggregates carry the origin of what they were built from
-        out.append(Freshness("inventory_snapshot", latest.refreshed_at, latest.origin, classify(latest.refreshed_at, now, hours), hours))
+        out.append(Freshness("aggregates", latest.refreshed_at, latest.origin, classify(latest.refreshed_at, now, hours), hours))
     return out

@@ -4,15 +4,18 @@ All routes are `GET`, read-only, under `/api/dashboard`, require a signed-in ses
 
 ## Common query parameters (FilterSet)
 
+The API keeps the English parameter names the dashboard already uses; the page address uses the Spanish names (`almacen`, `proveedor`, `categoria`, `familia`, `desde`, `hasta`) and the web app maps between them.
+
 | Parameter | Type | Rules |
 |-----------|------|-------|
-| desde, hasta | date (ISO) | `desde <= hasta`; span 7-730 days; default last 60 days |
-| almacen | int | existing warehouse id |
-| proveedor | string, max 36 | existing supplier public id |
-| categoria | `A`, `B`, `C`, `critical` | |
-| familia | string, 1-120 | exact synchronised family name |
+| date_from, date_to | date (ISO) | `date_from <= date_to`; span 7-730 days; default last 60 days. **Not forwarded yet** (T031/T033); the trend still uses `days` |
+| warehouse_id | int >= 0 | existing warehouse id |
+| supplier_id | string, `[A-Za-z0-9_-]{1,36}` | supplier public id. Today the BFF applies it to the spend card only; stock figures follow in T033 after the screen text changes |
+| category | `A`, `B`, `C`, `critical` | |
+| family | string, 1-120 | exact synchronised family name |
+| days | int 7-365 | existing trend window |
 
-The same parameters apply to every route below, including export. Unknown parameters are ignored; invalid values return `422 request_invalid`.
+The inventory service already validates and applies `supplier_id` (`FilterSet`, supplier scope over lot costs). Invalid values return `422 request_invalid`; unknown parameters are ignored.
 
 ## Routes
 
