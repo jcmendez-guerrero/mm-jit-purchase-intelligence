@@ -9,7 +9,7 @@ servers:
   - url: /api
 security:
   - session: []
-tags: [{name: dashboard}, {name: data-quality}, {name: costs}, {name: suppliers}, {name: proposals}, {name: orders}, {name: config}]
+tags: [{name: dashboard}, {name: data-quality}, {name: costs}, {name: suppliers}, {name: proposals}, {name: orders}, {name: config}, {name: local-load}]
 paths:
   /me:
     get:
@@ -41,7 +41,117 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision], properties: {decision: {type: string, enum: [release, ignore]}}}}}}
       responses: {"204": {description: Resolved}}
   /suppliers:
-    get: {tags: [suppliers], summary: List suppliers with terms, responses: {"200": {description: OK}}}
+    get:
+      tags: [suppliers]
+      summary: List suppliers with terms (MMI 004 adds filters and platform-managed suppliers)
+      parameters:
+        - {name: status, in: query, schema: {type: string, enum: [active, deactivated]}}
+        - {name: classification, in: query, schema: {type: string, enum: [purchasing, non_purchasing, unclassified]}}
+        - {name: q, in: query, schema: {type: string}}
+      responses: {"200": {description: OK}}
+    post:
+      tags: [suppliers]
+      summary: Create a supplier (buyer, admin; MMI 004). A name that duplicates an active supplier needs confirm_duplicate
+      parameters: [{name: confirm_duplicate, in: query, schema: {type: boolean}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Supplier'}}}}
+      responses:
+        "201": {description: Created, content: {application/json: {schema: {$ref: '#/components/schemas/Supplier'}}}}
+        "409": {description: supplier_possible_duplicate}
+        "422": {description: Invalid}
+  /suppliers/{supplierId}:
+    get:
+      tags: [suppliers]
+      summary: Supplier detail with current terms
+      parameters: [{$ref: '#/components/parameters/SupplierId'}]
+      responses: {"200": {description: OK, content: {application/json: {schema: {$ref: '#/components/schemas/Supplier'}}}}, "404": {description: supplier_not_found}}
+    patch:
+      tags: [suppliers]
+      summary: Edit a supplier (If-Match carries the version; 412 returns the current one)
+      parameters: [{$ref: '#/components/parameters/SupplierId'}, {name: If-Match, in: header, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Supplier'}}}}
+      responses: {"200": {description: Saved}, "412": {description: supplier_version_conflict}, "428": {description: If-Match required}}
+  /suppliers/{supplierId}/deactivate:
+    post:
+      tags: [suppliers]
+      summary: Deactivate; confirm=false returns the affected open proposal lines without changing anything
+      parameters: [{$ref: '#/components/parameters/SupplierId'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [confirm], properties: {confirm: {type: boolean}}}}}}
+      responses: {"200": {description: Preview or deactivated}}
+  /suppliers/{supplierId}/reactivate:
+    post: {tags: [suppliers], summary: Reactivate a supplier, parameters: [{$ref: '#/components/parameters/SupplierId'}], responses: {"200": {description: OK}}}
+  /suppliers/{supplierId}/links:
+    get:
+      tags: [suppliers]
+      summary: Products linked to the supplier, by SKU, with cost, source and verification
+      parameters: [{$ref: '#/components/parameters/SupplierId'}]
+      responses: {"200": {description: OK, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/SupplierLink'}}}}}}
+  /suppliers/{supplierId}/links/{sku}:
+    put:
+      tags: [suppliers]
+      summary: Create or update a link by SKU. A supplier without an ERP counterpart yields pending_link and no ERP request
+      parameters: [{$ref: '#/components/parameters/SupplierId'}, {name: sku, in: path, required: true, schema: {type: string}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SupplierLink'}}}}
+      responses: {"200": {description: Saved}, "422": {description: link_cost_invalid or link_currency_mismatch}}
+    delete:
+      tags: [suppliers]
+      summary: Remove a link (history kept)
+      parameters: [{$ref: '#/components/parameters/SupplierId'}, {name: sku, in: path, required: true, schema: {type: string}}]
+      responses: {"204": {description: Removed}}
+  /suppliers/{supplierId}/links/bulk/preview:
+    post:
+      tags: [suppliers]
+      summary: Preview a bulk assignment by filter, SKU list or uploaded file (nothing changes)
+      parameters: [{$ref: '#/components/parameters/SupplierId'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/BulkAssignRequest'}}}}
+      responses: {"200": {description: "Counts of matched, new, existing and conflicting products, with a batch_id"}}
+  /suppliers/{supplierId}/links/bulk/apply:
+    post:
+      tags: [suppliers]
+      summary: Apply the latest preview (at most 15 minutes old); audited per product
+      parameters: [{$ref: '#/components/parameters/SupplierId'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [batch_id], properties: {batch_id: {type: string, format: uuid}}}}}}
+      responses: {"200": {description: Applied}, "409": {description: bulk_preview_stale or bulk_conflicts_unresolved}}
+  /suppliers/review-items:
+    get: {tags: [suppliers], summary: "Possible duplicates and link problems; unparsed payment terms", responses: {"200": {description: OK}}}
+  /suppliers/review-items/{itemId}/resolve:
+    post:
+      tags: [suppliers]
+      summary: Resolve a review item (merge is explicit and audited, never automatic)
+      parameters: [{name: itemId, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [decision], properties: {decision: {type: string, enum: [merge_into, keep_both, ignore]}, merge_into: {type: string, format: uuid}}}}}}
+      responses: {"204": {description: Resolved}}
+  /local-load/capability:
+    get:
+      tags: [local-load]
+      summary: Whether the local-only loader is available (local environment only; 404 elsewhere)
+      responses: {"200": {description: OK, content: {application/json: {schema: {type: object, required: [enabled], properties: {enabled: {type: boolean}}}}}}, "404": {description: local_load_disabled}}
+  /local-load/{kind}/check:
+    post:
+      tags: [local-load]
+      summary: Validate one export file and show the tax and price interpretation; nothing is written
+      parameters: [{$ref: '#/components/parameters/LoadKind'}]
+      requestBody: {required: true, content: {multipart/form-data: {schema: {type: object, required: [file], properties: {file: {type: string, format: binary}}}}}}
+      responses: {"200": {description: OK, content: {application/json: {schema: {$ref: '#/components/schemas/LoadResult'}}}}, "413": {description: local_load_file_too_large}, "415": {description: local_load_type_not_allowed}, "422": {description: local_load_signature_mismatch}}
+  /local-load/{kind}:
+    post:
+      tags: [local-load]
+      summary: Load one export file (Idempotency-Key required; an inventory load needs acknowledge_interpretation=true)
+      parameters:
+        - {$ref: '#/components/parameters/LoadKind'}
+        - {name: Idempotency-Key, in: header, required: true, schema: {type: string}}
+        - {name: acknowledge_interpretation, in: query, schema: {type: boolean}}
+      requestBody: {required: true, content: {multipart/form-data: {schema: {type: object, required: [file], properties: {file: {type: string, format: binary}}}}}}
+      responses: {"200": {description: OK, content: {application/json: {schema: {$ref: '#/components/schemas/LoadResult'}}}}, "404": {description: local_load_disabled}}
+  /local-load/runs:
+    get: {tags: [local-load], summary: Results of the latest loads, responses: {"200": {description: OK}}}
+  /local-load/review:
+    get: {tags: [local-load], summary: "Review items held by the loader (rows it could not express); source label: loader", responses: {"200": {description: OK}}}
+  /local-load/differences:
+    get: {tags: [local-load], summary: Protected values that differ from the file (FR-034), responses: {"200": {description: OK}}}
+  /local-load/differences/{differenceId}/accept:
+    post: {tags: [local-load], summary: Accept the file's value, parameters: [{name: differenceId, in: path, required: true, schema: {type: string}}], responses: {"204": {description: OK}}}
+  /local-load/differences/{differenceId}/ignore:
+    post: {tags: [local-load], summary: Keep the application's value, parameters: [{name: differenceId, in: path, required: true, schema: {type: string}}], responses: {"204": {description: OK}}}
   /suppliers/{supplierId}/terms:
     put:
       tags: [suppliers]
@@ -170,6 +280,7 @@ components:
     SupplierId: {name: supplierId, in: path, required: true, schema: {type: string, format: uuid}}
     CostId: {name: costId, in: path, required: true, schema: {type: string, format: uuid}}
     ProposalId: {name: proposalId, in: path, required: true, schema: {type: string, format: uuid}}
+    LoadKind: {name: kind, in: path, required: true, schema: {type: string, enum: [inventory, movements, suppliers]}}
   schemas:
     Me:
       type: object
@@ -288,3 +399,61 @@ components:
               variant_id: {type: integer, minimum: 1, description: Siweb id}
               qty: {type: integer, minimum: 0}
               cost_with_recargo: {type: string}
+    Supplier:
+      type: object
+      description: Mirrors packages/contracts/dto/supplier.v1.schema.json (no tax id, bank data or notes)
+      required: [name, fiscal_type, country, currency]
+      properties:
+        id: {type: string}
+        external_contact_id: {type: integer, nullable: true}
+        name: {type: string, maxLength: 200}
+        status: {type: string, enum: [active, deactivated]}
+        classification: {type: string, enum: [purchasing, non_purchasing, unclassified]}
+        origin: {type: string, enum: [platform, imported, erp]}
+        erp_link_state: {type: string, enum: [none, unverified, linked, pending_link]}
+        fiscal_type: {type: string, enum: [national, intracommunity, foreign]}
+        country: {type: string, pattern: '^[A-Z]{2}$'}
+        currency: {type: string, pattern: '^[A-Z]{3}$'}
+        payment_terms_days: {type: integer, minimum: 0, maximum: 365, nullable: true}
+        order_channel: {type: string, enum: [email, phone, web, other]}
+        has_note: {type: boolean}
+        version: {type: integer, minimum: 1}
+    SupplierLink:
+      type: object
+      description: Mirrors packages/contracts/dto/supplier_link.v1.schema.json; keyed by SKU, ERP ids are resolved only when an API call is built
+      required: [sku]
+      properties:
+        sku: {type: string}
+        supplier_id: {type: string}
+        cost: {type: object, nullable: true, properties: {amount: {type: string}, currency: {type: string}}}
+        cost_source: {type: string, enum: [siweb_product_supplier, csv_price_list, manual, inventory_export]}
+        includes_recargo: {type: boolean}
+        pack_size: {type: integer, minimum: 1}
+        min_qty: {type: integer, minimum: 1, nullable: true}
+        supplier_reference: {type: string, nullable: true}
+        rank: {type: integer, minimum: 1}
+    BulkAssignRequest:
+      type: object
+      description: One of filter, skus or file_id
+      properties:
+        filter: {type: object, properties: {category: {type: string}, brand: {type: string}, q: {type: string, description: free text on SKU or name}}}
+        skus: {type: array, items: {type: string}}
+        file_id: {type: string}
+        default_cost_from_export: {type: boolean}
+    LoadResult:
+      type: object
+      description: Mirrors packages/contracts/dto/load_result.v1.schema.json
+      required: [run_id, kind, rows, loaded, updated, unchanged, quarantined, excluded, services]
+      properties:
+        run_id: {type: string}
+        kind: {type: string, enum: [inventory, movements, suppliers]}
+        rows: {type: integer}
+        loaded: {type: integer}
+        updated: {type: integer}
+        unchanged: {type: integer}
+        quarantined: {type: integer}
+        excluded: {type: integer}
+        services: {type: integer}
+        differences: {type: integer}
+        review: {type: array, items: {type: object, properties: {row: {type: integer}, code: {type: string}, detail: {type: string}, source: {type: string, enum: [loader, platform]}}}}
+        interpretations: {type: object}
