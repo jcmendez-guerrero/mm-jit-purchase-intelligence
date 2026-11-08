@@ -45,8 +45,9 @@ def test_seed_container_is_private_encrypted_by_the_service_and_expires():
 
 def test_only_forecast_service_is_wired_to_the_seed_container():
     main = (ROOT / "infra/bicep/main.bicep").read_text()
-    assert "seedPrincipalIds: seedFilePrincipalIds" in main
-    assert "rawWriterPrincipalIds: connectorPrincipalIds" in main      # the raw-payload wiring is untouched
+    assert "seedPrincipalIds: [idForecast.properties.principalId]" in main                 # forecast-service alone
+    assert "rawWriterPrincipalIds: [idConnector.properties.principalId]" in main           # the connector alone writes raw payloads
+    assert "rawReaderPrincipalIds: [idInventory.properties.principalId, idProcurement.properties.principalId]" in main
 
 
 def test_the_seed_container_is_reachable_by_the_forecast_identity_only_and_its_endpoint_is_exported():

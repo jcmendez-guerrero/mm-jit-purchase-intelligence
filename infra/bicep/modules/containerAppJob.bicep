@@ -9,6 +9,9 @@ param cronExpression string = '' // empty => manual trigger only
 param replicaTimeoutSeconds int = 3600
 param env array = []
 param command array = [] // overrides the image CMD, e.g. ['python', '-m', 'job', 'all']
+param registryServer string = ''
+@description('Job secrets: [{ name, keyVaultUrl, identity }]. Values stay in Key Vault.')
+param secrets array = []
 
 resource job 'Microsoft.App/jobs@2024-03-01' = {
   name: name
@@ -20,6 +23,8 @@ resource job 'Microsoft.App/jobs@2024-03-01' = {
   properties: {
     environmentId: environmentId
     configuration: {
+      registries: empty(registryServer) ? [] : [{ server: registryServer, identity: identityId }]
+      secrets: secrets
       triggerType: empty(cronExpression) ? 'Manual' : 'Schedule'
       replicaTimeout: replicaTimeoutSeconds
       replicaRetryLimit: 1
