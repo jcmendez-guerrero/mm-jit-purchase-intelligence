@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-CONF = (ROOT / "apps/web/nginx.conf").read_text(encoding="utf-8")
+CONF = (ROOT / "apps/web/nginx.conf.template").read_text(encoding="utf-8")
 
 
 def header(name: str) -> str:

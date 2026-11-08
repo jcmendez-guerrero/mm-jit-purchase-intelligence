@@ -12,6 +12,11 @@ param cpu string = '0.25'
 param memory string = '0.5Gi'
 param env array = [] // [{name, value}] or [{name, secretRef}]; Key Vault references only for secrets
 param ingressExternal bool = false
+param readinessPath string = '/readyz' // the SPA container only serves /healthz
+@description('Registry login server (shared ACR). Pulled with the workload identity (AcrPull), never with a password.')
+param registryServer string = ''
+@description('Container App secrets: [{ name, keyVaultUrl, identity }]. Values stay in Key Vault.')
+param secrets array = []
 
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
@@ -23,6 +28,8 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
   properties: {
     environmentId: environmentId
     configuration: {
+      registries: empty(registryServer) ? [] : [{ server: registryServer, identity: identityId }]
+      secrets: secrets
       ingress: {
         external: ingressExternal
         targetPort: targetPort
@@ -38,7 +45,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           resources: { cpu: json(cpu), memory: memory }
           probes: [
             { type: 'Liveness', httpGet: { path: '/healthz', port: targetPort } }
-            { type: 'Readiness', httpGet: { path: '/readyz', port: targetPort } }
+            { type: 'Readiness', httpGet: { path: readinessPath, port: targetPort } }
           ]
         }
       ]
@@ -48,3 +55,4 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 output id string = app.id
+output fqdn string = app.properties.configuration.ingress.fqdn

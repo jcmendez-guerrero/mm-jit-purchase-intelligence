@@ -1,74 +1,94 @@
 name: deploy
 
-# Deployment of all backend services, jobs and the SPA (T127, extending T139).
-# Production needs a manual approval: configure required reviewers on the "production" environment.
-# Images are pinned by sha256 digest. Azure identifiers come from repository/environment variables.
+# Build, push, deploy infrastructure + workloads, run database migrations (T127, extending T139).
+# - Manual trigger. The "production" environment must have required reviewers (manual approval).
+# - Runs only for a commit whose CI run succeeded.
+# - Azure login uses OIDC federation (no stored cloud credentials). The identifiers are GitHub secrets;
+#   every other deployment setting is a repository/environment variable. Nothing real is committed.
+# - Images are pinned by sha256 digest: the digest is read back from the registry after the push.
 
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: Target environment
-        type: choice
-        options: [test, production]
-        default: test
+      what_if_only:
+        description: Build and show the what-if only; do not deploy
+        type: boolean
+        default: false
 
-permissions:
-  id-token: write   # OIDC federation, no stored cloud credentials
-  contents: read
+permissions: {}   # least privilege: each job asks for what it needs
 
 concurrency:
-  group: deploy-${{ inputs.environment }}
+  group: deploy-production
   cancel-in-progress: false
 
+env:
+  IMAGE_REPO: mmi
+
 jobs:
-  services:
+  gate:
+    name: CI must be green for this commit
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}   # "production" has required reviewers
+    permissions:
+      actions: read   # read the CI result of the commit
+    steps:
+      - name: Require a successful ci run on this SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          count=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$SHA&status=success" --jq '.total_count')
+          if [ "$count" -lt 1 ]; then
+            echo "::error::No successful ci run for $SHA. Merge through a pull request and wait for CI."
+            exit 1
+          fi
+
+  build:
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write   # OIDC federation, no stored cloud credentials
+      contents: read
     strategy:
+      fail-fast: true
       matrix:
         include:
-          - name: siweb-connector
-            type: job
-            dockerfile: services/siweb-connector/Dockerfile
-            app_var: CONNECTOR_JOB_NAME
-          - name: siweb-cost-writer
-            type: job
-            dockerfile: services/siweb-cost-writer/Dockerfile
-            app_var: COST_WRITER_JOB_NAME
-          - name: inventory-service
-            type: app
-            dockerfile: services/inventory-service/Dockerfile
-            app_var: INVENTORY_APP_NAME
-          - name: forecast-service
-            type: app
-            dockerfile: services/forecast-service/Dockerfile
-            app_var: FORECAST_APP_NAME
-          - name: procurement-service
-            type: app
-            dockerfile: services/procurement-service/Dockerfile
-            app_var: PROCUREMENT_APP_NAME
-          - name: api-bff
-            type: app
-            dockerfile: services/api-bff/Dockerfile
-            app_var: BFF_APP_NAME
-          - name: web
-            type: app
-            dockerfile: apps/web/Dockerfile
-            app_var: WEB_APP_NAME
-
+          - { name: siweb-connector, dockerfile: services/siweb-connector/Dockerfile }
+          - { name: siweb-cost-writer, dockerfile: services/siweb-cost-writer/Dockerfile }
+          - { name: inventory-service, dockerfile: services/inventory-service/Dockerfile }
+          - { name: forecast-service, dockerfile: services/forecast-service/Dockerfile }
+          - { name: procurement-service, dockerfile: services/procurement-service/Dockerfile }
+          - { name: api-bff, dockerfile: services/api-bff/Dockerfile }
+          - { name: web, dockerfile: apps/web/Dockerfile }
     steps:
+      - name: Mask deployment settings (this repository is public, so logs are too)
+        env:
+          V1: ${{ vars.ACR_NAME }}
+          V2: ${{ vars.MMI_WORKLOAD }}
+          V3: ${{ vars.STORAGE_ACCOUNT_NAME }}
+          V4: ${{ vars.LOG_ANALYTICS_ID }}
+          V5: ${{ vars.REGISTRY_ID }}
+          V6: ${{ vars.KEY_VAULT_ID }}
+          V7: ${{ vars.POSTGRES_HOST }}
+          V8: ${{ vars.ALERT_EMAIL }}
+          V9: ${{ vars.SIWEB_BASE_URL }}
+          V10: ${{ vars.SIWEB_READER_SECRET_NAME }}
+          V11: ${{ vars.SIWEB_WRITER_SECRET_NAME }}
+          V12: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          for v in "$V1" "$V2" "$V3" "$V4" "$V5" "$V6" "$V7" "$V8" "$V9" "$V10" "$V11" "$V12"; do
+            if [ -n "$v" ]; then echo "::add-mask::$v"; fi
+          done
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
         with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Build and push image, capture digest
-        id: build
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push (${{ matrix.name }})
         env:
           ACR_NAME: ${{ vars.ACR_NAME }}
           IMAGE_NAME: ${{ matrix.name }}
@@ -76,36 +96,164 @@ jobs:
           COMMIT: ${{ github.sha }}
         run: |
           az acr login --name "$ACR_NAME"
-          image="$ACR_NAME.azurecr.io/mmi/$IMAGE_NAME"
-          docker build -f "$DOCKERFILE" -t "$image:$COMMIT" .
-          docker push "$image:$COMMIT"
-          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$image:$COMMIT")
-          echo "ref=$digest" >> "$GITHUB_OUTPUT"
+          server=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)
+          image="$server/$IMAGE_REPO/$IMAGE_NAME:$COMMIT"
+          docker build -f "$DOCKERFILE" -t "$image" .
+          docker push "$image"
 
-      - name: Update Container App Job (${{ matrix.name }})
-        if: matrix.type == 'job'
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write   # OIDC federation, no stored cloud credentials
+      contents: read
+    steps:
+      - name: Mask deployment settings (this repository is public, so logs are too)
         env:
-          APP_NAME: ${{ vars[matrix.app_var] }}
-          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          IMAGE_REF: ${{ steps.build.outputs.ref }}
+          V1: ${{ vars.ACR_NAME }}
+          V2: ${{ vars.MMI_WORKLOAD }}
+          V3: ${{ vars.STORAGE_ACCOUNT_NAME }}
+          V4: ${{ vars.LOG_ANALYTICS_ID }}
+          V5: ${{ vars.REGISTRY_ID }}
+          V6: ${{ vars.KEY_VAULT_ID }}
+          V7: ${{ vars.POSTGRES_HOST }}
+          V8: ${{ vars.ALERT_EMAIL }}
+          V9: ${{ vars.SIWEB_BASE_URL }}
+          V10: ${{ vars.SIWEB_READER_SECRET_NAME }}
+          V11: ${{ vars.SIWEB_WRITER_SECRET_NAME }}
+          V12: ${{ vars.AZURE_RESOURCE_GROUP }}
         run: |
-          if [ -n "$APP_NAME" ]; then
-            az containerapp job update \
-              --name "$APP_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --image "$IMAGE_REF"
-          fi
+          for v in "$V1" "$V2" "$V3" "$V4" "$V5" "$V6" "$V7" "$V8" "$V9" "$V10" "$V11" "$V12"; do
+            if [ -n "$v" ]; then echo "::add-mask::$v"; fi
+          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Update Container App (${{ matrix.name }})
-        if: matrix.type == 'app'
+      - name: Resolve image digests
+        id: images
         env:
-          APP_NAME: ${{ vars[matrix.app_var] }}
-          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-          IMAGE_REF: ${{ steps.build.outputs.ref }}
+          ACR_NAME: ${{ vars.ACR_NAME }}
+          COMMIT: ${{ github.sha }}
         run: |
-          if [ -n "$APP_NAME" ]; then
-            az containerapp update \
-              --name "$APP_NAME" \
-              --resource-group "$RESOURCE_GROUP" \
-              --image "$IMAGE_REF"
-          fi
+          server=$(az acr show --name "$ACR_NAME" --query loginServer -o tsv)
+          digest() {
+            d=$(az acr repository show --name "$ACR_NAME" --image "$IMAGE_REPO/$1:$COMMIT" --query digest -o tsv)
+            echo "$server/$IMAGE_REPO/$1@$d"
+          }
+          json=$(jq -nc \
+            --arg connector "$(digest siweb-connector)" \
+            --arg costWriter "$(digest siweb-cost-writer)" \
+            --arg inventory "$(digest inventory-service)" \
+            --arg forecast "$(digest forecast-service)" \
+            --arg procurement "$(digest procurement-service)" \
+            --arg bff "$(digest api-bff)" \
+            --arg web "$(digest web)" \
+            '{connector:$connector,costWriter:$costWriter,inventory:$inventory,forecast:$forecast,procurement:$procurement,bff:$bff,web:$web}')
+          echo "json=$json" >> "$GITHUB_OUTPUT"
+
+      - name: Collect deployment parameters
+        id: params
+        env:
+          IMAGES: ${{ steps.images.outputs.json }}
+          WORKLOAD: ${{ vars.MMI_WORKLOAD }}
+          MMI_ENV: ${{ vars.MMI_ENVIRONMENT }}
+          STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME }}
+          LOG_ANALYTICS_ID: ${{ vars.LOG_ANALYTICS_ID }}
+          REGISTRY_ID: ${{ vars.REGISTRY_ID }}
+          KEY_VAULT_ID: ${{ vars.KEY_VAULT_ID }}
+          POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
+          ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
+          SIWEB_BASE_URL: ${{ vars.SIWEB_BASE_URL }}
+          SIWEB_READER_SECRET_NAME: ${{ vars.SIWEB_READER_SECRET_NAME }}
+          SIWEB_WRITER_SECRET_NAME: ${{ vars.SIWEB_WRITER_SECRET_NAME }}
+          DEPLOY_COST_WRITER: ${{ vars.DEPLOY_COST_WRITER || 'false' }}
+          DEPLOY_ALERTS: ${{ vars.DEPLOY_ALERTS || 'false' }}
+          TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          {
+            echo "args<<EOF"
+            echo "workload=$WORKLOAD"
+            echo "environment=$MMI_ENV"
+            echo "storageAccountName=$STORAGE_ACCOUNT_NAME"
+            echo "logAnalyticsId=$LOG_ANALYTICS_ID"
+            echo "registryId=$REGISTRY_ID"
+            echo "keyVaultId=$KEY_VAULT_ID"
+            echo "postgresHost=$POSTGRES_HOST"
+            echo "alertEmail=$ALERT_EMAIL"
+            echo "entraTenantId=$TENANT_ID"
+            echo "siwebBaseUrl=$SIWEB_BASE_URL"
+            echo "siwebReaderSecretName=$SIWEB_READER_SECRET_NAME"
+            echo "siwebWriterSecretName=$SIWEB_WRITER_SECRET_NAME"
+            echo "deployCostWriter=$DEPLOY_COST_WRITER"
+            echo "deployAlerts=$DEPLOY_ALERTS"
+            echo "images=$IMAGES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: What-if
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          ARGS: ${{ steps.params.outputs.args }}
+        run: |
+          mapfile -t params <<< "$ARGS"
+          az deployment group what-if \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/bicep/main.bicep \
+            --parameters "${params[@]}"
+
+      - name: Deploy infrastructure and workloads
+        if: ${{ !inputs.what_if_only }}
+        id: deploy
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          ARGS: ${{ steps.params.outputs.args }}
+        run: |
+          mapfile -t params <<< "$ARGS"
+          az config set extension.use_dynamic_install=yes_without_prompt extension.dynamic_install_allow_preview=true
+          az deployment group create \
+            --name "mmi-${GITHUB_RUN_ID}" \
+            --resource-group "$RESOURCE_GROUP" \
+            --template-file infra/bicep/main.bicep \
+            --parameters "${params[@]}" \
+            --query 'properties.outputs.names.value' -o json > names.json
+          echo "job_prefix=$(jq -r .jobPrefix names.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Run database migrations
+        if: ${{ !inputs.what_if_only }}
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          JOB_PREFIX: ${{ steps.deploy.outputs.job_prefix }}
+          DEPLOY_COST_WRITER: ${{ vars.DEPLOY_COST_WRITER || 'false' }}
+        run: |
+          services="connector inventory forecast procurement bff"
+          if [ "$DEPLOY_COST_WRITER" = "true" ]; then services="$services costwrite"; fi
+          for svc in $services; do
+            job="$JOB_PREFIX-mig-$svc"
+            exec_name=$(az containerapp job start --name "$job" --resource-group "$RESOURCE_GROUP" --query name -o tsv)
+            echo "Started $job ($exec_name)"
+            for _ in $(seq 1 60); do
+              status=$(az containerapp job execution show --name "$job" --resource-group "$RESOURCE_GROUP" \
+                --job-execution-name "$exec_name" --query properties.status -o tsv)
+              case "$status" in
+                Succeeded) echo "$job: $status"; break ;;
+                Failed|Degraded|Stopped) echo "::error::$job finished with status $status"; exit 1 ;;
+              esac
+              sleep 10
+            done
+            if [ "$status" != "Succeeded" ]; then echo "::error::$job did not finish in 10 minutes"; exit 1; fi
+          done
+
+      - name: Show the public URL
+        if: ${{ !inputs.what_if_only }}
+        env:
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          az deployment group show --name "mmi-${GITHUB_RUN_ID}" --resource-group "$RESOURCE_GROUP" \
+            --query 'properties.outputs.webUrl.value' -o tsv
