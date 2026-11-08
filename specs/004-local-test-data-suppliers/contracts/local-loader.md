@@ -30,6 +30,7 @@ Rules: refuses any `--dir` inside the repository tree except `packages/testing/f
   "interpretations": {"tax_included_rows": 0, "tax_excluded_rows": 0, "timezone": "Europe/Madrid"}
 }
 ```
+
 Invariant: `loaded + updated + unchanged + quarantined + excluded + services == rows`. Review `detail` never contains note text, tax IDs, bank data or personal names.
 
 ## Local HTTP (loader app, override file `infra/compose.local-data.yaml`, port local only)
@@ -53,7 +54,7 @@ Every call uses an audience-scoped token from the local issuer: audience `local-
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/local-load/capability` | `{"enabled": true|false}`; the SPA hides the screen when false or 404 |
+| GET | `/local-load/capability` | `{"enabled": true}` or `{"enabled": false}`; the SPA hides the screen when false or 404 |
 | POST | `/local-load/{kind}/check` | proxies to the loader app |
 | POST | `/local-load/{kind}` | proxies; upload limits from the existing upload settings; requires an `Idempotency-Key` |
 | GET | `/local-load/runs` | last results |

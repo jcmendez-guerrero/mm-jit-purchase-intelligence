@@ -9,7 +9,6 @@ from db.tables import product_refs
 from sqlalchemy import func, select, update
 from sqlalchemy.engine import Connection
 
-
 LOCAL_ID_FLOOR = 9_000_000          # ids assigned by the local export loader (research R1); they never exist in the ERP
 
 

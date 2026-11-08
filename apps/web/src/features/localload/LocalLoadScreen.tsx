@@ -66,7 +66,7 @@ export const LocalLoadScreen: React.FC<Props> = ({ userRoles }) => {
   }, [allowed, refresh]);
 
   const message = (err: unknown): string => {
-    if (err instanceof ApiError && err.missing?.length) return `${errorMessage(err, t("common.error"))} ${err.missing.join(", ")}`;
+    if (err instanceof ApiError && err.missing?.length) return `${errorMessage(err, t("common.error"))} ${t("localLoad.missing_columns", { columns: err.missing.join(", ") })}`;
     return errorMessage(err, t("common.error"));
   };
 

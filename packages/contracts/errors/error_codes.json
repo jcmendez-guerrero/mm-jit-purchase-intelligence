@@ -460,6 +460,151 @@
       "http": 500,
       "kind": "request",
       "meaning": "A background import failed unexpectedly"
+    },
+    "local_load_type_not_allowed": {
+      "http": 415,
+      "kind": "request",
+      "meaning": "The file is not a plain CSV or XLSX"
+    },
+    "local_load_file_too_large": {
+      "http": 413,
+      "kind": "request",
+      "meaning": "The file exceeds the size or decompression limit"
+    },
+    "local_load_too_many_rows": {
+      "http": 413,
+      "kind": "request",
+      "meaning": "The file has more rows than allowed"
+    },
+    "local_load_macros_or_links": {
+      "http": 415,
+      "kind": "request",
+      "meaning": "The workbook has macros, formulas or external links"
+    },
+    "local_load_signature_mismatch": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The file columns do not match the expected export"
+    },
+    "local_load_interpretation_not_acknowledged": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Tax and price interpretation was not confirmed"
+    },
+    "local_load_inventory_required": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Movements need the inventory loaded first"
+    },
+    "local_load_unreachable": {
+      "http": 502,
+      "kind": "request",
+      "meaning": "The local loader could not be reached"
+    },
+    "local_load_platform_unreachable": {
+      "http": 502,
+      "kind": "request",
+      "meaning": "Data was parsed but the platform did not accept it"
+    },
+    "local_load_unknown_kind": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The file kind is not supported"
+    },
+    "supplier_possible_duplicate": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "A supplier with a very similar name exists"
+    },
+    "supplier_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A supplier field is missing or not valid"
+    },
+    "supplier_deactivated": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The supplier is deactivated"
+    },
+    "supplier_merged": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The supplier was merged into another"
+    },
+    "supplier_not_found": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The supplier does not exist"
+    },
+    "supplier_version_conflict": {
+      "http": 412,
+      "kind": "request",
+      "meaning": "The supplier was changed by someone else (If-Match)"
+    },
+    "link_sku_unknown": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The SKU is not in the loaded catalogue"
+    },
+    "link_cost_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The link cost is missing or not valid"
+    },
+    "link_currency_mismatch": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The cost currency differs from the supplier currency"
+    },
+    "link_not_found": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The product is not linked to the supplier"
+    },
+    "bulk_criteria_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "Bulk assignment needs SKUs or a search text"
+    },
+    "bulk_preview_stale": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The bulk preview expired or was already applied"
+    },
+    "bulk_conflicts_unresolved": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Products with another preferred supplier were not resolved"
+    },
+    "bulk_file_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The bulk file needs SKU and supplier columns"
+    },
+    "merge_same_supplier": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A supplier cannot be merged into itself"
+    },
+    "merge_currency_mismatch": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Suppliers with different currencies cannot be merged"
+    },
+    "merge_open_lines": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The supplier has lines in open proposals"
+    },
+    "review_item_not_found": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The review item does not exist"
+    },
+    "review_item_closed": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The review item was already resolved"
     }
   }
 }

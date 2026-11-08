@@ -13,10 +13,10 @@ from api.internal_export_costs import build_router as build_export_costs_router
 from api.internal_export_costs import enabled as enabled_internal_export_costs
 from api.internal_import import build_router as build_import_router
 from api.policies import build_router as build_policy_router
-from api.suppliers import build_router as build_suppliers_router
 from api.proposals import build_router as build_proposal_router
 from api.scenarios import build_router as build_scenario_router
 from api.summary import build_router as build_summary_router
+from api.suppliers import build_router as build_suppliers_router
 from mmi_common.service import create_service_app
 from mmi_common.servicetoken import service_token
 

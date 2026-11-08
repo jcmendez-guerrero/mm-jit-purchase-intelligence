@@ -68,11 +68,11 @@ No structural change. Locally loaded products enter through the existing sync wi
 |---|---|---|
 | `data/local-exports/.sku-map.json` | SKU → surrogate id | Append-only; wiped by `wipe` |
 | `data/local-exports/.last-load.json` | per-field last-written values for protected fields (FR-034), load counts, review items | No notes, no tax IDs |
-| `data/local-exports/*.csv|xlsx` | the owner's real exports | Never committed; never read by tests |
+| `data/local-exports/*.csv` or `*.xlsx` | the owner's real exports | Never committed; never read by tests |
 
 ## State transitions
 
-```
+```text
 supplier:  active ⇄ deactivated        (deactivation: preview of open proposal lines, confirm)
 classification: unclassified → purchasing | non_purchasing (buyer/admin; reversible)
 erp_link_state: none → pending_link (cost entered) → linked (Gate 0 / ERP link exists)

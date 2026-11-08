@@ -5,7 +5,18 @@
   "description": "Counts after a local load. Invariant: loaded + updated + unchanged + quarantined + excluded + services == rows. Review details never carry note text, tax ids, bank data or personal names.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["run_id", "kind", "file_sha256", "rows", "loaded", "updated", "unchanged", "quarantined", "excluded", "services"],
+  "required": [
+    "run_id",
+    "kind",
+    "file_sha256",
+    "rows",
+    "loaded",
+    "updated",
+    "unchanged",
+    "quarantined",
+    "excluded",
+    "services"
+  ],
   "properties": {
     "run_id": { "type": "string", "minLength": 1 },
     "kind": { "enum": ["inventory", "movements", "suppliers"] },

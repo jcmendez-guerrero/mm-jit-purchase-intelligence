@@ -135,8 +135,9 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.get("/suppliers")
     def list_suppliers(status: str | None = None, classification: str | None = None, q: str | None = None,
                        conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
-        from api.suppliers import supplier_json
         from suppliers.service import list_suppliers as find_suppliers
+
+        from api.suppliers import supplier_json
 
         out = []
         for s in find_suppliers(conn, status=status, classification=classification, q=q):

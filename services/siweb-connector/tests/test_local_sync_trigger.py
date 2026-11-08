@@ -58,7 +58,7 @@ def test_a_failed_run_is_reported():
     assert c.post("/internal/local-sync", headers=token(issuer)).json() == {"ok": False, "exit_code": 1}
 
 
-@pytest.mark.parametrize("base", ["https://api.example.com", "http://203.0.113.9", "https://siweb.example.es"])
+@pytest.mark.parametrize("base", ["https://api.example.com", "http://203.0.113.9", "https://host.example.test"])
 def test_it_refuses_any_host_that_is_not_the_mock(base):
     c, issuer, calls = make({**LOCAL_ENV, "MMI_SIWEB_BASE_URL": base})
     r = c.post("/internal/local-sync", headers=token(issuer))

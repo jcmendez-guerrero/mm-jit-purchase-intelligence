@@ -96,3 +96,32 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | invalid_terms | 422 | Supplier order terms are not valid |
 | revision_required | 428 | The caller must say which version it edited (If-Match) |
 | terms_invalid_value | 422 | A terms value is out of range or malformed |
+| local_load_type_not_allowed | 415 | The file is not a plain CSV or XLSX |
+| local_load_file_too_large | 413 | The file exceeds the size or decompression limit |
+| local_load_too_many_rows | 413 | The file has more rows than allowed |
+| local_load_macros_or_links | 415 | The workbook has macros, formulas or external links |
+| local_load_signature_mismatch | 422 | The file columns do not match the expected export |
+| local_load_interpretation_not_acknowledged | 409 | Tax and price interpretation was not confirmed |
+| local_load_inventory_required | 409 | Movements need the inventory loaded first |
+| local_load_unreachable | 502 | The local loader could not be reached |
+| local_load_platform_unreachable | 502 | Data was parsed but the platform did not accept it |
+| local_load_unknown_kind | 404 | The file kind is not supported |
+| supplier_possible_duplicate | 409 | A supplier with a very similar name exists |
+| supplier_invalid | 422 | A supplier field is missing or not valid |
+| supplier_deactivated | 409 | The supplier is deactivated |
+| supplier_merged | 409 | The supplier was merged into another |
+| supplier_not_found | 404 | The supplier does not exist |
+| supplier_version_conflict | 412 | The supplier was changed by someone else (If-Match) |
+| link_sku_unknown | 422 | The SKU is not in the loaded catalogue |
+| link_cost_invalid | 422 | The link cost is missing or not valid |
+| link_currency_mismatch | 422 | The cost currency differs from the supplier currency |
+| link_not_found | 404 | The product is not linked to the supplier |
+| bulk_criteria_invalid | 422 | Bulk assignment needs SKUs or a search text |
+| bulk_preview_stale | 409 | The bulk preview expired or was already applied |
+| bulk_conflicts_unresolved | 409 | Products with another preferred supplier were not resolved |
+| bulk_file_invalid | 422 | The bulk file needs SKU and supplier columns |
+| merge_same_supplier | 422 | A supplier cannot be merged into itself |
+| merge_currency_mismatch | 409 | Suppliers with different currencies cannot be merged |
+| merge_open_lines | 409 | The supplier has lines in open proposals |
+| review_item_not_found | 404 | The review item does not exist |
+| review_item_closed | 409 | The review item was already resolved |

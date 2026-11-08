@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from mmi_common.outbox import inbox_table, outbox_table
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     Column,
@@ -15,7 +16,6 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
-    JSON,
     MetaData,
     Numeric,
     String,

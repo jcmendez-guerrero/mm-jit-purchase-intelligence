@@ -17,13 +17,13 @@ from typing import Any
 from db.tables import erp_supplier_links, suppliers
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
+from suppliers.dedupe import name_key
 
 from costs.directory import SqlProductDirectory
 from costs.recargo import RecargoTable, UnknownVatError, net_from_gross
 from costs.rules import CostRules
 from costs.store import NewCost, add_version, current, refresh_erp_verification
 from costs.writes import relink_pending
-from suppliers.dedupe import name_key
 
 SOURCE = "siweb_product_supplier"
 ACTOR = "siweb-import"

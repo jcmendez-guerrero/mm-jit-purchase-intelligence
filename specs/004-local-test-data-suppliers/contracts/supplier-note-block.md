@@ -6,7 +6,7 @@
 
 A single block delimited by marker lines, anywhere in the note (appended at the end if absent):
 
-```
+```text
 [[MMI:BEGIN v1]]
 {"v":1,"lead_time_days":3,"min_order_value":"150.00","min_qty":null,"free_delivery_threshold":"300.00","delivery_charge":"5.00","order_days":[1,3],"currency":"EUR","updated":"2026-11-08T10:00:00Z","hash":"…"}
 [[MMI:END]]
