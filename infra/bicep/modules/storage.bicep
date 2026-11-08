@@ -128,3 +128,5 @@ resource lifecycle 'Microsoft.Storage/storageAccounts/managementPolicies@2023-05
 output accountId string = account.id
 @description('Blob endpoint to give forecast-service as MMI_SEED_ACCOUNT_URL (container seed-quarantine, access by managed identity only).')
 output blobEndpoint string = account.properties.primaryEndpoints.blob
+@description('Queue endpoint to give workloads as MMI_QUEUE_URL (access by managed identity only).')
+output queueEndpoint string = account.properties.primaryEndpoints.queue
