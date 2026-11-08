@@ -12,6 +12,7 @@ from db.tables import (
     demand_observations,
     product_segments,
     products,
+    segment_history,
     stock_history,
     stock_movements,
     variants,
@@ -64,4 +65,34 @@ def compute_segments(conn: Connection, cfg: ClassificationConfig | None = None, 
                      "reason": ",".join(seg.reasons), "metrics": {**seg.metrics, "value": float(series_value(s))}, "computed_at": stamp, "run_id": run_id})
     if rows:
         conn.execute(insert(product_segments), rows)
+        record_history(conn, rows, run_id, stamp)
     return len(rows)
+
+
+def record_history(conn: Connection, rows: list[dict], run_id: str, stamp: datetime) -> int:
+    """Append a history row when a variant's category (ABC, XYZ, pattern) or its manual criticality changed since the last one, with the reason.
+    The criticality shown is the manual flag; it is never derived from demand."""
+    latest_ids = select(func.max(segment_history.c.id)).group_by(segment_history.c.variant_id)
+    last = {r.variant_id: r for r in conn.execute(select(segment_history).where(segment_history.c.id.in_(latest_ids))).all()}
+    manual = {p.external_id: bool(p.clinical_critical) for p in conn.execute(select(products.c.external_id, products.c.clinical_critical)).all()}
+    crit = {v.external_id: manual.get(v.product_id, False) for v in conn.execute(select(variants.c.external_id, variants.c.product_id)).all()}
+    new = []
+    for r in rows:
+        c = crit.get(r["variant_id"], False)
+        prev = last.get(r["variant_id"])
+        if prev is None:
+            reason = "first_classification"
+        else:
+            changed = [name for name, a, b in (("abc", prev.abc, r["abc"]), ("xyz", prev.xyz, r["xyz"]), ("pattern", prev.pattern, r["pattern"]), ("criticality", bool(prev.critical), c)) if a != b]
+            if not changed:
+                continue
+            reason = f"{changed[0]}_changed" if len(changed) == 1 else "multiple_changed"
+        new.append({"variant_id": r["variant_id"], "changed_at": stamp, "abc": r["abc"], "xyz": r["xyz"], "pattern": r["pattern"], "critical": c, "reason_key": reason, "run_id": run_id})
+    if new:
+        conn.execute(insert(segment_history), new)
+    return len(new)
+
+
+def history_for(conn: Connection, variant_id: int) -> list[dict]:
+    return [{"changed_at": r.changed_at.isoformat(), "abc": r.abc, "xyz": r.xyz, "pattern": r.pattern, "critical": bool(r.critical), "reason_key": r.reason_key, "run_id": r.run_id}
+            for r in conn.execute(select(segment_history).where(segment_history.c.variant_id == variant_id).order_by(segment_history.c.id)).all()]

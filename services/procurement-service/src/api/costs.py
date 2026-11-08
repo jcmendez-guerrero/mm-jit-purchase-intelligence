@@ -12,16 +12,22 @@ from audit.chain import append as audit
 from audit.chain import verify_chain
 from costs import price_import
 from costs.directory import SqlProductDirectory
+from costs.lot_costs import LotCostError, latest_by_lot, record_lot_cost, with_recargo
+from costs.lot_lookup import LotLookupError
+from costs.median_suggestion import request_median_write
 from costs.recargo import UnknownVatError, gross_from_net, load_table, net_from_gross
 from costs.rules import CostRules, load_rules
 from costs.store import CostError, NewCost, add_version, confirm_jump, cost_status, verify
-from db.tables import erp_supplier_links, supplier_costs, suppliers
+from db.tables import erp_supplier_links, product_refs, supplier_costs, suppliers
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from mmi_common.errors import error_code
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
-from terms.service import Terms, TermsError, current_terms, save_terms
+from terms.service import current_terms, current_version
+
+from api.terms import register as register_terms_routes
+from api.terms import terms_json
 
 _engine: Engine | None = None
 DISPLAY = Decimal("0.01")
@@ -45,13 +51,19 @@ class CostEntry(BaseModel):
     pack_size: int | None = Field(default=None, ge=1)
 
 
-class TermsBody(BaseModel):
-    min_order_value: Decimal | None = None
-    min_qty_for_delivery: int | None = None
-    free_delivery_threshold: Decimal | None = None
-    delivery_charge: Decimal | None = None
-    order_days: list[int] = []
-    delivery_schedule: str | None = None
+class LotCostEntry(BaseModel):
+    variant_id: int = Field(ge=1)
+    supplier_id: str
+    lot: str = Field(min_length=1, max_length=60)
+    amount: Decimal = Field(ge=0)
+    includes_recargo: bool
+    source: str = Field(pattern="^(buyer_entry|receipt_correction)$")
+    quantity: int = Field(default=0, ge=0)
+
+
+class CostUpdateBody(BaseModel):
+    product_id: int = Field(ge=1)
+    supplier_id: str
 
 
 class VatBody(BaseModel):
@@ -68,6 +80,13 @@ def cost_json(row: Any, rules: CostRules, now: datetime) -> dict[str, Any]:
     }
 
 
+def _need_writer(app: FastAPI) -> Any:
+    w = getattr(app.state, "blob_writer", None)
+    if w is None:
+        raise HTTPException(503, "not_configured")
+    return w
+
+
 def build_router(app: FastAPI) -> APIRouter:
     require: Callable[..., Any] = app.state.require_roles
     router = APIRouter()
@@ -76,26 +95,50 @@ def build_router(app: FastAPI) -> APIRouter:
         with engine.begin() as conn:
             yield conn
 
+    register_terms_routes(router, conn_dep, require, app)
+
+    def lot_json(r: Any) -> dict[str, Any]:
+        return {"id": r.id, "variant_id": r.variant_id, "supplier_id": r.supplier_id, "lot": r.lot, "unit_cost": str(Decimal(str(r.unit_cost)).quantize(Decimal("0.0001"))),
+                "quantity": r.quantity, "source": r.source, "recorded_by": r.recorded_by, "recorded_at": r.recorded_at.isoformat()}
+
+    @router.get("/lot-costs")
+    def list_lot_costs(variant_id: int, supplier_id: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
+        return [lot_json(r) for r in latest_by_lot(conn, variant_id, supplier_id).values()]
+
+    @router.post("/lot-costs", status_code=201)
+    def add_lot_cost(body: LotCostEntry, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
+        """A buyer-entered opening entry or a correction on arrival. There is no endpoint for a free supplier-cost value: the ERP value is the median."""
+        if conn.execute(select(suppliers.c.id).where(suppliers.c.id == body.supplier_id)).first() is None:
+            raise HTTPException(422, "unknown_supplier")
+        if conn.execute(select(product_refs.c.variant_id).where(product_refs.c.variant_id == body.variant_id)).first() is None:
+            raise HTTPException(422, "unknown_variant")
+        try:
+            cost = with_recargo(conn, body.variant_id, body.amount, body.includes_recargo)
+            row = record_lot_cost(conn, _need_writer(app), variant_id=body.variant_id, supplier_id=body.supplier_id, lot=body.lot, unit_cost=cost,
+                                  source=body.source, actor=principal.subject, quantity=body.quantity)
+        except LotCostError as exc:
+            raise HTTPException(422, exc.code) from exc
+        return lot_json(row)
+
+    @router.post("/cost-updates", status_code=201)
+    def request_cost_update(body: CostUpdateBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
+        """Builds the review request for the median of the lots in stock (looked up now). Nothing is sent to the ERP from here."""
+        source = getattr(app.state, "lots_source", None)
+        if source is None:
+            raise HTTPException(503, "not_configured")
+        try:
+            res = request_median_write(conn, source, body.product_id, body.supplier_id, "buyer_entry", principal.subject, pvp_source=getattr(app.state, "pvp_source", None))
+        except LotLookupError as exc:
+            raise HTTPException(503, exc.code) from exc
+        return {"status": res.status, "warnings": res.warnings, "request_id": None if res.request is None else res.request.id}
+
     @router.get("/suppliers")
     def list_suppliers(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
         out = []
         for s in conn.execute(select(suppliers).order_by(suppliers.c.name)).all():
             t = current_terms(conn, s.id)
-            out.append({"id": s.id, "name": s.name, "terms": None if t is None else {
-                "min_order_value": None if t.min_order_value is None else str(t.min_order_value), "min_qty_for_delivery": t.min_qty_for_delivery,
-                "free_delivery_threshold": None if t.free_delivery_threshold is None else str(t.free_delivery_threshold),
-                "delivery_charge": None if t.delivery_charge is None else str(t.delivery_charge), "order_days": list(t.order_days),
-                "delivery_schedule": t.delivery_schedule}})
+            out.append({"id": s.id, "name": s.name, "terms": None if t is None else terms_json(t), "version": current_version(conn, s.id)})
         return out
-
-    @router.put("/suppliers/{supplier_id}/terms")
-    def put_terms(supplier_id: str, body: TermsBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
-        try:
-            version = save_terms(conn, supplier_id, Terms(body.min_order_value, body.min_qty_for_delivery, body.free_delivery_threshold,
-                                                          body.delivery_charge, tuple(body.order_days), body.delivery_schedule), principal.subject)
-        except TermsError as exc:
-            raise HTTPException(422, error_code(exc)) from exc
-        return {"version": version}
 
     @router.get("/costs")
     def list_costs(product_id: int | None = None, supplier_id: str | None = None, only_issues: bool = False,

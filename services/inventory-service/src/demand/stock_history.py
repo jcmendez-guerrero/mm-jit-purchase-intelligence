@@ -32,6 +32,7 @@ def reconstruct(
     current_on_hand: Mapping[int, int],
     through_day: date,
     snapshots: Mapping[int, Mapping[date, int]] | None = None,
+    min_run: int = 1,
 ) -> list[HistoryRow]:
     """``movements`` must include quarantined ones: stock moved physically whatever the review outcome."""
     net: dict[int, dict[date, int]] = defaultdict(lambda: defaultdict(int))
@@ -59,5 +60,18 @@ def reconstruct(
         for snap_day, snap_qty in (snapshots or {}).get(vid, {}).items():
             if snap_day in by_day and by_day[snap_day] != snap_qty:
                 ok = False
-        rows += [HistoryRow(vid, day, cl, (op <= 0 and day != first) or cl <= 0, ok) for day, op, cl in reversed(series)]
+        flags = [(op <= 0 and day != first) or cl <= 0 for day, op, cl in reversed(series)]
+        if min_run > 1:                                   # short stock-outs are not treated as hidden demand (rule min_zero_stock_days)
+            i = 0
+            while i < len(flags):
+                if flags[i]:
+                    j = i
+                    while j < len(flags) and flags[j]:
+                        j += 1
+                    if j - i < min_run:
+                        flags[i:j] = [False] * (j - i)
+                    i = j
+                else:
+                    i += 1
+        rows += [HistoryRow(vid, day, cl, flags[k], ok) for k, (day, _op, cl) in enumerate(reversed(series))]
     return rows

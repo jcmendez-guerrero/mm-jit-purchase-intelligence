@@ -77,7 +77,7 @@ def test_admin_cannot_leave_fewer_than_two_approvers():
     # With only 2 approvers, revoking approver role from approver-2 must fail with 409
     res = client.put("/api/admin/roles/approver-2", json={"roles": ["viewer"]}, headers=headers)
     assert res.status_code == 409
-    assert "at least two eligible approvers" in res.json()["detail"]
+    assert res.json()["detail"] == "approval_fewer_than_two_approvers"
 
     # Check refused attempt is logged
     audit = get_audit_log()
@@ -85,4 +85,4 @@ def test_admin_cannot_leave_fewer_than_two_approvers():
     assert audit[0]["actor"] == "admin-1"
     assert audit[0]["target_user"] == "approver-2"
     assert audit[0]["success"] is False
-    assert "at least two" in (audit[0]["refusal_reason"] or "")
+    assert audit[0]["refusal_reason"] == "approval_fewer_than_two_approvers"

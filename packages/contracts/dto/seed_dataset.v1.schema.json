@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/seed_dataset.v1",
+  "title": "SeedDataset",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "status", "origin", "file_sha256"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "uploaded",
+        "validated",
+        "approved",
+        "active",
+        "superseded",
+        "rolled_back",
+        "rejected"
+      ]
+    },
+    "origin": {
+      "enum": ["synthetic", "real"]
+    },
+    "file_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "uploader": {
+      "type": "string"
+    },
+    "uploaded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "activated_by": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "activated_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supersedes_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "row_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accepted", "quarantined", "rejected"],
+      "properties": {
+        "accepted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quarantined": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "description": "A dataset cannot mix origins; imported data is never an ERP movement."
+}

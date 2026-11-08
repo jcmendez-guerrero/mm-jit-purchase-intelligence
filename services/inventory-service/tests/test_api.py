@@ -1,6 +1,7 @@
 """Inventory API (T057 and the US3 endpoints)."""
 
 from datetime import date
+from decimal import Decimal
 
 from conftest import auth
 from db.tables import variants
@@ -41,8 +42,12 @@ def test_criticality_and_service_level_endpoints(client, engine):
     assert client.put("/products/5/criticality", json={"critical": True}, headers=auth("viewer")).status_code == 403
     assert client.put("/products/5/criticality", json={"critical": True}, headers=auth("buyer")).json()["changed"] is True
     assert client.put("/products/99/criticality", json={"critical": True}, headers=auth("buyer")).status_code == 404
-    assert client.put("/service-levels", json={"scope": "abc", "key": "A", "target": "0.98"}, headers=auth("buyer")).status_code == 200
-    assert client.put("/service-levels", json={"scope": "abc", "key": "A", "target": "1.5"}, headers=auth("buyer")).status_code == 422
+    # service levels are edited in procurement policies (ADR-018, T006); inventory keeps its history readable and offers no edit route
+    assert client.put("/service-levels", json={"scope": "abc", "key": "A", "target": "0.98"}, headers=auth("buyer")).status_code == 405
+    from classification.service_levels import set_target
+
+    with engine.begin() as c:
+        set_target(c, "abc", "A", Decimal("0.98"), "legacy")
     assert [h["target"] for h in client.get("/service-levels", headers=auth()).json()["history"]] == ["0.9800"]
 
 

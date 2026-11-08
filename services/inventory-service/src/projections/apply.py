@@ -96,10 +96,14 @@ def _variants(conn: Connection, records: list[dict[str, Any]], snapshot_date: da
         pid = int(r["product_id"]) if r.get("product_id") is not None else None
         if pid is not None and conn.execute(select(products.c.external_id).where(products.c.external_id == pid)).first() is None:
             conn.execute(insert(products).values(external_id=pid, name=str(r.get("product_name") or pid), status="active", missed_syncs=0))
+        family = str(r.get("category") or "").strip()[:120]
+        if pid is not None and family:                                    # the ERP product family: blank or absent keeps what we have
+            conn.execute(update(products).where(products.c.external_id == pid).values(family=family))
         _upsert(conn, variants, "external_id", {
             "external_id": vid, "product_id": pid, "sku": r.get("sku"), "name": r.get("name"),
             "pack_size": r.get("pack_size"), "uom": r.get("uom"), "reorder_point": r.get("reorder_point"),
-            "price": Money.from_cents(str(r["price_cents"])).amount if r.get("price_cents") is not None else None})
+            "price": Money.from_cents(str(r["price_cents"])).amount if r.get("price_cents") is not None else None,
+            "price_confirmed_at": datetime.now(UTC) if r.get("price_cents") is not None else None})   # a sync that carries the price re-confirms it
         on_hand = int(r.get("total_on_hand", r.get("stock_total", 0)) or 0)
         reserved = int(r.get("total_reserved", 0) or 0)
         available = int(r["total_available"]) if r.get("total_available") is not None else on_hand - reserved

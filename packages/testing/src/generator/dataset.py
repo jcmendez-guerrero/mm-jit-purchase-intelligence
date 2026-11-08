@@ -51,6 +51,9 @@ def _ts(day: date, rng: random.Random) -> str:
     return datetime.combine(day, t).isoformat()
 
 
+FAMILIES = ("Familia Sintetica Alimentacion", "Familia Sintetica Higiene", "Familia Sintetica Farmacia", "Familia Sintetica Accesorios")
+
+
 def generate(cfg: GenerationConfig | None = None) -> Dataset:
     cfg = cfg or GenerationConfig()
     rng = random.Random(cfg.seed)
@@ -69,6 +72,7 @@ def generate(cfg: GenerationConfig | None = None) -> Dataset:
             "id": v, "product_id": pid, "sku": sku, "name": f"Variante Sintetica {v:04d}",
             "pack_size": rng.choice([1, 1, 1, 6, 12]), "uom": "unit", "reorder_point": rng.choice([0, 1, 2, 3, 5]),
             "price_cents": rng.randint(150, 9000),
+            "category": FAMILIES[v % len(FAMILIES)],        # deterministic, no extra randomness: the dataset stays reproducible
         })
     for prod in products:
         if rng.random() < cfg.products_without_supplier_share:

@@ -48,3 +48,17 @@ def inputs(variants, suppliers=(), budget=None, overrides=None, **kw):
     from proposals.model import Overrides
 
     return ProposalInputs(TODAY, tuple(variants), {t.supplier_id: t for t in suppliers}, None if budget is None else D(budget), overrides or Overrides(), **kw)
+
+
+class FakeLots:
+    """Stands in for the inventory lots lookup: ``items`` are {variant_id, lot, quantity}; ``fail`` makes the next N calls raise."""
+
+    def __init__(self, items, fail=0):
+        self.items, self.fail, self.calls = list(items), fail, 0
+
+    def in_stock(self, variant_ids):
+        self.calls += 1
+        if self.fail:
+            self.fail -= 1
+            raise ConnectionError("inventory down")
+        return [i for i in self.items if i["variant_id"] in variant_ids]

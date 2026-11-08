@@ -18,6 +18,7 @@ from runs.runner import RunConfig, SeriesSource, run_forecast_conn
 QUEUE = "forecast-in"
 DEMAND = "inventory.demand.updated.v1"
 SNAPSHOT = "inventory.snapshot.created.v1"
+SEED = "forecast.seed.activated.v1"
 
 
 @dataclass
@@ -36,7 +37,7 @@ class ForecastConsumer:
         def snapshot(conn: Connection, env: dict[str, Any], payload: bytes) -> None:
             return None
 
-        return {DEMAND: demand, SNAPSHOT: snapshot}
+        return {DEMAND: demand, SNAPSHOT: snapshot, SEED: demand}            # an activation or rollback asks for a new, versioned run
 
 
 def consume_once(engine: Engine, bus: Any, blobs: BlobReader, source: SeriesSource, writer: Any, queue: str = QUEUE,

@@ -38,6 +38,16 @@ class Forecast:
 
 
 @dataclass(frozen=True)
+class Discount:
+    """A supplier order discount. ``basis`` is what the threshold measures (order value in EUR, or units on the order);
+    ``kind`` percent takes ``value`` percent off the subtotal, amount takes ``value`` EUR. The best qualifying tier applies."""
+    kind: str                          # percent / amount
+    basis: str                         # order_value / order_units
+    threshold: Decimal
+    value: Decimal
+
+
+@dataclass(frozen=True)
 class Offer:
     supplier_id: str
     unit_cost: Decimal                 # with recargo
@@ -47,6 +57,8 @@ class Offer:
     pack_size: int = 1
     lead_time_days: int = DEFAULT_LEAD_DAYS
     min_order_qty: int = 0
+    preferred: bool | None = None      # None = inherit the supplier's preference
+    terms_info: tuple[tuple[str, Any], ...] = ()   # which terms versions and sources produced this offer's values (for the explanation)
 
 
 @dataclass(frozen=True)
@@ -61,6 +73,12 @@ class VariantInput:
     expiring_qty: int = 0                         # units that expire before the end of the horizon
     clinical_critical: bool = False
     soon_need: int = 0                            # units needed in the following review period (top-up candidate)
+    safety_override: int | None = None            # approved safety-stock override (units); None = the engine's recommendation
+    min_units: int | None = None                  # policy minimum on-hand position
+    max_units: int | None = None                  # policy cap on the order-up-to level
+    floor_units: int = 0                          # always-stocked floor
+    monthly_check: bool = False                   # always-stocked and nothing bought for 30 days: at least one unit
+    policy_info: tuple[tuple[str, Any], ...] = () # which policy fields and revisions applied (for the explanation)
 
 
 @dataclass(frozen=True)
@@ -70,6 +88,10 @@ class SupplierTermsIn:
     min_qty_for_delivery: int | None = None
     free_delivery_threshold: Decimal | None = None
     delivery_charge: Decimal | None = None
+    discounts: tuple[Discount, ...] = ()
+    preferred: bool = False
+    disabled: bool = False
+    version: int | None = None
 
 
 @dataclass(frozen=True)
@@ -88,6 +110,11 @@ class ProposalInputs:
     overrides: Overrides = field(default_factory=Overrides)
     max_lead_days: int = 21
     risk_penalty_ticks_per_unit_day: int = 100         # 0.01 EUR per unit per extra day of lead time
+    terms_versions: dict[str, Any] = field(default_factory=dict)   # supplier_id -> {"supplier": n, "overrides": {variant_id: n}} (FR-026)
+    policy_versions: dict[str, Any] = field(default_factory=dict)  # "scope:key" -> revision used (FR-026)
+    # Where the forecast came from (FR-026). Recorded, never hashed: the same numbers from another run or dataset must give the same result.
+    forecast_run_id: str | None = field(default=None, metadata={"hash": False})
+    dataset_version_id: str | None = field(default=None, metadata={"hash": False})
 
 
 def canonical(obj: Any) -> str:
@@ -99,7 +126,7 @@ def canonical(obj: Any) -> str:
         if isinstance(o, (set, frozenset)):
             return sorted(o)
         if hasattr(o, "__dataclass_fields__"):
-            return {k: getattr(o, k) for k in o.__dataclass_fields__}
+            return {k: getattr(o, k) for k, f in o.__dataclass_fields__.items() if f.metadata.get("hash", True)}
         raise TypeError(type(o))
 
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), default=default)

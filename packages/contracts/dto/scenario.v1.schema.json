@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/scenario.v1",
+  "title": "Scenario",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "parameters", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string"
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "budget": {
+          "oneOf": [
+            {
+              "$ref": "money.v1.schema.json"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disabled_supplier_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "terms_overrides": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "service_level_delta": {
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "status": {
+      "enum": ["computing", "ready", "failed", "promoted"]
+    },
+    "input_versions": {
+      "type": "object",
+      "description": "Exact terms, policy and dataset version ids used"
+    },
+    "result_hash": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_by": {
+      "type": "string"
+    }
+  },
+  "description": "Computed against a read-only copy of inputs; never writes live tables or the ERP."
+}

@@ -14,6 +14,12 @@ param rawImmutableDays int = 89
 param rawWriterPrincipalIds array = []
 @description('Principal ids that may read raw payloads: inventory-service and procurement-service.')
 param rawReaderPrincipalIds array = []
+@description('Private container for uploaded predictive seed files (MMI 002, FR-020). Encrypted at rest by the storage service; never public.')
+param seedContainerName string = 'seed-quarantine'
+@description('Seed files are deleted after this many days (retention policy, ADR-020).')
+param seedRetentionDays int = 30
+@description('Principal ids that may read and write seed files: forecast-service only.')
+param seedPrincipalIds array = []
 
 var blobDataContributor = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'   // Storage Blob Data Contributor
 var blobDataReader = '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'        // Storage Blob Data Reader
@@ -50,6 +56,18 @@ resource rawImmutability 'Microsoft.Storage/storageAccounts/blobServices/contain
     allowProtectedAppendWrites: false
   }
 }
+
+resource seed 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blob
+  name: seedContainerName
+  properties: { publicAccess: 'None' }
+}
+
+resource seedAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for id in seedPrincipalIds: {
+  scope: seed
+  name: guid(seed.id, id, blobDataContributor)
+  properties: { principalId: id, principalType: 'ServicePrincipal', roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', blobDataContributor) }
+}]
 
 resource rawWriters 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for id in rawWriterPrincipalIds: {
   scope: raw
@@ -93,9 +111,20 @@ resource lifecycle 'Microsoft.Storage/storageAccounts/managementPolicies@2023-05
             actions: { baseBlob: { delete: { daysAfterModificationGreaterThan: rawRetentionDays } } }
           }
         }
+        {
+          name: 'expire-seed-files'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            filters: { blobTypes: ['blockBlob'], prefixMatch: ['${seedContainerName}/'] }
+            actions: { baseBlob: { delete: { daysAfterModificationGreaterThan: seedRetentionDays } } }
+          }
+        }
       ]
     }
   }
 }
 
 output accountId string = account.id
+@description('Blob endpoint to give forecast-service as MMI_SEED_ACCOUNT_URL (container seed-quarantine, access by managed identity only).')
+output blobEndpoint string = account.properties.primaryEndpoints.blob

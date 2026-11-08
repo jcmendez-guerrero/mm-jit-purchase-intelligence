@@ -115,7 +115,7 @@ def test_receipts_are_polled_after_the_cursor_matched_and_never_applied_twice(en
     src = Receipts([{"movement_id": 5, "variant_id": 1, "qty": 4, "reference": "Compra #77"}, {"movement_id": 6, "variant_id": 9, "qty": 1, "reference": None}])
     with engine.begin() as c:
         out = sync_receipts(c, src, NOW)
-    assert out == {"fetched": 2, "matched": 1, "unmatched": 1, "excess": 0}
+    assert out == {"fetched": 2, "matched": 1, "unmatched": 1, "excess": 0, "cost_requests": 0}
     with engine.begin() as c:
         assert sync_receipts(c, src, NOW)["fetched"] == 0
         assert c.execute(select(receipt_cursor.c.last_movement_id)).scalar_one() == 6

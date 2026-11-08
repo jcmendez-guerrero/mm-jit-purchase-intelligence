@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/scenario_result.v1",
+  "title": "ScenarioResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["scenario_id", "supplier_id", "order_total", "lines"],
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["variant_id", "quantity", "unit_cost"],
+        "properties": {
+          "variant_id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unit_cost": {
+            "$ref": "money.v1.schema.json"
+          },
+          "discount": {
+            "oneOf": [
+              {
+                "$ref": "money.v1.schema.json"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shipping": {
+            "oneOf": [
+              {
+                "$ref": "money.v1.schema.json"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "order_total": {
+      "$ref": "money.v1.schema.json"
+    },
+    "subtotal": {
+      "oneOf": [{ "$ref": "money.v1.schema.json" }, { "type": "null" }]
+    },
+    "delivery_charge": {
+      "oneOf": [{ "$ref": "money.v1.schema.json" }, { "type": "null" }]
+    },
+    "discount": {
+      "oneOf": [{ "$ref": "money.v1.schema.json" }, { "type": "null" }]
+    },
+    "free_delivery": {
+      "type": ["boolean", "null"]
+    },
+    "expected_delivery": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "budget_utilisation": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]{1,4})?$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "binding_constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key"],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

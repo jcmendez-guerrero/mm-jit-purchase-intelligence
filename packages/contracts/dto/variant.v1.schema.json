@@ -29,6 +29,11 @@
     },
     "reorder_point": {
       "type": ["integer", "null"]
+    },
+    "category": {
+      "type": ["string", "null"],
+      "maxLength": 120,
+      "description": "ERP product family as synchronised; used only as a dashboard filter option, never parsed or used in decisions"
     }
   }
 }

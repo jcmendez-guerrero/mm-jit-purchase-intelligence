@@ -13,5 +13,8 @@ Format: [MADR](https://adr.github.io/madr/) (see `template.md`). Full register a
 | 007–011, 013–016 | See implementation plan | Proposed / deferred (not yet written) |
 | [012](012-demand-from-movements.md) | Demand from movements | Accepted |
 | [017](017-public-repo-data-policy.md) | Public-repository data policy | Proposed |
+| [018](018-configuration-ownership.md) | Ownership of operational configuration and durable roles | Proposed |
+| [019](019-override-precedence.md) | Precedence: ERP facts, local overrides, estimates | Proposed |
+| [020](020-seed-provenance.md) | Predictive seed datasets, provenance, activation | Proposed |
 
 Status changes after Gate 0 are recorded here (task T131).

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "_note": "Machine-readable cost guardrails (budget EUR 120/month shared). Checked by infra/tests/test_cost_guardrails.py.",
+  "budget_eur_per_month": 120,
+  "apps": { "min_replicas": 0, "max_replicas_cap": 1 },
+  "jobs": {
+    "parallelism": 1,
+    "replica_completion_count": 1,
+    "max_replica_timeout_seconds": 3600
+  },
+  "storage": {
+    "extra_private_containers_allowed": ["seed-quarantine"],
+    "lifecycle_rule_required_for_extra_containers": true
+  },
+  "forbidden_resource_types": [
+    "Microsoft.Network/azureFirewalls",
+    "Microsoft.Synapse/workspaces",
+    "Microsoft.Databricks/workspaces",
+    "Microsoft.Kusto/clusters",
+    "Microsoft.Cache/redis"
+  ]
+}

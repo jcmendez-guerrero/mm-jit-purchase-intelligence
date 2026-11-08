@@ -10,7 +10,9 @@ from routes.api import get_inventory_client, get_procurement_client
 from routes.rbac import clear_refusal_log, get_refusal_log
 
 
-def test_auth_dev_login_sets_cookie_and_returns_me():
+def test_auth_dev_login_sets_cookie_and_returns_me(monkeypatch):
+    monkeypatch.setenv("MMI_ENV", "dev")
+    monkeypatch.setenv("MMI_ENABLE_DEV_LOGIN", "1")
     client = TestClient(app)
     # Dev login sets cookie
     res = client.post("/api/auth/dev-login", json={"user_id": "buyer-1", "roles": ["viewer", "buyer"]})
@@ -38,7 +40,7 @@ def test_csrf_protection_on_mutating_requests():
     # Missing CSRF token on mutating request -> 403
     res = client.post("/api/auth/logout", cookies=cookies)
     assert res.status_code == 403
-    assert "CSRF" in res.json()["detail"]
+    assert res.json()["detail"] == "auth_csrf_invalid"
 
     # Invalid CSRF token -> 403
     res = client.post("/api/auth/logout", cookies=cookies, headers={"X-CSRF-Token": "bad-token"})
@@ -87,7 +89,7 @@ def test_step_up_mfa_requirement():
     # Approving proposal with stale MFA -> 403 fresh MFA required
     res = client.post("/api/proposals/prop-1/approve", headers=stale_headers)
     assert res.status_code == 403
-    assert "MFA" in res.json()["detail"]
+    assert res.json()["detail"] == "auth_mfa_stale"
 
     # Approver with fresh MFA (1 minute ago)
     fresh_sess = create_session("approver-1", "approver@example.com", ["viewer", "approver"], mfa_auth_time=datetime.now(UTC) - timedelta(minutes=1))

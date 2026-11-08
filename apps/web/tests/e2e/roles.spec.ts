@@ -1,5 +1,22 @@
 import { expect, test } from "@playwright/test";
 
+const line = {
+  id: "line-1", variant_id: 101, sku: "AMX-500", product_name: "Amoxicilina", supplier_id: "supp-1", supplier_name: "Farmax", qty: 10,
+  unit_cost_with_recargo: "5.2600", line_total: "52.6000", risk: "low", confidence: "high", manual_override: false, topup: false, constraints_applied: [],
+  explanation: {
+    policy: "forecast", forecast_eligible: true, service_level: "95", horizon_days: 14, expected_demand: 8, safety_stock: 2, order_up_to: 12, reorder_point: 5, need: 10, top_up: false,
+    clinical_critical: false, position: { on_hand: 0, expiring: 0, usable: 0, inbound: 0, total: 0 }, supplier: { chosen: "supp-1", reason: "lowest_cost", alternatives: [], rejected: [] },
+    cost: { unit: "5.2600", source: "manual", status: "ok" }, constraints: [],
+  },
+};
+
+async function mockProposal(page: import("@playwright/test").Page, status: string) {
+  const summary = { id: "prop-12345678", week: "2026-W45", status, version: 3, created_by: "buyer-1", updated_at: "2026-11-04T10:00:00Z" };
+  const detail = { ...summary, last_edited_by: null, terms_version_ids: null, approval: null, supplier_groups: [], lines: status === "draft" ? [line] : [] };
+  await page.route("**/api/proposals", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([summary]) }));
+  await page.route("**/api/proposals/prop-12345678", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(detail) }));
+}
+
 test.describe("Role matrix UI permissions (T106)", () => {
   test.beforeEach(async ({ page }) => {
     // Mock the /api/me and /api/proposals endpoints
@@ -24,38 +41,7 @@ test.describe("Role matrix UI permissions (T106)", () => {
       });
     });
 
-    await page.route("**/api/proposals", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([
-          {
-            id: "prop-12345678",
-            cycle_date: "2026-11-04",
-            status: "draft",
-            total_net: "1000.00",
-            total_with_recargo: "1052.00",
-            creator: "buyer-1",
-            lines: [
-              {
-                id: "line-1",
-                variant_id: 101,
-                sku: "AMX-500",
-                product_name: "Amoxicilina",
-                supplier_id: "supp-1",
-                supplier_name: "Farmax",
-                warehouse_id: 1,
-                order_qty: 10,
-                unit_cost_net: "5.00",
-                unit_cost_recargo: "5.26",
-                line_total: "52.60",
-                explanation: "Rotura de stock",
-              },
-            ],
-          },
-        ]),
-      });
-    });
+    await mockProposal(page, "draft");
   });
 
   test("viewer has read-only access and cannot edit or approve proposals", async ({ page }) => {
@@ -64,10 +50,10 @@ test.describe("Role matrix UI permissions (T106)", () => {
     await page.click("button:has-text('Propuestas de compra')");
 
     // Viewer should see the proposal table
-    await expect(page.locator("text=Propuesta #prop-123")).toBeVisible();
+    await expect(page.locator("text=Amoxicilina")).toBeVisible();
 
     // Viewer should NOT see edit or approve buttons
-    await expect(page.locator("button:has-text('Modificar cantidad')")).not.toBeVisible();
+    await expect(page.getByLabel("Cantidad para Amoxicilina")).toHaveCount(0);
     await expect(page.locator("button:has-text('Aprobar propuesta')")).not.toBeVisible();
     await expect(page.locator("button:has-text('Enviar a aprobación')")).not.toBeVisible();
   });
@@ -90,7 +76,7 @@ test.describe("Role matrix UI permissions (T106)", () => {
     await page.goto("/");
     await page.click("button:has-text('Propuestas de compra')");
 
-    await expect(page.locator("button:has-text('Modificar cantidad')")).toBeVisible();
+    await expect(page.getByLabel("Cantidad para Amoxicilina")).toBeVisible();
     await expect(page.locator("button:has-text('Enviar a aprobación')")).toBeVisible();
     // Buyer cannot approve
     await expect(page.locator("button:has-text('Aprobar propuesta')")).not.toBeVisible();
@@ -110,33 +96,17 @@ test.describe("Role matrix UI permissions (T106)", () => {
       });
     });
 
-    await page.route("**/api/proposals", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify([
-          {
-            id: "prop-12345678",
-            cycle_date: "2026-11-04",
-            status: "submitted",
-            total_net: "1000.00",
-            total_with_recargo: "1052.00",
-            creator: "buyer-1",
-            lines: [],
-          },
-        ]),
-      });
-    });
+    await mockProposal(page, "submitted");
 
     await page.goto("/");
     await page.click("button:has-text('Propuestas de compra')");
 
     await expect(page.locator("button:has-text('Aprobar propuesta')")).toBeVisible();
     // Approver cannot edit
-    await expect(page.locator("button:has-text('Modificar cantidad')")).not.toBeVisible();
+    await expect(page.getByLabel(/Cantidad para/)).toHaveCount(0);
   });
 
-  test("admin can see user roles management in config", async ({ page }) => {
+  test("admin can see user roles management in the administration area", async ({ page }) => {
     await page.route("**/api/me", async (route) => {
       await route.fulfill({
         status: 200,
@@ -163,16 +133,21 @@ test.describe("Role matrix UI permissions (T106)", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          users: [{ user_id: "buyer-1", roles: ["viewer", "buyer"] }],
+          users: [{ user_id: "buyer-1", roles: ["viewer", "buyer"], active: true, revision: 1 }],
           eligible_approvers_count: 2,
+          valid_roles: ["viewer", "buyer", "approver", "admin"],
         }),
       });
     });
 
-    await page.goto("/");
-    await page.click("button:has-text('Configuración')");
+    await page.route("**/api/admin/roles/mirror", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ pending: 0, failed: 0, sent: 1, oldest_pending_seconds: 0, items: [] }) });
+    });
 
-    await expect(page.locator("text=Gestión de roles y accesos (Administrador)")).toBeVisible();
+    await page.goto("/");
+    await page.click("button:has-text('Administración')");
+
+    await expect(page.locator("text=Usuarios y roles")).toBeVisible();
     await expect(page.locator("text=buyer-1")).toBeVisible();
   });
 });

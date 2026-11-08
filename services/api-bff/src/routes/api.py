@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from auth.session import (
@@ -13,7 +14,7 @@ from auth.session import (
 )
 from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 from routes.admin_roles import has_at_least_two_eligible_approvers
 from routes.rbac import require_fresh_mfa, require_roles, require_session
@@ -36,15 +37,28 @@ def get_procurement_client() -> ProcurementClient:
 
 class DevLoginBody(BaseModel):
     user_id: str = "buyer-1"
-    email: str = "buyer1@mundomascotix.es"
+    email: str = "buyer1@example.invalid"
     roles: list[str] = Field(default_factory=lambda: ["viewer", "buyer"])
 
 
 # --- Authentication / Session endpoints ---
 
+def dev_login_enabled() -> bool:
+    """Off unless explicitly enabled, and never in production: the endpoint mints a session for a caller-chosen user."""
+    return os.environ.get("MMI_ENABLE_DEV_LOGIN") == "1" and os.environ.get("MMI_ENV", "dev") != "prod"
+
+
 @router.post("/auth/dev-login")
 def dev_login(body: DevLoginBody, response: Response) -> dict[str, Any]:
-    session = create_session(user_id=body.user_id, email=body.email, roles=body.roles)
+    if not dev_login_enabled():
+        raise HTTPException(status_code=404, detail="not_found")
+    from routes.admin_roles import get_store
+
+    rec = get_store().get(body.user_id)                    # the registry decides roles; the body can never escalate
+    if rec is not None and not rec.active:
+        raise HTTPException(status_code=403, detail="auth_forbidden_role")
+    roles = list(rec.roles) if rec else ["viewer"]
+    session = create_session(user_id=body.user_id, email=body.email, roles=roles)
     set_session_cookie(response, session)
     return {
         "user_id": session.user_id,
@@ -124,14 +138,48 @@ async def list_suppliers(
     return await client.get_suppliers(roles=session.roles)
 
 
+@router.get("/suppliers/{supplier_id}/terms")
+async def get_supplier_terms(
+    supplier_id: str,
+    as_of: str | None = Query(default=None),
+    session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
+    client: ProcurementClient = Depends(get_procurement_client),
+) -> dict[str, Any]:
+    return await client.get_supplier_terms(supplier_id, as_of=as_of, roles=session.roles)
+
+
 @router.put("/suppliers/{supplier_id}/terms")
 async def update_supplier_terms(
     supplier_id: str,
     terms: dict[str, Any],
-    session: SessionData = Depends(require_roles("buyer", "admin")),
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    return await client.put_supplier_terms(supplier_id=supplier_id, terms=terms, user_id=session.user_id, roles=session.roles)
+    return await client.put_supplier_terms(supplier_id=supplier_id, terms=terms, user_id=session.user_id, roles=session.roles, if_match=if_match)
+
+
+@router.get("/product-suppliers/{variant_id}/{supplier_id}/terms")
+async def get_override_terms(
+    variant_id: int,
+    supplier_id: str,
+    as_of: str | None = Query(default=None),
+    session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
+    client: ProcurementClient = Depends(get_procurement_client),
+) -> dict[str, Any]:
+    return await client.get_override_terms(variant_id, supplier_id, as_of=as_of, roles=session.roles)
+
+
+@router.put("/product-suppliers/{variant_id}/{supplier_id}/terms")
+async def update_override_terms(
+    variant_id: int,
+    supplier_id: str,
+    body: dict[str, Any],
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("buyer")),
+    client: ProcurementClient = Depends(get_procurement_client),
+) -> dict[str, Any]:
+    return await client.put_override_terms(variant_id=variant_id, supplier_id=supplier_id, body=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.get("/costs")
@@ -159,17 +207,6 @@ async def list_cost_writes(
     return await client.get_cost_writes(roles=session.roles)
 
 
-@router.post("/cost-writes/{write_id}/approve")
-async def approve_cost_write(
-    write_id: str,
-    session: SessionData = Depends(require_fresh_mfa()),
-    client: ProcurementClient = Depends(get_procurement_client),
-) -> dict[str, Any]:
-    if not set(session.roles).intersection({"buyer", "approver", "admin"}):
-        raise HTTPException(status_code=403, detail="forbidden")
-    return await client.approve_cost_write(write_id=write_id, user_id=session.user_id, roles=session.roles)
-
-
 # --- Proposals & Orders ---
 
 @router.get("/proposals")
@@ -194,36 +231,33 @@ async def edit_proposal_line(
     proposal_id: str,
     line_id: str,
     payload: dict[str, Any],
-    session: SessionData = Depends(require_roles("buyer", "admin")),
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    return await client.edit_proposal_line(proposal_id=proposal_id, line_id=line_id, payload=payload, user_id=session.user_id, roles=session.roles)
+    return await client.edit_proposal_line(proposal_id=proposal_id, line_id=line_id, payload=payload, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.post("/proposals/{proposal_id}/submit")
 async def submit_proposal(
     proposal_id: str,
-    session: SessionData = Depends(require_roles("buyer", "admin")),
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    # Check T137: at least two eligible approvers must exist in the system
-    if not has_at_least_two_eligible_approvers():
-        raise HTTPException(
-            status_code=409,
-            detail="cannot submit for approval: at least two eligible approvers required to maintain separation of duties",
-        )
-    return await client.submit_proposal(proposal_id=proposal_id, user_id=session.user_id, roles=session.roles)
+    if not has_at_least_two_eligible_approvers():            # FR-002: separation of duties needs two people who could approve
+        raise HTTPException(status_code=409, detail="approval_fewer_than_two_approvers")
+    return await client.submit_proposal(proposal_id=proposal_id, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
-@router.post("/proposals/{proposal_id}/approve")
+@router.post("/proposals/{proposal_id}/approve", dependencies=[Depends(require_fresh_mfa())])
 async def approve_proposal(
     proposal_id: str,
-    session: SessionData = Depends(require_fresh_mfa()),
+    if_match: str | None = Header(default=None),
+    session: SessionData = Depends(require_roles("approver")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    if "approver" not in session.roles and "admin" not in session.roles:
-        raise HTTPException(status_code=403, detail="forbidden: approver role required")
-    return await client.approve_proposal(proposal_id=proposal_id, user_id=session.user_id, roles=session.roles)
+    return await client.approve_proposal(proposal_id=proposal_id, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.get("/proposals/{proposal_id}/export")
@@ -263,21 +297,6 @@ async def get_service_levels(
     client: InventoryClient = Depends(get_inventory_client),
 ) -> dict[str, Any]:
     return await client.get_service_levels(roles=session.roles)
-
-
-class ServiceLevelPutBody(BaseModel):
-    scope: str
-    key: str
-    target: str
-
-
-@router.put("/config/service-levels")
-async def put_service_level(
-    body: ServiceLevelPutBody,
-    session: SessionData = Depends(require_roles("buyer", "admin")),
-    client: InventoryClient = Depends(get_inventory_client),
-) -> dict[str, Any]:
-    return await client.put_service_level(scope=body.scope, key=body.key, target=body.target, user_id=session.user_id, roles=session.roles)
 
 
 class LossCutoverPutBody(BaseModel):

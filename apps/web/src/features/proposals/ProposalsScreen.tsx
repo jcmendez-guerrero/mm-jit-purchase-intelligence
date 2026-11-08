@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, Proposal, ProposalLine, errorMessage } from "../../api/client";
+import { api, ApiError, Proposal, ProposalSummary, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
+import { VersionsUsed } from "./VersionsUsed";
+import { ProposalLineExplanation } from "./ProposalLineExplanation";
+import { canApprove, canEditLines, canSubmit, parseQty } from "./proposalModel";
 
 interface Props {
   userRoles: string[];
@@ -9,186 +12,212 @@ interface Props {
 
 export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
   const { t } = useTranslation();
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
+  const [list, setList] = useState<ProposalSummary[]>([]);
+  const [current, setCurrent] = useState<Proposal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [open, setOpen] = useState<string | null>(null);
 
-  const canEdit = userRoles.includes("buyer") || userRoles.includes("admin");
-  const canApprove = userRoles.includes("approver") || userRoles.includes("admin");
+  const fail = useCallback((err: unknown) => setError(errorMessage(err, t("common.error"))), [t]);
 
-  const loadProposals = async () => {
+  const select = useCallback(
+    async (id: string) => {
+      try {
+        setCurrent(await api.getProposal(id));
+        setDrafts({});
+        setOpen(null);
+      } catch (err) {
+        fail(err);
+      }
+    },
+    [fail],
+  );
+
+  const load = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const list = await api.getProposals();
-      setProposals(list || []);
-      if (list && list.length > 0) {
-        setSelectedProposal(list[0] || null);
-      }
+      const items = await api.getProposals();
+      setList(items);
+      if (items[0]) await select(items[0].id);
     } catch (err) {
-      setError(errorMessage(err, t("common.error")));
+      fail(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fail, select]);
 
   useEffect(() => {
-    loadProposals();
-  }, []);
+    void load();
+  }, [load]);
 
-  const handleEditLine = async (lineId: string, currentQty: number) => {
-    const input = window.prompt("Nueva cantidad:", currentQty.toString());
-    if (input === null) return;
-    const newQty = parseInt(input, 10);
-    if (isNaN(newQty) || newQty < 0) return;
-
-    if (!selectedProposal) return;
+  /** Runs an action against the version on screen, then reloads so the user sees what the server now holds. */
+  const act = async (run: (p: Proposal) => Promise<unknown>) => {
+    if (!current) return;
     try {
-      await api.editProposalLine(selectedProposal.id, lineId, newQty);
-      const updated = await api.getProposal(selectedProposal.id);
-      setSelectedProposal(updated);
+      setError(null);
+      await run(current);
     } catch (err) {
-      alert(errorMessage(err, t("common.error")));
+      fail(err);
+    }
+    try {
+      setList(await api.getProposals());
+      setCurrent(await api.getProposal(current.id));
+      setDrafts({});
+    } catch (err) {
+      fail(err);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!selectedProposal) return;
-    try {
-      await api.submitProposal(selectedProposal.id);
-      const updated = await api.getProposal(selectedProposal.id);
-      setSelectedProposal(updated);
-      await loadProposals();
-    } catch (err) {
-      alert(errorMessage(err, t("common.error")));
-    }
-  };
+  const saveQty = (lineId: string) =>
+    act((p) => {
+      const qty = parseQty(drafts[lineId] ?? "");
+      if (qty === null) return Promise.reject(new ApiError(422, "invalid_quantity"));
+      return api.editProposalLine(p.id, lineId, qty, p.version);
+    });
 
-  const handleApprove = async () => {
-    if (!selectedProposal) return;
-    try {
-      await api.approveProposal(selectedProposal.id);
-      const updated = await api.getProposal(selectedProposal.id);
-      setSelectedProposal(updated);
-      await loadProposals();
-    } catch (err) {
-      alert(errorMessage(err, t("common.error")));
-    }
-  };
+  const editable = current ? canEditLines(userRoles, current.status) : false;
 
   return (
     <section aria-labelledby="proposals-title">
       <div className="mmi-card">
-        <h2 id="proposals-title" style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
-          {t("proposals.title")}
-        </h2>
-        <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem", marginTop: 0, marginBottom: "1.5rem" }}>
-          Propuestas semanales generadas por el motor de aprovisionamiento Just-in-Time
-        </p>
-
-        {loading && <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p>}
-        {error && <p role="alert" style={{ color: "var(--color-danger)" }}>{error}</p>}
-
-        {!loading && proposals.length === 0 && (
-          <div style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-muted)" }}>
-            <p style={{ margin: 0 }}>✓ {t("proposals.empty")}</p>
-          </div>
-        )}
-
-        {!loading && proposals.length > 0 && (
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
-            {proposals.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setSelectedProposal(p)}
-                className={`mmi-btn ${selectedProposal?.id === p.id ? "mmi-btn-primary" : "mmi-btn-secondary"}`}
-              >
-                Propuesta #{p.id.slice(0, 8)} ({t(`proposals.status.${p.status}`)})
+        <h2 id="proposals-title">{t("proposals.title")}</h2>
+        <p className="mmi-muted">{t("proposals.subtitle")}</p>
+        {loading && <p>{t("common.loading")}</p>}
+        {error && <p role="alert">{error}</p>}
+        {!loading && list.length === 0 && <p>{t("proposals.empty")}</p>}
+        {list.length > 0 && (
+          <div role="group" aria-label={t("proposals.title")}>
+            {list.map((p) => (
+              <button key={p.id} type="button" aria-pressed={current?.id === p.id} className="mmi-btn mmi-btn-secondary" onClick={() => void select(p.id)}>
+                {t("proposals.item", { week: p.week, status: t(`proposals.status.${p.status}`) })}
               </button>
             ))}
           </div>
         )}
 
-        {selectedProposal && (
+        {current && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem" }}>
-              <div>
-                <h3 style={{ margin: "0 0 0.25rem", fontSize: "1.1rem" }}>
-                  Propuesta {selectedProposal.id}
-                </h3>
-                <span className="mmi-badge mmi-badge-petroleo">
-                  {t(`proposals.status.${selectedProposal.status}`)}
-                </span>
-                <span style={{ marginLeft: "1rem", color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
-                  Ciclo: {formatDate(selectedProposal.cycle_date)} | Creador: {selectedProposal.creator}
-                </span>
-              </div>
-
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                {canEdit && selectedProposal.status === "draft" && (
-                  <button onClick={handleSubmit} className="mmi-btn mmi-btn-primary">
-                    {t("proposals.submit")}
-                  </button>
-                )}
-                {canApprove && selectedProposal.status === "submitted" && (
-                  <button onClick={handleApprove} className="mmi-btn mmi-btn-primary">
-                    {t("proposals.approve")}
-                  </button>
-                )}
-                <a
-                  href={`/api/proposals/${selectedProposal.id}/export?format=csv`}
-                  download
-                  className="mmi-btn mmi-btn-secondary"
-                >
-                  {t("proposals.export_csv")}
-                </a>
-              </div>
+            <h3>{t("proposals.week", { week: current.week })}</h3>
+            <VersionsUsed dataset={current.dataset_version_id} forecastRun={current.forecast_run_id} />
+            <span className="mmi-badge">{t(`proposals.status.${current.status}`)}</span>
+            <span className="mmi-muted"> {t("proposals.created_by", { user: current.created_by })}</span>
+            <div>
+              {canSubmit(userRoles, current.status) && (
+                <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void act((p) => api.submitProposal(p.id, p.version))}>
+                  {t("proposals.submit")}
+                </button>
+              )}
+              {canApprove(userRoles, current.status) && (
+                <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void act((p) => api.approveProposal(p.id, p.version))}>
+                  {t("proposals.approve")}
+                </button>
+              )}
+              <a href={`/api/proposals/${current.id}/export?format=csv`} download className="mmi-btn mmi-btn-secondary">
+                {t("proposals.export_csv")}
+              </a>
+              <a href={`/api/proposals/${current.id}/export?format=xlsx`} download className="mmi-btn mmi-btn-secondary">
+                {t("proposals.export_excel")}
+              </a>
             </div>
 
-            <div className="mmi-table-wrapper">
-              <table aria-label={t("a11y.proposals_table")} className="mmi-table">
+            {current.supplier_groups.length > 0 && (
+              <table aria-label={t("proposals.groups")} className="mmi-table">
+                <caption>{t("proposals.groups")}</caption>
                 <thead>
                   <tr>
-                    <th>{t("common.variant")}</th>
-                    <th>{t("common.product")}</th>
                     <th>{t("common.supplier")}</th>
-                    <th>{t("common.quantity")}</th>
-                    <th>{t("common.cost")}</th>
-                    <th>{t("common.total")}</th>
-                    <th>{t("proposals.explanation")}</th>
-                    {canEdit && selectedProposal.status === "draft" && <th>{t("common.actions")}</th>}
+                    <th>{t("proposals.group.subtotal")}</th>
+                    <th>{t("proposals.group.discount")}</th>
+                    <th>{t("proposals.group.delivery")}</th>
+                    <th>{t("proposals.group.total")}</th>
+                    <th>{t("proposals.group.expected")}</th>
+                    <th>{t("common.status")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedProposal.lines.map((l: ProposalLine) => (
-                    <tr key={l.id}>
-                      <td style={{ fontWeight: 600 }}>#{l.variant_id}</td>
+                  {current.supplier_groups.map((g) => (
+                    <tr key={g.supplier_id}>
+                      <td>{g.supplier_name ?? g.supplier_id}</td>
+                      <td>{formatCurrencyEUR(g.subtotal)}</td>
+                      <td>{formatCurrencyEUR(g.discount)}</td>
+                      <td>{formatCurrencyEUR(g.delivery_charge)}</td>
+                      <td>{formatCurrencyEUR(g.total_cost)}</td>
+                      <td>{g.expected_delivery_date ? formatDate(g.expected_delivery_date) : "—"}</td>
                       <td>
-                        <strong>{l.sku}</strong> — {l.product_name}
+                        {g.free_delivery && <span>{t("proposals.group.free_delivery")} </span>}
+                        {g.minimum_status === "shortfall" && <span role="note">{t("proposals.group.minimum_shortfall")}</span>}
                       </td>
-                      <td style={{ color: "var(--color-text-muted)" }}>{l.supplier_name || l.supplier_id}</td>
-                      <td style={{ fontWeight: 600, color: "var(--color-primary)" }}>{l.order_qty}</td>
-                      <td>{formatCurrencyEUR(l.unit_cost_net)}</td>
-                      <td style={{ fontWeight: 600 }}>{formatCurrencyEUR(l.line_total)}</td>
-                      <td style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
-                        {typeof l.explanation === "string" ? l.explanation : JSON.stringify(l.explanation)}
-                      </td>
-                      {canEdit && selectedProposal.status === "draft" && (
-                        <td>
-                          <button
-                            onClick={() => handleEditLine(l.id, l.order_qty)}
-                            className="mmi-btn mmi-btn-secondary mmi-btn-sm"
-                          >
-                            {t("proposals.edit_line")}
-                          </button>
-                        </td>
-                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            )}
+
+            <table aria-label={t("a11y.proposals_table")} className="mmi-table">
+              <thead>
+                <tr>
+                  <th>{t("common.product")}</th>
+                  <th>{t("common.supplier")}</th>
+                  <th>{t("common.quantity")}</th>
+                  <th>{t("common.cost")}</th>
+                  <th>{t("common.total")}</th>
+                  <th>{t("common.actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {current.lines.map((l) => {
+                  const name = l.product_name ?? `#${l.variant_id}`;
+                  return (
+                    <React.Fragment key={l.id}>
+                      <tr>
+                        <td>
+                          <strong>{l.sku ?? l.variant_id}</strong> — {name}
+                          {l.manual_override && <span role="note"> · {t("proposals.warning.manual")}</span>}
+                          {l.explanation.forecast_basis === "imported_estimates" && <span role="note" className="mmi-badge mmi-badge-warning"> {t("proposals.badge.estimate")}</span>}
+                        </td>
+                        <td>{l.supplier_name ?? l.supplier_id}</td>
+                        <td>
+                          {editable ? (
+                            <>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                aria-label={t("proposals.qty_input", { product: name })}
+                                value={drafts[l.id] ?? String(l.qty)}
+                                onChange={(ev) => setDrafts({ ...drafts, [l.id]: ev.target.value })}
+                              />
+                              {drafts[l.id] !== undefined && drafts[l.id] !== String(l.qty) && (
+                                <button type="button" className="mmi-btn mmi-btn-sm" onClick={() => void saveQty(l.id)}>
+                                  {t("proposals.qty_save")}
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            l.qty
+                          )}
+                        </td>
+                        <td>{formatCurrencyEUR(l.unit_cost_with_recargo)}</td>
+                        <td>{formatCurrencyEUR(l.line_total)}</td>
+                        <td>
+                          <button type="button" className="mmi-btn mmi-btn-secondary mmi-btn-sm" aria-expanded={open === l.id} onClick={() => setOpen(open === l.id ? null : l.id)}>
+                            {open === l.id ? t("proposals.explain_hide") : t("proposals.explain")}
+                          </button>
+                        </td>
+                      </tr>
+                      {open === l.id && (
+                        <tr>
+                          <td colSpan={6}>
+                            <ProposalLineExplanation line={l} />
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

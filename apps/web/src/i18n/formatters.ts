@@ -46,3 +46,8 @@ export function formatPercent(value: number | string, decimals: number = 1): str
     maximumFractionDigits: decimals,
   }).format(num);
 }
+
+export function formatDateTime(input: string | Date): string {
+  const d = typeof input === "string" ? new Date(input) : input;
+  return new Intl.DateTimeFormat(LOCALE, { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Madrid" }).format(d);
+}

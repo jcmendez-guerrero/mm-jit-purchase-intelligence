@@ -177,6 +177,12 @@ jobs:
       - run: npm run typecheck
       - run: npm test --if-present
       - run: npm run build
+      - name: Dependency advisories (production, high and above)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Spanish browser tests with accessibility checks (synthetic data, mocked backends)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e -- --trace off
 
   bicep:
     needs: changes
@@ -266,8 +272,9 @@ jobs:
           RUN_AZURITE=1 pytest -q packages/contracts/tests/test_azurite_bus.py
           (cd services/siweb-connector && uv pip install -r <(python3 -c "import tomllib;print('\n'.join(d for d in tomllib.load(open('pyproject.toml','rb'))['project']['dependencies'] if not d.startswith('mmi-')))") && RUN_AZURITE=1 pytest -q tests/integration/test_azurite_blob.py)
           (cd services/inventory-service && RUN_AZURITE=1 pytest -q tests/test_azurite_reader.py)
+          (cd services/forecast-service && uv pip install -r <(python3 -c "import tomllib;print('\n'.join(d for d in tomllib.load(open('pyproject.toml','rb'))['project']['dependencies'] if not d.startswith('mmi-')))") && RUN_AZURITE=1 pytest -q tests/test_seed_store_azure.py)
       - name: Routing, error-code and storage-policy contract tests
-        run: . .venv/bin/activate && pytest -q infra/tests/test_event_routing.py infra/tests/test_error_codes.py infra/tests/test_storage_policy.py
+        run: . .venv/bin/activate && pytest -q infra/tests/test_event_routing.py infra/tests/test_error_codes.py infra/tests/test_error_keys_localised.py infra/tests/test_storage_policy.py infra/tests/test_cost_guardrails.py infra/tests/test_alert_rules.py
 
   # T146 / T152: the whole pipeline in containers (minutes, about 1.5 GiB): on pushes to main only.
   pipeline-e2e:

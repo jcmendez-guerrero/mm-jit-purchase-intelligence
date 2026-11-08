@@ -6,7 +6,7 @@ from decimal import Decimal
 import pytest
 from api import costs, proposals
 from builders import flat_forecast, inputs, offer, terms, variant
-from conftest import add_supplier
+from conftest import add_product, add_supplier
 from costs.rules import CostRules
 from costs.store import NewCost, add_version
 from db.tables import erp_supplier_links
@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from mmi_common.auth import AuthError, Principal
 from mmi_common.service import create_service_app
 from sqlalchemy import insert
+from terms.service import Terms, save_terms
 
 D = Decimal
 ROLES = {"buyer": {"viewer", "buyer"}, "buyer2": {"viewer", "buyer"}, "approver": {"viewer", "approver"}, "buyerapprover": {"viewer", "buyer", "approver"},
@@ -124,7 +125,7 @@ def test_full_flow_submit_approve_export_confirm(api):
     assert c.get(f"/proposals/{pid}/export?format=pdf", headers=h("buyer")).status_code == 422
     line = p["lines"][0]
     done = c.post(f"/proposals/{pid}/orders/{sid}/confirm", json={"lines": [{"variant_id": 1, "qty": line["qty"], "cost_with_recargo": "1.20"}]}, headers=h("buyer"))
-    assert done.status_code == 201 and done.json()["cost_writes"][0]["status"] == "pending_review"
+    assert done.status_code == 201 and done.json()["cost_writes"] == []        # the ERP update is requested at receipt matching, from the median of the lots
     assert c.post(f"/proposals/{pid}/orders/{sid}/confirm", json={"lines": [{"variant_id": 1, "qty": 1, "cost_with_recargo": "1"}]}, headers=h("buyer")).status_code == 409
 
 
@@ -137,13 +138,17 @@ def test_the_creator_with_both_roles_still_cannot_approve_their_own_proposal(api
     assert denied.status_code == 403 and denied.json()["detail"] == "separation_of_duties"
 
 
-def test_cost_write_review_release_and_internal_view_for_the_writer(api):
+def test_cost_write_review_release_and_internal_view_for_the_writer(api, engine, tmp_path):
+    from builders import FakeLots
+    from costs.lot_costs import record_lot_cost
+    from costs.median_suggestion import request_median_write
+
     c, sid = api
-    pid = generate(c)
-    c.post(f"/proposals/{pid}/submit", headers=h("buyer"))
-    c.post(f"/proposals/{pid}/approve", headers=h("approver"))
-    line = c.get(f"/proposals/{pid}", headers=h("viewer")).json()["lines"][0]
-    w = c.post(f"/proposals/{pid}/orders/{sid}/confirm", json={"lines": [{"variant_id": 1, "qty": line["qty"], "cost_with_recargo": "1.20"}]}, headers=h("buyer")).json()["cost_writes"][0]
+    with engine.begin() as cn:
+        add_product(cn, 1, 10)
+        record_lot_cost(cn, Blob(tmp_path), variant_id=1, supplier_id=sid, lot="L1", unit_cost=D("1.20"), source="confirmed_order", actor="system:receipt-match", quantity=5)
+        w = request_median_write(cn, FakeLots([{"variant_id": 1, "lot": "L1", "quantity": 5}]), 10, sid, "receipt_matched", "system:receipt-match").request
+    w = {"id": w.id}
     assert [x["id"] for x in c.get("/cost-writes", headers=h("viewer")).json()] == [w["id"]]
     assert c.get(f"/internal/cost-writes/{w['id']}", headers=h("writer")).status_code == 404                              # not released: the writer sees nothing
     assert c.get(f"/internal/cost-writes/{w['id']}", headers=h("buyer")).status_code == 403
@@ -154,3 +159,21 @@ def test_cost_write_review_release_and_internal_view_for_the_writer(api):
     assert view["cents"] == 120 and view["previous_cents"] == 100 and view["supplier_contact_id"] == 1
     assert c.post(f"/cost-writes/{w['id']}/cancel", headers=h("buyer")).status_code == 204
     assert c.get(f"/internal/cost-writes/{w['id']}", headers=h("writer")).status_code == 404
+
+
+def test_the_proposal_view_carries_names_the_discount_and_the_terms_versions(api, engine):
+    from db.tables import product_refs
+    from sqlalchemy import update
+
+    c, sid = api
+    with engine.begin() as conn:
+        add_product(conn, 1, 10)
+        conn.execute(update(product_refs).where(product_refs.c.variant_id == 1).values(sku="SYN-1", name="Producto sintético 1"))
+        save_terms(conn, sid, Terms(lead_time_days=2), "buyer-1", datetime.now(UTC))
+    pid = generate(c)
+    view = c.get(f"/proposals/{pid}", headers=h("viewer")).json()
+    line = view["lines"][0]
+    assert (line["sku"], line["product_name"], line["supplier_name"]) == ("SYN-1", "Producto sintético 1", "Proveedor Sintetico")
+    assert view["supplier_groups"][0]["discount"] == "0.0000" and view["supplier_groups"][0]["supplier_name"] == "Proveedor Sintetico"
+    assert "terms" in line["explanation"] and "terms_version_ids" in view
+    assert {"policy_version_ids", "dataset_version_id", "forecast_run_id"} <= set(view)                 # the versions behind the proposal are part of its view (FR-026)

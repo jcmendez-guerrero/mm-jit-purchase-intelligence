@@ -32,7 +32,7 @@ from sqlalchemy.engine import Connection, Engine
 from runs.eligibility import decide
 
 EVENT_TYPE = "forecast.completed.v1"
-SUBSCRIPTIONS = {EVENT_TYPE: ["procurement-in"]}
+SUBSCRIPTIONS = {EVENT_TYPE: ["procurement-in"], "forecast.seed.activated.v1": ["forecast-in"]}
 DEFAULT_HORIZONS = (7, 14, 21, 28, 42)
 
 
@@ -86,8 +86,21 @@ def run_forecast(engine: Engine, source: SeriesSource, writer: BlobWriter, cfg: 
 def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter, cfg: RunConfig | None = None,
                       clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> RunResult:
     """One run inside the caller's transaction (the queue consumer's, so the inbox row and the run commit together)."""
-    cfg = cfg or RunConfig()
+    versions: dict[str, int] | None = None
+    if cfg is None:                              # parameters in force today (FR-016); an explicit config is used as given
+        from parameters import config_from_parameters
+
+        cfg, versions = config_from_parameters(conn, clock().date())
     export = source.fetch()
+    from runs.accuracy import evaluate_previous
+
+    evaluate_previous(conn, export)          # score the previous run against what really happened (real demand only, before any seed is applied)
+    from runs.seeds import SeedReport, apply_seeds, load_active
+
+    seeds, report = load_active(conn), SeedReport()
+    if seeds is not None:                      # the active seed dataset extends short histories only; the run records which one it used
+        series_with_seeds, report = apply_seeds(export["series"], seeds, cfg.backtest.min_history)
+        export = {**export, "series": series_with_seeds}
     digest = input_hash(export, cfg)
     done = conn.execute(select(forecast_runs).where(forecast_runs.c.input_hash == digest, forecast_runs.c.status == "completed")).first()
     if done:  # identical inputs, configuration and models: nothing new to compute or announce
@@ -118,7 +131,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
                     rate, policy_used = POLICIES[BASELINE].rate(history) or 0.0, BASELINE
                 plan = build_plan(policy_used, rate, history, h, min(cfg.lead_time, h), level)
                 rows.append({"run_id": run_id, "variant_id": s["variant_id"], "horizon_days": h, "mean": plan.mean_horizon, "quantiles": plan.quantiles,
-                             "policy_used": policy_used, "eligible": True, "reasons": "", "service_level": Decimal(str(level))})
+                             "policy_used": policy_used, "eligible": True, "reasons": "seed_used" if s["variant_id"] in report.used else "", "service_level": Decimal(str(level))})
             else:
                 fb = conservative_plan(history, h, min(cfg.lead_time, h), level, crit).plan
                 rows.append({"run_id": run_id, "variant_id": s["variant_id"], "horizon_days": h, "mean": None,
@@ -128,11 +141,12 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     cid = get_correlation_id() or set_correlation_id()
     conn.execute(insert(forecast_runs).values(
         id=run_id, started_at=started, through_day=export.get("through_day"), model_versions=model_versions(), input_hash=digest,
-        config=cfg.as_json(), status="running", total_count=len(series), eligible_count=eligible))
+        config={**cfg.as_json(), **({} if seeds is None else {"seed": {"dataset_id": seeds.dataset_id, "variants_used": len(report.used), "overlap_variants": report.overlap_variants, "overlap_days": report.overlap_days}})}, status="running", total_count=len(series), eligible_count=eligible,
+        parameter_version_ids=versions or None, dataset_version_id=None if seeds is None else seeds.dataset_id))
     if rows:
         conn.execute(insert(forecast_values), rows)
     _store_backtests(conn, run_id, results, adopted)
-    payload = json.dumps({"run_id": run_id, "input_hash": digest, "eligible_count": eligible}, sort_keys=True, separators=(",", ":")).encode()
+    payload = json.dumps({"run_id": run_id, "input_hash": digest, "eligible_count": eligible, "dataset_version_id": None if seeds is None else seeds.dataset_id}, sort_keys=True, separators=(",", ":")).encode()
     uri = writer.put(f"events/forecast/{run_id}.json", payload)
     enqueue(conn, outbox, new_envelope(EVENT_TYPE, run_id, payload, uri, cid))
     conn.execute(update(forecast_runs).where(forecast_runs.c.id == run_id).values(status="completed", finished_at=clock()))

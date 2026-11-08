@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/events/procurement.lot_cost.changed.v1",
+  "title": "ProcurementLotCostChanged",
+  "allOf": [
+    {
+      "$ref": "envelope.v1.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "procurement.lot_cost.changed.v1"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["variant_id", "supplier_id", "lot", "unit_cost", "source"],
+      "properties": {
+        "variant_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "supplier_id": {
+          "type": "string"
+        },
+        "lot": {
+          "type": "string"
+        },
+        "unit_cost": {
+          "type": "string",
+          "pattern": "^\\d+(\\.\\d{1,4})?$",
+          "description": "Recargo-inclusive acquisition cost in EUR (exact decimal text)"
+        },
+        "source": {
+          "enum": ["confirmed_order", "receipt_correction", "buyer_entry"]
+        }
+      },
+      "description": "A lot acquisition cost was recorded or corrected; inventory projects it for valuation. Carries the cost because the projection must not call procurement."
+    }
+  }
+}

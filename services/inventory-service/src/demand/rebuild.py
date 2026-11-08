@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from typing import Any
 
@@ -23,6 +23,7 @@ from db.tables import (
     stock_snapshots,
 )
 from mmi_common.time import utc_now
+from projections.rules import Exclusions, censoring_value
 from quality.metrics import metrics
 from sqlalchemy import Table, delete, func, insert, select
 from sqlalchemy.engine import Connection
@@ -90,7 +91,10 @@ def rebuild(conn: Connection, provider: DemandProvider | None = None, through_da
             else:  # a snapshot taken on day S describes the close of S-1
                 earlier[r.variant_id][r.snapshot_date - timedelta(days=1)] = r.on_hand
 
-    history = reconstruct(movements, current, through_day, earlier) if through_day else []
+    excluded = Exclusions(conn)
+    history = reconstruct(movements, current, through_day, earlier, censoring_value(conn, "min_zero_stock_days")) if through_day else []
+    if excluded:                                               # excluded days are not observable demand, whatever the stock was
+        history = [replace(h, censored=True) if excluded(h.variant_id, h.day) else h for h in history]
     censored = {(h.variant_id, h.day): h.censored for h in history}
     demand = (provider or MovementsDemandProvider()).daily_demand(movements)
     flows = flows_from_movements(movements, cutover)
@@ -99,7 +103,8 @@ def rebuild(conn: Connection, provider: DemandProvider | None = None, through_da
         conn.execute(delete(t))
     # Inserted in bounded chunks: a full rebuild must fit in the small replicas the budget allows (about 1 GiB).
     _insert_chunked(conn, demand_observations, ({"variant_id": d.variant_id, "warehouse_id": d.warehouse_id, "day": d.day, "demand_qty": d.demand_qty,
-                                                 "censored": censored.get((d.variant_id, d.day), False), "lineage": d.lineage} for d in demand))
+                                                 "censored": censored.get((d.variant_id, d.day), False) or bool(excluded and excluded(d.variant_id, d.day)),
+                                                 "lineage": d.lineage} for d in demand))
     _insert_chunked(conn, flow_series, ({"variant_id": f.variant_id, "warehouse_id": f.warehouse_id, "day": f.day, "flow": f.flow, "qty": f.qty} for f in flows))
     _insert_chunked(conn, stock_history, ({"variant_id": h.variant_id, "warehouse_id": ALL_WAREHOUSES, "day": h.day, "on_hand_reconstructed": h.on_hand,
                                            "censored": h.censored, "reconciled_ok": h.reconciled_ok} for h in history))

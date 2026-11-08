@@ -18,6 +18,11 @@
 | 2026-11-04 | **Loss reasons:** before a cutover about mid-September 2026, the loss reason was not recorded on negative adjustments. After the cutover, an empty reason means staff did not enter one. Staff can now use `expiry`, `damage` and `theft` | **Reason cutover date** (configurable; default 2026-09-19, to be confirmed) splits history (ADR-012) |
 | 2026-11-04 | **Grooming supplies are ordered on demand and never enter stock** | Out of MMI scope: no grooming series, no replenishment. `sale_shipment` from any warehouse = customer demand |
 | 2026-11-04 | **One narrow Siweb write is allowed: supplier cost.** When the buyer enters a missing cost or confirms an order at a different cost, the system updates the supplier cost in Siweb. Siweb stores cost **including recargo de equivalencia** (1.4 % on 10 % VAT products, 5.2 % on 21 % VAT products); buyer-entered net costs get the recargo added. Constitution v1.1.0 | ADR-006 amended: read-only everywhere except this one operation, with a separate writer identity, buyer review, audit and visible retries. Product-level write only (Siweb has no per-variant supplier cost) |
+| 2026-11-05 | **MMI 002 configuration ownership** (proposed, ADR-018) | Procurement owns terms, policies and scenarios; forecast owns seed datasets and parameters; inventory owns demand rules and aggregates; the BFF owns only durable roles in its own `bff` schema |
+| 2026-11-05 | **Precedence between ERP facts, local overrides and estimates** (proposed, ADR-019) | Per field: ERP facts from the ERP; the most specific approved local value for MMI-owned terms; estimates only as a labelled fallback; conflicts shown, never silent |
+| 2026-11-05 | **Predictive seed datasets are never ERP movements** (proposed, ADR-020) | Versioned, origin-flagged, atomically activated and reversible; hardened upload; private container with retention |
+| 2026-11-05 | **Stock is valued at lot acquisition cost; the ERP cost update is the median of lot costs** (owner decision; constitution v1.2.0 accepted by the owner on 2026-11-06, formal merge pending) | ERP movements carry PVP, not cost, and the ERP holds one cost per supplier. Margin check blocks below 15% unless an admin overrides; the releaser must differ from the override setter |
+| 2026-11-06 | **Margin check implementation choices (pending owner confirmation, T066)**: PVP = lowest variant price (`variants.price`, treated as net of VAT; decided 2026-11-06 — superseding the stock-movement assumption); margin unavailable (no price) blocks the release until an admin overrides; an admin override unblocks even when its value leaves the margin below 15% (flagged `override_margin_below_minimum` and audited); thresholds are evaluated on exact cost comparisons | Conservative on the margin floor; all three can be tightened once the PVP source is confirmed |
 
 ---
 
@@ -237,3 +242,43 @@ All of this fits in a nightly window under an MMI budget of ~500 requests/hour (
 5. Where do pack sizes, discounts and current price lists live today?
 6. Tax regime for purchases?
 7. Who approves proposals, and must it be a different person from the buyer?
+
+## 9. Open gates carried into MMI 002 (tracked, T039)
+
+Owners are roles, not people. "Decision" means the business must choose before the item can close; defaults from 001 stay in force until then. Findings about security posture are kept in the internal wiki, not here.
+
+| Gate | What is open | Owner | Status |
+|---|---|---|---|
+| V6 | Split of the shared Siweb request budget with the other application (default: at most 500 requests per hour in a night window) | Product owner | Decision |
+| V7 | Loss-reason cutover date (default 2026-09-19) | Product owner | Decision |
+| 429 | Behaviour of the ERP when the limit is exceeded; provoke and record in a controlled window | Operator | Open |
+| Lots / supplier list shapes | Real response shapes of the per-variant lots endpoint and the per-product supplier list under load (parsers are tolerant but unconfirmed); the median-cost lookup depends on lot data | Engineering with operator | Open |
+| 001-T130 | Threat model | Engineering | Open |
+| 001-T133 | Cost review with real regional prices | Product owner | Open |
+| 001-T152 | Compose smoke test on a machine with enough memory | Engineering | Open |
+| MMI-002 T066 | Operator check on the real ERP that sample variant prices come back net of VAT (source decided: variant price; treated as net) | Operator | Open (check only) |
+| MMI-002 T064 | Constitution v1.2.0 (median value, margin check, admin override) reviewed and merged; then update ADR-006 | Product owner | Decision |
+| MMI-002 T006 | Single owner of service levels (inventory and procurement both hold them today) | Product owner | Decision |
+
+## 10. MMI 002 cost estimate and upload-scanning decision (T154)
+
+Figures are order-of-magnitude estimates from published consumption pricing, to be checked against the first real monthly invoice. They are not measurements.
+
+| Item | Assumption | Estimate per month |
+|---|---|---|
+| Seed file storage (private container, 30-day lifecycle) | at most 20 uploads of at most 5 MB (hard cap), kept 30 days, locally redundant hot tier | well under EUR 0.10 |
+| Raw and derived blobs added by MMI 002 | seed-derived snapshots and scenario exports are small database rows or short-lived files | negligible |
+| Validation job minutes (files over 10,000 rows) | at most 20 runs of at most 5 minutes on the smallest job size, one replica | inside the monthly free consumption grant of the Container Apps environment; if not, under EUR 1 |
+| Admin and web traffic | scale-to-zero, one replica cap | already budgeted in the base plan |
+| Alert rules added (3) | scheduled log queries every 15 minutes | a few EUR at most (each log alert rule is billed per rule per month); within the shared alert line |
+| Malware scanning (paid) | not enabled, see below | EUR 0 |
+
+Total added by MMI 002: **a few EUR per month**, which fits the shared EUR 120/month budget. `infra/tests/test_cost_guardrails.py` fails the build if any app stops scaling to zero, a replica or job cap is raised, an always-on service type appears, or an extra storage container has no lifecycle rule.
+
+### Malware scanning of uploads: evaluation and decision
+
+- **Option A, Microsoft Defender for Storage with on-upload malware scanning.** Billed per storage account per month plus per GB scanned. At list prices of the time of writing this is roughly USD 10 a month for the account plus a small per-GB charge, and the account is shared with the raw-payload container. Not free; it is a noticeable share of the margin left in the shared budget for a feature used a few times a month.
+- **Option B, compensating controls (chosen).** Uploads are limited to CSV and XLSX by extension, declared type and file signature; macros, external links and formulas are rejected; size, decompression ratio and row limits apply before parsing; parsing runs in a short-lived scale-to-zero job with no extra privileges; the original is kept in a private, encrypted container that no browser can read, deleted after 30 days; only a buyer or admin with multi-factor sign-in can upload; the file content is never rendered or opened by the system, and exports neutralise formula prefixes.
+- **Decision:** Option B. Residual risk: a crafted file that exploits a parser library bug or carries a payload for a person who later downloads the retained original. **Accepted risk, confirmed by the owner on 2026-11-07** (paid scanning stays off for now); revisit if uploads become frequent, if non-staff users get upload rights, or if the budget allows Option A. Parser dependencies are covered by the dependency vulnerability scan (T159).
+
+**Seed originals in production (T169):** forecast-service writes to the private `seed-quarantine` container through its managed identity (`MMI_SEED_ACCOUNT_URL`, exported by `main.bicep` as `seedAccountUrl`); in production it refuses to start the import API without it and never falls back to a local folder. Development and Compose use `MMI_SEED_ROOT`.
