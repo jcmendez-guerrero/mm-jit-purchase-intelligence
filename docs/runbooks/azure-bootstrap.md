@@ -48,7 +48,8 @@ Log Analytics workspace (the environment reads its shared key at deployment time
 
 Services validate tokens with `MMI_ISSUER` / `MMI_JWKS_URL` (tenant-based, v2.0) and audience `api://mmi-<service>`.
 For managed-identity calls to work, the application registration must expose those identifier URIs and app roles, assign
-them to the workload identities, and issue v2 tokens (`accessTokenAcceptedVersion = 2`). 
+them to the workload identities, and issue v2 tokens (`accessTokenAcceptedVersion = 2`).
+
 ### Human sign-in (web app)
 
 People sign in through the BFF with the OIDC authorization-code flow (PKCE); the browser never holds a token. Create an

@@ -89,7 +89,6 @@
   font-weight: 600;
 }
 
-
 .mmi-main-col {
   min-width: 0;
 }
@@ -333,7 +332,6 @@
   .mmi-topbar {
     justify-content: flex-end;
   }
-
 }
 
 /* Very narrow content areas keep their padding modest */

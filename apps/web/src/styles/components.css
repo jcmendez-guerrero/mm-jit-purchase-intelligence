@@ -14,7 +14,9 @@
   font-size: var(--mmi-text-base);
   font-weight: 600;
   cursor: pointer;
-  transition: background-color var(--mmi-motion-fast) ease, border-color var(--mmi-motion-fast) ease;
+  transition:
+    background-color var(--mmi-motion-fast) ease,
+    border-color var(--mmi-motion-fast) ease;
 }
 
 .mmi-button--primary {
@@ -95,6 +97,7 @@
   border: 1px solid var(--mmi-border);
   border-radius: var(--mmi-radius-panel);
   padding: var(--mmi-space-5);
+  margin-bottom: var(--mmi-space-5); /* cards stack with a standard gap */
 }
 
 .mmi-card__title {
@@ -203,11 +206,6 @@
   margin-bottom: var(--mmi-space-2);
   font-size: var(--mmi-text-sm);
   color: var(--mmi-text-note);
-}
-
-/* Cards stack with a standard gap */
-.mmi-card {
-  margin-bottom: var(--mmi-space-5);
 }
 
 /* Tables (shared by DataTable and the legacy wrapper) */
@@ -436,7 +434,11 @@
   gap: 3px;
   margin: var(--mmi-space-3) 0 0;
   padding: 0 0 var(--mmi-space-3);
-  background-image: repeating-linear-gradient(to right, var(--mmi-border) 0 1px, transparent 1px 2.5%);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--mmi-border) 0 1px,
+    transparent 1px 2.5%
+  );
   background-size: 100% 6px;
   background-repeat: no-repeat;
   background-position: bottom;
@@ -716,7 +718,8 @@
   display: flex;
   align-items: flex-start;
   gap: var(--mmi-space-3);
-  padding: var(--mmi-space-3) var(--mmi-space-3) var(--mmi-space-3) var(--mmi-space-4);
+  padding: var(--mmi-space-3) var(--mmi-space-3) var(--mmi-space-3)
+    var(--mmi-space-4);
   border-radius: var(--mmi-radius-panel);
   box-shadow: var(--mmi-shadow-overlay);
   pointer-events: auto;
@@ -786,19 +789,57 @@
 }
 
 /* Layout and text utilities that replace inline styles (tokens only) */
-.mmi-mb-3 { margin-bottom: var(--mmi-space-3); }
-.mmi-mb-4 { margin-bottom: var(--mmi-space-4); }
-.mmi-mb-5 { margin-bottom: var(--mmi-space-5); }
-.mmi-mb-1 { margin-bottom: var(--mmi-space-1); }
-.mmi-mb-2 { margin-bottom: var(--mmi-space-2); }
-.mmi-mt-0 { margin-top: 0; }
-.mmi-mt-3 { margin-top: var(--mmi-space-3); }
-.mmi-mt-4 { margin-top: var(--mmi-space-4); }
-.mmi-mt-5 { margin-top: var(--mmi-space-5); }
-.mmi-mr-2 { margin-right: var(--mmi-space-2); }
-.mmi-mr-3 { margin-right: var(--mmi-space-3); }
-.mmi-mr-5 { margin-right: var(--mmi-space-5); }
-.mmi-m-0 { margin: 0; }
+.mmi-mb-3 {
+  margin-bottom: var(--mmi-space-3);
+}
+
+.mmi-mb-4 {
+  margin-bottom: var(--mmi-space-4);
+}
+
+.mmi-mb-5 {
+  margin-bottom: var(--mmi-space-5);
+}
+
+.mmi-mb-1 {
+  margin-bottom: var(--mmi-space-1);
+}
+
+.mmi-mb-2 {
+  margin-bottom: var(--mmi-space-2);
+}
+
+.mmi-mt-0 {
+  margin-top: 0;
+}
+
+.mmi-mt-3 {
+  margin-top: var(--mmi-space-3);
+}
+
+.mmi-mt-4 {
+  margin-top: var(--mmi-space-4);
+}
+
+.mmi-mt-5 {
+  margin-top: var(--mmi-space-5);
+}
+
+.mmi-mr-2 {
+  margin-right: var(--mmi-space-2);
+}
+
+.mmi-mr-3 {
+  margin-right: var(--mmi-space-3);
+}
+
+.mmi-mr-5 {
+  margin-right: var(--mmi-space-5);
+}
+
+.mmi-m-0 {
+  margin: 0;
+}
 
 .mmi-cluster {
   display: flex;

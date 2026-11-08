@@ -98,7 +98,6 @@
 
 **Independent Test**: On dashboard and proposals with synthetic data, sort and scan tables, trigger loading, empty and error conditions, and confirm designed states and identical status presentation everywhere.
 
-
 > **Implementation note (US2)**: the shared look reaches every screen through the restyled table, badge, button and form classes in `index.css` and `styles/components.css`. `DataTable` (sort, density, pagination, sticky first column) is used where lists can be long: the dashboard risk table, the drill-down and the quality list. Tables with inline expansion or editing (proposal lines, costs, imports, roles, policies) keep their markup inside the new scroll-region wrapper. Every data screen uses `ScreenState`/`EmptyState` and a retry for load failures. The policies and administration screens have skeletons and states but no dedicated end-to-end states test.
 
 ### Tests for User Story 2 (write first)
