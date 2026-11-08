@@ -1,15 +1,35 @@
-// Template only. Copy to main.bicepparam (git-ignored) and fill in locally or from the pipeline.
+// Template only. Copy to main.bicepparam (git-ignored) and fill in locally.
 // Never commit real values: tenant, subscription, resource names or IDs.
+// In the pipeline the image digests are passed on the command line (see .github/workflows/deploy.yml).
 using './main.bicep'
 
 param workload = '<workload-prefix>'
-param environment = 'dev'
+param environment = 'prod'
 
-// Existing shared Log Analytics workspace id and alert recipient (real values stay in the git-ignored file).
-param logAnalyticsId = '<resource id of the shared workspace>'
+// Optional: an existing storage account naming convention (3-24 lowercase letters and digits).
+param storageAccountName = '<storage account name>'
+
+// Shared platform, referenced by resource id (not created here).
+param logAnalyticsId = '<resource id of the shared Log Analytics workspace>'
+param registryId = '<resource id of the shared container registry>'
+param keyVaultId = '<resource id of the shared Key Vault>'
+param postgresHost = '<postgres server host name>'
+param entraTenantId = '<directory (tenant) id>'
 param alertEmail = '<alert recipient>'
 
-// Forecast job (set all three to deploy it; image pinned by digest).
-param environmentId = '<shared Container Apps environment id>'
-param forecastImage = '<registry>/mmi/forecast-service@sha256:<digest>'
-param forecastIdentityId = '<user-assigned identity id>'
+// Siweb. Only the secret NAMES live here; the values are in Key Vault.
+param siwebBaseUrl = '<approved Siweb base URL>'
+param siwebReaderSecretName = '<key vault secret name of the read-only token>'
+param siwebWriterSecretName = '<key vault secret name of the writer token>'
+param deployCostWriter = false // keep false until T135 is verified on a non-production record
+
+// Placeholders so the file compiles; the deploy workflow overrides them with digests it just pushed.
+param images = {
+  connector: '<registry>/mmi/siweb-connector@sha256:<digest>'
+  costWriter: '<registry>/mmi/siweb-cost-writer@sha256:<digest>'
+  inventory: '<registry>/mmi/inventory-service@sha256:<digest>'
+  forecast: '<registry>/mmi/forecast-service@sha256:<digest>'
+  procurement: '<registry>/mmi/procurement-service@sha256:<digest>'
+  bff: '<registry>/mmi/api-bff@sha256:<digest>'
+  web: '<registry>/mmi/web@sha256:<digest>'
+}

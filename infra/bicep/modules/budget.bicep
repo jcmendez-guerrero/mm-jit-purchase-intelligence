@@ -1,15 +1,11 @@
-// Budget alerts and ingestion caps (T123).
-// Principle VII: strict EUR 120/month shared ceiling.
-// Alerts at 50 %, 80 % and 100 % thresholds; daily log ingestion cap on Log Analytics.
+// Budget alerts (T123). Principle VII: strict EUR 120/month shared ceiling, alerts at 50 %, 80 % and 100 %.
+// Deployed at resource-group scope, so it tracks this resource group only. The log ingestion cap is set on the shared
+// workspace by its owner (daily quota), not here: this module no longer pretends to enforce it.
 
 param budgetName string = 'mmi-monthly-budget'
 param amount int = 120
 param startDate string = '2026-11-01T00:00:00Z'
 param alertEmail string
-@description('Existing Log Analytics workspace name.')
-param logAnalyticsWorkspaceName string
-@description('Daily log ingestion cap in GB (default: 1 GB/day to protect budget).')
-param dailyIngestionCapGb int = 1
 
 resource budget 'Microsoft.Consumption/budgets@2023-05-01' = {
   name: budgetName
@@ -44,14 +40,4 @@ resource budget 'Microsoft.Consumption/budgets@2023-05-01' = {
       }
     }
   }
-}
-
-resource workspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = {
-  name: logAnalyticsWorkspaceName
-}
-
-// Ingestion cap ensures rogue containers or loops do not blow the EUR 120 budget
-resource dailyCap 'Microsoft.OperationalInsights/workspaces/dataExports@2020-08-01' existing = {
-  parent: workspace
-  name: 'default'
 }
