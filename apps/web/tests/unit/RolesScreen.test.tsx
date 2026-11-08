@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError, RoleMirrorStatus, RolesListing } from "../../src/api/client";
 import { RolesScreen } from "../../src/features/admin/RolesScreen";
 import "../../src/i18n";
+import { confirmAction } from "./confirm";
 
 const listing = (approvers = 2): RolesListing => ({
   users: [
@@ -37,6 +38,7 @@ describe("RolesScreen (Spanish)", () => {
     const update = vi.spyOn(api, "updateRoles").mockResolvedValue({});
     render(<RolesScreen />);
     fireEvent.click(await screen.findByLabelText("buyer-1 Aprobador"));
+    confirmAction();
     await waitFor(() => expect(update).toHaveBeenCalledWith("buyer-1", ["approver", "buyer", "viewer"], true));
     await waitFor(() => expect(api.getRoles).toHaveBeenCalledTimes(2));
   });
@@ -45,6 +47,7 @@ describe("RolesScreen (Spanish)", () => {
     vi.spyOn(api, "updateRoles").mockRejectedValue(new ApiError(409, "approval_fewer_than_two_approvers"));
     render(<RolesScreen />);
     fireEvent.click(await screen.findByLabelText("approver-1 Aprobador"));
+    confirmAction();
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Se necesitan al menos dos personas con rol de aprobador");
     expect(document.body.textContent).not.toContain("approval_fewer_than_two_approvers");

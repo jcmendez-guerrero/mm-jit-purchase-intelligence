@@ -1,38 +1,86 @@
-import React, { useEffect, useState } from "react";
-import { api, UserSession } from "../api/client";
-import { ScenariosScreen } from "../features/scenarios/ScenariosScreen";
-import { ImportScreen } from "../features/imports/ImportScreen";
-import { PoliciesScreen } from "../features/policies/PoliciesScreen";
-import { CostsScreen } from "../features/costs/CostsScreen";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
+import { api, ApiError, onUnauthorized, UserSession } from "../api/client";
 import { AdminStatusScreen } from "../features/admin/AdminStatusScreen";
 import { RolesScreen } from "../features/admin/RolesScreen";
+import { CostsScreen } from "../features/costs/CostsScreen";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
-import { SuppliersScreen } from "../features/suppliers/SuppliersScreen";
+import { ImportScreen } from "../features/imports/ImportScreen";
+import { PoliciesScreen } from "../features/policies/PoliciesScreen";
 import { ProposalsScreen } from "../features/proposals/ProposalsScreen";
 import { QualityScreen } from "../features/quality/QualityScreen";
-import { Navigation } from "./Navigation";
+import { ScenariosScreen } from "../features/scenarios/ScenariosScreen";
+import { SuppliersScreen } from "../features/suppliers/SuppliersScreen";
+import { NoticeProvider } from "../ui/NoticeProvider";
+import { AppShell } from "./AppShell";
+import { LoginScreen } from "./LoginScreen";
+import { NoAccess } from "./NoAccess";
+import { NotFound } from "./NotFound";
+import { DEFAULT_PATH } from "./routes";
+
+/** The selected warehouse lives in the address (?almacen=), so a link reproduces the view (FR-002). */
+const DashboardRoute: React.FC = () => {
+  const [params, setParams] = useSearchParams();
+  const raw = params.get("almacen");
+  const warehouse = raw !== null && /^\d+$/.test(raw) ? parseInt(raw, 10) : undefined;
+  const select = useCallback(
+    (id: number | undefined) => {
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (id === undefined) next.delete("almacen");
+          else next.set("almacen", String(id));
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setParams],
+  );
+  return <DashboardScreen selectedWarehouse={warehouse} onSelectWarehouse={select} />;
+};
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<string>("dashboard");
   const [session, setSession] = useState<UserSession | null>(null);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<number | undefined>(undefined);
-
-  const checkSession = async () => {
-    try {
-      const data = await api.getMe();
-      setSession(data);
-    } catch {
-      setSession(null);
-    }
-  };
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [checked, setChecked] = useState(false);
+  const sessionRef = useRef<UserSession | null>(null);
+  sessionRef.current = session;
 
   useEffect(() => {
-    checkSession();
+    api
+      .getMe()
+      .then(setSession)
+      .catch(() => setSession(null))
+      .finally(() => setChecked(true));
+  }, []);
+
+  useEffect(() => {
+    // A 401 from one call is confirmed with the session probe before the session is declared expired.
+    let probing = false;
+    onUnauthorized(() => {
+      if (probing || !sessionRef.current) return;
+      probing = true;
+      api
+        .getMe()
+        .then(setSession)
+        .catch((err) => {
+          if (err instanceof ApiError && err.status === 401) {
+            setSessionExpired(true);
+            setSession(null);
+          }
+        })
+        .finally(() => {
+          probing = false;
+        });
+    });
+    return () => onUnauthorized(null);
   }, []);
 
   const handleDevLogin = async (role: string) => {
     const roles = role === "viewer" ? ["viewer"] : ["viewer", role];
     const user = await api.devLogin(`${role}-1`, roles);
+    setSessionExpired(false);
     setSession(user);
   };
 
@@ -43,46 +91,38 @@ export const App: React.FC = () => {
 
   const userRoles = session?.roles || ["viewer"];
 
+  if (!checked) return <div className="mmi-login" aria-busy="true" />;
+  if (!session) return <LoginScreen sessionExpired={sessionExpired} onDevLogin={handleDevLogin} />;
+
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <Navigation
-        currentTab={currentTab}
-        onSelectTab={setCurrentTab}
-        session={session}
-        onLogout={handleLogout}
-        onDevLogin={handleDevLogin}
-      />
-
-      <main className="mmi-container" style={{ flex: 1, width: "100%" }}>
-        <div style={{ marginBottom: "1.75rem" }}>
-          <h1 className="mmi-greeting-title">
-            Hola, {session ? session.user_id : "Equipo Mundo Mascotix"}
-          </h1>
-          <p className="mmi-greeting-sub">
-            Inteligencia de inventario y compras semanales · Farmacia Veterinaria
-          </p>
-        </div>
-
-        {currentTab === "dashboard" && (
-          <DashboardScreen
-            selectedWarehouse={selectedWarehouse}
-            onSelectWarehouse={setSelectedWarehouse}
-          />
-        )}
-        {currentTab === "quality" && <QualityScreen userRoles={userRoles} />}
-        {currentTab === "suppliers" && <SuppliersScreen userRoles={userRoles} />}
-        {currentTab === "costs" && <CostsScreen userRoles={userRoles} userId={session?.user_id} />}
-        {currentTab === "proposals" && <ProposalsScreen userRoles={userRoles} />}
-        {currentTab === "scenarios" && <ScenariosScreen userRoles={userRoles} />}
-        {currentTab === "imports" && <ImportScreen userRoles={userRoles} />}
-        {currentTab === "config" && <PoliciesScreen userRoles={userRoles} />}
-        {currentTab === "admin" && userRoles.includes("admin") && (
-          <>
-            <AdminStatusScreen />
-            <RolesScreen />
-          </>
-        )}
-      </main>
-    </div>
+    <NoticeProvider>
+    <Routes>
+      <Route element={<AppShell session={session} roles={userRoles} sessionExpired={sessionExpired} onLogout={handleLogout} />}>
+        <Route index element={<Navigate to={DEFAULT_PATH} replace />} />
+        <Route path="panel" element={<DashboardRoute />} />
+        <Route path="calidad" element={<QualityScreen userRoles={userRoles} />} />
+        <Route path="propuestas" element={<ProposalsScreen userRoles={userRoles} />} />
+        <Route path="escenarios" element={<ScenariosScreen userRoles={userRoles} />} />
+        <Route path="costes" element={<CostsScreen userRoles={userRoles} userId={session?.user_id} />} />
+        <Route path="proveedores" element={<SuppliersScreen userRoles={userRoles} />} />
+        <Route path="importaciones" element={<ImportScreen userRoles={userRoles} />} />
+        <Route path="configuracion" element={<PoliciesScreen userRoles={userRoles} />} />
+        <Route
+          path="administracion"
+          element={
+            userRoles.includes("admin") ? (
+              <>
+                <AdminStatusScreen />
+                <RolesScreen />
+              </>
+            ) : (
+              <NoAccess />
+            )
+          }
+        />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
+    </NoticeProvider>
   );
 };

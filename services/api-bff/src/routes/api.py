@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import UTC, datetime
 from typing import Any
 
+from auth import entra
 from auth.session import (
     SessionData,
     clear_session_cookie,
@@ -14,7 +16,8 @@ from auth.session import (
 )
 from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from routes.admin_roles import has_at_least_two_eligible_approvers
 from routes.rbac import require_fresh_mfa, require_roles, require_session
@@ -46,6 +49,57 @@ class DevLoginBody(BaseModel):
 def dev_login_enabled() -> bool:
     """Off unless explicitly enabled, and never in production: the endpoint mints a session for a caller-chosen user."""
     return os.environ.get("MMI_ENABLE_DEV_LOGIN") == "1" and os.environ.get("MMI_ENV", "dev") != "prod"
+
+
+@router.get("/auth/config")
+def auth_config() -> dict[str, Any]:
+    """Public: which sign-in the login page offers. Development role chooser, Entra ID, or none configured."""
+    if dev_login_enabled():
+        return {"mode": "dev"}
+    return {"mode": "entra" if entra.entra_config() else "none"}
+
+
+def _login_failed(code: str) -> RedirectResponse:
+    resp = RedirectResponse(f"/?login_error={code}", status_code=303)
+    resp.delete_cookie(entra.STATE_COOKIE, path="/api/auth")
+    return resp
+
+
+@router.get("/auth/login")
+def entra_login() -> Response:
+    cfg = entra.entra_config()
+    if cfg is None or dev_login_enabled():
+        raise HTTPException(status_code=404, detail="not_found")
+    url, cookie = entra.begin(cfg)
+    resp = RedirectResponse(url, status_code=303)
+    secure = os.environ.get("MMI_ENV", "dev") == "prod" or os.environ.get("MMI_COOKIE_SECURE", "").lower() in ("1", "true")
+    resp.set_cookie(entra.STATE_COOKIE, cookie, max_age=entra.STATE_TTL_SECONDS, httponly=True, samesite="lax", secure=secure, path="/api/auth")
+    return resp
+
+
+@router.get("/auth/callback")
+def entra_callback(request: Request, code: str = "", state: str = "", error: str = "") -> Response:
+    cfg = entra.entra_config()
+    if cfg is None or dev_login_enabled():
+        raise HTTPException(status_code=404, detail="not_found")
+    if error or not code or not state:
+        return _login_failed("denied")
+    try:
+        user_id, email, token_roles, mfa_time = entra.complete(cfg, request.cookies.get(entra.STATE_COOKIE), state, code)
+    except entra.EntraError as exc:
+        logger.warning("entra sign-in refused: %s", exc.code)
+        return _login_failed(exc.code)
+    from routes.admin_roles import get_store
+
+    rec = get_store().get(user_id)                         # the in-app registry wins; otherwise the token's app roles
+    if rec is not None and not rec.active:
+        return _login_failed("forbidden")
+    roles = list(rec.roles) if rec else (token_roles or ["viewer"])
+    session = create_session(user_id=user_id, email=email, roles=roles, mfa_auth_time=mfa_time or datetime(1970, 1, 1, tzinfo=UTC))
+    resp = RedirectResponse("/", status_code=303)
+    set_session_cookie(resp, session)
+    resp.delete_cookie(entra.STATE_COOKIE, path="/api/auth")
+    return resp
 
 
 @router.post("/auth/dev-login")

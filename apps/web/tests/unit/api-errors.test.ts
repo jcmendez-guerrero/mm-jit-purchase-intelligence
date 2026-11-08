@@ -46,3 +46,13 @@ describe("API refusals reach the user as Spanish text", () => {
     }
   });
 });
+
+describe("permission refusals", () => {
+  it("gives any 403 the no-permission sentence, even with a code the screen does not know", () => {
+    expect(errorMessage(new ApiError(403, "something_new"), "Ha ocurrido un error")).toBe(catalogue["errors.auth_forbidden_role"]);
+  });
+
+  it("keeps the specific sentence of a known 403 code", () => {
+    expect(errorMessage(new ApiError(403, "auth_mfa_stale"), "x")).toBe(catalogue["errors.auth_mfa_stale"]);
+  });
+});

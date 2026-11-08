@@ -1,9 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, EffectiveValue, errorMessage, OverrideRequest, SegmentHistoryRow, StockingSetting } from "../../api/client";
-import { Field } from "../suppliers/Field";
+import { FormField } from "../../ui/FormField";
 import { CategoryHistory } from "./CategoryHistory";
 import { canDecideOverrides, canEditPolicies, parseId } from "./policiesModel";
+import { useActionNotice } from "../../ui/NoticeProvider";
+import { StatusBadge } from "../../ui/StatusBadge";
+import { Button } from "../../ui/Button";
+import { useFieldErrors } from "../../ui/useFieldErrors";
+import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
 
 interface Props {
   roles: string[];
@@ -24,7 +29,8 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
   const [value, setValue] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const fe = useFieldErrors();
+  const [notice, setNotice] = useActionNotice();
   const canEdit = canEditPolicies(roles);
   const canDecide = canDecideOverrides(roles);
 
@@ -63,7 +69,14 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
     setError(null);
     setNotice(null);
     const requested = /^\d+$/.test(value.trim()) ? Number(value.trim()) : null;
-    if (variant === null || requested === null) return setError(t("policies.invalid_field", { field: t("safety.requested") }));
+    if (variant === null || requested === null) {
+      const errs: Record<string, string> = {};
+      if (variant === null) errs["safety-variant"] = t("policies.variant_invalid");
+      if (requested === null) errs["safety-value"] = t("policies.invalid_field", { field: t("safety.requested") });
+      fe.flag(errs);
+      return setError(requested === null ? errs["safety-value"]! : errs["safety-variant"]!);
+    }
+    fe.clear();
     try {
       await api.createOverride({ variant_id: variant, field, requested_value: requested, reason });
       setNotice(t("safety.requested_ok"));
@@ -90,7 +103,14 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
   const saveStocking = async () => {
     setError(null);
     setNotice(null);
-    if (variant === null || !/^\d+$/.test(floor.trim())) return setError(t("policies.invalid_field", { field: t("safety.floor") }));
+    if (variant === null || !/^\d+$/.test(floor.trim())) {
+      const errs: Record<string, string> = {};
+      if (variant === null) errs["safety-variant"] = t("policies.variant_invalid");
+      else errs["stock-floor"] = t("policies.invalid_field", { field: t("safety.floor") });
+      fe.flag(errs);
+      return setError(errs["stock-floor"] ?? errs["safety-variant"]!);
+    }
+    fe.clear();
     try {
       const r = await api.putStocking(variant, { stocking_mode: mode, min_floor_units: Number(floor.trim()) }, stocking?.revision ?? 0);
       setNotice(t("safety.stocking_saved", { revision: r.revision }));
@@ -101,8 +121,11 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
     }
   };
 
+  const dirty = canEdit && (value.trim() !== "" || reason.trim() !== "" || (stocking !== null && (mode !== stocking.stocking_mode || floor.trim() !== String(stocking.min_floor_units))));
+
   return (
     <div>
+      <UnsavedChangesPrompt dirty={dirty} />
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
 
@@ -115,20 +138,20 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
             <li key={q.id}>
               {t("safety.queue_row", { variant: q.variant_id, field: t(`safety.field.${q.field}`), recommended: q.recommended_value, requested: q.requested_value, by: q.requested_by })} — {q.reason}
               {q.recommendation_changed && (
-                <span role="note" className="mmi-badge mmi-badge-warning">
+                <span role="note">
                   {" "}
-                  {t("safety.queue_changed", { was: q.recommended_value, now: q.current_recommended ?? "—" })}
+                  <StatusBadge domain="tag" code="changed" label={t("safety.queue_changed", { was: q.recommended_value, now: q.current_recommended ?? "—" })} />
                 </span>
               )}
               {canDecide && (
                 <>
                   {" "}
-                  <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-primary" onClick={() => void decide(q.id, "approve")}>
+                  <Button small onClick={() => void decide(q.id, "approve")}>
                     {t("safety.approve")}
-                  </button>{" "}
-                  <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={() => void decide(q.id, "reject")}>
+                  </Button>{" "}
+                  <Button variant="secondary" small onClick={() => void decide(q.id, "reject")}>
                     {t("safety.reject")}
-                  </button>
+                  </Button>
                 </>
               )}
             </li>
@@ -136,11 +159,11 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
         </ul>
       )}
 
-      <div style={{ display: "flex", gap: "0.75rem", alignItems: "end", flexWrap: "wrap" }}>
-        <Field id="safety-variant" label={t("policies.variant")} value={variantText} onChange={setVariantText} inputMode="numeric" />
-        <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void lookup()}>
+      <div className="mmi-cluster">
+        <FormField id="safety-variant" label={t("policies.variant")} value={variantText} onChange={(v) => { setVariantText(v); fe.clear("safety-variant"); }} error={fe.errors["safety-variant"]} inputMode="numeric" />
+        <Button variant="secondary" onClick={() => void lookup()}>
           {t("policies.lookup")}
-        </button>
+        </Button>
       </div>
 
       {variant !== null && (
@@ -170,11 +193,11 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
                   </option>
                 ))}
               </select>
-              <Field id="safety-value" label={t("safety.requested")} value={value} onChange={setValue} inputMode="numeric" />
-              <Field id="safety-reason" label={t("safety.reason")} value={reason} onChange={setReason} />
-              <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void request()}>
+              <FormField id="safety-value" label={t("safety.requested")} value={value} onChange={(v) => { setValue(v); fe.clear("safety-value"); }} error={fe.errors["safety-value"]} inputMode="numeric" />
+              <FormField id="safety-reason" label={t("safety.reason")} value={reason} onChange={setReason} />
+              <Button onClick={() => void request()}>
                 {t("safety.request")}
-              </button>
+              </Button>
             </fieldset>
           )}
 
@@ -188,12 +211,12 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
                 </option>
               ))}
             </select>
-            <Field id="stock-floor" label={t("safety.floor")} value={floor} onChange={setFloor} inputMode="numeric" disabled={!canEdit} />
+            <FormField id="stock-floor" label={t("safety.floor")} value={floor} onChange={(v) => { setFloor(v); fe.clear("stock-floor"); }} error={fe.errors["stock-floor"]} inputMode="numeric" disabled={!canEdit} />
             <p className="mmi-muted">{t("safety.stocking_help")}</p>
             {canEdit && (
-              <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void saveStocking()}>
+              <Button onClick={() => void saveStocking()}>
                 {t("safety.stocking_save")}
-              </button>
+              </Button>
             )}
           </fieldset>
 

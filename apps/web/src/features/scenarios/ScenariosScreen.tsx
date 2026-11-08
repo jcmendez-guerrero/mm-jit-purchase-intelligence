@@ -3,8 +3,19 @@ import { useTranslation } from "react-i18next";
 import { api, errorMessage, ScenarioDetail, ScenarioListItem, SupplierSummary } from "../../api/client";
 import { formatCurrencyEUR, formatDate, formatDateTime, formatPercent } from "../../i18n/formatters";
 import { VersionsUsed } from "../proposals/VersionsUsed";
-import { Field } from "../suppliers/Field";
+import { FormField } from "../../ui/FormField";
 import { canCreate, constraintLabel, emptyForm, emptySupplier, reasonKey, ScenarioForm, SupplierForm, toRequest } from "./scenariosModel";
+import { EmptyState } from "../../ui/EmptyState";
+import { StatusBadge } from "../../ui/StatusBadge";
+import { ScreenState } from "../../ui/ScreenState";
+import { useActionNotice } from "../../ui/NoticeProvider";
+import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { Button } from "../../ui/Button";
+import { Card } from "../../ui/Card";
+import { useFieldErrors } from "../../ui/useFieldErrors";
+import { PageActions } from "../../ui/PageActions";
+import { DataTable } from "../../ui/DataTable";
 
 interface Props {
   userRoles: string[];
@@ -17,19 +28,27 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
   const [form, setForm] = useState<ScenarioForm>(emptyForm());
   const [suppliers, setSuppliers] = useState<SupplierSummary[]>([]);
   const [list, setList] = useState<ScenarioListItem[]>([]);
+  const [listLoading, setListLoading] = useState(true);
   const [detail, setDetail] = useState<ScenarioDetail | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [confirmingPromote, setConfirmingPromote] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useActionNotice();
   const [key, setKey] = useState(() => crypto.randomUUID());
   const editable = canCreate(userRoles);
+  const fe = useFieldErrors();
 
   const fail = useCallback((err: unknown) => setError(errorMessage(err, t("common.error"))), [t]);
   const loadList = useCallback(async () => {
     try {
+      setLoadFailed(false);
       setList((await api.getScenarios()).scenarios);
     } catch (err) {
       fail(err);
+      setLoadFailed(true);
+    } finally {
+      setListLoading(false);
     }
   }, [fail]);
   useEffect(() => {
@@ -47,7 +66,10 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
     const req = toRequest(form);
     if ("invalid" in req) {
       const field = t(`scenarios.field.${req.invalid}`, { defaultValue: t(`scenarios.supplier.${req.invalid}`, { defaultValue: req.invalid }) });
-      setError(req.supplier ? t("scenarios.invalid_for", { field, supplier: supplierName(req.supplier) }) : t("scenarios.invalid", { field }));
+      const summary = req.supplier ? t("scenarios.invalid_for", { field, supplier: supplierName(req.supplier) }) : t("scenarios.invalid", { field });
+      const id = req.supplier ? `sc-${req.supplier}-${req.invalid}` : req.invalid === "name" ? "sc-name" : req.invalid === "budget" ? "sc-budget" : "sc-sl";
+      fe.flag({ [id]: req.invalid === "name" ? t("ui.form.required") : summary });
+      setError(summary);
       return;
     }
     setBusy(true);
@@ -88,65 +110,85 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
 
   const s = detail?.summary ?? null;
   const groups = (detail?.results ?? []).filter((r) => r.lines.length !== 0);
+  const dirty = editable && JSON.stringify(form) !== JSON.stringify(emptyForm());
+
   return (
     <section aria-labelledby="scenarios-title">
+      <ConfirmDialog
+        open={confirmingPromote && detail !== null}
+        title={t("scenarios.confirm.promote.title")}
+        objectLabel={detail?.name ?? ""}
+        effect={t("scenarios.confirm.promote.effect")}
+        confirmLabel={t("scenarios.promote")}
+        onCancel={() => setConfirmingPromote(false)}
+        onConfirm={() => {
+          setConfirmingPromote(false);
+          void promote();
+        }}
+      />
+      <UnsavedChangesPrompt dirty={dirty} />
       <h2 id="scenarios-title">{t("scenarios.title")}</h2>
       <p>{t("scenarios.subtitle")}</p>
-      {error && <p role="alert" className="mmi-error">{error}</p>}
+      {error && !loadFailed && <p role="alert" className="mmi-error">{error}</p>}
+      {loadFailed && <ScreenState state="error" errorHint={error ?? ""} onRetry={() => void loadList()} />}
       {notice && <p role="status">{notice}</p>}
       {!editable && <p>{t("scenarios.read_only")}</p>}
 
+      <div className="mmi-split">
+        <div className="mmi-split__aside">
       {editable && (
-        <form className="mmi-card" style={{ marginBottom: "1rem" }} onSubmit={(e) => { e.preventDefault(); void compute(); }} aria-label={t("scenarios.new")}>
+        <Card as="form" id="scenario-form" className="mmi-mb-4" onSubmit={(e) => { e.preventDefault(); void compute(); }} aria-label={t("scenarios.new")}>
           <h3>{t("scenarios.new")}</h3>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
-            <Field id="sc-name" label={t("scenarios.name")} value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-            <Field id="sc-budget" label={t("scenarios.budget")} inputMode="decimal" value={form.budget} onChange={(v) => setForm({ ...form, budget: v })} />
-            <Field id="sc-sl" label={t("scenarios.service_level")} inputMode="decimal" value={form.service_level_pp} onChange={(v) => setForm({ ...form, service_level_pp: v })} />
+          <div className="mmi-cluster mmi-cluster--top">
+            <FormField id="sc-name" label={t("scenarios.name")} value={form.name} error={fe.errors["sc-name"]} onChange={(v) => { setForm({ ...form, name: v }); fe.clear("sc-name"); }} />
+            <FormField id="sc-budget" label={t("scenarios.budget")} inputMode="decimal" value={form.budget} error={fe.errors["sc-budget"]} onChange={(v) => { setForm({ ...form, budget: v }); fe.clear("sc-budget"); }} />
+            <FormField id="sc-sl" label={t("scenarios.service_level")} inputMode="decimal" value={form.service_level_pp} error={fe.errors["sc-sl"]} onChange={(v) => { setForm({ ...form, service_level_pp: v }); fe.clear("sc-sl"); }} />
           </div>
           <h4>{t("scenarios.suppliers")}</h4>
           <p>{t("scenarios.blank_means_no_change")}</p>
           {suppliers.map((sp) => {
             const cur = form.suppliers[sp.id] ?? emptySupplier();
             return (
-              <fieldset key={sp.id} style={{ marginBottom: "0.75rem" }}>
+              <fieldset className="mmi-mb-3" key={sp.id}>
                 <legend>{sp.name}</legend>
                 <label>
                   <input type="checkbox" checked={cur.disabled} onChange={(e) => setSupplier(sp.id, { disabled: e.target.checked })} /> {t("scenarios.supplier.disabled")}
                 </label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+                <div className="mmi-cluster mmi-cluster--top">
                   {SUPPLIER_FIELDS.map((f) => (
-                    <Field key={f} id={`sc-${sp.id}-${f}`} label={t(`scenarios.supplier.${f}`)} inputMode={f.endsWith("days") || f.endsWith("qty") || f === "pack_multiple" ? "numeric" : "decimal"}
-                      value={cur[f]} disabled={cur.disabled} onChange={(v) => setSupplier(sp.id, { [f]: v })} />
+                    <FormField key={f} id={`sc-${sp.id}-${f}`} label={t(`scenarios.supplier.${f}`)} inputMode={f.endsWith("days") || f.endsWith("qty") || f === "pack_multiple" ? "numeric" : "decimal"}
+                      value={cur[f]} disabled={cur.disabled} error={fe.errors[`sc-${sp.id}-${f}`]} onChange={(v) => { setSupplier(sp.id, { [f]: v }); fe.clear(`sc-${sp.id}-${f}`); }} />
                   ))}
                 </div>
               </fieldset>
             );
           })}
-          <button type="submit" className="mmi-btn mmi-btn-primary" disabled={busy}>{busy ? t("scenarios.computing") : t("scenarios.compute")}</button>
-        </form>
+          <PageActions>
+            <Button type="submit" form="scenario-form" disabled={busy}>{busy ? t("scenarios.computing") : t("scenarios.compute")}</Button>
+          </PageActions>
+        </Card>
       )}
 
       <h3>{t("scenarios.list")}</h3>
-      {list.length === 0 ? <p>{t("scenarios.list_empty")}</p> : (
-        <div className="mmi-table-wrapper"><table className="mmi-table">
-          <thead><tr><th>{t("scenarios.name")}</th><th>{t("common.status")}</th><th>{t("scenarios.col.delta")}</th><th>{t("common.date")}</th><th /></tr></thead>
-          <tbody>
-            {list.map((r) => (
-              <tr key={r.id}>
-                <td>{r.name}</td>
-                <td>{t(`scenarios.status.${r.status}`)}</td>
-                <td>{r.delta_total === null ? "—" : formatCurrencyEUR(r.delta_total)}</td>
-                <td>{formatDateTime(r.created_at)}</td>
-                <td><button type="button" className="mmi-btn" onClick={() => void open(r.id)} aria-label={`${t("scenarios.open")} ${r.name}`}>{t("scenarios.open")}</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
+      {list.length === 0 ? (listLoading ? <ScreenState state="loading" skeletonLines={3} /> : <EmptyState title={t("scenarios.list_empty")} hint="" />) : (
+        <DataTable
+          ariaLabel={t("scenarios.list")}
+          rows={list}
+          rowKey={(r) => r.id}
+          columns={[
+            { id: "name", header: t("scenarios.name"), cell: (r) => r.name, sortValue: (r) => r.name },
+            { id: "status", header: t("common.status"), cell: (r) => <StatusBadge domain="scenario" code={r.status} />, sortValue: (r) => r.status },
+            { id: "delta", header: t("scenarios.col.delta"), cell: (r) => (r.delta_total === null ? "—" : formatCurrencyEUR(r.delta_total)), sortValue: (r) => (r.delta_total === null ? null : Number(r.delta_total)), align: "end" },
+            { id: "date", header: t("common.date"), cell: (r) => formatDateTime(r.created_at), sortValue: (r) => r.created_at },
+            { id: "open", header: "", cell: (r) => <Button variant="secondary" onClick={() => void open(r.id)} aria-label={`${t("scenarios.open")} ${r.name}`}>{t("scenarios.open")}</Button> },
+          ]}
+        />
       )}
 
+        </div>
+        <div className="mmi-split__main">
       {detail && s && (
-        <article aria-label={detail.name} className="mmi-card" style={{ marginTop: "1rem" }}>
+        <Card as="article" className="mmi-mt-4" aria-label={detail.name}>
           <h3>{detail.name} — {t(`scenarios.status.${detail.status}`)}</h3>
           <VersionsUsed dataset={detail.input_versions?.dataset} forecastRun={detail.input_versions?.forecast_run} />
           <h4>{t("scenarios.compare")}</h4>
@@ -206,7 +248,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
           <h4>{t("scenarios.groups")}</h4>
           {groups.length === 0 && <p>{t("scenarios.groups_none")}</p>}
           {groups.map((r) => (
-            <section key={r.supplier_id} aria-label={t("scenarios.group_title", { name: r.supplier_name ?? supplierName(r.supplier_id) })} className="mmi-card" style={{ marginBottom: "0.75rem" }}>
+            <Card className="mmi-mb-3" key={r.supplier_id} aria-label={t("scenarios.group_title", { name: r.supplier_name ?? supplierName(r.supplier_id) })}>
               <h5>{r.supplier_name ?? supplierName(r.supplier_id)}</h5>
               <div className="mmi-table-wrapper">
                 <table className="mmi-table" aria-label={t("scenarios.group_lines", { name: r.supplier_name ?? supplierName(r.supplier_id) })}>
@@ -231,16 +273,18 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
                 <li>{r.expected_delivery ? t("scenarios.group.delivery", { value: formatDate(r.expected_delivery) }) : t("scenarios.group.delivery_unknown")}</li>
                 <li>{r.budget_utilisation === null ? t("scenarios.group.utilisation_none") : t("scenarios.group.utilisation", { value: formatPercent(r.budget_utilisation) })}</li>
               </ul>
-            </section>
+            </Card>
           ))}
 
-          <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.75rem" }}>
-            {editable && detail.status === "ready" && <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void promote()}>{t("scenarios.promote")}</button>}
+          <div className="mmi-cluster mmi-cluster--top mmi-mt-3">
+            {editable && detail.status === "ready" && <Button onClick={() => setConfirmingPromote(true)}>{t("scenarios.promote")}</Button>}
             <a href={`/api/scenarios/${detail.id}/export?format=csv`}>{t("scenarios.export_csv")}</a>
             <a href={`/api/scenarios/${detail.id}/export?format=xlsx`}>{t("scenarios.export_xlsx")}</a>
           </div>
-        </article>
+        </Card>
       )}
+        </div>
+      </div>
     </section>
   );
 };

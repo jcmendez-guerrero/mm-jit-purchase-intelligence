@@ -26,7 +26,7 @@ async function backend(page: Page, roles: string[], runsDown = false) {
 
 const open = async (page: Page) => {
   await page.goto("/");
-  await page.click("button:has-text('Administración')");
+  await page.getByRole("navigation").getByRole("link", { name: "Administración", exact: true }).click();
 };
 
 test.describe("Admin status (T152)", () => {

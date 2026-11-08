@@ -38,7 +38,7 @@ async function backend(page: Page, roles: string[]) {
 
 async function open(page: Page) {
   await page.goto("/");
-  await page.click("button:has-text('Configuración')");
+  await page.getByRole("navigation").getByRole("link", { name: "Configuración", exact: true }).click();
   await page.click("button:has-text('Cargar política')");
 }
 

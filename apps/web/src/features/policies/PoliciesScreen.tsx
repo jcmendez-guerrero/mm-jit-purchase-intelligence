@@ -5,6 +5,9 @@ import { DemandSection } from "./DemandSection";
 import { ForecastSection } from "./ForecastSection";
 import { PurchasingSection } from "./PurchasingSection";
 import { SafetyStockSection } from "./SafetyStockSection";
+import { Button } from "../../ui/Button";
+import { ScreenState } from "../../ui/ScreenState";
+import { Card } from "../../ui/Card";
 
 interface Props {
   userRoles: string[];
@@ -36,20 +39,23 @@ export const PoliciesScreen: React.FC<Props> = ({ userRoles }) => {
 
   return (
     <section aria-labelledby="policies-title">
-      <div className="mmi-card">
+      <Card as="div">
         <h2 id="policies-title">{t("policies.title")}</h2>
         <p className="mmi-muted">{t("policies.subtitle")}</p>
-        {error && <p role="alert">{error}</p>}
-        <div role="tablist" aria-label={t("policies.title")}>
+        {error && <ScreenState state="error" errorHint={error} onRetry={() => void load()} />}
+        <div className="mmi-split mmi-split--nav">
+        <div className="mmi-split__aside">
+        <div role="tablist" aria-label={t("policies.title")} className="mmi-tablist">
           {TABS.map((id) => (
-            <button key={id} type="button" role="tab" aria-selected={tab === id} className={`mmi-btn ${tab === id ? "mmi-btn-primary" : "mmi-btn-secondary"}`} onClick={() => setTab(id)}>
+            <Button key={id} role="tab" aria-selected={tab === id} variant={tab === id ? "primary" : "secondary"} onClick={() => setTab(id)}>
               {t(`policies.section.${id}`)}
-            </button>
+            </Button>
           ))}
         </div>
-
+        </div>
+        <div className="mmi-split__main">
         {data === null ? (
-          <p>{t("common.loading")}</p>
+          <ScreenState state="loading" skeletonLines={4} />
         ) : (
           <div role="tabpanel">
             {tab === "purchasing" &&
@@ -69,7 +75,9 @@ export const PoliciesScreen: React.FC<Props> = ({ userRoles }) => {
               (data.forecast.ok && data.forecast.data ? <ForecastSection roles={userRoles} parameters={data.forecast.data.parameters} onChanged={() => void load()} /> : unavailable)}
           </div>
         )}
-      </div>
+        </div>
+        </div>
+      </Card>
     </section>
   );
 };

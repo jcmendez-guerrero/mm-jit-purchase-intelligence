@@ -40,7 +40,7 @@ async function backend(page: Page, roles: string[]) {
 
 const open = async (page: Page) => {
   await page.goto("/");
-  await page.click("button:has-text('Escenarios')");
+  await page.getByRole("navigation").getByRole("link", { name: "Escenarios", exact: true }).click();
 };
 
 test.describe("Purchasing scenarios (T141)", () => {
@@ -67,6 +67,7 @@ test.describe("Purchasing scenarios (T141)", () => {
     await expect(group).toContainText("Total del pedido: 102,50 €");
     await expect(group).toContainText("Entrega prevista: 16/11/2026");
     await page.click("button:has-text('Convertir en propuesta')");
+    await page.getByRole("dialog").getByRole("button", { name: "Convertir en propuesta" }).click();
     await expect(page.getByText(/Propuesta creada como borrador para la semana 2026-11-09/)).toBeVisible();
     expect(state.promoted).toBe(1);
     await expect(page.getByRole("link", { name: "Exportar CSV" })).toHaveAttribute("href", /scenarios\/sc1\/export\?format=csv/);

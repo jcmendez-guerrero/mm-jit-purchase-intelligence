@@ -1,0 +1,13 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "selector-class-pattern": null,
+    "property-no-vendor-prefix": null,
+    "property-no-deprecated": null,
+    "import-notation": null,
+    "font-family-name-quotes": null,
+    "media-feature-range-notation": null,
+    "no-descending-specificity": null,
+    "custom-property-empty-line-before": null
+  }
+}

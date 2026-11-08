@@ -33,6 +33,7 @@ test.describe("Accessibility labels and keyboard navigation (T119)", () => {
 
   test("supports keyboard tab navigation across menu tabs", async ({ page }) => {
     await page.goto("/");
+    await expect(page.locator("#contenido")).toBeAttached();
 
     // Tab through the navigation buttons
     await page.keyboard.press("Tab");

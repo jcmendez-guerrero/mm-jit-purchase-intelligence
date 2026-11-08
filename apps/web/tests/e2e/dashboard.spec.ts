@@ -155,8 +155,13 @@ test.describe("Dashboard (T124)", () => {
   test("has no serious or critical accessibility violations", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByLabel("Valor del inventario")).toBeVisible();
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-    const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-    expect(bad.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
+    for (const scheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute("data-theme"))).toBe(scheme);
+      await page.waitForTimeout(300); // let colour transitions finish before measuring contrast
+      const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+      const bad = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(bad.map((v) => `${scheme} ${v.id}: ${v.nodes.length}`)).toEqual([]);
+    }
   });
 });

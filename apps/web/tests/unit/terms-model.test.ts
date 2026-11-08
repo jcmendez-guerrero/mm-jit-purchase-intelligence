@@ -61,3 +61,26 @@ describe("product override form", () => {
     expect(sourceKey("whatever")).toBe("suppliers.source.default");
   });
 });
+
+import { validateOverride, validateTerms } from "../../src/features/suppliers/termsModel";
+
+describe("field-level validation (format only)", () => {
+  it("accepts a stored document and a blank form", () => {
+    expect(validateTerms(toForm(doc))).toEqual({});
+    expect(validateTerms(emptyForm())).toEqual({});
+  });
+
+  it("names the field with a number problem, accepting a decimal comma", () => {
+    const f = { ...emptyForm(), min_order_value: "12,50", delivery_charge: "abc", free_delivery_threshold: "-3" };
+    expect(validateTerms(f)).toEqual({ "f-charge": "suppliers.error.number", "f-free": "suppliers.error.number" });
+  });
+
+  it("names integer, time and discount problems", () => {
+    const f = { ...emptyForm(), lead_time_days: "3,5", reliability: "x", order_cutoff_time: "25:99", discounts: [{ kind: "percent" as const, basis: "order_value" as const, threshold: "10", value: "tres" }] };
+    expect(validateTerms(f)).toEqual({ "f-lead": "suppliers.error.integer", "f-rel": "suppliers.error.integer", "f-cutoff": "suppliers.error.time", "d-val-0": "suppliers.error.number" });
+  });
+
+  it("validates override integers", () => {
+    expect(validateOverride({ ...overrideToForm(null), pack_multiple: "2", min_qty_units: "dos" })).toEqual({ "o-minq": "suppliers.error.integer" });
+  });
+});

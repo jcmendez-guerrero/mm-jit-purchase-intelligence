@@ -1,6 +1,6 @@
 # Feature Specification: MMI 003 — Modern Web Interface
 
-**Feature Branch**: `feat/azure-deployment` (current working branch; a dedicated branch may be cut at planning time)
+**Feature Branch**: `feat/003-modern-frontend-ui`
 
 **Created**: 2026-11-08
 
@@ -14,7 +14,7 @@ Features 001 and 002 delivered the buyer web app: dashboard, quality, suppliers,
 
 This feature modernises the look, structure and feel of the existing interface so the small purchasing team can find things faster, read the data with less effort and trust what they see. It changes presentation and interaction only. It does not change what the system decides, stores or sends to the ERP.
 
-Out of scope: any new business capability, any change to purchasing rules, proposals, approvals, forecasting or the single permitted ERP write; any change to backend contracts or data; a native mobile app; additional languages (the UI stays Spanish only); marketing or public pages.
+Out of scope: any new business capability, any change to purchasing rules, proposals, approvals, forecasting or the single permitted ERP write; any change to backend contracts or data (including searching products from the quick-jump); a native mobile app; additional languages (the UI stays Spanish only); marketing or public pages.
 
 ### Current-state gap inventory (from the existing app)
 
@@ -29,11 +29,19 @@ Out of scope: any new business capability, any change to purchasing rules, propo
 | Appearance | Light theme only | No dark theme or respect for the user's system preference |
 | Accessibility | Charts have table alternatives; axe checks exist | No consistent focus treatment, skip link, reduced-motion handling or contrast guarantee across the new look |
 
+## Clarifications
+
+### Session 2026-11-08
+
+- Q: Should the quick-jump search also find individual products by name, or only screens? → A: Screens only; product search is out of scope (it would need new server work) and stays with the existing dashboard filters.
+- Q: Should the "task time 20% shorter" target be a release gate or a reported goal? → A: Neither; the timing target is dropped. Improvement is judged by the clarity rating (SC-002) and the accessibility, responsive and regression checks.
+- Q: Should dark appearance stay in this release or move to a later one? → A: Keep it, as the last story to ship; if time runs short it may slip to a later release without blocking Stories 1–4.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Find and reach any screen quickly (Priority: P1)
 
-A buyer opens the app and needs to go from the dashboard to the weekly proposal, then to supplier terms, then back. They want a clear, grouped navigation that shows where they are, works with keyboard and touch, and lets them jump straight to a screen or a product without hunting through tabs.
+A buyer opens the app and needs to go from the dashboard to the weekly proposal, then to supplier terms, then back. They want a clear, grouped navigation that shows where they are, works with keyboard and touch, and lets them jump straight to a screen without hunting through tabs.
 
 **Why this priority**: Navigation is used in every session and every other improvement is reached through it. A grouped, persistent navigation with a quick-jump command is a complete, valuable slice on its own.
 
@@ -42,7 +50,7 @@ A buyer opens the app and needs to go from the dashboard to the weekly proposal,
 **Acceptance Scenarios**:
 
 1. **Given** a signed-in buyer, **When** the app loads, **Then** the navigation shows screens grouped by purpose (for example daily monitoring, weekly purchasing, configuration, administration), highlights the current screen and shows only the sections the role may use.
-2. **Given** any screen, **When** the user opens the quick-jump (keyboard shortcut or a visible search control) and types part of a screen name or a product name, **Then** matching destinations are listed and choosing one navigates there.
+2. **Given** any screen, **When** the user opens the quick-jump (keyboard shortcut or a visible search control) and types part of a screen name, **Then** matching screens are listed and choosing one navigates there.
 3. **Given** a browser reload or a shared link to a screen, **When** it opens, **Then** the same screen is shown (the location is part of the address) and the browser back and forward buttons behave as expected.
 4. **Given** a keyboard-only user, **When** they press Tab from page load, **Then** a "skip to content" control is first, and focus order follows the visual order with a clearly visible focus indicator.
 
@@ -142,7 +150,7 @@ A user working in a dim storeroom or late in the evening wants a dark appearance
 
 **Visual system and consistency**
 
-- **FR-006**: The interface MUST use one shared visual system (colour, type scale, spacing, radius, elevation, iconography) applied to all existing screens, preserving the Mundo Mascotix brand colours and logo.
+- **FR-006**: The interface MUST use one shared visual system (colour, type scale, spacing, radius, elevation, iconography) applied to all existing screens, following the Mundo Mascotix brand identity manual: its five colours and their roles, its two typefaces (Bricolage Grotesque for titles, Inter for text), and its logo rules (original colours on a white or very light background, clear space around it, no alteration, isotipo at small sizes).
 - **FR-007**: Buttons, form fields, cards, badges, tabs, dialogs and notices MUST look and behave identically across screens, with defined default, hover, focus, disabled, loading and error states.
 - **FR-008**: Status information (risk level, stale cost, quarantine, approval state, import state) MUST use a single set of labels, colours and icons throughout, and MUST never rely on colour alone.
 - **FR-009**: The interface MUST ship its typefaces and icons with the application rather than loading them from third-party hosts at runtime.
@@ -169,7 +177,7 @@ A user working in a dim storeroom or late in the evening wants a dark appearance
 - **FR-021**: All screens MUST be usable without horizontal page scrolling from a 768 px viewport width upward, and MUST make sensible use of very wide screens.
 - **FR-022**: Navigation MUST collapse to a compact control on narrow viewports and offer the same destinations.
 - **FR-023**: Interactive targets MUST be large enough for reliable touch use.
-- **FR-024**: The interface MUST offer light, dark and "system" appearances, default to the device preference, and persist the user's choice in the browser.
+- **FR-024**: The interface MUST offer light, dark and "system" appearances, default to the device preference, and persist the user's choice in the browser. This is the last requirement group to ship; it may slip to a later release without blocking the others, in which case the interface ships light-only and FR-026 and SC-003 apply to light alone.
 - **FR-025**: The interface MUST respect the user's reduced-motion preference and remain usable at 200 % zoom and with enlarged text.
 
 **Quality and constraints**
@@ -191,22 +199,22 @@ A user working in a dim storeroom or late in the evening wants a dark appearance
 ### Measurable Outcomes
 
 - **SC-001**: A buyer can reach any permitted screen in at most 2 interactions from any other screen (one with quick-jump), measured on the synthetic role scenarios.
-- **SC-002**: In a moderated check with the purchasing team, at least 80 % of participants rate the new interface "clearer" or "much clearer" than the current one, and none report a task that became harder.
-- **SC-003**: Task completion time for three reference tasks (find a product at risk, review and submit the weekly proposal, edit one supplier term) is at least 20 % shorter than the current interface, or not longer for any individual task.
-- **SC-004**: 100 % of screens pass automated accessibility checks with no serious or critical violations in both light and dark appearances, and a keyboard-only run completes every reference task.
-- **SC-005**: Every screen is usable without horizontal page scrolling at 768 px width and above, verified on tablet portrait, tablet landscape, half-width desktop and large monitor sizes.
-- **SC-006**: On a typical office connection, the first meaningful view of the dashboard appears within 2 seconds and layout does not visibly shift when data arrives.
-- **SC-007**: The app loads no fonts, icons or scripts from third-party hosts; a page load with outbound third-party access blocked looks and works identically.
-- **SC-008**: All pre-existing automated suites (unit, end-to-end, accessibility, bundle budget) pass unchanged in behaviour, and the visual system is applied to 100 % of existing screens.
-- **SC-009**: Every data screen demonstrably provides loading, empty and error states (verified per screen in automated tests).
+- **SC-002**: In a moderated check with the purchasing team on the three reference tasks (find a product at risk, review and submit the weekly proposal, edit one supplier term), at least 80 % of participants rate the new interface "clearer" or "much clearer" than the current one, and none report a task that became harder.
+- **SC-003**: 100 % of screens pass automated accessibility checks with no serious or critical violations in both light and dark appearances, and a keyboard-only run completes every reference task.
+- **SC-004**: Every screen is usable without horizontal page scrolling at 768 px width and above, verified on tablet portrait, tablet landscape, half-width desktop and large monitor sizes.
+- **SC-005**: On a typical office connection, the first meaningful view of the dashboard appears within 2 seconds and layout does not visibly shift when data arrives.
+- **SC-006**: The app loads no fonts, icons or scripts from third-party hosts; a page load with outbound third-party access blocked looks and works identically.
+- **SC-007**: All pre-existing automated suites (unit, end-to-end, accessibility, bundle budget) pass unchanged in behaviour, and the visual system is applied to 100 % of existing screens.
+- **SC-008**: Every data screen demonstrably provides loading, empty and error states (verified per screen in automated tests).
 
 ## Assumptions
 
 - Users are the small purchasing team on modern desktop browsers, plus occasional tablet use; small-phone layouts (below 768 px) are out of scope but the navigation should not break there.
-- The existing brand colours, logo and Spanish-only language are retained; this is a refinement of the identity, not a rebrand.
+- The brand identity manual is binding: colours, typefaces and logo rules are retained; this is a refinement of the interface, not a rebrand. Where a manual colour cannot meet the accessibility target at small text sizes, a slightly darker value is used for that purpose only (see design.md).
 - No backend, contract, database or infrastructure change is needed; where a screen needs data it does not yet receive, the gap is recorded and handled outside this feature.
 - Where a front-end library would speed up delivery (components, icons, fonts), its use is a planning decision and must satisfy the shared-cost, bundle-size, licensing and public-repository constraints; the specification does not mandate one.
 - The charts delivered in feature 002, with their table alternatives, remain the charting approach; only their styling changes.
 - Table density, appearance and similar preferences are stored in the browser only; no server-side user profile is introduced.
+- The visual direction (palette, typefaces, layout concept, the stockout-severity ruler, component look, microcopy) is fixed in [design.md](design.md); this specification states the outcomes and requirements, the design document states the look.
 - Rollout can be incremental, screen by screen behind the same deployment, as long as no screen is left half-migrated in a release.
 - Constitution rules continue to apply: Spanish (es-ES) only, no hard-coded user-facing strings, synthetic data only, no secrets, humans decide purchases.

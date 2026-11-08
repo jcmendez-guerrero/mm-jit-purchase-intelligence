@@ -110,7 +110,7 @@ def set_session_cookie(response: Response, session: SessionData) -> None:
     cookie_value = sign_session(session)
     # Secure is true in production or if MMI_COOKIE_SECURE is explicitly true
     env = os.environ.get("MMI_ENV", "dev")
-    secure = os.environ.get("MMI_COOKIE_SECURE", "true" if env == "prod" else "false").lower() == "true"
+    secure = os.environ.get("MMI_COOKIE_SECURE", "true" if env == "prod" else "false").lower() in ("1", "true")
     response.set_cookie(
         key=COOKIE_NAME,
         value=cookie_value,

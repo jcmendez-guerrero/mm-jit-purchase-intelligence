@@ -1,8 +1,13 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, errorMessage, OverrideView } from "../../api/client";
-import { Field } from "./Field";
-import { OverrideForm, Tri, overrideToForm, overrideToPayload, sourceKey } from "./termsModel";
+import { focusFirstInvalid, FormField } from "../../ui/FormField";
+import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
+import { OverrideForm, Tri, overrideToForm, overrideToPayload, sourceKey, validateOverride } from "./termsModel";
+import { useActionNotice } from "../../ui/NoticeProvider";
+import { StatusBadge } from "../../ui/StatusBadge";
+import { Card } from "../../ui/Card";
+import { Button } from "../../ui/Button";
 
 interface Props {
   supplierId: string;
@@ -16,8 +21,11 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
   const [variant, setVariant] = useState("");
   const [view, setView] = useState<OverrideView | null>(null);
   const [form, setForm] = useState<OverrideForm>(overrideToForm(null));
+  const [baseline, setBaseline] = useState<OverrideForm>(overrideToForm(null));
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useActionNotice();
 
   const variantId = Number(variant);
   const load = async () => {
@@ -26,15 +34,36 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
     try {
       const v = await api.getOverrideTerms(variantId, supplierId);
       setView(v);
-      setForm(overrideToForm(v.override));
+      const loaded = overrideToForm(v.override);
+      setForm(loaded);
+      setBaseline(loaded);
+      setFieldErrors({});
     } catch (err) {
       setError(errorMessage(err, t("common.error")));
     }
   };
 
+  const dirty = canEdit && view !== null && JSON.stringify(form) !== JSON.stringify(baseline);
+  const errorText = (id: string) => (fieldErrors[id] ? t(fieldErrors[id]) : undefined);
+  const checkField = (id: string) => () => {
+    const found = validateOverride(form)[id];
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (found) next[id] = found;
+      else delete next[id];
+      return next;
+    });
+  };
+
   const save = async () => {
     if (!view) return;
     setError(null);
+    const found = validateOverride(form);
+    setFieldErrors(found);
+    if (Object.keys(found).length > 0) {
+      setTimeout(() => focusFirstInvalid(formRef.current ?? document), 0);
+      return;
+    }
     try {
       const r = await api.putOverrideTerms(variantId, supplierId, overrideToPayload(form), view.version);
       setNotice(t("suppliers.override.saved", { version: r.version }));
@@ -49,8 +78,8 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
 
   const set = <K extends keyof OverrideForm>(k: K, v: OverrideForm[K]) => setForm((f) => ({ ...f, [k]: v }));
   const tri = (id: string, label: string, name: "preferred" | "disabled") => (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-      <label htmlFor={id} style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+    <div className="mmi-stack mmi-stack--tight">
+      <label className="mmi-label" htmlFor={id}>
         {label}
       </label>
       <select id={id} disabled={!canEdit} value={form[name]} onChange={(e) => set(name, e.target.value as Tri)}>
@@ -69,19 +98,20 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
   };
 
   return (
-    <div className="mmi-card" aria-labelledby="override-title">
-      <h3 id="override-title" style={{ fontSize: "1.1rem", marginTop: 0 }}>
+    <Card as="div" aria-labelledby="override-title" ref={formRef}>
+      <UnsavedChangesPrompt dirty={dirty} />
+      <h3 className="mmi-title-md mmi-mt-0" id="override-title">
         {t("suppliers.override.title")}
       </h3>
-      <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>{t("suppliers.override.help")}</p>
-      <div style={{ display: "flex", gap: "0.8rem", alignItems: "flex-end", marginBottom: "1rem" }}>
-        <Field id="o-variant" label={t("suppliers.override.variant")} value={variant} inputMode="numeric" onChange={setVariant} />
-        <button type="button" className="mmi-btn mmi-btn-secondary" disabled={!Number.isInteger(variantId) || variantId < 1} onClick={() => void load()}>
+      <p className="mmi-muted mmi-text-sm">{t("suppliers.override.help")}</p>
+      <div className="mmi-cluster mmi-mb-4">
+        <FormField id="o-variant" label={t("suppliers.override.variant")} value={variant} inputMode="numeric" onChange={setVariant} />
+        <Button variant="secondary" disabled={!Number.isInteger(variantId) || variantId < 1} onClick={() => void load()}>
           {t("suppliers.override.load")}
-        </button>
+        </Button>
       </div>
       {error && (
-        <p role="alert" style={{ color: "var(--color-danger)" }}>
+        <p className="mmi-error" role="alert">
           {error}
         </p>
       )}
@@ -106,7 +136,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
                     <th scope="row">{t(`suppliers.eff.${f}`)}</th>
                     <td>{shown(f)}</td>
                     <td>
-                      <span className="mmi-badge mmi-badge-petroleo">{t(sourceKey(view.effective.sources[f]))}</span>
+                      <StatusBadge domain="tag" code={sourceKey(view.effective.sources[f]).replace("suppliers.source.", "source_")} label={t(sourceKey(view.effective.sources[f]))} />
                     </td>
                   </tr>
                 ))}
@@ -114,7 +144,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
             </table>
           </div>
           {view.effective.conflicts.length > 0 && (
-            <div role="alert" style={{ marginTop: "0.8rem" }}>
+            <div className="mmi-mt-3" role="alert">
               <strong>{t("suppliers.override.conflicts")}</strong>
               <ul>
                 {view.effective.conflicts.map((c) => (
@@ -125,24 +155,24 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
           )}
 
           {canEdit && (
-            <div style={{ marginTop: "1rem" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.9rem", marginBottom: "1rem" }}>
-                <Field id="o-pack" label={t("suppliers.eff.pack_multiple")} value={form.pack_multiple} inputMode="numeric" onChange={(v) => set("pack_multiple", v)} />
-                <Field id="o-minq" label={t("suppliers.eff.min_qty_units")} value={form.min_qty_units} inputMode="numeric" onChange={(v) => set("min_qty_units", v)} />
-                <Field id="o-lead" label={t("suppliers.eff.lead_time_days")} value={form.lead_time_days} inputMode="numeric" onChange={(v) => set("lead_time_days", v)} />
-                <Field id="o-pay" label={t("suppliers.eff.payment_terms_days")} value={form.payment_terms_days} inputMode="numeric" onChange={(v) => set("payment_terms_days", v)} />
-                <Field id="o-rel" label={t("suppliers.eff.reliability")} value={form.reliability} inputMode="numeric" onChange={(v) => set("reliability", v)} />
+            <div className="mmi-mt-4">
+              <div className="mmi-cluster mmi-mb-4">
+                <FormField error={errorText("o-pack")} onBlur={checkField("o-pack")} id="o-pack" label={t("suppliers.eff.pack_multiple")} value={form.pack_multiple} inputMode="numeric" onChange={(v) => set("pack_multiple", v)} />
+                <FormField error={errorText("o-minq")} onBlur={checkField("o-minq")} id="o-minq" label={t("suppliers.eff.min_qty_units")} value={form.min_qty_units} inputMode="numeric" onChange={(v) => set("min_qty_units", v)} />
+                <FormField error={errorText("o-lead")} onBlur={checkField("o-lead")} id="o-lead" label={t("suppliers.eff.lead_time_days")} value={form.lead_time_days} inputMode="numeric" onChange={(v) => set("lead_time_days", v)} />
+                <FormField error={errorText("o-pay")} onBlur={checkField("o-pay")} id="o-pay" label={t("suppliers.eff.payment_terms_days")} value={form.payment_terms_days} inputMode="numeric" onChange={(v) => set("payment_terms_days", v)} />
+                <FormField error={errorText("o-rel")} onBlur={checkField("o-rel")} id="o-rel" label={t("suppliers.eff.reliability")} value={form.reliability} inputMode="numeric" onChange={(v) => set("reliability", v)} />
                 {tri("o-pref", t("suppliers.eff.preferred"), "preferred")}
                 {tri("o-dis", t("suppliers.eff.disabled"), "disabled")}
-                <Field id="o-reason" label={t("suppliers.f.reason")} value={form.reason} onChange={(v) => set("reason", v)} />
+                <FormField id="o-reason" label={t("suppliers.f.reason")} value={form.reason} onChange={(v) => set("reason", v)} />
               </div>
-              <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void save()}>
+              <Button onClick={() => void save()}>
                 {t("suppliers.override.save")}
-              </button>
+              </Button>
             </div>
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 };

@@ -1,0 +1,1062 @@
+/* stylelint-disable selector-class-pattern, property-no-vendor-prefix, property-no-deprecated, import-notation, font-family-name-quotes, media-feature-range-notation, no-descending-specificity, custom-property-empty-line-before -- BEM class names and project conventions */
+
+/* Classes of the shared primitives in src/ui (design.md §7). Tokens only, no colour literals. */
+
+/* Button */
+.mmi-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mmi-space-2);
+  min-height: var(--mmi-target);
+  padding: 0 var(--mmi-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--mmi-radius-control);
+  font-family: var(--mmi-font-text);
+  font-size: var(--mmi-text-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--mmi-motion-fast) ease,
+    border-color var(--mmi-motion-fast) ease;
+}
+
+.mmi-button--primary {
+  background: var(--mmi-primary);
+  color: var(--mmi-on-primary);
+}
+
+.mmi-button--primary:hover:not(:disabled) {
+  background: var(--mmi-primary-hover);
+}
+
+.mmi-button--secondary {
+  background: var(--mmi-surface);
+  color: var(--mmi-link);
+  border-color: var(--mmi-primary);
+}
+
+.mmi-button--secondary:hover:not(:disabled) {
+  background: var(--mmi-selected);
+}
+
+.mmi-button--quiet {
+  background: transparent;
+  color: var(--mmi-link);
+}
+
+.mmi-button--quiet:hover:not(:disabled) {
+  background: var(--mmi-selected);
+}
+
+.mmi-button--danger {
+  background: var(--mmi-danger);
+  color: var(--mmi-on-primary);
+}
+
+.mmi-button--small {
+  min-height: 2rem;
+  padding: 0 var(--mmi-space-3);
+  font-size: var(--mmi-text-sm);
+}
+
+.mmi-button:disabled,
+.mmi-button[aria-busy="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mmi-spinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: mmi-spin 0.8s linear infinite;
+}
+
+@keyframes mmi-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Icon */
+.mmi-icon {
+  flex: none;
+  width: 1.25em;
+  height: 1.25em;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Card (working surface) */
+.mmi-card {
+  background: var(--mmi-surface);
+  border: 1px solid var(--mmi-border);
+  border-radius: var(--mmi-radius-panel);
+  padding: var(--mmi-space-5);
+  margin-bottom: var(--mmi-space-5); /* cards stack with a standard gap */
+}
+
+.mmi-card__title {
+  margin: 0 0 var(--mmi-space-3);
+  font-size: var(--mmi-text-subtitle);
+  color: var(--mmi-subtitle);
+}
+
+/* Page header */
+.mmi-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--mmi-space-3) var(--mmi-space-5);
+  margin-bottom: var(--mmi-space-5);
+}
+
+.mmi-page-header__title {
+  margin: 0;
+  font-size: var(--mmi-text-xl);
+  color: var(--mmi-title);
+}
+
+.mmi-page-header__description {
+  margin: var(--mmi-space-1) 0 0;
+  max-width: var(--mmi-measure);
+  font-size: var(--mmi-text-base);
+  color: var(--mmi-text-note);
+}
+
+.mmi-page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mmi-space-2);
+}
+
+/* Skeleton */
+.mmi-skeleton {
+  display: grid;
+  gap: var(--mmi-space-3);
+}
+
+.mmi-skeleton__line {
+  height: 1rem;
+  border-radius: var(--mmi-radius-control);
+  background: var(--mmi-border);
+}
+
+.mmi-skeleton__line:nth-child(odd) {
+  width: 100%;
+}
+
+.mmi-skeleton__line:nth-child(even) {
+  width: 82%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mmi-skeleton__line {
+    animation: mmi-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes mmi-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Empty / error blocks: left aligned, one sentence of what happened, one of what to do, one button */
+.mmi-state {
+  display: grid;
+  justify-items: start;
+  gap: var(--mmi-space-2);
+  padding: var(--mmi-space-5);
+  background: var(--mmi-surface);
+  border: 1px solid var(--mmi-border);
+  border-radius: var(--mmi-radius-panel);
+}
+
+.mmi-state__title {
+  display: flex;
+  align-items: center;
+  gap: var(--mmi-space-2);
+  margin: 0;
+  font-family: var(--mmi-font-title);
+  font-size: var(--mmi-text-md);
+  font-weight: 700;
+  color: var(--mmi-title);
+}
+
+.mmi-state__hint {
+  margin: 0;
+  max-width: var(--mmi-measure);
+  color: var(--mmi-text-note);
+}
+
+.mmi-state--error .mmi-state__title {
+  color: var(--mmi-danger);
+}
+
+.mmi-refreshing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mmi-space-2);
+  margin-bottom: var(--mmi-space-2);
+  font-size: var(--mmi-text-sm);
+  color: var(--mmi-text-note);
+}
+
+/* Tables (shared by DataTable and the legacy wrapper) */
+.mmi-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: var(--mmi-text-sm);
+}
+
+.mmi-table th,
+.mmi-table__th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: var(--mmi-space-3) var(--mmi-space-4);
+  background: var(--mmi-surface-sunken);
+  border-bottom: 1px solid var(--mmi-border);
+  font-family: var(--mmi-font-title);
+  font-weight: 700;
+  color: var(--mmi-title);
+  white-space: nowrap;
+}
+
+.mmi-table td,
+.mmi-table__cell {
+  padding: var(--mmi-space-3) var(--mmi-space-4);
+  border-bottom: 1px solid var(--mmi-border);
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  max-width: 28rem;
+}
+
+.mmi-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mmi-table tbody tr:hover td {
+  background: var(--mmi-hover);
+}
+
+.mmi-table--compact th,
+.mmi-table--compact td {
+  padding-block: var(--mmi-space-1);
+}
+
+.mmi-table__cell--end {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Identifying column stays visible while the region scrolls sideways */
+.mmi-table__cell--sticky {
+  position: sticky;
+  left: 0;
+  background: var(--mmi-surface);
+}
+
+.mmi-table th.mmi-table__cell--sticky {
+  background: var(--mmi-surface-sunken);
+  z-index: 3;
+}
+
+.mmi-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mmi-space-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mmi-table-block {
+  margin-top: var(--mmi-space-3);
+}
+
+.mmi-table-region {
+  max-height: 70vh;
+  overflow: auto;
+  border: 1px solid var(--mmi-border);
+  border-radius: var(--mmi-radius-control);
+  background: var(--mmi-surface);
+}
+
+.mmi-table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mmi-space-3);
+  margin-bottom: var(--mmi-space-2);
+  font-size: var(--mmi-text-sm);
+  color: var(--mmi-text-note);
+}
+
+.mmi-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--mmi-space-3);
+  margin-top: var(--mmi-space-2);
+  font-size: var(--mmi-text-sm);
+}
+
+/* Risk band on the leading edge of a row; the row also carries a text status */
+.mmi-row--danger td:first-child {
+  box-shadow: inset 4px 0 0 var(--mmi-danger);
+}
+
+.mmi-row--warning td:first-child {
+  box-shadow: inset 4px 0 0 var(--mmi-warning);
+}
+
+.mmi-row--info td:first-child {
+  box-shadow: inset 4px 0 0 var(--mmi-info);
+}
+
+.mmi-row--success td:first-child {
+  box-shadow: inset 4px 0 0 var(--mmi-success);
+}
+
+/* Segmented control (density) */
+.mmi-segmented {
+  display: inline-flex;
+  border: 1px solid var(--mmi-border-control);
+  border-radius: var(--mmi-radius-control);
+  overflow: hidden;
+}
+
+.mmi-segmented__option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mmi-space-1);
+  min-height: 2rem;
+  padding: 0 var(--mmi-space-3);
+  border: 0;
+  background: var(--mmi-surface);
+  color: var(--mmi-text);
+  font: inherit;
+  font-size: var(--mmi-text-sm);
+  cursor: pointer;
+}
+
+.mmi-segmented__option[aria-pressed="true"] {
+  background: var(--mmi-primary);
+  color: var(--mmi-on-primary);
+}
+
+/* Status badge: tint, icon and word */
+.mmi-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mmi-space-1);
+  padding: 0.15rem 0.6rem 0.15rem 0.45rem;
+  border-radius: var(--mmi-radius-pill);
+  font-size: var(--mmi-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mmi-status .mmi-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.mmi-status--neutral {
+  background: var(--mmi-neutral-bg);
+  color: var(--mmi-neutral);
+}
+
+.mmi-status--info {
+  background: var(--mmi-info-bg);
+  color: var(--mmi-info);
+}
+
+.mmi-status--success {
+  background: var(--mmi-success-bg);
+  color: var(--mmi-success);
+}
+
+.mmi-status--warning {
+  background: var(--mmi-warning-bg);
+  color: var(--mmi-warning);
+}
+
+.mmi-status--danger {
+  background: var(--mmi-danger-bg);
+  color: var(--mmi-danger);
+}
+
+/* Stockout-severity ruler */
+.mmi-ruler-block {
+  margin-bottom: var(--mmi-space-6);
+}
+
+.mmi-ruler-block__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mmi-space-3);
+}
+
+.mmi-ruler-block__title {
+  margin: 0;
+  font-size: var(--mmi-text-subtitle);
+  color: var(--mmi-subtitle);
+}
+
+.mmi-ruler-total,
+.mmi-ruler-none {
+  display: flex;
+  align-items: center;
+  gap: var(--mmi-space-2);
+  margin: var(--mmi-space-2) 0;
+  color: var(--mmi-text-note);
+}
+
+.mmi-ruler {
+  list-style: none;
+  display: flex;
+  gap: 3px;
+  margin: var(--mmi-space-3) 0 0;
+  padding: 0 0 var(--mmi-space-3);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--mmi-border) 0 1px,
+    transparent 1px 2.5%
+  );
+  background-size: 100% 6px;
+  background-repeat: no-repeat;
+  background-position: bottom;
+}
+
+.mmi-ruler__segment {
+  min-width: 5.5rem;
+  display: grid;
+  gap: var(--mmi-space-2);
+}
+
+.mmi-ruler__bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 4px;
+  color: var(--mmi-on-primary);
+  cursor: pointer;
+}
+
+.mmi-ruler__bar:first-child {
+  border-radius: var(--mmi-radius-control) 4px 4px var(--mmi-radius-control);
+}
+
+.mmi-ruler__bar[aria-pressed="true"] {
+  outline: 3px solid var(--mmi-text);
+  outline-offset: 2px;
+}
+
+.mmi-ruler__bar--out_of_stock {
+  background: var(--mmi-danger);
+}
+
+.mmi-ruler__bar--imminent {
+  background: var(--mmi-warning);
+}
+
+.mmi-ruler__bar--below_reorder_point {
+  background: var(--mmi-primary);
+}
+
+.mmi-ruler__caption {
+  display: grid;
+  font-size: var(--mmi-text-sm);
+  color: var(--mmi-text);
+}
+
+.mmi-ruler__count {
+  font-family: var(--mmi-font-title);
+  font-size: var(--mmi-text-xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--mmi-title);
+}
+
+.mmi-ruler-filter {
+  margin: var(--mmi-space-2) 0 0;
+  font-size: var(--mmi-text-sm);
+}
+
+.mmi-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--mmi-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mmi-ruler--animate {
+    animation: mmi-ruler-grow var(--mmi-ruler-grow) ease-out both;
+    transform-origin: left center;
+  }
+}
+
+@keyframes mmi-ruler-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (max-width: 1023px) {
+  .mmi-ruler {
+    flex-wrap: wrap;
+  }
+}
+
+/* Quieter figures row (replaces the stat cards) */
+.mmi-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--mmi-space-5);
+  margin: 0 0 var(--mmi-space-6);
+  padding: var(--mmi-space-4) 0;
+  border-top: 1px solid var(--mmi-border);
+  border-bottom: 1px solid var(--mmi-border);
+}
+
+.mmi-figure {
+  min-width: 0;
+}
+
+.mmi-figure__label {
+  margin: 0;
+  font-size: var(--mmi-text-sm);
+  font-weight: 600;
+  color: var(--mmi-text-note);
+}
+
+.mmi-figure__value {
+  margin: var(--mmi-space-1) 0;
+  font-family: var(--mmi-font-title);
+  font-size: var(--mmi-text-2xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--mmi-title);
+}
+
+.mmi-figure__note {
+  margin: 0 0 var(--mmi-space-1);
+  font-size: var(--mmi-text-sm);
+  color: var(--mmi-text-note);
+}
+
+/* Filter bar */
+.mmi-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--mmi-space-3) var(--mmi-space-4);
+  margin: var(--mmi-space-4) 0;
+  padding: var(--mmi-space-3) var(--mmi-space-4);
+  background: var(--mmi-surface);
+  border: 1px solid var(--mmi-border);
+  border-radius: var(--mmi-radius-panel);
+}
+
+.mmi-filterbar__field {
+  display: grid;
+  gap: var(--mmi-space-1);
+  font-size: var(--mmi-text-sm);
+  font-weight: 600;
+}
+
+.mmi-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mmi-space-2);
+  list-style: none;
+  margin: 0 0 var(--mmi-space-3);
+  padding: 0;
+}
+
+.mmi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mmi-space-1);
+  padding: 0 var(--mmi-space-1) 0 var(--mmi-space-3);
+  min-height: 2rem;
+  border-radius: var(--mmi-radius-pill);
+  background: var(--mmi-selected);
+  color: var(--mmi-title);
+  font-size: var(--mmi-text-sm);
+  font-weight: 600;
+}
+
+.mmi-chip button {
+  display: inline-flex;
+  padding: var(--mmi-space-1);
+  border: 0;
+  border-radius: var(--mmi-radius-pill);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mmi-dashboard-intro h2 {
+  margin: 0;
+  font-size: var(--mmi-text-lg);
+}
+
+.mmi-dashboard-intro p {
+  margin: var(--mmi-space-1) 0 0;
+}
+
+.mmi-badges,
+.mmi-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--mmi-space-2);
+}
+
+/* Form field */
+.mmi-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mmi-space-1);
+  min-width: 11rem;
+}
+
+.mmi-field__label {
+  font-size: var(--mmi-text-sm);
+  font-weight: 600;
+}
+
+.mmi-field__hint {
+  font-size: var(--mmi-text-xs);
+  color: var(--mmi-text-note);
+}
+
+.mmi-field__error {
+  font-size: var(--mmi-text-sm);
+  font-weight: 600;
+  color: var(--mmi-danger);
+}
+
+.mmi-field--invalid .mmi-input {
+  border-color: var(--mmi-danger);
+  border-width: 2px;
+}
+
+/* Confirmation dialog */
+.mmi-confirm {
+  width: min(30rem, calc(100vw - 2rem));
+  padding: var(--mmi-space-5);
+  border: 0;
+  border-radius: var(--mmi-radius-panel);
+  background: var(--mmi-surface);
+  color: var(--mmi-text);
+  box-shadow: var(--mmi-shadow-overlay);
+}
+
+.mmi-confirm::backdrop {
+  background: var(--mmi-overlay);
+}
+
+.mmi-confirm__title {
+  margin: 0 0 var(--mmi-space-3);
+  font-size: var(--mmi-text-lg);
+  color: var(--mmi-title);
+}
+
+.mmi-confirm__object {
+  margin: 0 0 var(--mmi-space-2);
+  font-weight: 700;
+}
+
+.mmi-confirm__effect {
+  margin: 0 0 var(--mmi-space-5);
+  color: var(--mmi-text);
+}
+
+.mmi-confirm__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--mmi-space-3);
+}
+
+/* Notices */
+.mmi-notices {
+  position: fixed;
+  left: var(--mmi-space-4);
+  bottom: var(--mmi-space-4);
+  z-index: 60;
+  display: grid;
+  gap: var(--mmi-space-2);
+  width: min(26rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.mmi-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--mmi-space-3);
+  padding: var(--mmi-space-3) var(--mmi-space-3) var(--mmi-space-3)
+    var(--mmi-space-4);
+  border-radius: var(--mmi-radius-panel);
+  box-shadow: var(--mmi-shadow-overlay);
+  pointer-events: auto;
+}
+
+.mmi-notice__message {
+  flex: 1;
+  padding-top: 2px;
+}
+
+.mmi-notice__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: var(--mmi-radius-control);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mmi-notice--success {
+  background: var(--mmi-success-bg);
+  color: var(--mmi-success);
+}
+
+.mmi-notice--info {
+  background: var(--mmi-info-bg);
+  color: var(--mmi-info);
+}
+
+.mmi-notice--warning {
+  background: var(--mmi-warning-bg);
+  color: var(--mmi-warning);
+}
+
+.mmi-notice--error {
+  background: var(--mmi-danger-bg);
+  color: var(--mmi-danger);
+}
+
+@media (max-width: 47.99rem) {
+  .mmi-notices {
+    left: var(--mmi-space-2);
+    right: var(--mmi-space-2);
+    bottom: var(--mmi-space-2);
+    width: auto;
+  }
+}
+
+/* Charts follow the theme: axis text, tooltip and legend use tokens (series colours come from useChartColors) */
+.recharts-text,
+.recharts-cartesian-axis-tick-value {
+  fill: var(--mmi-text-note);
+}
+
+.recharts-default-tooltip {
+  background-color: var(--mmi-surface) !important;
+  border-color: var(--mmi-border) !important;
+  color: var(--mmi-text);
+}
+
+.recharts-legend-item-text {
+  color: var(--mmi-text) !important;
+}
+
+/* Layout and text utilities that replace inline styles (tokens only) */
+.mmi-mb-3 {
+  margin-bottom: var(--mmi-space-3);
+}
+
+.mmi-mb-4 {
+  margin-bottom: var(--mmi-space-4);
+}
+
+.mmi-mb-5 {
+  margin-bottom: var(--mmi-space-5);
+}
+
+.mmi-mb-1 {
+  margin-bottom: var(--mmi-space-1);
+}
+
+.mmi-mb-2 {
+  margin-bottom: var(--mmi-space-2);
+}
+
+.mmi-mt-0 {
+  margin-top: 0;
+}
+
+.mmi-mt-3 {
+  margin-top: var(--mmi-space-3);
+}
+
+.mmi-mt-4 {
+  margin-top: var(--mmi-space-4);
+}
+
+.mmi-mt-5 {
+  margin-top: var(--mmi-space-5);
+}
+
+.mmi-mr-2 {
+  margin-right: var(--mmi-space-2);
+}
+
+.mmi-mr-3 {
+  margin-right: var(--mmi-space-3);
+}
+
+.mmi-mr-5 {
+  margin-right: var(--mmi-space-5);
+}
+
+.mmi-m-0 {
+  margin: 0;
+}
+
+.mmi-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mmi-space-3);
+  align-items: flex-end;
+}
+
+.mmi-cluster--loose {
+  gap: var(--mmi-space-6);
+  align-items: flex-start;
+}
+
+.mmi-cluster--top {
+  align-items: flex-start;
+}
+
+.mmi-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.mmi-stack--tight {
+  gap: var(--mmi-space-1);
+}
+
+.mmi-strong {
+  font-weight: 600;
+}
+
+.mmi-text-sm {
+  font-size: var(--mmi-text-sm);
+}
+
+.mmi-title-lg {
+  font-size: var(--mmi-text-lg);
+}
+
+.mmi-title-md {
+  font-size: var(--mmi-text-md);
+}
+
+.mmi-label {
+  font-size: var(--mmi-text-sm);
+  font-weight: 600;
+}
+
+.mmi-chart-box {
+  width: 100%;
+  height: 260px;
+}
+
+.mmi-fieldset-plain {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Skeleton shapes that match the content they stand in for */
+.mmi-skeleton__line--head {
+  height: 2.5rem;
+  background: var(--mmi-border);
+  width: 100%;
+}
+
+.mmi-skeleton__row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: var(--mmi-space-4);
+  padding: var(--mmi-space-3) var(--mmi-space-4);
+  border-bottom: 1px solid var(--mmi-border);
+}
+
+.mmi-skeleton__row .mmi-skeleton__line {
+  width: 100%;
+}
+
+.mmi-skeleton--dashboard {
+  gap: var(--mmi-space-6);
+}
+
+.mmi-skeleton__line--ruler {
+  height: 2.75rem;
+  width: 100%;
+}
+
+.mmi-skeleton__figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--mmi-space-5);
+  padding: var(--mmi-space-4) 0;
+}
+
+.mmi-skeleton__figures > div {
+  display: grid;
+  gap: var(--mmi-space-2);
+}
+
+.mmi-skeleton__line--label {
+  height: 0.8rem;
+  width: 40%;
+}
+
+.mmi-skeleton__line--value {
+  height: 2rem;
+  width: 60%;
+}
+
+.mmi-skeleton__table {
+  display: grid;
+  gap: var(--mmi-space-3);
+}
+
+/* Slot in the page header where screens place their primary actions */
+.mmi-page-header__slot {
+  display: contents;
+}
+
+/* Tables that stay in the plain scroll-region wrapper (inline expansion or editing) keep their identifying column visible too */
+.mmi-table-wrapper .mmi-table tbody tr > :first-child {
+  position: sticky;
+  left: 0;
+  background: var(--mmi-surface);
+}
+
+.mmi-table-wrapper .mmi-table thead th:first-child {
+  left: 0;
+  z-index: 3;
+}
+
+/* Two-column work area: a narrow column for inputs and lists, the rest for results (design.md §8). Stacks below 1024 px. */
+.mmi-split {
+  display: grid;
+  gap: var(--mmi-space-5);
+  align-items: start;
+}
+
+.mmi-split__aside,
+.mmi-split__main {
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  .mmi-split {
+    grid-template-columns: 22.5rem minmax(0, 1fr);
+  }
+
+  .mmi-split--wide-aside {
+    grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr);
+  }
+}
+
+/* In-page section navigation: tabs in a column beside the form on wide screens */
+.mmi-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mmi-space-2);
+}
+
+@media (min-width: 64rem) {
+  .mmi-split--nav {
+    grid-template-columns: 16rem minmax(0, 1fr);
+  }
+
+  .mmi-tablist {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mmi-tablist .mmi-button {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
+/* Supplier group rows inside the proposal lines table */
+.mmi-table-wrapper .mmi-table .mmi-group-row th {
+  position: static;
+  background: var(--mmi-selected);
+  color: var(--mmi-title);
+  text-align: left;
+}
+
+.mmi-table-wrapper .mmi-table .mmi-group-foot th,
+.mmi-table-wrapper .mmi-table .mmi-group-foot td {
+  background: var(--mmi-surface-sunken);
+  font-weight: 700;
+  border-top: 1px solid var(--mmi-border);
+}
+
+.mmi-table-wrapper .mmi-table .mmi-group-foot th {
+  text-align: right;
+}
+
+.mmi-table-wrapper .mmi-table tbody tr.mmi-group-foot > :first-child {
+  background: var(--mmi-surface-sunken);
+}
+
+.mmi-table-wrapper .mmi-table tbody tr.mmi-group-row > :first-child {
+  background: var(--mmi-selected);
+}
+
+/* One line per required field that has no column yet */
+.mmi-missing-list {
+  list-style: none;
+  margin: var(--mmi-space-3) 0;
+  padding: 0;
+  display: grid;
+  gap: var(--mmi-space-1);
+  color: var(--mmi-danger);
+  font-weight: 600;
+}
+
+.mmi-missing-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--mmi-space-2);
+}

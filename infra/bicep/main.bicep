@@ -27,6 +27,12 @@ param keyVaultId string
 param postgresHost string = ''
 @description('Directory (tenant) id; builds the issuer and JWKS URL used to validate service tokens.')
 param entraTenantId string
+@description('Application (client) id of the Entra app registration used for human sign-in (web redirect URI: <public URL>/api/auth/callback; app roles viewer, buyer, approver, admin).')
+param entraClientId string
+@description('Key Vault secret holding that app registration\'s client secret.')
+param entraClientSecretName string = 'mmi-bff-entra-client-secret'
+@description('Public https URL users reach the web app at (no trailing slash); the sign-in redirect URI is built from it.')
+param publicBaseUrl string
 
 // --- Siweb ----------------------------------------------------------------------------------------------------------
 @description('Approved Siweb base URL.')
@@ -118,6 +124,7 @@ var secretGrants = concat(
     { principalId: idProcurement.properties.principalId, secret: '${dbUrlPrefix}-procurement' }
     { principalId: idBff.properties.principalId, secret: '${dbUrlPrefix}-bff' }
     { principalId: idBff.properties.principalId, secret: sessionSecretName }
+    { principalId: idBff.properties.principalId, secret: entraClientSecretName }
   ],
   deployCostWriter ? [
     { principalId: idCostWriter.properties.principalId, secret: siwebWriterSecretName }
@@ -216,7 +223,11 @@ var procurementEnv = concat(commonEnv, dbEnv, [
 ])
 var bffEnv = concat(commonEnv, dbEnv, [
   { name: 'MMI_SESSION_SECRET', secretRef: 'session-secret' }
-  { name: 'MMI_COOKIE_SECURE', value: '1' }
+  { name: 'MMI_COOKIE_SECURE', value: 'true' }
+  { name: 'MMI_ENTRA_TENANT_ID', value: entraTenantId }
+  { name: 'MMI_ENTRA_CLIENT_ID', value: entraClientId }
+  { name: 'MMI_ENTRA_CLIENT_SECRET', secretRef: 'entra-client-secret' }
+  { name: 'MMI_ENTRA_REDIRECT_URI', value: '${publicBaseUrl}/api/auth/callback' }
   { name: 'MMI_INVENTORY_URL', value: inventoryUrl }
   { name: 'MMI_FORECAST_URL', value: forecastUrl }
   { name: 'MMI_PROCUREMENT_URL', value: procurementUrl }
@@ -231,7 +242,10 @@ var connectorEnv = concat(commonEnv, dbEnv, [
 
 var bffSecrets = concat(
   dbSecret(vaultUri, dbUrlPrefix, 'bff', idBff.id),
-  [{ name: 'session-secret', keyVaultUrl: '${vaultUri}secrets/${sessionSecretName}', identity: idBff.id }]
+  [
+    { name: 'session-secret', keyVaultUrl: '${vaultUri}secrets/${sessionSecretName}', identity: idBff.id }
+    { name: 'entra-client-secret', keyVaultUrl: '${vaultUri}secrets/${entraClientSecretName}', identity: idBff.id }
+  ]
 )
 
 // Roll-out order: access first, so the first revision can read its secrets and pull its image.

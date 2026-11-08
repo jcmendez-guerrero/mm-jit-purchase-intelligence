@@ -48,9 +48,20 @@ Log Analytics workspace (the environment reads its shared key at deployment time
 
 Services validate tokens with `MMI_ISSUER` / `MMI_JWKS_URL` (tenant-based, v2.0) and audience `api://mmi-<service>`.
 For managed-identity calls to work, the application registration must expose those identifier URIs and app roles, assign
-them to the workload identities, and issue v2 tokens (`accessTokenAcceptedVersion = 2`). Interactive sign-in through the
-BFF is not implemented yet (only dev login, which production refuses), so the web UI cannot be used by people until
-that feature exists.
+them to the workload identities, and issue v2 tokens (`accessTokenAcceptedVersion = 2`).
+
+### Human sign-in (web app)
+
+People sign in through the BFF with the OIDC authorization-code flow (PKCE); the browser never holds a token. Create an
+app registration (single tenant) with the web redirect URI `<public URL>/api/auth/callback` and app roles `viewer`,
+`buyer`, `approver`, `admin`, and assign people to those roles. Put its client secret in Key Vault under
+`entraClientSecretName` and pass `entraClientId` and `publicBaseUrl` to the deployment. The BFF reads
+`MMI_ENTRA_TENANT_ID`, `MMI_ENTRA_CLIENT_ID`, `MMI_ENTRA_CLIENT_SECRET` and `MMI_ENTRA_REDIRECT_URI`.
+
+A person's roles come from the in-app registry when they are listed there (administration screen), otherwise from the
+app roles in the token, otherwise `viewer`. Approvals need fresh MFA: it is taken from `auth_time` (or `iat` when `amr`
+contains `mfa`); with no MFA evidence the session starts with no fresh MFA and approvals are refused. Locally, with
+`MMI_ENABLE_DEV_LOGIN=1`, the login page offers a role chooser instead; production refuses it.
 
 ## 7. Known limits of this deployment
 

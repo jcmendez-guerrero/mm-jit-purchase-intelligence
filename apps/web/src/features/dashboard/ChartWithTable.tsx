@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "../../ui/Button";
 
 interface Props {
   title: string;
@@ -15,13 +16,13 @@ export const ChartWithTable: React.FC<Props> = ({ title, summary, columns, rows,
   const { t } = useTranslation();
   const [asTable, setAsTable] = useState(false);
   return (
-    <figure aria-label={title} style={{ margin: 0 }}>
+    <figure className="mmi-m-0" aria-label={title}>
       <figcaption>
         <h3>{title}</h3>
         <p className="mmi-muted">{summary}</p>
-        <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" aria-pressed={asTable} onClick={() => setAsTable(!asTable)}>
+        <Button variant="secondary" small aria-pressed={asTable} onClick={() => setAsTable(!asTable)}>
           {asTable ? t("dashboard.chart.chart_toggle") : t("dashboard.chart.table_toggle")}
-        </button>
+        </Button>
       </figcaption>
       {asTable ? (
         <div className="mmi-table-wrapper">
@@ -45,9 +46,9 @@ export const ChartWithTable: React.FC<Props> = ({ title, summary, columns, rows,
                   {rowAction && (
                     <td>
                       {rowAction(i).label !== "" && (
-                        <button type="button" className="mmi-btn mmi-btn-sm mmi-btn-secondary" onClick={rowAction(i).onClick}>
+                        <Button variant="secondary" small onClick={rowAction(i).onClick}>
                           {rowAction(i).label}
-                        </button>
+                        </Button>
                       )}
                     </td>
                   )}
@@ -57,7 +58,7 @@ export const ChartWithTable: React.FC<Props> = ({ title, summary, columns, rows,
           </table>
         </div>
       ) : (
-        <div role="img" aria-label={summary} style={{ width: "100%", height: 260 }}>
+        <div className="mmi-chart-box" role="img" aria-label={summary}>
           {children}
         </div>
       )}

@@ -52,7 +52,7 @@ export const ProposalLineExplanation: React.FC<{ line: ProposalLine }> = ({ line
         </ul>
       )}
       {e.supplier.alternatives.length > 1 && (
-        <table aria-label={t("proposals.why.alternatives")} className="mmi-table">
+        <div className="mmi-table-wrapper"><table aria-label={t("proposals.why.alternatives")} className="mmi-table">
           <caption>{t("proposals.why.alternatives")}</caption>
           <thead>
             <tr>
@@ -74,7 +74,7 @@ export const ProposalLineExplanation: React.FC<{ line: ProposalLine }> = ({ line
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );

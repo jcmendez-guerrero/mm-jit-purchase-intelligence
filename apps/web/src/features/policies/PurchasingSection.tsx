@@ -2,8 +2,14 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, errorMessage, PolicyDetail, PolicyPreview, PolicySummary } from "../../api/client";
 import { formatCurrencyEUR } from "../../i18n/formatters";
-import { Field } from "../suppliers/Field";
+import { FormField } from "../../ui/FormField";
 import { canEditPolicies, emptyForm, PolicyForm, scopeKeyValid, Scope, toForm, toPayload } from "./policiesModel";
+import { useActionNotice } from "../../ui/NoticeProvider";
+import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
+import { Button } from "../../ui/Button";
+import { useFieldErrors } from "../../ui/useFieldErrors";
+import { DataTable } from "../../ui/DataTable";
+import { PageActions } from "../../ui/PageActions";
 
 interface Props {
   roles: string[];
@@ -20,10 +26,11 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
   const [form, setForm] = useState<PolicyForm>(emptyForm());
   const [preview, setPreview] = useState<PolicyPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useActionNotice();
   const [conflict, setConflict] = useState<number | null>(null);
   const [budget, setBudget] = useState("");
   const canEdit = canEditPolicies(roles);
+  const fe = useFieldErrors();
 
   const fail = (err: unknown) => setError(errorMessage(err, t("common.error")));
   const reset = () => {
@@ -56,7 +63,9 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
   const payload = () => {
     const p = toPayload(form);
     if ("invalid" in p) {
-      setError(t("policies.invalid_field", { field: t(`policies.f.${p.invalid}`) }));
+      const message = t("policies.invalid_field", { field: t(`policies.f.${p.invalid}`) });
+      setError(message);
+      fe.flag({ [`pol-${p.invalid}`]: message });
       return null;
     }
     return p.body;
@@ -103,12 +112,15 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
   };
 
   const field = (name: keyof PolicyForm, type: "text" | "date" = "text") => (
-    <Field id={`pol-${name}`} label={t(`policies.f.${name}`)} value={form[name]} type={type} disabled={!canEdit} inputMode={type === "date" ? "text" : "decimal"}
-           onChange={(v) => setForm({ ...form, [name]: v })} />
+    <FormField id={`pol-${name}`} label={t(`policies.f.${name}`)} value={form[name]} type={type} disabled={!canEdit} inputMode={type === "date" ? "text" : "decimal"}
+           error={fe.errors[`pol-${name}`]} onChange={(v) => { setForm({ ...form, [name]: v }); fe.clear(`pol-${name}`); }} />
   );
+
+  const dirty = canEdit && detail !== null && JSON.stringify(form) !== JSON.stringify(toForm(detail.current));
 
   return (
     <div>
+      <UnsavedChangesPrompt dirty={dirty} />
       <h3>{t("policies.in_force")}</h3>
       {policies.length === 0 ? (
         <p>{t("policies.none")}</p>
@@ -122,8 +134,8 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
         </ul>
       )}
 
-      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "end" }}>
-        <div style={{ display: "flex", flexDirection: "column" }}>
+      <div className="mmi-cluster">
+        <div className="mmi-stack">
           <label htmlFor="pol-scope">{t("policies.scope")}</label>
           <select id="pol-scope" value={scope} onChange={(e) => changeScope(e.target.value as Scope)}>
             {(["global", "segment", "product"] as const).map((s) => (
@@ -133,10 +145,10 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
             ))}
           </select>
         </div>
-        {scope !== "global" && <Field id="pol-key" label={t("policies.key")} value={key} onChange={setKey} />}
-        <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void load()}>
+        {scope !== "global" && <FormField id="pol-key" label={t("policies.key")} value={key} onChange={setKey} />}
+        <Button variant="secondary" onClick={() => void load()}>
           {t("policies.load")}
-        </button>
+        </Button>
       </div>
 
       {error && <p role="alert">{error}</p>}
@@ -146,7 +158,7 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
 
       {detail && (
         <>
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div className="mmi-cluster mmi-cluster--top">
             {field("service_level_pct")}
             {field("safety_stock_units")}
             {field("min_units")}
@@ -155,14 +167,14 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
             {field("valid_from", "date")}
           </div>
           {canEdit && (
-            <div>
-              <button type="button" className="mmi-btn mmi-btn-secondary" onClick={() => void doPreview()}>
+            <PageActions>
+              <Button variant="secondary" onClick={() => void doPreview()}>
                 {t("policies.preview")}
-              </button>{" "}
-              <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void save()}>
+              </Button>
+              <Button onClick={() => void save()}>
                 {t("policies.save")}
-              </button>
-            </div>
+              </Button>
+            </PageActions>
           )}
 
           {preview && (
@@ -183,41 +195,30 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
           )}
 
           <h4>{t("policies.history")}</h4>
-          <table aria-label={t("policies.history")} className="mmi-table">
-            <thead>
-              <tr>
-                <th>{t("policies.history.revision")}</th>
-                <th>{t("policies.history.from")}</th>
-                <th>{t("policies.f.service_level_pct")}</th>
-                <th>{t("policies.f.min_units")}</th>
-                <th>{t("policies.f.max_units")}</th>
-                <th>{t("policies.history.by")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.history.map((h) => (
-                <tr key={h.revision}>
-                  <td>{h.revision}</td>
-                  <td>{h.valid_from}</td>
-                  <td>{h.service_level === null ? "—" : `${Math.round(parseFloat(h.service_level) * 10000) / 100} %`}</td>
-                  <td>{h.min_units ?? "—"}</td>
-                  <td>{h.max_units ?? "—"}</td>
-                  <td>{h.changed_by}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            ariaLabel={t("policies.history")}
+            rows={detail.history}
+            rowKey={(h) => h.revision}
+            columns={[
+              { id: "revision", header: t("policies.history.revision"), cell: (h) => h.revision, sortValue: (h) => h.revision, align: "end" },
+              { id: "from", header: t("policies.history.from"), cell: (h) => h.valid_from, sortValue: (h) => h.valid_from },
+              { id: "level", header: t("policies.f.service_level_pct"), cell: (h) => (h.service_level === null ? "—" : `${Math.round(parseFloat(h.service_level) * 10000) / 100} %`), sortValue: (h) => (h.service_level === null ? null : Number(h.service_level)), align: "end" },
+              { id: "min", header: t("policies.f.min_units"), cell: (h) => h.min_units ?? "—", sortValue: (h) => h.min_units ?? null, align: "end" },
+              { id: "max", header: t("policies.f.max_units"), cell: (h) => h.max_units ?? "—", sortValue: (h) => h.max_units ?? null, align: "end" },
+              { id: "by", header: t("policies.history.by"), cell: (h) => h.changed_by, sortValue: (h) => h.changed_by },
+            ]}
+          />
         </>
       )}
 
       <h3>{t("policies.budget")}</h3>
       <p>{weeklyBudget === null ? t("policies.budget.none") : t("policies.budget.current", { value: formatCurrencyEUR(weeklyBudget) })}</p>
       {canEdit && (
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "end" }}>
-          <Field id="pol-budget" label={t("policies.budget.amount")} value={budget} onChange={setBudget} inputMode="decimal" />
-          <button type="button" className="mmi-btn mmi-btn-primary" onClick={() => void saveBudget()}>
+        <div className="mmi-cluster">
+          <FormField id="pol-budget" label={t("policies.budget.amount")} value={budget} onChange={setBudget} inputMode="decimal" />
+          <Button onClick={() => void saveBudget()}>
             {t("policies.budget.save")}
-          </button>
+          </Button>
         </div>
       )}
     </div>

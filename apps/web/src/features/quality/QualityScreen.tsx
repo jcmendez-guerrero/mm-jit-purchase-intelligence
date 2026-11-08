@@ -1,6 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ImportErrorItem, errorMessage } from "../../api/client";
+import { formatDateTime } from "../../i18n/formatters";
+import { DataTable, type Column } from "../../ui/DataTable";
+import { EmptyState } from "../../ui/EmptyState";
+import { ScreenState } from "../../ui/ScreenState";
+import { StatusBadge } from "../../ui/StatusBadge";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
+import { Button } from "../../ui/Button";
+import { Card } from "../../ui/Card";
 
 interface Props {
   userRoles: string[];
@@ -11,12 +19,15 @@ export const QualityScreen: React.FC<Props> = ({ userRoles }) => {
   const [items, setItems] = useState<ImportErrorItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  const [resolving, setResolving] = useState<{ item: ImportErrorItem; decision: "release" | "ignore" } | null>(null);
 
   const canResolve = userRoles.includes("buyer") || userRoles.includes("admin");
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await api.getImportErrors();
       setItems(res.items || []);
     } catch (err) {
@@ -24,92 +35,86 @@ export const QualityScreen: React.FC<Props> = ({ userRoles }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    void loadData();
+  }, [loadData]);
 
   const handleResolve = async (id: number, decision: "release" | "ignore") => {
     try {
+      setResolveError(null);
       await api.resolveImportError(id, decision);
       setItems((prev) => prev.filter((i) => i.id !== id));
     } catch (err) {
-      alert(errorMessage(err, t("common.error")));
+      setResolveError(errorMessage(err, t("common.error")));
     }
   };
 
+  const columns: Column<ImportErrorItem>[] = [
+    { id: "id", header: "ID", cell: (i) => `#${i.id}`, sortValue: (i) => i.id },
+    { id: "variant", header: t("common.variant"), cell: (i) => <strong>{t("quality.variant_label", { id: i.variant_id })}</strong>, sortValue: (i) => i.variant_id },
+    { id: "reason", header: t("quality.movement_reason"), cell: (i) => i.movement_reason_raw || "—", sortValue: (i) => i.movement_reason_raw ?? "" },
+    {
+      id: "codes",
+      header: t("quality.codes"),
+      cell: (i) => (
+        <span className="mmi-badges">
+          {(i.anomaly_codes || []).map((code: string) => (
+            <StatusBadge key={code} domain="quarantine" code={code} />
+          ))}
+        </span>
+      ),
+    },
+    { id: "created", header: t("quality.created_at"), cell: (i) => formatDateTime(i.created_at), sortValue: (i) => i.created_at },
+    ...(canResolve
+      ? [
+          {
+            id: "actions",
+            header: t("common.actions"),
+            cell: (i: ImportErrorItem) => (
+              <div className="mmi-actions">
+                <Button small onClick={() => setResolving({ item: i, decision: "release" })}>
+                  {t("quality.release")}
+                </Button>
+                <Button variant="secondary" small onClick={() => setResolving({ item: i, decision: "ignore" })}>
+                  {t("quality.ignore")}
+                </Button>
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <section aria-labelledby="quality-title" className="mmi-card">
-      <h2 id="quality-title" style={{ fontSize: "1.3rem", marginBottom: "0.5rem" }}>
-        {t("quality.title")}
-      </h2>
-      <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem", marginTop: 0, marginBottom: "1.5rem" }}>
-        {t("quality.quarantine_heading")}
-      </p>
+    <Card aria-labelledby="quality-title">
+      <ConfirmDialog
+        open={resolving !== null}
+        tone={resolving?.decision === "ignore" ? "danger" : "default"}
+        title={resolving?.decision === "ignore" ? t("quality.confirm.ignore.title") : t("quality.confirm.release.title")}
+        objectLabel={resolving ? t("quality.confirm.object", { variant: t("quality.variant_label", { id: resolving.item.variant_id }), id: resolving.item.id }) : ""}
+        effect={resolving?.decision === "ignore" ? t("quality.confirm.ignore.effect") : t("quality.confirm.release.effect")}
+        confirmLabel={resolving?.decision === "ignore" ? t("quality.ignore") : t("quality.release")}
+        onCancel={() => setResolving(null)}
+        onConfirm={() => {
+          const r = resolving;
+          setResolving(null);
+          if (r) void handleResolve(r.item.id, r.decision);
+        }}
+      />
+      <h2 id="quality-title">{t("quality.title")}</h2>
+      <p className="mmi-muted">{t("quality.quarantine_heading")}</p>
 
-      {loading && <p style={{ color: "var(--color-text-muted)" }}>{t("common.loading")}</p>}
-      {error && <p role="alert" style={{ color: "var(--color-danger)" }}>{error}</p>}
-
-      {!loading && !error && items.length === 0 && (
-        <div style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-muted)" }}>
-          <p style={{ margin: 0 }}>✓ {t("quality.quarantine_empty")}</p>
-        </div>
+      {loading && <ScreenState state="loading" skeletonShape="table" skeletonLines={4} />}
+      {error && <ScreenState state="error" errorHint={error} onRetry={() => void loadData()} />}
+      {resolveError && (
+        <p role="alert" className="mmi-error">
+          {resolveError}
+        </p>
       )}
-
-      {!loading && items.length > 0 && (
-        <div className="mmi-table-wrapper">
-          <table className="mmi-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>{t("common.variant")}</th>
-                <th>{t("quality.movement_reason")}</th>
-                <th>{t("quality.codes")}</th>
-                <th>{t("quality.created_at")}</th>
-                {canResolve && <th>{t("common.actions")}</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td>#{item.id}</td>
-                  <td style={{ fontWeight: 600 }}>Variante #{item.variant_id}</td>
-                  <td>{item.movement_reason_raw || "—"}</td>
-                  <td>
-                    {(item.anomaly_codes || []).map((code: string) => (
-                      <span key={code} className="mmi-badge mmi-badge-warning" style={{ marginRight: "0.3rem" }}>
-                        {code}
-                      </span>
-                    ))}
-                  </td>
-                  <td style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>
-                    {new Date(item.created_at).toLocaleString("es-ES")}
-                  </td>
-                  {canResolve && (
-                    <td>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button
-                          onClick={() => handleResolve(item.id, "release")}
-                          className="mmi-btn mmi-btn-primary mmi-btn-sm"
-                        >
-                          {t("quality.release")}
-                        </button>
-                        <button
-                          onClick={() => handleResolve(item.id, "ignore")}
-                          className="mmi-btn mmi-btn-secondary mmi-btn-sm"
-                        >
-                          {t("quality.ignore")}
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
+      {!loading && !error && items.length === 0 && <EmptyState title={`✓ ${t("quality.quarantine_empty")}`} hint="" />}
+      {!loading && items.length > 0 && <DataTable ariaLabel={t("quality.title")} columns={columns} rows={items} rowKey={(i) => i.id} rowTone={() => "warning"} />}
+    </Card>
   );
 };
