@@ -1,0 +1,115 @@
+# Data Model: Executive Dashboard & Analytics
+
+All entities are read models inside inventory-service (schema owned by that service) unless stated. No cross-schema SQL. Money is `Decimal` (stored as numeric, serialised as a string with two decimals). Timestamps are stored UTC together with the original string.
+
+## FilterSet (request value, not stored)
+
+| Field | Type | Rules |
+|-------|------|-------|
+| date_from, date_to | date | `date_from <= date_to`; span 7-730 days; default last 60 days; future end clipped with a notice |
+| warehouse_id | int, optional | must exist in the synced warehouses |
+| supplier_id | string (public id), optional | must exist in `supplier_variant_link` |
+| category | enum A, B, C, critical, optional | |
+| family | string 1-120, optional | exact synchronised ERP family name |
+
+Invalid values are refused with `request_invalid`; they are never coerced silently.
+
+## Indicator (response value)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| key | enum | stock_value, coverage_days, demand, forecast, stockout_risk, expiry_exposure, capital_tied_up, purchasing_budget, wape, bias |
+| value | string or null | Decimal or integer as string; null with state `no_data` |
+| unit | enum | EUR, days, units, count, percent |
+| period | object | from, to |
+| state | enum | ok, no_data, stale, error, hidden_by_role |
+| basis | string key | translation key for the calculation basis |
+| definition_key | string | translation key for the definition |
+| freshness | DataFreshness | |
+| incomplete_count | int | records excluded or estimated, linked to the review list |
+| filters_unsupported | list of strings | filters this indicator cannot honour, stated in text |
+
+## DataFreshness
+
+| Field | Type | Notes |
+|-------|------|-------|
+| source | enum | inventory_snapshot, movements, forecast, accuracy, budget_spend |
+| refreshed_at | datetime UTC | plus `refreshed_at_original` string |
+| origin | enum | erp_sync, local_load, forecast, proposal |
+| state | enum | ok, no_data, stale, error |
+| stale_after_hours | int | from server configuration |
+
+Rule: an indicator whose inputs mix `erp_sync` and `local_load` is not produced; the two are returned as separate labelled values.
+
+## DashboardSnapshot (stored)
+
+One row per day and slice. Written by the existing aggregate refresh; idempotent on `(day, warehouse_id, category)`.
+
+| Field | Type |
+|-------|------|
+| day | date |
+| warehouse_id | int or null (all) |
+| category | enum or null (all) |
+| stock_value, expiring_value, capital_tied_up | numeric |
+| stockout_count, expiry_count | int |
+| origin | enum erp_sync / local_load |
+| created_at | datetime UTC |
+
+Retention: 25 months, then removed by the refresh job.
+
+## SupplierVariantLink (stored read-model)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| supplier_id | string | public id |
+| variant_id | bigint | internal, never displayed |
+| sku | string | displayed |
+| updated_at | datetime UTC | |
+
+Fed from procurement events; upsert by `(supplier_id, variant_id)`; idempotent.
+
+## ContributionRow (response value)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| sku | string | shown first |
+| name | string | shown second |
+| contribution | string | Decimal or integer in the indicator's unit |
+| share | string | Decimal fraction of the total |
+| attributes | map | indicator-specific columns (stock, coverage days, expiry date, supplier) |
+| detail_ref | opaque string | resolves the SKU detail; carries the internal id, never rendered |
+
+Page envelope: `rows`, `total`, `page`, `page_size`, `sum`, where `sum` equals the indicator value for the same FilterSet (asserted in tests).
+
+## SkuDetail
+
+Existing product detail extended with expiry lots (quantity, expiry date, acquisition cost only for cost-allowed roles).
+
+## ChartSeries (response value)
+
+| Field | Type |
+|-------|------|
+| key | demand_forecast, abc_xyz, expiry_bands, coverage_buckets, capital_by_group, forecast_error, stock_value_history |
+| title_key, summary_params | translation key and parameters for the text summary |
+| columns, rows | the table view; the chart is drawn from the same rows |
+| range_available | from, to (for history charts) |
+| state | ok, no_data, error |
+
+## ExportRecord (stored in the BFF audit chain)
+
+| Field | Type |
+|-------|------|
+| actor, role | string |
+| export_kind | cards, chart_table, drilldown |
+| filters | FilterSet snapshot |
+| row_count | int |
+| outcome | ok, refused_role, refused_cap, error |
+| at | datetime UTC |
+
+No file content is stored.
+
+## State and validation notes
+
+- Indicator state: `ok` -> `stale` when `refreshed_at` older than threshold; `ok` -> `no_data` when the source has no rows; `error` when the source call fails (card degrades alone); `hidden_by_role` when the role may not see money.
+- Quarantined or ambiguous source records are counted in `incomplete_count` and are never summed into `value`.
+- Division by zero in coverage yields state `ok` with value null and basis `no_demand`, never infinity.

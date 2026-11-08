@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/dashboard_indicators.v2",
+  "title": "DashboardIndicators",
+  "description": "Draft for review with Agent 00. To be moved to packages/contracts/dto when approved; v1 stays unchanged.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["filters", "indicators"],
+  "properties": {
+    "filters": { "$ref": "#/$defs/FilterSet" },
+    "indicators": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Indicator" }
+    }
+  },
+  "$defs": {
+    "FilterSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date_from", "date_to"],
+      "properties": {
+        "date_from": { "type": "string", "format": "date" },
+        "date_to": { "type": "string", "format": "date" },
+        "warehouse_id": { "type": ["integer", "null"], "minimum": 0 },
+        "supplier_id": { "type": ["string", "null"], "maxLength": 36 },
+        "category": { "enum": ["A", "B", "C", "critical", null] },
+        "family": { "type": ["string", "null"], "minLength": 1, "maxLength": 120 }
+      }
+    },
+    "DataFreshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "origin", "state"],
+      "properties": {
+        "source": { "enum": ["inventory_snapshot", "movements", "forecast", "accuracy", "budget_spend"] },
+        "refreshed_at": { "type": ["string", "null"], "format": "date-time" },
+        "refreshed_at_original": { "type": ["string", "null"] },
+        "origin": { "enum": ["erp_sync", "local_load", "forecast", "proposal"] },
+        "state": { "enum": ["ok", "no_data", "stale", "error"] },
+        "stale_after_hours": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "Indicator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "value", "unit", "state", "basis", "definition_key", "freshness"],
+      "properties": {
+        "key": {
+          "enum": [
+            "stock_value", "coverage_days", "demand", "forecast", "stockout_risk",
+            "expiry_exposure", "capital_tied_up", "purchasing_budget", "wape", "bias"
+          ]
+        },
+        "value": {
+          "description": "Decimal or integer as a string; null when state is not ok",
+          "type": ["string", "null"],
+          "pattern": "^-?\\d+(\\.\\d+)?$"
+        },
+        "unit": { "enum": ["EUR", "days", "units", "count", "percent"] },
+        "state": { "enum": ["ok", "no_data", "stale", "error", "hidden_by_role"] },
+        "basis": { "type": "string" },
+        "definition_key": { "type": "string" },
+        "freshness": { "$ref": "#/$defs/DataFreshness" },
+        "incomplete_count": { "type": "integer", "minimum": 0 },
+        "filters_unsupported": {
+          "type": "array",
+          "items": { "enum": ["date", "warehouse", "supplier", "category", "family"] }
+        }
+      }
+    },
+    "ContributionRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sku", "name", "contribution", "share", "detail_ref"],
+      "properties": {
+        "sku": { "type": "string" },
+        "name": { "type": "string" },
+        "contribution": { "type": "string", "pattern": "^-?\\d+(\\.\\d+)?$" },
+        "share": { "type": "string", "pattern": "^\\d+(\\.\\d+)?$" },
+        "attributes": { "type": "object", "additionalProperties": { "type": ["string", "number", "null"] } },
+        "detail_ref": { "type": "string" }
+      }
+    },
+    "DrillPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rows", "total", "page", "page_size", "sum"],
+      "properties": {
+        "rows": { "type": "array", "items": { "$ref": "#/$defs/ContributionRow" } },
+        "total": { "type": "integer", "minimum": 0 },
+        "page": { "type": "integer", "minimum": 1 },
+        "page_size": { "type": "integer", "minimum": 10, "maximum": 200 },
+        "sum": { "type": "string", "pattern": "^-?\\d+(\\.\\d+)?$" }
+      }
+    },
+    "ChartSeries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "title_key", "columns", "rows", "state"],
+      "properties": {
+        "key": {
+          "enum": ["demand_forecast", "abc_xyz", "expiry_bands", "coverage_buckets", "capital_by_group", "forecast_error", "stock_value_history"]
+        },
+        "title_key": { "type": "string" },
+        "summary_params": { "type": "object" },
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "rows": { "type": "array", "items": { "type": "array" } },
+        "range_available": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "from": { "type": "string", "format": "date" },
+            "to": { "type": "string", "format": "date" }
+          }
+        },
+        "state": { "enum": ["ok", "no_data", "error"] }
+      }
+    }
+  }
+}
