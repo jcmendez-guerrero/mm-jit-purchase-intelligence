@@ -8,7 +8,8 @@ RUN npm run build
 
 FROM nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
 COPY apps/web/nginx-main.conf /etc/nginx/nginx.conf
-COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/web/nginx.conf.template /etc/nginx/templates/default.conf.template
+ENV API_BFF_URL=http://api-bff:8000 API_BFF_HOST=api-bff:8000
 COPY --from=build /app/dist /usr/share/nginx/html
 # Non-root nginx needs writable cache/pid paths.
 RUN touch /tmp/nginx.pid \
