@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, ImportErrorItem, errorMessage } from "../../api/client";
+import { api, ImportErrorItem, LocalLoadReviewItem, errorMessage } from "../../api/client";
 import { formatDateTime } from "../../i18n/formatters";
 import { DataTable, type Column } from "../../ui/DataTable";
 import { EmptyState } from "../../ui/EmptyState";
@@ -12,9 +12,11 @@ import { Card } from "../../ui/Card";
 
 interface Props {
   userRoles: string[];
+  /** The local-only loader is available: also show the rows it could not express (source: loader). */
+  showLocalReview?: boolean;
 }
 
-export const QualityScreen: React.FC<Props> = ({ userRoles }) => {
+export const QualityScreen: React.FC<Props> = ({ userRoles, showLocalReview = false }) => {
   const { t } = useTranslation();
   const [items, setItems] = useState<ImportErrorItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,20 @@ export const QualityScreen: React.FC<Props> = ({ userRoles }) => {
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [resolving, setResolving] = useState<{ item: ImportErrorItem; decision: "release" | "ignore" } | null>(null);
 
+  const [localReview, setLocalReview] = useState<LocalLoadReviewItem[]>([]);
+
   const canResolve = userRoles.includes("buyer") || userRoles.includes("admin");
+
+  useEffect(() => {
+    if (!showLocalReview) {
+      setLocalReview([]);
+      return;
+    }
+    api
+      .getLocalLoadReview()
+      .then(setLocalReview)
+      .catch(() => setLocalReview([]));
+  }, [showLocalReview]);
 
   const loadData = useCallback(async () => {
     try {
@@ -115,6 +130,23 @@ export const QualityScreen: React.FC<Props> = ({ userRoles }) => {
       )}
       {!loading && !error && items.length === 0 && <EmptyState title={`✓ ${t("quality.quarantine_empty")}`} hint="" />}
       {!loading && items.length > 0 && <DataTable ariaLabel={t("quality.title")} columns={columns} rows={items} rowKey={(i) => i.id} rowTone={() => "warning"} />}
+      {showLocalReview && localReview.length > 0 && (
+        <>
+          <h3>{t("quality.local_review_title")}</h3>
+          <DataTable
+            ariaLabel={t("quality.local_review_title")}
+            columns={[
+              { id: "kind", header: t("localLoad.review.kind"), cell: (r: LocalLoadReviewItem) => (r.kind ? t(`localLoad.kind.${r.kind}`) : "—") },
+              { id: "row", header: t("localLoad.review.row"), cell: (r: LocalLoadReviewItem) => r.row, sortValue: (r: LocalLoadReviewItem) => r.row },
+              { id: "code", header: t("localLoad.review.code"), cell: (r: LocalLoadReviewItem) => t(`localLoad.code.${r.code}`, { defaultValue: r.code }) },
+              { id: "source", header: t("localLoad.review.source"), cell: (r: LocalLoadReviewItem) => t(`localLoad.source.${r.source ?? "loader"}`) },
+            ]}
+            rows={localReview}
+            rowKey={(r) => `${r.kind}-${r.row}-${r.code}`}
+            rowTone={() => "warning"}
+          />
+        </>
+      )}
     </Card>
   );
 };

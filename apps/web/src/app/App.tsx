@@ -6,6 +6,7 @@ import { RolesScreen } from "../features/admin/RolesScreen";
 import { CostsScreen } from "../features/costs/CostsScreen";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
 import { ImportScreen } from "../features/imports/ImportScreen";
+import { LocalLoadScreen } from "../features/localload/LocalLoadScreen";
 import { PoliciesScreen } from "../features/policies/PoliciesScreen";
 import { ProposalsScreen } from "../features/proposals/ProposalsScreen";
 import { QualityScreen } from "../features/quality/QualityScreen";
@@ -44,6 +45,7 @@ export const App: React.FC = () => {
   const [session, setSession] = useState<UserSession | null>(null);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [features, setFeatures] = useState<string[]>([]);
   const sessionRef = useRef<UserSession | null>(null);
   sessionRef.current = session;
 
@@ -54,6 +56,19 @@ export const App: React.FC = () => {
       .catch(() => setSession(null))
       .finally(() => setChecked(true));
   }, []);
+
+  useEffect(() => {
+    // The local-only loader exists only in the local environment: ask once per session, and only people who may use it.
+    const roles = session?.roles ?? [];
+    if (!session || !(roles.includes("buyer") || roles.includes("admin"))) {
+      setFeatures([]);
+      return;
+    }
+    api
+      .getLocalLoadCapability()
+      .then((c) => setFeatures(c.enabled ? ["localLoad"] : []))
+      .catch(() => setFeatures([]));
+  }, [session]);
 
   useEffect(() => {
     // A 401 from one call is confirmed with the session probe before the session is declared expired.
@@ -97,15 +112,16 @@ export const App: React.FC = () => {
   return (
     <NoticeProvider>
     <Routes>
-      <Route element={<AppShell session={session} roles={userRoles} sessionExpired={sessionExpired} onLogout={handleLogout} />}>
+      <Route element={<AppShell session={session} roles={userRoles} sessionExpired={sessionExpired} onLogout={handleLogout} features={features} />}>
         <Route index element={<Navigate to={DEFAULT_PATH} replace />} />
         <Route path="panel" element={<DashboardRoute />} />
-        <Route path="calidad" element={<QualityScreen userRoles={userRoles} />} />
+        <Route path="calidad" element={<QualityScreen userRoles={userRoles} showLocalReview={features.includes("localLoad")} />} />
         <Route path="propuestas" element={<ProposalsScreen userRoles={userRoles} />} />
         <Route path="escenarios" element={<ScenariosScreen userRoles={userRoles} />} />
         <Route path="costes" element={<CostsScreen userRoles={userRoles} userId={session?.user_id} />} />
         <Route path="proveedores" element={<SuppliersScreen userRoles={userRoles} />} />
         <Route path="importaciones" element={<ImportScreen userRoles={userRoles} />} />
+        <Route path="carga-local" element={features.includes("localLoad") ? <LocalLoadScreen userRoles={userRoles} /> : <NotFound />} />
         <Route path="configuracion" element={<PoliciesScreen userRoles={userRoles} />} />
         <Route
           path="administracion"

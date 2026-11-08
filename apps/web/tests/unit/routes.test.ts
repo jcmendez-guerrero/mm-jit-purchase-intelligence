@@ -15,10 +15,20 @@ describe("navigation registry", () => {
     for (const i of NAV_ITEMS) expect(i.path).toBe(`/${i.id}`);
   });
 
-  it("lists the nine screens of the contract", () => {
+  it("lists the nine screens of the contract plus the optional local-load screen", () => {
     expect(NAV_ITEMS.map((i) => i.id).sort()).toEqual(
-      ["administracion", "calidad", "configuracion", "costes", "escenarios", "importaciones", "panel", "propuestas", "proveedores"].sort(),
+      ["administracion", "calidad", "carga-local", "configuracion", "costes", "escenarios", "importaciones", "panel", "propuestas", "proveedores"].sort(),
     );
+  });
+
+  it("offers the local-load screen only when the capability is reported and only to buyers and admins", () => {
+    const ids = (roles: string[], features?: string[]) => itemsFor(roles, features).map((i) => i.id);
+    expect(ids(["viewer", "buyer"])).not.toContain("carga-local");
+    expect(ids(["viewer", "buyer"], ["localLoad"])).toContain("carga-local");
+    expect(ids(["viewer", "admin"], ["localLoad"])).toContain("carga-local");
+    expect(ids(["viewer"], ["localLoad"])).not.toContain("carga-local");
+    expect(groupedItems(["buyer"]).flatMap((g) => g.items.map((i) => i.id))).not.toContain("carga-local");
+    expect(groupedItems(["buyer"], ["localLoad"]).flatMap((g) => g.items.map((i) => i.id))).toContain("carga-local");
   });
 
   it("resolves every label, description and group label key in es-ES.json", () => {

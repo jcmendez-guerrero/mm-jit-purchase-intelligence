@@ -420,7 +420,83 @@ export interface SupplierSummary {
   id: string;
   name: string;
   terms: TermsDoc | null;
+  /** Version of the terms (the If-Match of the terms editor). */
   version: number;
+  /** MMI 004: supplier management fields. Older servers omit them. */
+  supplier_version?: number;
+  status?: "active" | "deactivated";
+  classification?: "purchasing" | "non_purchasing" | "unclassified";
+  origin?: "platform" | "imported" | "erp";
+  erp_link_state?: "none" | "unverified" | "linked" | "pending_link";
+  fiscal_type?: "national" | "intracommunity" | "foreign";
+  country?: string;
+  currency?: string;
+  payment_terms_days?: number | null;
+  order_channel?: "email" | "phone" | "web" | "other" | null;
+  merged_into?: string | null;
+}
+
+export interface SupplierInputDoc {
+  name: string;
+  fiscal_type: string;
+  country: string;
+  currency: string;
+  payment_terms_days?: number | null;
+  order_channel?: string | null;
+  classification?: string;
+}
+
+export interface SupplierLinkRow {
+  sku: string | null;
+  name: string | null;
+  cost: string;
+  currency: string;
+  cost_source: string;
+  includes_recargo: boolean;
+  pack_size: number | null;
+  min_qty: number | null;
+  verified_at: string;
+  erp_link: "no_link" | "link_without_cost" | "link_with_cost";
+}
+
+export interface LinkInputDoc {
+  cost?: string;
+  includes_recargo?: boolean;
+  cost_source?: "manual" | "inventory_export";
+  pack_size?: number;
+  min_qty?: number;
+}
+
+export interface DeactivationPreview {
+  deactivated: boolean;
+  open_proposal_lines: number;
+  lines: Array<{ proposal_id: string; variant_id: number }>;
+}
+
+export interface BulkPreview {
+  batch_id: string;
+  matched: number;
+  new: number;
+  existing: number;
+  conflicts: number;
+  conflict_skus: string[];
+  unknown: string[];
+  expires_at: string;
+}
+
+export interface BulkFileResult {
+  groups: Record<string, string[]>;
+  errors: Array<{ row: number; code: string }>;
+  rows: number;
+}
+
+export interface SupplierReviewItem {
+  id: string;
+  kind: string;
+  supplier_id: string | null;
+  detail: string;
+  status: string;
+  created_at: string;
 }
 
 export interface OverrideDoc {
@@ -469,6 +545,8 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly code: string,
     public readonly currentVersion?: number,
+    /** Columns the loader found missing in an export file (local load only). */
+    public readonly missing?: string[],
   ) {
     super(code);
     this.name = "ApiError";
@@ -687,6 +765,41 @@ export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
   warnings?: string[];
 }
 
+/** Local export loader (MMI 004): present only in the local environment. */
+export type LocalLoadKind = "suppliers" | "inventory" | "movements";
+
+export interface LocalLoadReviewItem {
+  row: number;
+  code: string;
+  detail?: string;
+  source?: "loader" | "platform";
+  kind?: LocalLoadKind;
+}
+
+export interface LocalLoadResult {
+  run_id: string;
+  kind: LocalLoadKind;
+  rows: number;
+  loaded: number;
+  updated: number;
+  unchanged: number;
+  quarantined: number;
+  excluded: number;
+  services: number;
+  differences?: number;
+  review: LocalLoadReviewItem[];
+  interpretations?: { tax_included_rows?: number; tax_excluded_rows?: number; timezone?: string };
+}
+
+export interface LocalLoadDifference {
+  id: string;
+  sku: string;
+  field: string;
+  app_value: string;
+  file_value: string;
+  status: "open" | "accepted" | "ignored";
+}
+
 let unauthorizedListener: (() => void) | null = null;
 
 /** Registers a callback for HTTP 401 answers from any call except the session probe and sign-in (FR-020). */
@@ -723,7 +836,9 @@ export class ApiClient {
       const detail = (err as { detail?: unknown }).detail;
       const code = typeof detail === "string" && /^[a-z][a-z0-9_:]*$/.test(detail) ? detail : Array.isArray(detail) ? "request_invalid" : "unknown";
       const current = (err as { current_version?: unknown }).current_version;
-      throw new ApiError(response.status, code, typeof current === "number" ? current : undefined);
+      const missing = (err as { missing?: unknown }).missing;
+      throw new ApiError(response.status, code, typeof current === "number" ? current : undefined,
+        Array.isArray(missing) ? missing.filter((m): m is string => typeof m === "string") : undefined);
     }
 
     if (response.status === 204) {
@@ -960,6 +1075,106 @@ export class ApiClient {
 
   async getSeedDatasets(): Promise<{ datasets: SeedDataset[] }> {
     return this.request<{ datasets: SeedDataset[] }>("/imports");
+  }
+
+  async getSuppliersFiltered(filter: { status?: string; classification?: string; q?: string }): Promise<SupplierSummary[]> {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filter)) if (v) params.set(k, v);
+    const qs = params.toString();
+    return this.request<SupplierSummary[]>(`/suppliers${qs ? `?${qs}` : ""}`);
+  }
+
+  async createSupplier(body: SupplierInputDoc, confirmDuplicate = false): Promise<SupplierSummary> {
+    return this.request<SupplierSummary>(`/suppliers${confirmDuplicate ? "?confirm_duplicate=true" : ""}`, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  async updateSupplier(id: string, changes: Partial<SupplierInputDoc>, version: number, confirmDuplicate = false): Promise<SupplierSummary> {
+    return this.request<SupplierSummary>(`/suppliers/${encodeURIComponent(id)}${confirmDuplicate ? "?confirm_duplicate=true" : ""}`, {
+      method: "PATCH",
+      headers: { "If-Match": `"${version}"` },
+      body: JSON.stringify(changes),
+    });
+  }
+
+  async deactivateSupplier(id: string, confirm: boolean): Promise<DeactivationPreview> {
+    return this.request<DeactivationPreview>(`/suppliers/${encodeURIComponent(id)}/deactivate`, { method: "POST", body: JSON.stringify({ confirm }) });
+  }
+
+  async reactivateSupplier(id: string): Promise<SupplierSummary> {
+    return this.request<SupplierSummary>(`/suppliers/${encodeURIComponent(id)}/reactivate`, { method: "POST" });
+  }
+
+  async getSupplierLinks(id: string): Promise<SupplierLinkRow[]> {
+    return this.request<SupplierLinkRow[]>(`/suppliers/${encodeURIComponent(id)}/links`);
+  }
+
+  async putSupplierLink(id: string, sku: string, body: LinkInputDoc): Promise<{ cost: string; erp_link: string; write_case: string | null; warnings: string[] }> {
+    return this.request(`/suppliers/${encodeURIComponent(id)}/links/${encodeURIComponent(sku)}`, { method: "PUT", body: JSON.stringify(body) });
+  }
+
+  async deleteSupplierLink(id: string, sku: string): Promise<void> {
+    await this.request<unknown>(`/suppliers/${encodeURIComponent(id)}/links/${encodeURIComponent(sku)}`, { method: "DELETE" });
+  }
+
+  async previewBulkLinks(id: string, criteria: { skus?: string[]; q?: string }): Promise<BulkPreview> {
+    return this.request<BulkPreview>(`/suppliers/${encodeURIComponent(id)}/links/bulk/preview`, { method: "POST", body: JSON.stringify(criteria) });
+  }
+
+  async applyBulkLinks(id: string, batchId: string, skipConflicts: boolean): Promise<{ changed: number; skipped_conflicts: number; no_cost: number }> {
+    return this.request(`/suppliers/${encodeURIComponent(id)}/links/bulk/apply`, { method: "POST", body: JSON.stringify({ batch_id: batchId, skip_conflicts: skipConflicts }) });
+  }
+
+  async parseAssignmentFile(file: File): Promise<BulkFileResult> {
+    const form = new FormData();
+    form.append("file", file);
+    return this.request<BulkFileResult>("/links/bulk/file", { method: "POST", body: form });
+  }
+
+  async getSupplierReviewItems(): Promise<SupplierReviewItem[]> {
+    return this.request<SupplierReviewItem[]>("/suppliers/review-items");
+  }
+
+  async resolveSupplierReviewItem(id: string, decision: "merge_into" | "keep_both" | "ignore", mergeInto?: string): Promise<void> {
+    await this.request<unknown>(`/suppliers/review-items/${encodeURIComponent(id)}/resolve`, {
+      method: "POST",
+      body: JSON.stringify(mergeInto ? { decision, merge_into: mergeInto } : { decision }),
+    });
+  }
+
+  async getLocalLoadCapability(): Promise<{ enabled: boolean }> {
+    return this.request<{ enabled: boolean }>("/local-load/capability");
+  }
+
+  async checkLocalLoad(kind: LocalLoadKind, file: File): Promise<LocalLoadResult> {
+    const form = new FormData();
+    form.append("file", file);
+    return this.request<LocalLoadResult>(`/local-load/${kind}/check`, { method: "POST", body: form });
+  }
+
+  async runLocalLoad(kind: LocalLoadKind, file: File, acknowledgeInterpretation: boolean, idempotencyKey: string): Promise<LocalLoadResult> {
+    const form = new FormData();
+    form.append("file", file);
+    return this.request<LocalLoadResult>(`/local-load/${kind}?acknowledge_interpretation=${acknowledgeInterpretation ? "true" : "false"}`, {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: form,
+    });
+  }
+
+  async getLocalLoadRuns(): Promise<LocalLoadResult[]> {
+    return this.request<LocalLoadResult[]>("/local-load/runs");
+  }
+
+  async getLocalLoadReview(): Promise<LocalLoadReviewItem[]> {
+    return this.request<LocalLoadReviewItem[]>("/local-load/review");
+  }
+
+  async getLocalLoadDifferences(): Promise<LocalLoadDifference[]> {
+    return this.request<LocalLoadDifference[]>("/local-load/differences");
+  }
+
+  async decideLocalLoadDifference(id: string, decision: "accept" | "ignore"): Promise<void> {
+    await this.request<unknown>(`/local-load/differences/${encodeURIComponent(id)}/${decision}`, { method: "POST" });
   }
 
   async getMappings(): Promise<MappingInfo> {
