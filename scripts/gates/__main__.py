@@ -87,7 +87,8 @@ def _cmd_audit_md(_args: argparse.Namespace) -> int:
 def _cmd_run(args: argparse.Namespace) -> int:
     wanted = args.gate or list(rep.GATES)
     openapi = json.loads(Path(args.openapi).read_text()) if args.openapi else None
-    report = rep.build_report(make_runner(_load(ROOT, "integration-plan.json"), openapi)(ROOT, wanted))
+    results = make_runner(_load(ROOT, "integration-plan.json"), openapi)(ROOT, wanted)
+    report = rep.build_report(results, only=tuple(args.gate) if args.gate else None)
     _write(args.report, report)
     _print(report)
     return rep.exit_code(report)

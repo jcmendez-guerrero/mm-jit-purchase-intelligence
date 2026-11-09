@@ -22,8 +22,8 @@ def render(audit: dict) -> str:
     for f in feats:
         if f["status"] != "complete":
             gaps.setdefault(f["owner"], []).append(f"{f['id']} ({f['status']})")
-    lines += ["", "## Gaps by owner", *(f"- **{o}**: {', '.join(g)}" for o, g in sorted(gaps.items())),
-              "", "## Reuse", "Features flagged `reuse` have working code that domain agents extend instead of rewriting: "
+    lines += ["", "## Gaps by owner", "", *(f"- **{o}**: {', '.join(g)}" for o, g in sorted(gaps.items())),
+              "", "## Reuse", "", "Features flagged `reuse` have working code that domain agents extend instead of rewriting: "
               + ", ".join(f["id"] for f in feats if f.get("reuse")) + "."]
     return "\n".join(lines) + "\n"
 

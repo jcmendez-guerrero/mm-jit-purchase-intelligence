@@ -31,6 +31,17 @@ def test_missing_gate_counts_as_not_run_and_is_filled_in():
     assert [g["gate"] for g in rep["gates"]] == list(r.GATES)
 
 
+def test_a_subset_is_judged_on_the_requested_gates_only():
+    two = ("contracts", "isolation")
+    rep = r.build_report([r.GateResult("contracts", "pass"), r.GateResult("isolation", "pass")], only=two)
+    assert rep["overall"] == "pass" and r.exit_code(rep) == 0 and len(rep["gates"]) == 6
+    others = [g for g in rep["gates"] if g["gate"] not in two]
+    assert others and all(g["result"] == "not_run" and "not requested" in g["evidence"][0] for g in others)
+    assert r.build_report([r.GateResult("contracts", "fail"), r.GateResult("isolation", "pass")], only=two)["overall"] == "fail"
+    assert r.build_report([r.GateResult("contracts", "pass"), r.GateResult("isolation", "not_run")], only=two)["overall"] == "not_run"
+    assert r.build_report([r.GateResult("contracts", "pass")], only=two)["overall"] == "not_run"  # a requested gate that never ran
+
+
 def test_report_matches_schema_and_has_durations():
     schema = json.loads((REPO / "docs/architecture/integration/schemas/gate-report.schema.json").read_text())
     rep = r.build_report(_all("pass"), [{"pr": 3, "agent": "agent-01", "reason": "gate_failed", "failed_gate": "cost"}])

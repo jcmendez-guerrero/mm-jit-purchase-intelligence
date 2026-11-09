@@ -2,10 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "IntegrationPlan",
   "type": "object",
-  "required": [
-    "base",
-    "steps"
-  ],
+  "required": ["base", "steps"],
   "additionalProperties": false,
   "properties": {
     "base": {
@@ -61,12 +58,7 @@
             }
           },
           "state": {
-            "enum": [
-              "pending",
-              "integrated",
-              "dropped",
-              "fixed_reentered"
-            ]
+            "enum": ["pending", "integrated", "dropped", "fixed_reentered"]
           },
           "drop_reason": {
             "type": "string"

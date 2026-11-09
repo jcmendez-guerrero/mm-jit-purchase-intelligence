@@ -41,5 +41,20 @@ def test_complete_requires_test_evidence(tmp_path):
     assert a.check(root, {"features": [ok]}) == []
 
 
+def test_the_markdown_view_has_blank_lines_around_headings_and_lists():
+    """markdownlint (MD022, MD032) runs in CI on the generated file."""
+    audit = {"audited_commit": "abc1234", "features": [
+        {"id": "a", "title": "A", "status": "partial", "evidence": ["x.py:1"], "owner": "svc", "reuse": True},
+        {"id": "b", "title": "B", "status": "complete", "evidence": ["y.py:1"], "owner": "svc", "reuse": True}]}
+    lines = a.render(audit).splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("#"):
+            assert lines[i - 1] == "" or i == 0, f"no blank line above: {line}"
+            assert lines[i + 1] == "", f"no blank line below: {line}"
+        if line.startswith("- ") and not lines[i - 1].startswith("- "):
+            assert lines[i - 1] == "", f"no blank line above the list at: {line}"
+    assert "- **svc**: a (partial)" in lines
+
+
 def test_duplicate_ids_fail(tmp_path):
     assert any("duplicate" in p for p in a.check(_root(tmp_path), {"features": [_feature(), _feature()]}))

@@ -49,7 +49,12 @@ def test_run_writes_a_valid_report_and_maps_results_to_exit_codes(patched, monke
     monkeypatch.setattr(cli, "make_runner", stub_runner(failing="cost"))
     assert cli.main(["run", "--report", str(out)]) == 1
     monkeypatch.setattr(cli, "make_runner", stub_runner())
-    assert cli.main(["run", "--gate", "cost", "--report", str(out)]) == 2  # the other five gates were not run
+    assert cli.main(["run", "--gate", "cost", "--report", str(out)]) == 0  # only the requested gate counts
+    assert json.loads(out.read_text())["overall"] == "pass"
+    monkeypatch.setattr(cli, "make_runner", stub_runner(failing="cost"))
+    assert cli.main(["run", "--gate", "cost", "--report", str(out)]) == 1
+    monkeypatch.setattr(cli, "make_runner", stub_runner())
+    assert cli.main(["run", "--gate", "contracts", "--gate", "isolation", "--report", str(out)]) == 0  # what the CI gates job runs
 
 
 def test_summary_prints_markdown_for_a_pr(tmp_path, capsys):

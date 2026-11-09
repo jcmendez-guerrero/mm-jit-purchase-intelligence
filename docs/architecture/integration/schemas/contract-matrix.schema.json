@@ -10,7 +10,10 @@
     "schema_ownership": {
       "type": "object",
       "description": "service name -> database schema it owns (one to one)",
-      "additionalProperties": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
     },
     "entries": {
       "type": "array",
@@ -24,13 +27,23 @@
           "version": { "type": "integer", "minimum": 1 },
           "schema_path": { "type": "string" },
           "owner": { "type": "string" },
-          "consumers": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "consumers": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          },
           "status": { "enum": ["draft", "frozen", "deprecated"] },
           "superseded_by": { "type": "string" }
         },
         "allOf": [
-          { "if": { "properties": { "kind": { "const": "endpoint" } } }, "else": { "required": ["schema_path"] } },
-          { "if": { "properties": { "status": { "const": "deprecated" } } }, "then": { "required": ["superseded_by"] } }
+          {
+            "if": { "properties": { "kind": { "const": "endpoint" } } },
+            "else": { "required": ["schema_path"] }
+          },
+          {
+            "if": { "properties": { "status": { "const": "deprecated" } } },
+            "then": { "required": ["superseded_by"] }
+          }
         ]
       }
     }

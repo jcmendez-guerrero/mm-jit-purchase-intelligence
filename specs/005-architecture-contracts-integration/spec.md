@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Get the specification from https://mundomascotix.atlassian.net/browse/MMI-2" (Jira MMI-2, epic MMI-1, linked Confluence page "MMI 003 — Agent 00 — Architecture, Contracts & Integration")
+**Input**: User description: "Get the specification from <https://mundomascotix.atlassian.net/browse/MMI-2>" (Jira MMI-2, epic MMI-1, linked Confluence page "MMI 003 — Agent 00 — Architecture, Contracts & Integration")
 
 ## Clarifications
 

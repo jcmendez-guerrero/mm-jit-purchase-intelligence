@@ -16,7 +16,7 @@ Command: `python -m gates` (run from the repository root; package at `scripts/ga
 
 Environment switches: `MMI_GATES_DATABASE=1` makes the isolation gate also run the PostgreSQL role-grant test (needs Docker); `MMI_GATES_LIVE_STACK=1` makes the e2e gate start the compose stack (project `mmi-gates-live`), run the live Spanish UI journey against it and remove it afterwards.
 
-Exit codes: `0` all gates pass; `1` at least one gate failed; `2` at least one gate was not run and none failed; `3` invalid input or artifact.
+Exit codes: `0` all requested gates pass; `1` at least one requested gate failed; `2` at least one requested gate was not run and none failed; `3` invalid input or artifact. With no `--gate`, all six gates are requested. With `--gate NAME` (repeatable) only the named gates decide the result: the report still lists all six, and the others show `not requested`.
 
 Gates:
 

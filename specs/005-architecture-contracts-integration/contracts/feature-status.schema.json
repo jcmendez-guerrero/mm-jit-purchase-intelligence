@@ -16,11 +16,17 @@
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
           "title": { "type": "string", "minLength": 1 },
-          "status": { "enum": ["complete", "partial", "broken", "missing", "unverified"] },
+          "status": {
+            "enum": ["complete", "partial", "broken", "missing", "unverified"]
+          },
           "evidence": {
             "type": "array",
             "minItems": 1,
-            "items": { "type": "string", "pattern": "^[^:\\s]+:[0-9]+$", "description": "path:line" }
+            "items": {
+              "type": "string",
+              "pattern": "^[^:\\s]+:[0-9]+$",
+              "description": "path:line"
+            }
           },
           "owner": { "type": "string" },
           "reuse": { "type": "boolean" },

@@ -38,20 +38,23 @@ def seconds(entry: dict) -> float:
     return (end - start).total_seconds()
 
 
-def overall(results: list[GateResult]) -> str:
-    """fail beats not_run beats pass; a gate that is missing counts as not run."""
+def overall(results: list[GateResult], only: tuple[str, ...] | None = None) -> str:
+    """fail beats not_run beats pass; a gate that is missing counts as not run. With `only`, just those gates are judged."""
     by_gate = {r.gate: r.result for r in results}
-    states = [by_gate.get(g, "not_run") for g in GATES]
+    states = [by_gate.get(g, "not_run") for g in (only or GATES)]
     if "fail" in states:
         return "fail"
     return "not_run" if "not_run" in states else "pass"
 
 
-def build_report(results: list[GateResult], dropped_prs: list[dict] | None = None) -> dict:
+def build_report(results: list[GateResult], dropped_prs: list[dict] | None = None, only: tuple[str, ...] | None = None) -> dict:
+    """The report always lists all six gates. `only` names the gates that were asked for: the rest are listed as not requested
+    and do not decide the overall result, so running a subset (the CI `gates` job) can pass."""
     present = {r.gate for r in results}
-    filled = [*results, *(GateResult(g, "not_run", ["gate was not run"]) for g in GATES if g not in present)]
+    note = lambda g: "not requested" if only and g not in only else "gate was not run"  # noqa: E731
+    filled = [*results, *(GateResult(g, "not_run", [note(g)]) for g in GATES if g not in present)]
     filled.sort(key=lambda r: GATES.index(r.gate))
-    report: dict = {"overall": overall(filled), "gates": [asdict(r) for r in filled]}
+    report: dict = {"overall": overall(filled, only), "gates": [asdict(r) for r in filled]}
     if dropped_prs:
         report["dropped_prs"] = dropped_prs
     return report

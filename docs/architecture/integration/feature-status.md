@@ -39,9 +39,11 @@ Status: complete 27, partial 2, broken 0, missing 0, unverified 2
 | [no user story] CI and deployment workflows | unverified | infra | `.github/workflows/ci.yml:1`<br>`.github/workflows/deploy.yml:1` | workflow run history on GitHub was not inspected; the same suites were run locally by the gates |
 
 ## Gaps by owner
+
 - **api-bff**: 004-us2 (partial)
 - **infra**: infra-bicep-deployment (unverified), infra-ci-deploy-workflows (unverified)
 - **tooling**: 004-us4 (partial)
 
 ## Reuse
+
 Features flagged `reuse` have working code that domain agents extend instead of rewriting: 001-us1, 001-us2, 001-us3, 001-us4, 001-us5, 001-us6, 001-us7, 002-us1, 002-us2, 002-us3, 002-us4, 002-us5, 002-us6, 002-us7, 003-us1, 003-us2, 003-us3, 003-us4, 003-us5, 004-us1, 004-us2, 004-us3, 004-us4, infra-siweb-mock, infra-dev-issuer, infra-synthetic-generator, infra-compose-stack, infra-web-hardening, infra-db-migrations, infra-bicep-deployment, infra-ci-deploy-workflows.
