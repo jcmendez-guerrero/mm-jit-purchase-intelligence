@@ -29,7 +29,7 @@ The platform needs a reference rate it can trust enough for comparison and alloc
 
 ## Decision outcome
 
-Option 1. The owner chose Frankfurter (https://frankfurter.dev).
+Option 1. The owner chose Frankfurter <https://frankfurter.dev>.
 
 - **One request, one host.** The procurement worker (already a scale-to-zero cron job) issues `GET https://api.frankfurter.dev/v2/providers/ecb/rates?base=EUR` at most about once a day: only when the newest stored rate was confirmed more than 20 hours ago, and not within an hour of a failure. Host, path, query and method are fixed in code and refused otherwise before a request is built; no redirect is followed; no credentials, cookies or body are sent; the answer is limited to 200 KB and must be JSON. Tests prove the refusals.
 - **Official rate.** The ECB provider is pinned (the service itself recommends a single provider for official reference rates). The ECB publishes about 30 currencies; any other currency has no rate.

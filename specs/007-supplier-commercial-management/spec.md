@@ -22,7 +22,7 @@ This is one of the parallel agent assignments of epic MMI-1 ("MMI 003 | Product 
 
 ### Session 2026-11-08
 
-- Q: How should a supplier quoting in a currency other than EUR be handled when no exchange rate is configured? → A: Use Frankfurter (https://frankfurter.dev) as the exchange-rate source: a scheduled job fetches the official ECB reference rates and stores them locally with their date; allocation converts using the stored rate and never calls the rate service during a proposal. Currencies the ECB does not publish, or a rate older than 7 days, leave the supplier out of automatic allocation and list it for buyer review.
+- Q: How should a supplier quoting in a currency other than EUR be handled when no exchange rate is configured? → A: Use Frankfurter <https://frankfurter.dev> as the exchange-rate source: a scheduled job fetches the official ECB reference rates and stores them locally with their date; allocation converts using the stored rate and never calls the rate service during a proposal. Currencies the ECB does not publish, or a rate older than 7 days, leave the supplier out of automatic allocation and list it for buyer review.
 
 ### Session 2026-11-09
 
