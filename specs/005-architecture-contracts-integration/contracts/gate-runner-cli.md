@@ -11,6 +11,7 @@ Command: `python -m gates` (run from the repository root; package at `scripts/ga
 | `python -m gates run --openapi PATH` | As `run`, and the contracts gate also checks that the matrix's `endpoint` entries equal the gateway's exported OpenAPI. |
 | `python -m gates integrate --install --web` | As `integrate`, after installing `packages/contracts` and `packages/testing` from the integration tree (`--install`) and running `npm ci` and Chromium install in its `apps/web` (`--web`). |
 | `python -m gates matrix [--openapi PATH]` | Regenerates `contract-matrix.json` from `packages/contracts`; endpoint entries are kept, or refreshed from the OpenAPI file. |
+| `python -m gates lookup NAME` | Prints owner, version, consumers and status of every matrix entry named `NAME` (a schema name such as `money`, a versioned name `money.v1`, or an endpoint name such as `GET /api/dashboard/overview`); exits 3 when nothing matches or the matrix is missing. SC-007 is checked by its test. |
 | `python -m gates matrix-md` / `audit-md` | Render `contract-matrix.json` and `feature-status.json` to Markdown. |
 
 Environment switches: `MMI_GATES_DATABASE=1` makes the isolation gate also run the PostgreSQL role-grant test (needs Docker); `MMI_GATES_LIVE_STACK=1` makes the e2e gate start the compose stack (project `mmi-gates-live`), run the live Spanish UI journey against it and remove it afterwards.

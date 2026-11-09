@@ -8,7 +8,7 @@ Prerequisites: repository checked out, Python 3.12 environment with the repo's d
 python -m gates validate
 ```
 
-Expected: exit 0; feature status, contract matrix and integration plan match the schemas in [contracts/](contracts/).
+Expected: exit 0 once `integration-plan.json` exists (T030). Until then it prints `integration-plan.json: missing` and exits 3; the audit and the contract matrix are still validated against the schemas in [contracts/](contracts/).
 
 ## 2. Contract gate catches an undeclared change (User Story 2)
 
@@ -27,10 +27,12 @@ Expected: exit 1 naming the file and the foreign schema. Remove it: exit 0.
 ## 4. Full gate run (User Story 4)
 
 ```bash
-python -m gates run --report /tmp/gate-report.json
+MMI_GATES_DATABASE=1 MMI_GATES_LIVE_STACK=1 python -m gates run --report /tmp/gate-report.json
 ```
 
-Expected: all six gates `pass`, exit 0. The e2e evidence includes the real-services Spanish UI journey (compose stack, synthetic data), the fast fake-backend browser suite and the pipeline e2e. The report records each gate's duration; note the total in the PR (SC-008). Disconnect a fixture (for example rename the e2e fixture) and rerun: that gate reports `not_run`, exit 2.
+Run from `scripts/`, with Docker available, the web dependencies installed in `apps/web` and ports 8080 and 8081 free (stop any local stack first). Without the two switches the isolation gate skips the PostgreSQL role-grant check and the e2e gate skips the live journey and reports `not_run`.
+
+Expected: `contracts`, `isolation`, `e2e`, `security` and `cost` pass; `integration` is `not_run` until the plan lists PRs (T030), so the exit code is 2. With a plan in which every PR is integrated, all six pass and the exit code is 0. The e2e evidence includes the real-services Spanish UI journey (compose stack, synthetic data), the fast fake-backend browser suite and the pipeline e2e. The report records each gate's duration; note the total in the PR (SC-008). Disconnect a fixture (for example rename the e2e fixture) and rerun: that gate reports `not_run`, exit 2.
 
 Then render the PR comment: `python -m gates summary --report /tmp/gate-report.json`. Expected: Markdown listing each gate result and dropped PRs, with no data values.
 

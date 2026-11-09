@@ -45,14 +45,15 @@ State transitions: `draft → frozen → deprecated`. A `frozen` entry's schema 
 |-------|------|------|
 | pr | integer | Domain PR number |
 | agent | string | Owning agent |
-| owned_paths | list of glob | A PR diff outside these paths (and not shared files owned by Agent 00) is rejected |
+| owned_paths | list of glob | A PR diff outside these paths is rejected; two different agents may not claim overlapping paths |
 | depends_on | list of pr | Acyclic |
 | verification | list of gate names | Gates that must pass after this step |
 | state | enum | `pending`, `integrated`, `dropped`, `fixed_reentered` |
+| drop_reason | string, optional | Required for the integration gate when `state` is `dropped` (for example `gate_failed: cost`) |
 
 ## ReleaseGate result
 
-`gate` (`contracts`, `isolation`, `integration`, `e2e`, `security`, `cost`), `result` (`pass`, `fail`, `not_run`), `evidence` (list of messages or file refs), `started_at` / `finished_at` (UTC ISO-8601 with the original string kept), `dropped_prs` (on the aggregate report). Aggregate passes only if every gate passes.
+`gate` (`contracts`, `isolation`, `integration`, `e2e`, `security`, `cost`), `result` (`pass`, `fail`, `not_run`), `evidence` (list of messages or file refs), `started_at` / `finished_at` (UTC ISO-8601 with the original string kept), `dropped_prs` and `integrated` (the PR numbers that stayed in) on the aggregate report of `integrate`. Aggregate passes only if every gate passes.
 
 ## Relationships
 

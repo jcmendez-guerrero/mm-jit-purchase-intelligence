@@ -11,9 +11,6 @@
     "base": {
       "const": "main"
     },
-    "shared_paths_owner": {
-      "const": "agent-00"
-    },
     "steps": {
       "type": "array",
       "items": {

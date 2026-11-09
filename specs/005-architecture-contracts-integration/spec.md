@@ -25,6 +25,8 @@
 ### Session 2026-11-09
 
 - Q: Where does Agent 00 get the sibling domain PRs, their agents and owned files for the integration plan? → A: The maintainer supplies PR numbers, agents and owned paths; Agent 00 records them in the integration plan.
+- Q: What does the integration plan contain when no sibling domain PRs are open yet? → A: This feature's own PR (Agent 00, its own paths) is listed as the first step; siblings are added later by the maintainer, and plan validation keeps path ownership unique. An empty plan keeps the integration gate `not_run`.
+- Q: How is SC-007 (finding an interface's owner, version and consumers) verified? → A: A `python -m gates lookup NAME` command prints them and a test covers it; the "under 2 minutes" human trial is dropped.
 - Q: How do the full gates run on the integration branch in CI, given the branch is temporary and never pushed? → A: A manually started workflow checks out main, builds the integration branch inside the CI run from each PR's head, runs all six gates and discards the branch. Nothing is pushed.
 - Q: What is the longest the full gate run should take? → A: No limit for now; the first full run is timed and a limit is set from it.
 - Q: Which gates are required checks, and where? → A: Contracts and isolation are required on every PR; all six gates are required on the integration branch.
@@ -165,7 +167,7 @@ Agent 00 owns the shared gateway-layer contracts and the cross-domain integratio
 - **SC-004**: 100% of domain PRs are integrated in the documented order with their verification step passing.
 - **SC-005**: All end-to-end, security and cost gates pass on the integrated branch with synthetic data only.
 - **SC-006**: Projected monthly cost stays at or below about EUR 120.
-- **SC-007**: A domain agent can find the owner, version and consumers of any shared interface in under 2 minutes.
+- **SC-007**: The owner, version, consumers and status of any shared interface come from one documented command (`python -m gates lookup NAME`), which exits non-zero for an unknown name; the criterion is checked by a test, not by a timed human trial.
 - **SC-008**: The first full gate run on the integration branch is timed and recorded in the PR, and a maximum duration for later runs is set from that measurement.
 
 ## Assumptions
@@ -173,6 +175,6 @@ Agent 00 owns the shared gateway-layer contracts and the cross-domain integratio
 - The Confluence page is the full scope; Jira MMI-2 is the single-agent assignment and carries no additional criteria.
 - Jira and Confluence text name the artifacts directory `specs/003-agent-00/`, but `003` is already used by `003-modern-frontend-ui`; this feature uses the next sequential number, `005-architecture-contracts-integration`. The Jira "MMI 003" label refers to the product-completion epic, not the spec number.
 - Existing repository rules (constitution v1.3.0, `AGENTS.md`) apply: synthetic data only, no secrets, ERP read-only except the two permitted writes, humans decide purchases.
-- Other domain agents' tasks (siblings under epic MMI-1) exist or will exist; their scopes are not specified here. The maintainer supplies their PR numbers, agent names and owned paths for the integration plan (PR numbers and paths only, no private data).
+- Other domain agents' tasks (siblings under epic MMI-1) exist or will exist; their scopes are not specified here. The maintainer supplies their PR numbers, agent names and owned paths for the integration plan (PR numbers and paths only, no private data). Until siblings exist, the plan lists this feature's own PR as its first step, so its number is known only once that PR is opened.
 - Implementation happens in a dedicated worktree and feature branch, without editing another agent's owned files.
 - Existing contracts, CI and tests (`packages/contracts`, specs 001–004) are the baseline to audit and extend.
