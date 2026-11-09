@@ -35,15 +35,19 @@ def test_callers_do_not_raise_the_replica_cap_above_the_guardrail():
 def test_jobs_run_one_replica_at_a_time_with_a_timeout_cap():
     job = FILES["containerAppJob.bicep"]
     assert "parallelism: 1" in job and "replicaCompletionCount: 1" in job
-    assert not re.search(r"parallelism:\s*[2-9]", ALL) and not re.search(r"replicaCompletionCount:\s*[2-9]", ALL)
+    for name, text in FILES.items():
+        assert not re.search(r"parallelism:\s*[2-9]", text), f"{name} sets parallelism above 1"
+        assert not re.search(r"replicaCompletionCount:\s*[2-9]", text), f"{name} sets replicaCompletionCount above 1"
     assert int(re.search(r"param replicaTimeoutSeconds int = (\d+)", job).group(1)) <= G["jobs"]["max_replica_timeout_seconds"]
     for m in re.finditer(r"replicaTimeoutSeconds:\s*(\d+)", ALL):
         assert int(m.group(1)) <= G["jobs"]["max_replica_timeout_seconds"]
 
 
 def test_no_always_on_or_expensive_resource_types():
-    types = set(re.findall(r"resource \w+ '([A-Za-z./]+)@", ALL))
-    assert not types & set(G["forbidden_resource_types"])
+    bad = {name: sorted(set(re.findall(r"resource \w+ '([A-Za-z./]+)@", text)) & set(G["forbidden_resource_types"]))
+           for name, text in FILES.items()}
+    bad = {name: types for name, types in bad.items() if types}
+    assert not bad, "; ".join(f"{name} declares forbidden {', '.join(types)}" for name, types in bad.items())
 
 
 def test_only_the_allowed_extra_storage_containers_exist_and_each_expires():

@@ -24,3 +24,4 @@ Authoritative documents: `.specify/memory/constitution.md` (v1.3.0), `specs/001-
 - Gate 0 items (research V1–V7) are open assumptions until verified; T135 (supplier-cost PUT semantics) must be verified on a non-production record before any write reaches the real ERP.
 - Security posture and findings go to the internal wiki, not to this repo.
 - PRs follow `.github/pull_request_template.md` (data, security, cost, contract impact).
+- Shared interfaces are frozen and versioned in `docs/architecture/integration/contract-matrix.json`; change them through Agent 00 (see the README there) and run `python -m gates run` before the PR.

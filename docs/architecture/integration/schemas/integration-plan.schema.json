@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IntegrationPlan",
+  "type": "object",
+  "required": ["base", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "base": {
+      "const": "main"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pr",
+          "agent",
+          "owned_paths",
+          "depends_on",
+          "verification",
+          "state"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "pr": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "agent": {
+            "type": "string",
+            "pattern": "^agent-[0-9]{2}$"
+          },
+          "owned_paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "verification": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": [
+                "contracts",
+                "isolation",
+                "integration",
+                "e2e",
+                "security",
+                "cost"
+              ]
+            }
+          },
+          "state": {
+            "enum": ["pending", "integrated", "dropped", "fixed_reentered"]
+          },
+          "drop_reason": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
