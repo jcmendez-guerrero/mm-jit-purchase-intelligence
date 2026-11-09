@@ -40,7 +40,7 @@ No `NEEDS CLARIFICATION` remained after the clarification session; the items bel
 
 ## R7. Integration branch and failure handling
 
-- **Decision**: `integrate.py` reads `integration-plan.json` (ordered PRs with `depends_on`), creates a local temporary branch from main, merges each PR head in order, runs the gates, and on failure drops the failing PR plus all transitive dependents, then continues. It never pushes and never touches main. Dropped PRs are written to the report with the failing gate and cause for the owning agent.
+- **Decision**: `integrate.py` reads `integration-plan.json` (ordered PRs with `depends_on`), creates a local temporary branch from main, merges each PR head in order, runs the gates, and on failure drops the failing PR plus all transitive dependents, then continues. It never pushes and never touches main. Dropped PRs are written to the report with the failing gate and cause for the owning agent. Failure handling: a failed merge is undone by resetting to the commit saved before it (a merge that adds nothing makes no commit, so `HEAD~1` would undo the previous PR); a PR whose head does not exist is dropped with `failed_gate: ref` and the run continues; an invalid plan (unknown `depends_on`, a cycle, overlapping owners) is refused before anything is built and the command exits 3.
 - **Rationale**: Clarification Q1 and Q2. Dependent-closure is a simple graph walk.
 - **Alternatives**: Verify each PR alone (misses interaction bugs); stop on first failure (blocks independent work).
 

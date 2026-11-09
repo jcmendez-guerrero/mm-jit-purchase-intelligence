@@ -53,7 +53,7 @@ State transitions: `draft → frozen → deprecated`. A `frozen` entry's schema 
 
 ## ReleaseGate result
 
-`gate` (`contracts`, `isolation`, `integration`, `e2e`, `security`, `cost`), `result` (`pass`, `fail`, `not_run`), `evidence` (list of messages or file refs), `started_at` / `finished_at` (UTC ISO-8601 with the original string kept), `dropped_prs` and `integrated` (the PR numbers that stayed in) on the aggregate report of `integrate`. Aggregate passes only if every gate passes.
+`gate` (`contracts`, `isolation`, `integration`, `e2e`, `security`, `cost`), `result` (`pass`, `fail`, `not_run`), `evidence` (list of messages or file refs), `started_at` / `finished_at` (UTC ISO-8601 with the original string kept), `dropped_prs` and `integrated` (the PR numbers that stayed in) on the aggregate report of `integrate`. A dropped PR has a `reason` (`gate_failed`, `depends_on_dropped` or `touches_foreign_paths`) and a `failed_gate`, which is a gate name or one of `merge` (a conflict), `ownership` (a foreign path) or `ref` (the PR head does not exist). Aggregate passes only if every gate passes.
 
 ## Relationships
 
