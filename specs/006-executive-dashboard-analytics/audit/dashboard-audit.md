@@ -72,3 +72,7 @@ The dashboard dropdown lists `suppliers.id` from procurement (`routes/dashboard.
 ## Migration 0007 on PostgreSQL (T083, checked)
 
 Run on a throwaway `postgres:16-alpine` container (local, removed afterwards) with the inventory service's own Alembic setup: `upgrade head` created `capital_tied_up` (numeric), `demand_units` (integer), `forecast_units` (numeric) and `origin` (character varying, default `erp_sync`) in `inventory.agg_daily_kpis`; `downgrade -1` removed all four; `upgrade head` applied it again. The compose file pins a different PostgreSQL 16 image digest; this run used the local `postgres:16-alpine` image, so the pinned image itself is not exercised.
+
+## Supplier terms and FR-017 (T089, decided by the owner)
+
+Decision: the amounts in a supplier's terms (minimum order value, delivery charge, free-delivery threshold) are **not** cost figures for FR-017. They stay readable by every role in the dashboard's supplier panel (`apps/web/src/features/dashboard/SupplierPanel.tsx`) and through `GET /api/suppliers/{id}` (`services/api-bff/src/routes/suppliers.py`, readers: viewer, buyer, approver, admin), as set by the supplier management rules of feature 004. What roles without cost access do not receive on the dashboard: stock value, expiring value, ABC/XYZ group values, the amounts of money drill-downs, and the proposed-spend card (including the spend line of the supplier panel, which is empty for them). No code change.

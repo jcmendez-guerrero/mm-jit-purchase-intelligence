@@ -230,3 +230,12 @@ MVP first: Phases 1-2, then US1, US2, US3; validate with quickstart scenarios 1-
 **Purpose**: the one gap the third `/speckit-converge` run found that no open task tracks.
 
 - [X] T088 Rewrite guarantee 3 in `specs/006-executive-dashboard-analytics/contracts/dashboard-api.md` so it describes `variant_id` (sent only to open the product detail, never displayed) instead of the removed `detail_ref`, and note that T040 and T042 replace it with a lookup by SKU, per Constitution IV (contradicts)
+
+---
+
+## Phase 13: Convergence
+
+**Purpose**: gaps found by the fourth `/speckit-converge` run that no open task tracks.
+
+- [X] T089 Decide whether the amounts in a supplier's terms (minimum order value, delivery charge, free-delivery threshold) are cost figures for FR-017: either hide them from roles without cost access in `apps/web/src/features/dashboard/SupplierPanel.tsx` and `services/api-bff/src/routes/suppliers.py` with tests, or record in `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md` that supplier terms stay readable by every role because of the supplier management rules of feature 004, per FR-017 (partial) (decided by the owner: supplier terms stay visible to every role; recorded in the audit file, no code change)
+- [X] T090 Add a Playwright spec with simulated viewer responses that checks the dashboard shows counts and "No disponible para tu rol" and no amounts, in `apps/web/tests/e2e/dashboard-roles.spec.ts` using `apps/web/tests/e2e/dashboard-mock.ts`, per FR-017 (missing) (done: three tests, the role message in the three money cards, the products by SKU without amounts, and an accessibility scan; the amount pattern is checked against the real currency format)
