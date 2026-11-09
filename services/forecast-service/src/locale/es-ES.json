@@ -1,6 +1,5 @@
 {
   "template.sheet": "Plantilla de datos predictivos",
-  "template.col.variant_id": "ID de variante Siweb",
   "template.col.sku": "SKU",
   "template.col.day": "Fecha",
   "template.col.quantity": "Cantidad",
@@ -26,5 +25,9 @@
   "reason.import_missing_provenance": "Falta el origen del dato.",
   "reason.import_missing_column": "Falta un campo obligatorio.",
   "reason.import_ambiguous_time": "La hora local es ambigua por el cambio de horario.",
-  "reason.import_mixed_origin": "El archivo mezcla datos sintéticos y reales."
+  "reason.import_mixed_origin": "El archivo mezcla datos sintéticos y reales.",
+  "reason.import_sku_required": "La fila no indica el SKU del producto.",
+  "reason.import_unknown_sku": "El SKU no existe en el catálogo sincronizado.",
+  "reason.import_ambiguous_sku": "El SKU coincide con más de un producto; revisa mayúsculas y espacios.",
+  "reason.import_erp_export_refused": "El archivo parece una exportación del ERP, que solo puede cargarse en local; sube una hoja de datos predictivos."
 }

@@ -15,7 +15,8 @@ def test_static_csvs_use_only_synthetic_ids():
         text = sf.static(name).decode("utf-8")
         assert text.splitlines()[0].split(";") == sf.HEADER
         for line in text.splitlines()[1:]:
-            assert 9001 <= int(line.split(";")[0]) <= 9999
+            sku = line.split(";")[0]
+            assert sku.startswith("EJ-") and 9001 <= int(sku[3:]) <= 9999            # fictional SKUs only
 
 
 def test_partly_invalid_covers_each_failure_kind():

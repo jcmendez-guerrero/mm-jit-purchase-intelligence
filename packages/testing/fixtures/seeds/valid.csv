@@ -1,6 +1,6 @@
-ID de variante Siweb;Fecha;Cantidad;Almacén;Tipo de dato;Origen;Sintético/Real
-9001;2026-01-05;2;;estimado;Hoja sintética A;sintético
-9001;2026-02-05;3;;estimado;Hoja sintética A;sintético
-9002;2026-01-12;1;;previsión_manual;Hoja sintética A;sintético
-9003;2026-03-02;4;;observado_externo;Hoja sintética B;sintético
-9004;2026-03-09;0;;estimado;Hoja sintética A;sintético
+SKU;Fecha;Cantidad;Almacén;Tipo de dato;Origen;Sintético/Real
+EJ-9001;2026-01-05;2;;estimado;Hoja sintética A;sintético
+EJ-9001;2026-02-05;3;;estimado;Hoja sintética A;sintético
+EJ-9002;2026-01-12;1;;previsión_manual;Hoja sintética A;sintético
+EJ-9003;2026-03-02;4;;observado_externo;Hoja sintética B;sintético
+EJ-9004;2026-03-09;0;;estimado;Hoja sintética A;sintético

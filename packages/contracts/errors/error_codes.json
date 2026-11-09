@@ -635,6 +635,46 @@
       "http": 422,
       "kind": "row",
       "meaning": "The stored exchange rate is older than 7 days"
+    },
+    "import_sku_required": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "The row has no SKU (a variant id was supplied instead)"
+    },
+    "import_unknown_sku": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "The SKU is not in the synchronised catalogue"
+    },
+    "import_ambiguous_sku": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "The SKU matches more than one product"
+    },
+    "import_erp_export_refused": {
+      "http": 415,
+      "kind": "request",
+      "meaning": "The file looks like an ERP export, which is local-only"
+    },
+    "import_self_approval": {
+      "http": 403,
+      "kind": "request",
+      "meaning": "The uploader or validator cannot activate this dataset"
+    },
+    "import_conflict": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "Another activation or rollback ran at the same time"
+    },
+    "import_reason_required": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A reason (a choice from the list) is required"
+    },
+    "import_reason_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The reason is not in the list, or its detail is longer than 100 characters"
     }
   }
 }

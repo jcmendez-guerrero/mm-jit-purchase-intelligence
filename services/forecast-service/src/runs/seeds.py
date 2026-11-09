@@ -34,6 +34,7 @@ class SeedReport:
     skipped_sparse: set[int] = field(default_factory=set)
     overlap_variants: int = 0          # variants with seed rows on days that already have actual ERP demand (the actuals prevail)
     overlap_days: int = 0              # how many such seed days there are in total
+    retired: set[int] = field(default_factory=set)      # variants with seed rows that are no longer in the series (left the catalogue): they contribute nothing
 
 
 def load_active(conn: Connection) -> ActiveSeeds | None:
@@ -48,6 +49,7 @@ def load_active(conn: Connection) -> ActiveSeeds | None:
 
 def apply_seeds(series: list[dict[str, Any]], seeds: ActiveSeeds, min_history: int) -> tuple[list[dict[str, Any]], SeedReport]:
     report = SeedReport()
+    report.retired = set(seeds.by_variant) - {int(s["variant_id"]) for s in series}
     out: list[dict[str, Any]] = []
     for s in series:
         rows = seeds.by_variant.get(int(s["variant_id"]))

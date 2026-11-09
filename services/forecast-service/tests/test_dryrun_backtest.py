@@ -4,7 +4,7 @@ import random
 from decimal import Decimal
 
 from backtest.runner import BacktestConfig
-from conftest import KNOWN, export_series
+from conftest import KNOWN, SKUS, export_series
 from db.tables import forecast_runs, forecast_values, seed_datasets
 from seeds.dryrun import dry_run
 from seeds.lifecycle import register_upload, validate_dataset
@@ -23,7 +23,7 @@ def long_series(variant, n=200):
 def candidate(engine, store, data):
     with engine.begin() as c:
         up = register_upload(c, store, "d.csv", data, "x", "buyer-1", L)
-        validate_dataset(c, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", L)
+        validate_dataset(c, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", L, sku_map=SKUS)
         return up["id"]
 
 
