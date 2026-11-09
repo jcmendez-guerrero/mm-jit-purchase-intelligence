@@ -67,9 +67,12 @@ def run_once(engine: Engine, bus, blobs, receipts: ReceiptSource | None, writer:
     if rates is not None:                                       # MMI-6: about once a day, after the relay and never fatal (FR-043)
         try:
             with engine.begin() as conn:
-                now = datetime.now(UTC)
-                fx_status = refresh_if_due(conn, rates, now)
-                purge(conn, now)
+                fx_status = refresh_if_due(conn, rates, datetime.now(UTC))
+            try:
+                with engine.begin() as conn:                    # its own transaction: a failing cleanup must not roll back the stored rates
+                    purge(conn, datetime.now(UTC))
+            except Exception:
+                log.exception("exchange-rate cleanup failed; the rates were stored")
         except Exception:
             log.exception("exchange-rate step failed; events were relayed")
             fx_status = "error"

@@ -60,3 +60,12 @@ def test_the_storage_failure_is_audited_in_its_own_transaction(engine, monkeypat
     with engine.begin() as c:
         events = [e for e in c.execute(select(audit_events)).all() if e.action == "fx.refresh_failed"]
     assert [e.after for e in events] == [{"code": "fx_storage_error"}]
+
+
+def test_a_failing_cleanup_does_not_roll_back_the_stored_rates(engine, monkeypatch):
+    """T070 (FR-043): the cleanup has its own transaction, so a persistent cleanup error cannot keep the rates from ever being stored."""
+    calls = []
+    monkeypatch.setattr("worker.relay_once", lambda *a, **k: calls.append(1) or 0)
+    monkeypatch.setattr("worker.purge", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("cleanup failed")))
+    out = run_once(engine, InMemoryBus(), FileBlobs(), None, rates=Source(text()))
+    assert out["fx"] == "stored" and stored(engine) == 9 and calls == [1]

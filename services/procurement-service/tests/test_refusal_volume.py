@@ -98,3 +98,51 @@ def test_fifty_identical_refusals_at_the_same_instant_leave_one_entry_and_an_exa
     clock[0] += 61
     bad(client, sid)
     assert [e[4].get("repeats") for e in refusals(engine)] == [None, 49]
+
+
+def test_the_bookkeeping_never_runs_on_a_worker_thread(client, engine, sid, clock, monkeypatch):
+    """T071 (FR-042): fails every time if `_skip` moves back into the thread that writes to the database."""
+    import threading
+
+    from api import refusals as module
+
+    names = []
+    original = module._skip
+
+    def spy(request, key):
+        names.append(threading.current_thread().name)
+        return original(request, key)
+
+    monkeypatch.setattr(module, "_skip", spy)
+    bad(client, sid)
+    assert names and not any("worker" in n.lower() for n in names)
+
+
+def test_a_failed_write_does_not_silence_the_next_identical_refusal(client, engine, sid, clock, monkeypatch):
+    """T072 (FR-038, FR-042)."""
+    from api import refusals as module
+
+    original, calls = module._write, []
+
+    def flaky(*args):
+        calls.append(1)
+        if len(calls) == 1:
+            raise RuntimeError("database briefly down")
+        return original(*args)
+
+    monkeypatch.setattr(module, "_write", flaky)
+    assert bad(client, sid).status_code == 422 and refusals(engine) == []
+    assert bad(client, sid).status_code == 422
+    assert len(refusals(engine)) == 1
+
+
+def test_the_minute_summary_reports_how_many_sign_in_failures_were_not_stored(client, engine, sid, clock, caplog):
+    """T073 (FR-038)."""
+    import logging
+
+    caplog.set_level(logging.INFO, logger="procurement.refusals")
+    for _ in range(5):
+        client.put(f"/suppliers/{sid}/terms", json=BODY)
+    clock[0] += 61
+    client.put(f"/suppliers/{sid}/terms", json=BODY)                      # even another sign-in failure closes the window and reports
+    assert any("5 sign-in failures" in r.getMessage() for r in caplog.records)

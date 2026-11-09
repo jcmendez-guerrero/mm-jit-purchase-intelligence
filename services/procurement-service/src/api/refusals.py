@@ -71,6 +71,24 @@ def _engine(request: Request) -> Any:
     return request.app.dependency_overrides.get(get_engine, get_engine)()
 
 
+def _sweep(request: Request, keep: tuple[str, str, str, str, int] | None) -> None:
+    """Once a minute (or when the table is full): drop closed windows, log the repeats nobody will carry, and report the sign-in failures not stored."""
+    state = request.app.state.__dict__
+    seen: dict[tuple[str, str, str, str, int], list[float]] = state.setdefault("refusal_seen", {})
+    now = _clock()
+    if len(seen) < MAX_KEYS and now - state.setdefault("refusal_swept", now) < WINDOW_S:
+        return
+    state["refusal_swept"] = now
+    for old in [k for k, v in seen.items() if now - v[0] >= WINDOW_S and k != keep]:
+        if seen[old][1]:
+            log.info("refusals skipped in the last minute: skipped %d for %s", int(seen[old][1]), old)
+        del seen[old]
+    total, reported = getattr(request.app.state, "refusal_unauthenticated", 0), state.get("refusal_unauth_reported", 0)
+    if total > reported:                                        # FR-038: the failures counted but never stored become visible
+        log.info("refusals not stored in the last minute: %d sign-in failures", total - reported)
+        state["refusal_unauth_reported"] = total
+
+
 def _skip(request: Request, key: tuple[str, str, str, str, int]) -> int | None:
     """FR-038: None when this refusal must be stored (the repeats skipped before it are returned); otherwise it is only counted.
 
@@ -83,14 +101,6 @@ def _skip(request: Request, key: tuple[str, str, str, str, int]) -> int | None:
     if entry is not None and now - entry[0] < WINDOW_S:
         entry[1] += 1
         return None
-    state = request.app.state.__dict__
-    if len(seen) >= MAX_KEYS or now - state.setdefault("refusal_swept", now) >= WINDOW_S:
-        state["refusal_swept"] = now
-        for old in [k for k, v in seen.items() if now - v[0] >= WINDOW_S]:
-            if seen[old][1] and old != key:                                  # the window closed with repeats nobody will carry: log them once
-                log.info("refusals skipped in the last minute: skipped %d for %s", int(seen[old][1]), old)
-            if old != key:
-                del seen[old]
     repeats = int(entry[1]) if entry is not None else 0
     seen[key] = [now, 0]
     return repeats
@@ -108,12 +118,19 @@ async def _record(request: Request, path: str, status: int, detail: Any) -> None
         action, entity, entity_id = _target(path, dict(request.path_params))
         actor = str(getattr(request.state, "actor", "unknown"))[:120]
         if status == 401:                                       # no valid sign-in: counted, never stored one by one
+            _sweep(request, None)                               # reports the failures up to this one, which belongs to the next minute
             request.app.state.refusal_unauthenticated = getattr(request.app.state, "refusal_unauthenticated", 0) + 1
             return
         code, entity_id = _code(status, detail), entity_id[:60]
-        repeats = _skip(request, (actor, entity, entity_id, code, status))
+        key = (actor, entity, entity_id, code, status)
+        _sweep(request, key)
+        repeats = _skip(request, key)
         if repeats is not None:
-            await run_in_threadpool(_write, request, action, entity, entity_id, actor, code, status, repeats)
+            try:
+                await run_in_threadpool(_write, request, action, entity, entity_id, actor, code, status, repeats)
+            except Exception:
+                request.app.state.refusal_seen.pop(key, None)   # a failed write must not silence the next identical refusal
+                raise
     except Exception:
         log.exception("refusal not recorded")
 

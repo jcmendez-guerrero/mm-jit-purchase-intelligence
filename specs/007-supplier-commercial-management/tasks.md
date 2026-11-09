@@ -184,3 +184,12 @@ Tests first, then the fixes.
 - [X] T069 Run the procurement, BFF, contracts and infra suites, ruff and the PostgreSQL migration test; update `research.md` audit rows, `quickstart.md` step 6 results and `pr-body.md` (depends on T065 to T068) — done: procurement 817, BFF 177, contracts 208, infra 59, PostgreSQL migrations 9, ruff clean
 
 **Order**: T065 and T066 first (parallel, they must fail); then T067 and T068 (different files, parallel); T069 last.
+
+## Phase 14: Convergence
+
+- [X] T070 Run `purge` in its own transaction and its own `try/except` after the rate refresh commits in `services/procurement-service/src/worker.py`, so a failing cleanup cannot roll back freshly stored rates; add a test in `tests/test_worker_fx.py` where `purge` raises and the rates are still stored and the relay still ran per FR-043 (partial: refresh and purge share one transaction, so a persistent purge error rolls the rates back every pass and they go stale after 7 days) — done: purge in its own transaction and try/except; test fails before, passes after
+- [X] T071 [P] Add a test in `services/procurement-service/tests/test_refusal_volume.py` that patches `api.refusals._skip` to record `threading.current_thread()` and asserts it ran on the main thread, not a pool thread, per FR-042 (partial: the 50-thread test passes on the old code too, so nothing fails if the bookkeeping moves back into the thread) — done: passes on the current code and fails if `_skip` moves back into the thread
+- [X] T072 In `services/procurement-service/src/api/refusals.py` forget the key from the recent-refusals table when the database write fails, so a failed write does not silence identical refusals for the next minute, with a test that makes the write raise and then expects the next identical refusal to be stored, per FR-038 and FR-042 (partial: `_skip` marks the key as stored before the write) — done: the key is forgotten when the write raises; test failed before
+- [X] T073 [P] In `services/procurement-service/src/api/refusals.py` include the count of skipped sign-in failures in the once-a-minute sweep summary log line (and reset it), with a test using `caplog`, per FR-038 (partial: `refusal_unauthenticated` is counted but never shown anywhere outside tests) — done: `_sweep` logs the sign-in failures not stored once a minute (also from a pure 401 flood); test failed before
+
+**Order**: T071 and T073 are parallel tests-first work; T072 and T073 touch the same file (`refusals.py`), so run them in order; T070 is independent (`worker.py`).
