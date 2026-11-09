@@ -238,7 +238,7 @@ describe("refused self-activation (MMI-7 T028)", () => {
     return (await screen.findByRole("alert")).textContent ?? "";
   }
 
-  it("tells an admin how to proceed (a written reason), and a buyer to ask another person", async () => {
+  it("tells an admin to choose a reason to self-activate, and a buyer to ask another person", async () => {
     expect(await activateRefused(["admin"])).toContain("indique un motivo");
   });
 

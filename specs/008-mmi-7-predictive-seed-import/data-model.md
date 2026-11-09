@@ -17,8 +17,8 @@ Owner: forecast service schema. Existing tables from feature 002 migration 0003 
 
 `uploaded` → `validated` → `active` → `superseded` or `rolled_back`; `uploaded`/`validated` → `rejected`. The earlier `approved` state is never set (kept in the schema enum as deprecated); activation is the approval.
 
-- Activation: allowed only from `validated`, with accepted rows, no mixed origin, duplicate-file acknowledgement if the checksum repeats, an approver who is not the uploader or the validator (or an audited owner/admin self-activation with a written reason), and fresh MFA. The previous active dataset becomes `superseded`.
-- Rollback: allowed only from `active`, with a reason and fresh MFA. The dataset becomes `rolled_back` and the one it superseded (if any) becomes `active` again. No rows are deleted.
+- Activation: allowed only from `validated`, with accepted rows, no mixed origin, duplicate-file acknowledgement if the checksum repeats, an approver who is not the uploader or the validator (or an audited owner/admin self-activation with a reason from the self-activation list and an optional detail of at most 100 characters), and fresh MFA. The previous active dataset becomes `superseded`.
+- Rollback: allowed only from `active`, with a reason from the rollback list (plus an optional detail of at most 100 characters) and fresh MFA. The detail is returned to admins only and never audited; the audit entry holds the reason code. The dataset becomes `rolled_back` and the one it superseded (if any) becomes `active` again. No rows are deleted.
 - Concurrency: the existing unique index on `status = 'active'` already allows one active dataset; a losing activation or rollback maps the integrity error to `import_conflict`.
 
 ## Validation rules
