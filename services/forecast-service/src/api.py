@@ -9,7 +9,7 @@ from typing import Any
 
 from audit import append
 from db.tables import forecast_runs, forecast_values
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Path
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Path, Query
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
 from parameters import ParameterConflict, ParameterError, listing, save_parameter
@@ -79,8 +79,8 @@ def build_router(app: FastAPI) -> APIRouter:
                 "horizons": horizons, "upper_level": UPPER_LEVEL}
 
     @router.get("/accuracy")
-    def accuracy(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
-        return latest_accuracy(conn)
+    def accuracy(history: int = Query(default=0, ge=0, le=52), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        return latest_accuracy(conn, history)
 
     @router.get("/runs")
     def runs(limit: int = 20, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
@@ -63,6 +64,49 @@ async def overview(
         _card(proc.forward("GET", "/summary/spend", params={"supplier_id": supplier_id} if supplier_id else None, **who)) if MONEY_ROLES.intersection(session.roles) else _hidden_by_role(),
         _card(_supplier_options(proc, who)))
     return {"summary": summary, "trend": trend, "abc_xyz": abc, "risks": risks, "options": options, "accuracy": accuracy, "spend": spend, "suppliers": suppliers}
+
+
+def _money(raw: Any) -> Decimal | None:
+    try:
+        return Decimal(raw) if isinstance(raw, str) else None
+    except InvalidOperation:
+        return None
+
+
+def capital_indicator(stock: dict[str, Any], spend: dict[str, Any], unsupported: list[str]) -> dict[str, Any]:
+    """FR-025: capital tied up = stock at lot cost + confirmed orders not yet received. Adds two numbers it received; a missing part gives ``error``, never a partial total."""
+    ind = next((i for i in stock.get("indicators", []) if i.get("key") == "stock_value"), {})
+    held, open_orders = _money(ind.get("value")), _money(spend.get("open_orders"))
+    out: dict[str, Any] = {"key": "capital_tied_up", "value": None, "unit": "EUR", "state": "error", "basis": "dashboard.basis.stock_plus_open_orders",
+                           "definition_key": "dashboard.def.capital_tied_up",
+                           "freshness": ind.get("freshness") or {"source": "inventory_snapshot", "refreshed_at": None, "refreshed_at_original": None, "origin": "erp_sync", "state": "error"}}
+    if unsupported:
+        out["filters_unsupported"] = unsupported
+    if held is None or open_orders is None:
+        return out
+    return {**out, "value": str((held + open_orders).quantize(Decimal("0.01"))), "state": "stale" if ind.get("state") == "stale" else "ok",
+            "parts": [{"key": "stock_at_cost", "label_key": "dashboard.part.stock_at_cost", "value": str(held)},
+                      {"key": "open_orders", "label_key": "dashboard.part.open_orders", "value": str(open_orders)}]}
+
+
+@router.get("/capital")
+async def capital(
+    warehouse_id: int | None = Query(default=None, ge=0),
+    category: str | None = Query(default=None, pattern="^(A|B|C|critical)$"),
+    family: str | None = Query(default=None, min_length=1, max_length=120),
+    supplier_id: str | None = Query(default=None, pattern="^[A-Za-z0-9_-]{1,36}$"),
+    session: SessionData = Depends(require_roles(*READ)),
+    inv: InventoryClient = Depends(get_inventory_client),
+    proc: ProcurementClient = Depends(get_procurement_client),
+) -> dict[str, Any]:
+    """Capital tied up (T091). The viewer gets ``hidden_by_role`` without any service being called."""
+    who = {"user_id": session.user_id, "roles": session.roles}
+    f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id)) if v is not None}
+    unsupported = [k.removesuffix("_id") for k in ("warehouse_id", "category", "family") if k in f]          # procurement cannot split open orders by these
+    if not MONEY_ROLES.intersection(session.roles):
+        return {**capital_indicator({}, {}, []), "state": "hidden_by_role"}
+    stock, spend = await asyncio.gather(_card(inv.forward("GET", "/dashboard/indicators", params=f, **who)), _card(proc.forward("GET", "/summary/spend", params={"supplier_id": supplier_id} if supplier_id else None, **who)))
+    return capital_indicator(stock.get("data") or {}, spend.get("data") or {}, unsupported)
 
 
 @router.get("/drilldown")

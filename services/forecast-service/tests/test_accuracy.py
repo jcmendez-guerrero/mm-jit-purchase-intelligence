@@ -99,3 +99,19 @@ def test_the_http_endpoints_serve_accuracy_and_the_run_list(engine, tmp_path):
     assert "B" in c.get("/accuracy", headers=h).json()["metrics"]
     runs = c.get("/runs", headers=h).json()["runs"]
     assert len(runs) == 2 and runs[0]["status"] == "completed" and c.get("/accuracy").status_code == 401
+
+
+def test_the_accuracy_history_lists_each_scored_run_newest_first_and_defaults_to_none(engine, tmp_path):
+    """T022 (feature 006): WAPE and bias over time for the dashboard, additive to the latest figures."""
+    run_forecast(engine, FakeSource(export(120, 0)), NullWriter(tmp_path), RunConfig())
+    run_forecast(engine, FakeSource(export(130, 4)), NullWriter(tmp_path), RunConfig())
+    run_forecast(engine, FakeSource(export(140, 6)), NullWriter(tmp_path), RunConfig())
+    with engine.begin() as c:
+        plain = latest_accuracy(c)
+        h = latest_accuracy(c, history=5)
+    assert plain["history"] == [] and len(h["history"]) == 2
+    newest, oldest = h["history"]
+    assert newest["run_id"] == h["run_id"] and newest["through_day"] > oldest["through_day"]
+    assert set(newest["metrics"]) == {"wape", "bias"} and Decimal(oldest["metrics"]["wape"]) >= 0
+    with engine.begin() as c:
+        assert len(latest_accuracy(c, history=1)["history"]) == 1

@@ -9,6 +9,7 @@ from typing import Any
 
 from dashboard.drilldown import KINDS, DrillError, drilldown
 from dashboard.filters import FilterError, FilterSet
+from dashboard.indicators import build_indicators
 from dashboard.kpis import (
     Filters,
     abc_xyz_distribution,
@@ -49,6 +50,16 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
         except Exception:
             s, forecast_ok = compute_summary(conn, today, f, None), False
         return hide_money({**s.as_json(), "forecast_available": forecast_ok and means() is not None}, _p.roles)
+
+    @router.get("/indicators")
+    def indicators(date_from: date | None = None, date_to: date | None = None, warehouse_id: int | None = None, category: str | None = None, family: str | None = None,
+                   supplier_id: str | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        today = datetime.now(UTC).date()
+        try:
+            fs = FilterSet.parse(today, date_from, date_to, warehouse_id, supplier_id, category, family)
+        except FilterError as exc:
+            raise HTTPException(422, "request_invalid") from exc
+        return build_indicators(conn, today, fs, means(), _p.roles)
 
     @router.get("/demand-trend")
     def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, family: str | None = None, supplier_id: str | None = None,
