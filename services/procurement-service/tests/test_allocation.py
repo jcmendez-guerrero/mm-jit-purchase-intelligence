@@ -130,6 +130,23 @@ terms_st = st.fixed_dictionaries({"min_value": st.sampled_from([None, "20", "80"
                                   "free": st.sampled_from([None, "60", "200"]), "charge": st.sampled_from([None, "5", "12.5"])})
 
 
+def objective(a, lines):
+    """What the optimiser minimises: the cash total plus the lead-time risk of each chosen offer. The cash total alone can be higher for the
+    optimum (it may pay a little more to avoid a slow supplier), so comparing cash totals is not an invariant."""
+    risk = {(c.variant_id, c.supplier_id): c.risk_ticks for ln in lines for c in ln.cands}
+    return a.total_ticks + sum(risk[(x.variant_id, x.supplier_id)] for x in a.chosen)
+
+
+def test_the_optimum_may_cost_a_little_more_cash_to_avoid_a_slow_supplier():
+    """Found by the property test below: B is cheaper in cash but has a 5-day lead time (risk) and a delivery charge."""
+    variants = [variant(1, [offer("A", "0.50")], flat_forecast(1.0), on_hand=0),
+                variant(2, [offer("A", "1.03", pack=12), offer("B", "0.50", lead=5)], flat_forecast(2.0), on_hand=0)]
+    inp = inputs(variants, [terms("A"), terms("B", charge="12.5")])
+    lines = build_lines(inp)
+    greedy, opt = allocate_greedy(inp, lines), allocate_cpsat(inp, lines)
+    assert opt.total_ticks > greedy.total_ticks and objective(opt, lines) < objective(greedy, lines)
+
+
 @settings(max_examples=40, deadline=None, suppress_health_check=[HealthCheck.too_slow])
 @given(st.lists(variant_st, min_size=1, max_size=5), terms_st, terms_st, terms_st, st.sampled_from([None, "50", "400", "100000"]))
 def test_allocation_invariants(vs, ta, tb, tc, budget):
@@ -163,7 +180,7 @@ def test_allocation_invariants(vs, ta, tb, tc, budget):
         elif t.delivery_charge is not None:
             assert g.delivery_charge_ticks == ticks(t.delivery_charge)
     if all(g.minimum_status == "met" for g in greedy.groups) and greedy.over_budget_ticks == 0 and opt.solver_status in ("optimal", "feasible"):
-        assert opt.total_ticks <= greedy.total_ticks                                  # never worse than the baseline
+        assert objective(opt, lines) <= objective(greedy, lines)                      # never worse than the baseline, on what the solver minimises
         assert opt.over_budget_ticks == 0
     if budget is not None and all(g.minimum_status == "met" for g in greedy.groups) and greedy.over_budget_ticks == 0 and opt.solver_status == "optimal":
         assert sum(g.total_ticks for g in opt.groups) <= ticks(D(budget))      # a plan inside the budget exists, so the optimum stays inside
