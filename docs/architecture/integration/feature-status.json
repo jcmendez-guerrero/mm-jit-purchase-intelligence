@@ -1,0 +1,388 @@
+{
+  "audited_commit": "9d11abb",
+  "audited_at": "2026-11-09T00:00:00Z",
+  "features": [
+    {
+      "id": "001-us1",
+      "title": "[001 US1] Trustworthy inventory and movement data",
+      "status": "complete",
+      "evidence": [
+        "services/inventory-service/src/quality/__init__.py:1",
+        "services/inventory-service/src/quality/metrics.py:17",
+        "services/inventory-service/tests/test_review_and_metrics.py:29"
+      ],
+      "owner": "inventory-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "001-us2",
+      "title": "[001 US2] Reliable demand picture per product",
+      "status": "complete",
+      "evidence": [
+        "services/inventory-service/src/demand/pipeline.py:25",
+        "services/inventory-service/tests/test_demand.py:14"
+      ],
+      "owner": "inventory-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "001-us3",
+      "title": "[001 US3] Product classification and forecast eligibility",
+      "status": "complete",
+      "evidence": [
+        "services/inventory-service/src/classification/run.py:27",
+        "services/inventory-service/tests/test_classification.py:26"
+      ],
+      "owner": "inventory-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "001-us4",
+      "title": "[001 US4] Supplier costs and terms with provenance",
+      "status": "complete",
+      "evidence": [
+        "services/procurement-service/src/costs/__init__.py:1",
+        "services/procurement-service/src/costs/directory.py:15",
+        "services/procurement-service/tests/test_costs.py:21"
+      ],
+      "owner": "procurement-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "001-us5",
+      "title": "[001 US5] Explainable weekly purchase proposal, approval and export",
+      "status": "complete",
+      "evidence": [
+        "services/procurement-service/src/approvals/__init__.py:1",
+        "services/procurement-service/src/approvals/workflow.py:24",
+        "services/procurement-service/tests/test_approval.py:22"
+      ],
+      "owner": "procurement-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "001-us6",
+      "title": "[001 US6] Spanish-language insight and risk dashboard",
+      "status": "complete",
+      "evidence": [
+        "services/inventory-service/src/dashboard/kpis.py:41",
+        "services/inventory-service/tests/test_drilldown.py:16"
+      ],
+      "owner": "inventory-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "001-us7",
+      "title": "[001 US7] Safe, observable, budget-bounded operation",
+      "status": "complete",
+      "evidence": [
+        "infra/bicep/main.bicep:8",
+        "infra/tests/test_cost_guardrails.py:13"
+      ],
+      "owner": "infra",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "002-us1",
+      "title": "[002 US1] Trustworthy approvals and durable access control",
+      "status": "complete",
+      "evidence": [
+        "services/api-bff/src/auth/session.py:25",
+        "services/api-bff/tests/test_auth_rbac.py:13"
+      ],
+      "owner": "api-bff",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "002-us2",
+      "title": "[002 US2] Analytical dashboard with real data",
+      "status": "complete",
+      "evidence": [
+        "services/api-bff/src/routes/dashboard.py:22",
+        "services/api-bff/tests/test_dashboard_orchestration.py:12"
+      ],
+      "owner": "api-bff",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "002-us3",
+      "title": "[002 US3] Supplier and product-supplier commercial terms",
+      "status": "complete",
+      "evidence": [
+        "services/api-bff/src/routes/suppliers.py:26",
+        "services/procurement-service/tests/test_allocation_terms.py:21"
+      ],
+      "owner": "procurement-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "002-us4",
+      "title": "[002 US4] Editable inventory, replenishment and forecasting policies",
+      "status": "complete",
+      "evidence": [
+        "services/forecast-service/src/policies/base.py:22",
+        "services/api-bff/src/routes/policies.py:28",
+        "services/forecast-service/tests/test_policies.py:12"
+      ],
+      "owner": "forecast-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "002-us5",
+      "title": "[002 US5] Predictive seed data import with provenance and rollback",
+      "status": "complete",
+      "evidence": [
+        "services/forecast-service/src/seeds/lifecycle.py:32",
+        "services/forecast-service/tests/test_seed_activation.py:24"
+      ],
+      "owner": "forecast-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "002-us6",
+      "title": "[002 US6] Procurement scenarios and explainable allocation",
+      "status": "complete",
+      "evidence": [
+        "services/procurement-service/src/allocation/__init__.py:1",
+        "services/procurement-service/src/allocation/common.py:13",
+        "services/procurement-service/tests/test_allocation.py:17"
+      ],
+      "owner": "procurement-service",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "002-us7",
+      "title": "[002 US7] Administration, reliability and cost visibility",
+      "status": "complete",
+      "evidence": [
+        "services/api-bff/src/routes/admin_status.py:29",
+        "services/api-bff/tests/test_admin_rerun.py:11"
+      ],
+      "owner": "api-bff",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "003-us1",
+      "title": "[003 US1] Find and reach any screen quickly",
+      "status": "complete",
+      "evidence": [
+        "apps/web/src/app/App.tsx:44",
+        "apps/web/src/app/AppShell.tsx:25",
+        "apps/web/tests/e2e/a11y-all-routes.spec.ts:1"
+      ],
+      "owner": "web",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "003-us2",
+      "title": "[003 US2] Read and act on data with less effort",
+      "status": "complete",
+      "evidence": [
+        "apps/web/src/ui/Button.tsx:13",
+        "apps/web/src/ui/Card.tsx:11",
+        "apps/web/tests/e2e/a11y-all-routes.spec.ts:1"
+      ],
+      "owner": "web",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "003-us3",
+      "title": "[003 US3] Tablet, narrow and large screens",
+      "status": "complete",
+      "evidence": [
+        "apps/web/src/styles/base.css:33",
+        "apps/web/src/styles/components.css:6",
+        "apps/web/tests/e2e/a11y-all-routes.spec.ts:1"
+      ],
+      "owner": "web",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "003-us4",
+      "title": "[003 US4] Consistent forms, actions and feedback",
+      "status": "complete",
+      "evidence": [
+        "apps/web/src/ui/Button.tsx:13",
+        "apps/web/src/ui/Card.tsx:11",
+        "apps/web/tests/unit/CommandPalette.test.tsx:15"
+      ],
+      "owner": "web",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "003-us5",
+      "title": "[003 US5] Appearance choice (themes)",
+      "status": "complete",
+      "evidence": [
+        "apps/web/src/styles/base.css:33",
+        "apps/web/src/styles/components.css:6",
+        "apps/web/tests/e2e/a11y-all-routes.spec.ts:1"
+      ],
+      "owner": "web",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "004-us1",
+      "title": "[004 US1] Load inventory and stock from ERP exports locally",
+      "status": "complete",
+      "evidence": [
+        "services/api-bff/src/routes/local_load.py:33",
+        "services/api-bff/tests/test_local_load_routes.py:13"
+      ],
+      "owner": "api-bff",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "004-us2",
+      "title": "[004 US2] Create and configure suppliers from the UI",
+      "status": "partial",
+      "evidence": [
+        "services/api-bff/src/routes/suppliers.py:26",
+        "services/api-bff/tests/test_supplier_routes.py:18"
+      ],
+      "owner": "api-bff",
+      "reuse": true,
+      "notes": "open tasks in spec 004: T076, T077, T078, T079, T109, T110, T080, T081, T082; tests present, not executed by this audit"
+    },
+    {
+      "id": "004-us3",
+      "title": "[004 US3] Import the supplier list from an export",
+      "status": "complete",
+      "evidence": [
+        "services/api-bff/src/routes/imports.py:23",
+        "services/procurement-service/tests/test_internal_supplier_import.py:15"
+      ],
+      "owner": "api-bff",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "004-us4",
+      "title": "[004 US4] Safe synthetic fixtures and a local-only guarantee",
+      "status": "partial",
+      "evidence": [
+        "scripts/check_export_signatures.py:48",
+        "scripts/tests/test_check_export_signatures.py:22"
+      ],
+      "owner": "tooling",
+      "reuse": true,
+      "notes": "open tasks in spec 004: T067, T068, T069, T070, T071, T072, T073, T074, T075; tests present, not executed by this audit"
+    },
+    {
+      "id": "infra-siweb-mock",
+      "title": "[no user story] Siweb mock service for local and CI runs",
+      "status": "complete",
+      "evidence": [
+        "packages/testing/src/siweb_mock/app.py:24",
+        "packages/testing/tests/test_siweb_mock.py:11"
+      ],
+      "owner": "tooling",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "infra-dev-issuer",
+      "title": "[no user story] Development token issuer (local sign-in only)",
+      "status": "complete",
+      "evidence": [
+        "packages/testing/src/dev_issuer/__init__.py:15",
+        "packages/testing/tests/test_dev_issuer.py:10"
+      ],
+      "owner": "tooling",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "infra-synthetic-generator",
+      "title": "[no user story] Synthetic data generator and fixtures",
+      "status": "complete",
+      "evidence": [
+        "packages/testing/src/generator/__init__.py:1",
+        "packages/testing/tests/test_generator.py:11"
+      ],
+      "owner": "tooling",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "infra-compose-stack",
+      "title": "[no user story] Local compose stack (all services and the web app)",
+      "status": "complete",
+      "evidence": [
+        "infra/compose.yaml:2",
+        "infra/tests/test_compose_wiring.py:10"
+      ],
+      "owner": "infra",
+      "reuse": true,
+      "notes": "started and removed by the e2e gate during this feature's verification; compose tests not executed by this audit"
+    },
+    {
+      "id": "infra-web-hardening",
+      "title": "[no user story] Web container and response header hardening",
+      "status": "complete",
+      "evidence": [
+        "apps/web/nginx.conf.template:1",
+        "infra/tests/test_web_headers.py:10"
+      ],
+      "owner": "infra",
+      "reuse": true,
+      "notes": "tests present, not executed by this audit"
+    },
+    {
+      "id": "infra-db-migrations",
+      "title": "[no user story] Per-service database migrations on PostgreSQL",
+      "status": "complete",
+      "evidence": [
+        "services/inventory-service/migrations/env.py:13",
+        "infra/tests/test_migrations_postgres.py:34"
+      ],
+      "owner": "infra",
+      "reuse": true,
+      "notes": "the role-grant and migration test ran in the isolation gate with the database check on (passed)"
+    },
+    {
+      "id": "infra-bicep-deployment",
+      "title": "[no user story] Azure deployment definition (Bicep) and cost guardrails",
+      "status": "unverified",
+      "evidence": [
+        "infra/bicep/main.bicep:9",
+        "infra/tests/test_cost_guardrails.py:13"
+      ],
+      "owner": "infra",
+      "reuse": true,
+      "notes": "guardrail tests pass, but the Bicep was never deployed or built by this audit"
+    },
+    {
+      "id": "infra-ci-deploy-workflows",
+      "title": "[no user story] CI and deployment workflows",
+      "status": "unverified",
+      "evidence": [
+        ".github/workflows/ci.yml:1",
+        ".github/workflows/deploy.yml:1"
+      ],
+      "owner": "infra",
+      "reuse": true,
+      "notes": "workflow run history on GitHub was not inspected; the same suites were run locally by the gates"
+    }
+  ]
+}

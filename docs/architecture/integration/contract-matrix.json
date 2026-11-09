@@ -1,0 +1,1434 @@
+{
+  "matrix_version": 1,
+  "generated_at": "2026-11-09T15:29:10Z",
+  "schema_ownership": {
+    "siweb-connector": "integration",
+    "inventory-service": "inventory",
+    "forecast-service": "forecasting",
+    "procurement-service": "procurement",
+    "siweb-cost-writer": "costwrite",
+    "api-bff": "bff"
+  },
+  "entries": [
+    {
+      "name": "budget_cap",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/budget_cap.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "conditions_block",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/conditions_block.v1.schema.json",
+      "owner": "siweb-cost-writer",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "cost_write",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/cost_write.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "api-bff",
+        "siweb-cost-writer"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "dashboard_summary",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/dashboard_summary.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "demand_rule",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/demand_rule.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "forecast_accuracy",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/forecast_accuracy.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "forecast_parameter",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/forecast_parameter.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "load_result",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/load_result.v1.schema.json",
+      "owner": "agent-00",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "lot_acquisition_cost",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/lot_acquisition_cost.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "inventory-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "money",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/money.v1.schema.json",
+      "owner": "agent-00",
+      "consumers": [
+        "forecast-service",
+        "inventory-service",
+        "procurement-service",
+        "siweb-connector"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "policy_override_request",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/policy_override_request.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "policy_set",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/policy_set.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "product_supplier_terms",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/product_supplier_terms.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "proposal",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/proposal.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "api-bff",
+        "inventory-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "proposal_line",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/proposal_line.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "scenario",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/scenario.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "scenario_result",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/scenario_result.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "scenario_sensitivity",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/scenario_sensitivity.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "seed_dataset",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/seed_dataset.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "seed_mapping",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/seed_mapping.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "seed_validation_result",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/seed_validation_result.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "stocking_setting",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/stocking_setting.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "supplier",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/supplier.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "api-bff",
+        "inventory-service",
+        "siweb-connector",
+        "siweb-cost-writer"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "supplier_cost",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/supplier_cost.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "inventory-service",
+        "siweb-connector"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "supplier_link",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/supplier_link.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "supplier_terms",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/supplier_terms.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "variant",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/variant.v1.schema.json",
+      "owner": "agent-00",
+      "consumers": [
+        "api-bff",
+        "forecast-service",
+        "inventory-service",
+        "procurement-service",
+        "siweb-connector",
+        "siweb-cost-writer"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "envelope",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/envelope.v1.schema.json",
+      "owner": "agent-00",
+      "consumers": [
+        "api-bff",
+        "forecast-service",
+        "inventory-service",
+        "procurement-service",
+        "siweb-connector",
+        "siweb-cost-writer"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "forecast.completed",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/forecast.completed.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [
+        "procurement-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "forecast.seed.activated",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/forecast.seed.activated.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "inventory.demand.updated",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/inventory.demand.updated.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "forecast-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "inventory.rules.changed",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/inventory.rules.changed.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "inventory.snapshot.created",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/inventory.snapshot.created.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "forecast-service",
+        "procurement-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "procurement.cost.write_requested",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/procurement.cost.write_requested.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "siweb-cost-writer"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "procurement.lot_cost.changed",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/procurement.lot_cost.changed.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "inventory-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "procurement.order.confirmed",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/procurement.order.confirmed.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "inventory-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "procurement.proposal.generated",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/procurement.proposal.generated.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "procurement.scenario.ready",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/procurement.scenario.ready.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "procurement.terms.changed",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/procurement.terms.changed.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "siweb.cost.write_completed",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/siweb.cost.write_completed.v1.schema.json",
+      "owner": "siweb-cost-writer",
+      "consumers": [
+        "procurement-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "siweb.sync.completed",
+      "kind": "event",
+      "version": 1,
+      "schema_path": "events/siweb.sync.completed.v1.schema.json",
+      "owner": "siweb-connector",
+      "consumers": [
+        "inventory-service",
+        "procurement-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "error_codes",
+      "kind": "error",
+      "version": 1,
+      "schema_path": "errors/error_codes.json",
+      "owner": "agent-00",
+      "consumers": [
+        "api-bff",
+        "procurement-service"
+      ],
+      "status": "frozen"
+    },
+    {
+      "name": "POST /api/admin/rerun/forecast",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/admin/rerun/import/{job_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/admin/rerun/mirror",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/admin/roles",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/admin/roles/mirror",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/admin/roles/mirror/retry",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/admin/roles/{user_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/admin/status",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/auth/callback",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/auth/config",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/auth/dev-login",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/auth/login",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/auth/logout",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/budget-caps",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/config/loss-cutover",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/config/service-levels",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/cost-updates",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/cost-writes",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/cost-writes/{write_id}/approve",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/cost-writes/{write_id}/override",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/costs",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/costs/import",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/criticality",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/dashboard/drilldown",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/dashboard/overview",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/dashboard/risk",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/dashboard/variants/{variant_id}/forecast-basis",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/data-quality/import-errors",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/data-quality/import-errors/{error_id}/resolve",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/demand-rules/exclusions",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/demand-rules/exclusions/{xid}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/demand-rules/rules/{rule}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/forecast/runs",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/imports",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/imports",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/imports/jobs",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/imports/mappings",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/imports/mappings",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/imports/rollback",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/imports/template",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/imports/{dataset_id}/activate",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/imports/{dataset_id}/dry-run",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/imports/{dataset_id}/quarantine",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/imports/{dataset_id}/reject",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/imports/{dataset_id}/validate",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/inventory/variants/{variant_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/links/bulk/file",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/lot-costs",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/lot-costs",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/me",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/parameters/{key}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/policies/{scope}/{key}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/policies/{scope}/{key}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/policies/{scope}/{key}/preview",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/policy-console",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/policy-overrides",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/policy-overrides",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/policy-overrides/recommendation/{variant_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/policy-overrides/{rid}/approve",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/policy-overrides/{rid}/reject",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/policy-overrides/{rid}/revert",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/product-suppliers/{variant_id}/{supplier_id}/terms",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/product-suppliers/{variant_id}/{supplier_id}/terms",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/products/{product_id}/criticality",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/proposals",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/proposals/{proposal_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/proposals/{proposal_id}/approve",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/proposals/{proposal_id}/export",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/proposals/{proposal_id}/lines/{line_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/proposals/{proposal_id}/orders/{supplier_id}/confirm",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/proposals/{proposal_id}/submit",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/scenarios",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/scenarios",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/scenarios/{sid}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/scenarios/{sid}/export",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/scenarios/{sid}/promote",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/segments/{variant_id}/history",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/stocking/{variant_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/stocking/{variant_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/suppliers",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/suppliers",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/suppliers/review-items",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/suppliers/review-items/{item_id}/resolve",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/suppliers/{supplier_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PATCH /api/suppliers/{supplier_id}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/suppliers/{supplier_id}/deactivate",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/suppliers/{supplier_id}/links",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/suppliers/{supplier_id}/links/bulk/apply",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/suppliers/{supplier_id}/links/bulk/preview",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/suppliers/{supplier_id}/links/{sku}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "DELETE /api/suppliers/{supplier_id}/links/{sku}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/suppliers/{supplier_id}/merge",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/suppliers/{supplier_id}/reactivate",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/suppliers/{supplier_id}/terms",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/suppliers/{supplier_id}/terms",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /healthz",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /readyz",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /whoami",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    }
+  ]
+}

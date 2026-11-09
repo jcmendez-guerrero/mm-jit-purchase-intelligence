@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GateReport",
+  "type": "object",
+  "required": [
+    "overall",
+    "gates"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "overall": {
+      "enum": [
+        "pass",
+        "fail",
+        "not_run"
+      ]
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": [
+          "gate",
+          "result",
+          "evidence",
+          "started_at",
+          "finished_at"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "gate": {
+            "enum": [
+              "contracts",
+              "isolation",
+              "integration",
+              "e2e",
+              "security",
+              "cost"
+            ]
+          },
+          "result": {
+            "enum": [
+              "pass",
+              "fail",
+              "not_run"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "dropped_prs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pr",
+          "agent",
+          "reason",
+          "failed_gate"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "pr": {
+            "type": "integer"
+          },
+          "agent": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "gate_failed",
+              "depends_on_dropped",
+              "touches_foreign_paths"
+            ]
+          },
+          "failed_gate": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "integrated": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    }
+  }
+}
