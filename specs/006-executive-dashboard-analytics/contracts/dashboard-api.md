@@ -37,10 +37,10 @@ Existing `/overview` and `/drilldown` behaviour stays backward compatible until 
 |-----------|-------|
 | kind | `inventory_value`, `coverage`, `stockout_risk`, `expiry_risk`, `abc_xyz`, `trend_day`, plus `demand`, `forecast`, `capital`, `budget`, `expiry_band` |
 | abc, xyz, day, band | as required by the kind |
-| page, page_size | page >= 1; page_size 10-200 (default 50) |
-| sort, order | one of the returned columns; `asc` or `desc` |
+| limit, offset | limit 1-200 (default 50); offset >= 0 |
+| sort, order | sort `sku`, `name` or `figure`; order `asc` (default) or `desc`; `order` without `sort` is refused. Sorting covers the whole list, ties fall back to SKU ascending |
 
-Response: `rows` (ContributionRow), `total`, `page`, `page_size`, `sum`. **Invariant**: `sum` equals the indicator value for the same FilterSet.
+Response (`DrillPage` in the v2 schema, checked by `services/inventory-service/tests/test_dashboard_drill_contract.py`): `kind`, `rows` (ContributionRow: `variant_id` only to open the detail and never shown, `sku`, `name`, `figure`), `total`, `truncated`, `offset`, `sum` (null for kinds without a total). **Invariant**: `sum` equals the indicator value for the same FilterSet.
 
 ### `/export` extra parameters
 

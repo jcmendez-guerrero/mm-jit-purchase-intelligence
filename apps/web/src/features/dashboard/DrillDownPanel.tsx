@@ -25,6 +25,8 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
   const [error, setError] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [offset, setOffset] = useState(0);
+  const [sort, setSort] = useState<"" | "sku" | "name" | "figure">("");
+  const [desc, setDesc] = useState(false);
   const key = JSON.stringify(request);
   useEffect(() => setOffset(0), [key]);
 
@@ -33,13 +35,13 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
     setData(null);
     setError(null);
     api
-      .getDrilldown({ ...request, limit: PAGE_SIZE, offset })
+      .getDrilldown({ ...request, limit: PAGE_SIZE, offset, ...(sort ? { sort, order: desc ? "desc" : "asc" } : {}) })
       .then((d) => live && setData(d))
       .catch((err) => live && setError(errorMessage(err, t("common.error"))));
     return () => {
       live = false;
     };
-  }, [key, offset, t]);
+  }, [key, offset, sort, desc, t]);
   useEffect(() => closeRef.current?.focus(), [key]);
 
   const shown = (figure: string | null) => {
@@ -53,7 +55,6 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
       id: "variant",
       header: t("common.variant"),
       cell: (r) => `${r.sku ?? t("dashboard.drill.no_sku")}${r.name ? ` · ${r.name}` : ""}`,
-      sortValue: (r) => r.sku ?? "",
     },
     ...(request.kind !== "stockout_risk" && request.kind !== "expiry_risk"
       ? [{ id: "figure", header: t(figureColumnKey(request.kind)), cell: (r: DrillResponse["rows"][number]) => shown(r.figure), align: "end" as const }]
@@ -75,6 +76,20 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
       <Button variant="secondary" small ref={closeRef} onClick={onClose}>
         {t("dashboard.drill.close")}
       </Button>
+      <div className="mmi-filterbar__field">
+        <label htmlFor="drill-sort">{t("dashboard.drill.sort_by")}</label>
+        <select id="drill-sort" value={sort} onChange={(e) => { setSort(e.target.value as typeof sort); setOffset(0); }}>
+          <option value="">{t("dashboard.drill.sort_default")}</option>
+          <option value="sku">{t("dashboard.drill.sort_sku")}</option>
+          <option value="name">{t("dashboard.drill.sort_name")}</option>
+          {request.kind !== "stockout_risk" && request.kind !== "expiry_risk" && <option value="figure">{t("dashboard.drill.sort_figure")}</option>}
+        </select>
+        {sort && (
+          <Button variant="secondary" small onClick={() => { setDesc(!desc); setOffset(0); }}>
+            {desc ? t("dashboard.drill.sort_asc") : t("dashboard.drill.sort_desc")}
+          </Button>
+        )}
+      </div>
       {error && <ScreenState state="error" errorHint={error} />}
       {!data && !error && <ScreenState state="loading" skeletonLines={4} />}
       {data && data.rows.length === 0 && <EmptyState title={t("dashboard.drill.empty")} hint="" />}

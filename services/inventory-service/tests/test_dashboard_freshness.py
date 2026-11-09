@@ -45,7 +45,7 @@ def test_loaded_data_reports_ok_then_stale_with_origin(engine):
     assert {f.state for f in fresh} == {"ok"} and {f.origin for f in fresh} == {"erp_sync"}
     assert [f.source for f in fresh] == ["inventory_snapshot", "movements", "aggregates"]        # one entry per source name
     assert {f.state for f in old} == {"stale"}
-    assert fresh[0].as_json()["refreshed_at_original"] == fresh[0].refreshed_at.isoformat()
+    assert fresh[0].refreshed_at.hour == 8 and fresh[0].original is None             # the real collection time, not midnight; this source keeps no original text
 
 
 def test_aggregate_rows_keep_working_and_carry_the_new_columns(engine):
@@ -80,3 +80,17 @@ def test_migration_0007_upgrades_and_downgrades_a_real_table():
             mod.downgrade()
         assert not new & {c["name"] for c in sa.inspect(conn).get_columns("agg_daily_kpis")}
         assert conn.exec_driver_sql("SELECT inventory_value FROM agg_daily_kpis").scalar() == 5       # data survives the round trip
+
+
+def test_movements_report_the_utc_time_and_the_original_string(engine):
+    from db.tables import stock_movements
+    from sqlalchemy import insert
+
+    seed_reference(engine)
+    with engine.begin() as c:
+        c.execute(insert(stock_movements).values(external_id=1, created_at_utc=datetime(2026, 11, 9, 6, 30, tzinfo=UTC), created_at_raw="2026-11-09T07:30:00+01:00",
+                                                 variant_id=1, warehouse_id=1, quantity=-1, reason="sale"))
+    with engine.connect() as c:
+        moves = next(f for f in inventory_freshness(c, NOW_DT) if f.source == "movements")
+    assert moves.refreshed_at.hour == 6 and moves.state == "ok"
+    assert moves.as_json()["refreshed_at_original"] == "2026-11-09T07:30:00+01:00"

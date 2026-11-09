@@ -43,3 +43,25 @@ describe("drill-down shows products by SKU", () => {
     await waitFor(() => expect(screen.getByText("Mostrando 1–50 de 120 productos.")).toBeTruthy());
   });
 });
+
+describe("drill-down sorting is done by the server", () => {
+  it("asks the server for the chosen order, from the first page, and does not reorder the page itself", async () => {
+    const spy = vi.spyOn(api, "getDrilldown").mockImplementation(async (r) =>
+      (r.offset ?? 0) === 0 ? page({ total: 120, truncated: true, rows: rows(1, 50) }) : page({ total: 120, offset: 50, rows: rows(51, 50) }));
+    render(<DrillDownPanel request={{ kind: "inventory_value" }} title="Productos" onOpenProduct={() => {}} onClose={() => {}} />);
+    await screen.findByText("Mostrando 1–50 de 120 productos.");
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    await screen.findByText("Mostrando 51–100 de 120 productos.");
+    fireEvent.change(screen.getByLabelText("Ordenar por"), { target: { value: "name" } });
+    await waitFor(() => expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "name", order: "asc", offset: 0 })));
+    fireEvent.click(screen.getByRole("button", { name: "Descendente" }));
+    await waitFor(() => expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "name", order: "desc", offset: 0 })));
+  });
+
+  it("sends no sort until the user picks one", async () => {
+    const spy = vi.spyOn(api, "getDrilldown").mockResolvedValue(page({}));
+    render(<DrillDownPanel request={{ kind: "inventory_value" }} title="Productos" onOpenProduct={() => {}} onClose={() => {}} />);
+    await screen.findByText(/SYN-001/);
+    expect(spy.mock.calls[0]![0]).not.toHaveProperty("sort");
+  });
+});

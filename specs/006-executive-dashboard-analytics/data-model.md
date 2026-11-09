@@ -58,14 +58,12 @@ Existing rows keep NULL and `erp_sync`. Retention: 25 months, removed by the ref
 
 | Field | Type | Notes |
 |-------|------|-------|
-| sku | string | shown first |
-| name | string | shown second |
-| contribution | string | Decimal or integer in the indicator's unit |
-| share | string | Decimal fraction of the total |
-| attributes | map | indicator-specific columns (stock, coverage days, expiry date, supplier) |
-| detail_ref | opaque string | resolves the SKU detail; carries the internal id, never rendered |
+| variant_id | integer | internal id, sent only so the screen can open the product detail; never displayed |
+| sku | string or null | shown first |
+| name | string or null | shown second |
+| figure | string or null | Decimal string; null for kinds without a figure |
 
-Page envelope: `rows`, `total`, `page`, `page_size`, `sum`, where `sum` equals the indicator value for the same FilterSet (asserted in tests).
+Page envelope (`DrillPage`): `kind`, `rows`, `total`, `truncated`, `offset`, `sum`, where `sum` covers every row and equals the indicator value for the same FilterSet (asserted in tests).
 
 ## SkuDetail
 

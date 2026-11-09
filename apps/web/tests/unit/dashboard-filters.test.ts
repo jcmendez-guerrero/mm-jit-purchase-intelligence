@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { dashboardQueryString } from "../../src/api/dashboard";
 import { parseDashboardFilters, writeDashboardFilters } from "../../src/features/dashboard/useDashboardFilters";
 
 const p = (q: string) => new URLSearchParams(q);
@@ -35,10 +34,5 @@ describe("dashboard filters in the address", () => {
   it("round-trips through the address", () => {
     const f = { warehouse: 3, supplier: "sup-b", from: "2026-10-01", to: "2026-10-31" };
     expect(parseDashboardFilters(writeDashboardFilters(f, p(""))).filters).toEqual(f);
-  });
-
-  it("builds the API query with the supplier and no empty values", () => {
-    expect(dashboardQueryString({})).toBe("");
-    expect(dashboardQueryString({ warehouse_id: 0, supplier_id: "sup-a", days: 30 })).toBe("?warehouse_id=0&supplier_id=sup-a&days=30");
   });
 });

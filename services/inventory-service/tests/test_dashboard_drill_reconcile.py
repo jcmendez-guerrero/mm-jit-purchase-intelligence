@@ -69,3 +69,40 @@ def test_the_api_pages_and_returns_the_sum(client, engine):
     body = res.json()
     assert res.status_code == 200 and [r["sku"] for r in body["rows"]] == ["SYN-002", "SYN-005"] and body["sum"] == "100.00"
     assert client.get("/dashboard/drilldown?kind=inventory_value&offset=-1", headers=auth("buyer")).status_code == 422
+
+
+def skus(out):
+    return [r["sku"] for r in out["rows"]]
+
+
+def test_server_side_sort_orders_the_whole_list_not_just_the_page(engine):
+    seed_reference(engine)
+    assert skus(drill(engine, "inventory_value", sort="sku", order="desc")) == ["SYN-005", "SYN-004", "SYN-002", "SYN-001"]
+    assert skus(drill(engine, "inventory_value", sort="sku", order="desc", limit=2, offset=2)) == ["SYN-002", "SYN-001"]    # page 2 of the sorted list
+    assert skus(drill(engine, "inventory_value", sort="name", order="asc")) == ["SYN-001", "SYN-002", "SYN-004", "SYN-005"]
+
+
+def test_sorting_by_the_figure_keeps_ties_in_sku_order_either_way(engine):
+    seed_reference(engine)
+    assert skus(drill(engine, "inventory_value", sort="figure", order="asc")) == ["SYN-005", "SYN-002", "SYN-001", "SYN-004"]
+    assert skus(drill(engine, "inventory_value", sort="figure", order="desc")) == ["SYN-001", "SYN-004", "SYN-002", "SYN-005"]    # 40 and 40 tie: SKU ascending
+
+
+def test_the_sum_does_not_depend_on_the_sort(engine):
+    seed_reference(engine)
+    assert drill(engine, "inventory_value", sort="sku", order="desc", limit=2)["sum"] == "100.00"
+
+
+@pytest.mark.parametrize("kw", [{"sort": "variant_id"}, {"sort": "sku", "order": "sideways"}, {"order": "desc"}])
+def test_unknown_sort_columns_and_directions_are_refused(engine, kw):
+    seed_reference(engine)
+    with pytest.raises(DrillError):
+        drill(engine, "inventory_value", **kw)
+
+
+def test_the_api_validates_sort_and_order(client, engine):
+    seed_reference(engine)
+    ok = client.get("/dashboard/drilldown?kind=inventory_value&sort=sku&order=desc", headers=auth("buyer"))
+    assert ok.status_code == 200 and ok.json()["rows"][0]["sku"] == "SYN-005"
+    for bad in ("sort=variant_id", "sort=sku&order=sideways", "order=desc"):
+        assert client.get(f"/dashboard/drilldown?kind=inventory_value&{bad}", headers=auth("buyer")).status_code == 422

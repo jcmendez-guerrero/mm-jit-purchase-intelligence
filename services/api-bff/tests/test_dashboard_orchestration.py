@@ -125,15 +125,18 @@ def test_the_forecast_basis_of_a_product_is_forwarded_as_the_signed_in_user():
         app.dependency_overrides.clear()
 
 
-def test_the_supplier_filter_still_only_reaches_the_spend_card_and_a_bad_one_is_refused(role_store):
-    inv = inventory(**{"/dashboard/summary": {"inventory_value": "40.00"}, "/dashboard/demand-trend": {"series": []}, "/dashboard/abc-xyz": {"cells": []},
-                       "/risk": [], "/dashboard/filters/options": {"warehouses": [], "categories": []}})
+def test_the_supplier_filter_reaches_stock_figures_and_the_spend_card_and_a_bad_one_is_refused(role_store):
+    inv = inventory(**{"/dashboard/summary": {"inventory_value": "42.00"}, "/dashboard/demand-trend": {"series": []}, "/dashboard/abc-xyz": {"cells": []},
+                       "/risk": [], "/dashboard/filters/options": {"warehouses": [], "categories": []}, "/dashboard/drilldown": {"rows": [], "total": 0}})
     proc = AsyncMock(forward=AsyncMock(return_value=[]))
     res = call("/api/dashboard/overview?supplier_id=sup-a", headers_for("v", ["viewer"]), inv, proc)
     calls = {c.args[1]: c.kwargs for c in inv.forward.call_args_list}
-    assert res.status_code == 200 and calls["/dashboard/summary"]["params"] == {} and calls["/dashboard/demand-trend"]["params"] == {"days": 60}   # stock is not filtered by supplier until T033 changes the screen and its note
+    assert res.status_code == 200 and calls["/dashboard/summary"]["params"] == {"supplier_id": "sup-a"} and calls["/dashboard/demand-trend"]["params"] == {"supplier_id": "sup-a", "days": 60}
     assert any(c.kwargs.get("params") == {"supplier_id": "sup-a"} for c in proc.forward.call_args_list)
     assert call("/api/dashboard/overview?supplier_id=a%20b", headers_for("v", ["viewer"]), inventory()).status_code == 422
+    drill = call("/api/dashboard/drilldown?kind=inventory_value&supplier_id=sup-a", headers_for("v", ["viewer"]), inv)
+    assert drill.status_code == 200 and inv.forward.call_args.kwargs["params"] == {"kind": "inventory_value", "supplier_id": "sup-a"}
+    assert call("/api/dashboard/drilldown?kind=inventory_value&supplier_id=a%20b", headers_for("v", ["viewer"]), inventory()).status_code == 422
 
 
 def test_the_drilldown_page_is_forwarded_and_a_bad_page_is_refused(role_store):
@@ -141,4 +144,12 @@ def test_the_drilldown_page_is_forwarded_and_a_bad_page_is_refused(role_store):
     res = call("/api/dashboard/drilldown?kind=inventory_value&limit=20&offset=40", headers_for("v", ["viewer"]), inv)
     assert res.status_code == 200 and inv.forward.call_args.kwargs["params"] == {"kind": "inventory_value", "limit": 20, "offset": 40}
     for bad in ("limit=0", "limit=500", "offset=-1"):
+        assert call(f"/api/dashboard/drilldown?kind=inventory_value&{bad}", headers_for("v", ["viewer"]), inventory()).status_code == 422
+
+
+def test_the_drilldown_sort_is_forwarded_and_a_bad_one_is_refused(role_store):
+    inv = inventory(**{"/dashboard/drilldown": {"rows": [], "total": 0}})
+    res = call("/api/dashboard/drilldown?kind=inventory_value&sort=sku&order=desc", headers_for("v", ["viewer"]), inv)
+    assert res.status_code == 200 and inv.forward.call_args.kwargs["params"] == {"kind": "inventory_value", "sort": "sku", "order": "desc"}
+    for bad in ("sort=variant_id", "order=sideways"):
         assert call(f"/api/dashboard/drilldown?kind=inventory_value&{bad}", headers_for("v", ["viewer"]), inventory()).status_code == 422

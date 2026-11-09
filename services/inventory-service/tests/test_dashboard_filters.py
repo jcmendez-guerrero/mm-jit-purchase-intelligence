@@ -9,7 +9,7 @@ from reference_dataset import TODAY
 
 def test_defaults_to_the_last_sixty_days_ending_today():
     f = FilterSet.parse(TODAY)
-    assert f.date_to == TODAY and f.days == 60 and not f.clipped_to_today
+    assert f.date_to == TODAY and (f.date_to - f.date_from).days + 1 == 60 and not f.clipped_to_today
 
 
 def test_a_future_end_date_is_clipped_and_reported():

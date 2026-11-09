@@ -46,7 +46,7 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 - [X] T011 [P] Implement per-source freshness (refresh time UTC plus original string, origin, state, server-side stale threshold) in `services/inventory-service/src/dashboard/freshness.py` with `services/inventory-service/tests/test_dashboard_freshness.py`
 - [ ] T012 [P] (helper and tests done; still to do: use it in the summary route together with the web card, in T023/T026) Implement role-based money hiding (viewer gets no money fields, `hidden_by_role`) in `services/inventory-service/src/dashboard/roles.py` with `services/inventory-service/tests/test_dashboard_roles.py`
 - [X] T013 Extend the BFF dashboard route to accept and forward the common FilterSet parameters (`desde`, `hasta`, `almacen`, `proveedor`, `categoria`, `familia`) to every downstream call, no business rule added (done for `supplier_id` with the existing English API names; the date range is added with T031/T033), in `services/api-bff/src/routes/dashboard.py`; update `services/api-bff/tests/test_dashboard_orchestration.py`
-- [X] T014 [P] Create `apps/web/src/api/dashboard.ts` (typed calls for overview, charts, drilldown, options, freshness, export, sku) reusing the shared request helper; do not edit `apps/web/src/api/client.ts` beyond exporting the helper if needed
+- [ ] T014 [P] Create `apps/web/src/api/dashboard.ts` (typed calls for overview, charts, drilldown, options, freshness, export, sku) reusing the shared request helper; do not edit `apps/web/src/api/client.ts` beyond exporting the helper if needed (reopened: the unused module was removed in T085; add the typed call with the first new route, charts or export)
 - [X] T015 [P] Create the filter URL-state hook (read, validate, write, clear; unknown values ignored with notice) in `apps/web/src/features/dashboard/useDashboardFilters.ts` with `apps/web/tests/unit/dashboard-filters.test.ts`
 - [X] T016 [P] Add the additive `dashboard.*` keys needed by the shared pieces to `apps/web/src/i18n/es-ES.json`; confirm `apps/web/tests/unit/hardcoded-strings.baseline.json` does not grow
 
@@ -200,3 +200,25 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 ## Implementation Strategy
 
 MVP first: Phases 1-2, then US1, US2, US3; validate with quickstart scenarios 1-3 and T066 before adding US4-US6. Mark tasks `[X]` as they complete.
+
+---
+
+## Phase 10: Convergence
+
+**Purpose**: gaps found by `/speckit-converge` that no open task tracks. Everything else still missing is already covered by the open tasks above.
+
+- [X] T080 Re-enable forwarding `supplier_id` to the stock figures in `services/api-bff/routes/dashboard.py` (overview and drilldown) and change the text `dashboard.filter.supplier_note` in `apps/web/src/i18n/es-ES.json` and `apps/web/src/features/dashboard/DashboardScreen.tsx` in the same change, with a BFF test, per FR-006 (partial) (done: BFF overview and drilldown forward `supplier_id`, the drill-down request carries it, and the supplier note now says stock is valued with that supplier's costs)
+- [X] T081 Add a test that a supplier id shaped like a real procurement supplier id (UUID) filters the stock figures through `lot_cost_projection.supplier_id`, and record the check of the real id namespace in `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md`, in `services/inventory-service/tests/test_dashboard_supplier_filter.py`, per FR-006 (missing) (done: the id namespace is checked and recorded in the audit file, and a UUID-shaped id is tested)
+- [X] T082 Run the Playwright dashboard specs (`cd apps/web && npm run e2e -- dashboard.spec.ts`) and fix any expectation still tied to the old `#id` text in `apps/web/tests/e2e/dashboard.spec.ts` and `apps/web/tests/e2e/a11y-all-routes.spec.ts`, per US3/AC1 (partial) (done: `dashboard.spec.ts` and `a11y-all-routes.spec.ts` pass, 25 tests)
+- [X] T083 Run migration `0007_dashboard_columns.py` up and down against the PostgreSQL service of `infra/compose.yaml`, and add the result to `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md`, per plan: storage decision (partial) (done: upgrade, downgrade and upgrade on PostgreSQL 16, recorded in the audit file)
+- [X] T084 Return the original refresh text and the real load time for each source, instead of an ISO string rebuilt from the stored value and a date measured from midnight UTC, in `services/inventory-service/src/dashboard/freshness.py` with its test in `services/inventory-service/tests/test_dashboard_freshness.py`, per FR-022 (partial) (done: snapshot uses the stock collection time; movements return the UTC time and the original string)
+- [X] T085 Decide for `getOverview` and `getDrill` in `apps/web/src/api/dashboard.ts` and for `FilterSet.days` in `services/inventory-service/src/dashboard/filters.py`: use them in T026/T033 or remove them, per plan: project structure (unrequested) (done: removed `apps/web/src/api/dashboard.ts`, `getJson` and `FilterSet.days`; T014 is reopened below)
+
+---
+
+## Phase 11: Convergence
+
+**Purpose**: gaps found by the second `/speckit-converge` run that no open task tracks.
+
+- [X] T086 Make the drill-down contract match the implemented response: in `specs/006-executive-dashboard-analytics/contracts/dashboard-api.md` and `specs/006-executive-dashboard-analytics/contracts/dashboard_indicators.v2.schema.json` use `offset` and `limit`, rows with `variant_id` (only to open the detail), `sku`, `name` and `figure`, plus `total`, `truncated` and `sum`; then add a contract test for the real inventory drill-down payload in `packages/contracts/tests/test_dashboard_drilldown_contract.py` before T005 moves the schema, per Constitution IV (contradicts) (done: schema, API contract and data model now describe the implemented response; the contract test is in `services/inventory-service/tests/test_dashboard_drill_contract.py` because it needs the inventory code, and its schema path changes when T005 moves the file; `jsonschema` added to the service's dev dependencies)
+- [X] T087 Decide and implement drill-down sorting: add `sort` and `order` to `services/inventory-service/src/dashboard/drilldown.py`, `services/inventory-service/src/api/dashboard.py` and `services/api-bff/src/routes/dashboard.py` and pass them from `apps/web/src/features/dashboard/DrillDownPanel.tsx`, with a test in `services/inventory-service/tests/test_dashboard_drill_reconcile.py`; if only per-page sorting is wanted, say so in `specs/006-executive-dashboard-analytics/spec.md` FR-011 through a spec change instead, per FR-011 (partial) (done: server-side `sort` and `order` through inventory, BFF and the panel's sort control; the table no longer re-sorts the visible page by itself)

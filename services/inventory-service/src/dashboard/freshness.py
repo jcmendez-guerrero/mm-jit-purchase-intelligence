@@ -11,7 +11,7 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 
-from db.tables import agg_daily_kpis, demand_observations, stock_snapshots
+from db.tables import agg_daily_kpis, demand_observations, stock_lots, stock_movements, stock_snapshots
 from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
 
@@ -30,10 +30,11 @@ class Freshness:
     origin: str
     state: str
     stale_after_hours: int
+    original: str | None = None           # the timestamp text exactly as the source gave it, when the source keeps it
 
     def as_json(self) -> dict[str, object]:
         at = self.refreshed_at
-        return {"source": self.source, "refreshed_at": at.isoformat() if at else None, "refreshed_at_original": at.isoformat() if at else None,
+        return {"source": self.source, "refreshed_at": at.isoformat() if at else None, "refreshed_at_original": self.original,
                 "origin": self.origin, "state": self.state, "stale_after_hours": self.stale_after_hours}
 
 
@@ -52,10 +53,17 @@ def _midnight(d: date | None) -> datetime | None:
 def inventory_freshness(conn: Connection, now: datetime | None = None, hours: int | None = None) -> list[Freshness]:
     now, hours = now or datetime.now(UTC), hours or stale_after_hours()
     latest = conn.execute(select(agg_daily_kpis.c.refreshed_at, agg_daily_kpis.c.origin).order_by(agg_daily_kpis.c.refreshed_at.desc()).limit(1)).first()
-    snap = _midnight(conn.execute(select(func.max(stock_snapshots.c.snapshot_date))).scalar())
-    moves = _midnight(conn.execute(select(func.max(demand_observations.c.day))).scalar())
+    snap = conn.execute(select(func.max(stock_lots.c.seen_at))).scalar()          # when the stock was really collected
+    if snap is None:                                                              # no lots: fall back to the snapshot day (measured from midnight UTC)
+        snap = _midnight(conn.execute(select(func.max(stock_snapshots.c.snapshot_date))).scalar())
+    mv = conn.execute(select(stock_movements.c.created_at_utc, stock_movements.c.created_at_raw).where(stock_movements.c.created_at_utc.is_not(None))
+                      .order_by(stock_movements.c.created_at_utc.desc()).limit(1)).first()
+    if mv is not None:
+        moves, moves_raw = mv.created_at_utc, mv.created_at_raw                   # UTC value plus the original string (AGENTS rule 5)
+    else:
+        moves, moves_raw = _midnight(conn.execute(select(func.max(demand_observations.c.day))).scalar()), None
     out = [Freshness("inventory_snapshot", snap, "erp_sync", classify(snap, now, hours), hours),
-           Freshness("movements", moves, "erp_sync", classify(moves, now, hours), hours)]
+           Freshness("movements", moves, "erp_sync", classify(moves, now, hours), hours, moves_raw)]
     if latest is not None:                                    # the aggregates carry the origin of what they were built from
         out.append(Freshness("aggregates", latest.refreshed_at, latest.origin, classify(latest.refreshed_at, now, hours), hours))
     return out

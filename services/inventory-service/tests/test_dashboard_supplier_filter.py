@@ -49,3 +49,22 @@ def test_every_figure_uses_the_same_supplier_scope(engine):
     with engine.connect() as c:
         a, b = variant_scope(c, Filters(supplier_id="sup-a")), variant_scope(c, Filters(supplier_id="sup-b"))
     assert a == {1, 5} and b == {2, 4, 5}
+
+
+SUPPLIER_UUID = "3f2b8c1e-5a4d-4e7b-9c10-1d2e3f4a5b6c"      # the shape of procurement's suppliers.id (String(36)), which is what the lot costs carry
+
+
+def test_a_uuid_shaped_supplier_id_filters_stock_figures_and_passes_validation(client, engine):
+    from conftest import auth
+    from db.tables import lot_cost_projection
+    from reference_dataset import NOW
+    from sqlalchemy import insert
+
+    seed_reference(engine)
+    with engine.begin() as c:                                    # SYN-003 had no cost: now its 6 units cost 1.50 from this supplier
+        c.execute(insert(lot_cost_projection).values(variant_id=3, supplier_id=SUPPLIER_UUID, lot="", unit_cost=D("1.50"), source="buyer_entry", updated_at=NOW))
+    with engine.connect() as c:
+        s = compute_summary(c, TODAY, Filters(supplier_id=SUPPLIER_UUID))
+    assert s.inventory_value == D("9.00") and s.variant_count == 1
+    res = client.get(f"/dashboard/summary?supplier_id={SUPPLIER_UUID}", headers=auth("buyer"))
+    assert res.status_code == 200 and res.json()["inventory_value"] == "9.00"

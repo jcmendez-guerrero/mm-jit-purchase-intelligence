@@ -64,3 +64,11 @@ Commands to use (from repo root): `uv run pytest services/inventory-service/test
 - T048: extend `refresh_aggregates` rows; history range comes from existing data.
 - T074: wrap `infra/compose.yaml` plus the seed loader.
 - T075 narrows to forecast-service accuracy history and procurement budget/open orders.
+
+## Supplier id namespace (T081, checked)
+
+The dashboard dropdown lists `suppliers.id` from procurement (`routes/dashboard.py` `_supplier_options`). Lot costs carry the same id: the buyer entry `POST /lot-costs` refuses a `supplier_id` that is not in `suppliers.id` (`services/procurement-service/src/api/costs.py`, `unknown_supplier`), and receipts use the order's supplier (`orders/reconcile.py` `_supplier_of`). Both are 36-character ids, so the supplier filter on stock figures uses the same namespace. A UUID-shaped id is tested in `services/inventory-service/tests/test_dashboard_supplier_filter.py`.
+
+## Migration 0007 on PostgreSQL (T083, checked)
+
+Run on a throwaway `postgres:16-alpine` container (local, removed afterwards) with the inventory service's own Alembic setup: `upgrade head` created `capital_tied_up` (numeric), `demand_units` (integer), `forecast_units` (numeric) and `origin` (character varying, default `erp_sync`) in `inventory.agg_daily_kpis`; `downgrade -1` removed all four; `upgrade head` applied it again. The compose file pins a different PostgreSQL 16 image digest; this run used the local `postgres:16-alpine` image, so the pinned image itself is not exercised.

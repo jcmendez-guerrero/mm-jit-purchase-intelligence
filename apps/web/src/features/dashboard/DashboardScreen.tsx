@@ -54,8 +54,8 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   useEffect(() => {
     rulerPlayed = true;
   }, []);
-  const scope = { warehouse_id: warehouse, category: category || undefined, family: family || undefined };
-  const openDrill = (request: Omit<DrillRequest, "warehouse_id" | "category" | "family">, title: string) => {
+  const scope = { warehouse_id: warehouse, category: category || undefined, family: family || undefined, supplier_id: supplier || undefined };
+  const openDrill = (request: Omit<DrillRequest, "warehouse_id" | "category" | "family" | "supplier_id">, title: string) => {
     setDetail(null);
     setSupplierOpen(null);
     setDrill({ request: { ...request, ...scope }, title });

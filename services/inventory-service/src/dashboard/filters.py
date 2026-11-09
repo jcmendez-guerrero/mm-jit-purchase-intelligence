@@ -53,9 +53,5 @@ class FilterSet:
             raise FilterError("family")
         return cls(start, end, warehouse_id, supplier_id, category, family, clipped)
 
-    @property
-    def days(self) -> int:
-        return (self.date_to - self.date_from).days + 1
-
     def to_filters(self) -> Filters:
         return Filters(self.warehouse_id, self.category, self.family, self.supplier_id)
