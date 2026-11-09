@@ -39,6 +39,7 @@ The gateway is `services/api-bff`.
 | `scenario_result` | dto | v1 | procurement-service | - | frozen |
 | `scenario_sensitivity` | dto | v1 | procurement-service | - | frozen |
 | `seed_dataset` | dto | v1 | forecast-service | - | frozen |
+| `seed_dataset_summary` | dto | v1 | forecast-service | api-bff | frozen |
 | `seed_mapping` | dto | v1 | forecast-service | - | frozen |
 | `seed_validation_result` | dto | v1 | forecast-service | - | frozen |
 | `stocking_setting` | dto | v1 | procurement-service | - | frozen |

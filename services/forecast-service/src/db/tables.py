@@ -104,6 +104,12 @@ seed_datasets = Table(
     Column("rejected_count", Integer, nullable=False, default=0),
     Column("kind_summary", JSON),
     Column("row_count", Integer, nullable=False, default=0),             # rows in the uploaded file; decides foreground or background validation
+    Column("validated_by", String(120)),                                 # MMI-7: the uploader and the validator cannot approve activation
+    Column("mapping_chosen_by", String(120)),
+    Column("rollback_reason_code", String(20)),                          # FR-033: a choice from a fixed list, shown to everyone and audited
+    Column("rollback_reason_detail", String(100)),                       # short free text: admins only, never audited
+    Column("self_activation_reason_code", String(20)),                   # set only for an audited owner/admin self-activation
+    Column("self_activation_reason_detail", String(100)),
 )
 Index("uq_seed_datasets_one_active", seed_datasets.c.status, unique=True, postgresql_where=seed_datasets.c.status == "active",
       sqlite_where=seed_datasets.c.status == "active")
@@ -112,7 +118,9 @@ seed_rows = Table(
     Column("id", BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True),
     Column("dataset_id", String(36), ForeignKey("seed_datasets.id"), nullable=False, index=True),
     Column("row_no", Integer, nullable=False),
-    Column("variant_id", Integer, nullable=False),                       # Siweb variant_id
+    Column("variant_id", Integer, nullable=False),                       # Siweb variant_id; resolved from the SKU, never shown to users
+    Column("sku", String(60)),                                           # MMI-7: the SKU as supplied (display)
+    Column("day_text", String(40)),                                      # MMI-7: the date exactly as written in the file (FR-006); `day` is the normalised calendar day
     Column("day", Date, nullable=False),
     Column("warehouse_external_id", String(40)),
     Column("quantity", Numeric(18, 4), nullable=False),

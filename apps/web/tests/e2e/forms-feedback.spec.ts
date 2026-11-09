@@ -311,9 +311,9 @@ test("leaving the import wizard with a pending upload asks first", async ({ page
   await page.route("**/api/imports", (r) => {
     if (r.request().method() === "GET") return r.fulfill(json({ datasets: [] }));
     return r.fulfill(json({
-      id: "d1", version: 1, format: "csv", row_count: 2, duplicate_of: null, missing: [], headers: ["ID de variante Siweb", "Fecha", "Cantidad", "Tipo de dato", "Origen", "Sintético/Real"],
-      suggested_mapping: { "ID de variante Siweb": "variant_id", Fecha: "day", Cantidad: "quantity", "Tipo de dato": "kind", Origen: "provenance", "Sintético/Real": "origin" },
-      preview: [{ variant_id: "9001", day: "2026-01-05", quantity: "2", kind: "estimado", provenance: "Hoja sintética A", origin: "sintético" }],
+      id: "d1", version: 1, format: "csv", row_count: 2, duplicate_of: null, missing: [], headers: ["SKU", "Fecha", "Cantidad", "Tipo de dato", "Origen", "Sintético/Real"],
+      suggested_mapping: { SKU: "sku", Fecha: "day", Cantidad: "quantity", "Tipo de dato": "kind", Origen: "provenance", "Sintético/Real": "origin" },
+      preview: [{ sku: "EJ-9001", day: "2026-01-05", quantity: "2", kind: "estimado", provenance: "Hoja sintética A", origin: "sintético" }],
     }, 201));
   });
   await page.route("**/api/imports/jobs", (r) => r.fulfill(json({ jobs: [], background_over_rows: 0 })));

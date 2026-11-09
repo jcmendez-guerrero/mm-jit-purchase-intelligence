@@ -9,6 +9,7 @@ interface Props {
   onBlur?: () => void;
   disabled?: boolean;
   type?: "text" | "date";
+  maxLength?: number;
   inputMode?: "decimal" | "numeric" | "text";
   hint?: string;
   /** Validation message in Spanish, shown beside the field and linked to it for assistive technology. */
@@ -16,7 +17,7 @@ interface Props {
 }
 
 /** Labelled input with hint and error wired through aria-describedby and aria-invalid (FR-016). */
-export const FormField: React.FC<Props> = ({ id, label, value, onChange, onBlur, disabled, type = "text", inputMode = "text", hint, error }) => {
+export const FormField: React.FC<Props> = ({ id, label, value, onChange, onBlur, disabled, type = "text", inputMode = "text", hint, error, maxLength }) => {
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   const described = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ");
@@ -31,6 +32,7 @@ export const FormField: React.FC<Props> = ({ id, label, value, onChange, onBlur,
         inputMode={inputMode}
         value={value}
         disabled={disabled}
+        {...(maxLength ? { maxLength } : {})}
         aria-invalid={error ? true : undefined}
         aria-describedby={described || undefined}
         onChange={(e) => onChange(e.target.value)}

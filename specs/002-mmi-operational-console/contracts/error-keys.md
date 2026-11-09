@@ -125,3 +125,11 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | merge_open_lines | 409 | The supplier has lines in open proposals |
 | review_item_not_found | 404 | The review item does not exist |
 | review_item_closed | 409 | The review item was already resolved |
+| import_sku_required | 422 | The row has no SKU (a variant id was supplied instead) |
+| import_unknown_sku | 422 | The SKU is not in the synchronised catalogue |
+| import_ambiguous_sku | 422 | The SKU matches more than one product |
+| import_erp_export_refused | 415 | The file looks like an ERP export, which is local-only |
+| import_self_approval | 403 | The uploader or validator cannot activate this dataset |
+| import_conflict | 409 | Another activation or rollback ran at the same time |
+| import_reason_required | 422 | A reason (a choice from the list) is required |
+| import_reason_invalid | 422 | The reason is not in the list, or its detail is longer than 100 characters |

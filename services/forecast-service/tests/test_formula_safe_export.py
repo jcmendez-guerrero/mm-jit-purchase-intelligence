@@ -34,6 +34,6 @@ def test_the_quarantine_report_is_inert_in_csv_and_xlsx():
 
 def test_the_template_is_spanish_has_the_canonical_columns_and_made_up_values(): 
     text = template_csv().decode("utf-8-sig")
-    assert text.splitlines()[0] == "ID de variante Siweb;SKU;Fecha;Cantidad;Almacén;Tipo de dato;Origen;Sintético/Real" and "9001" in text and "sintético" in text
+    assert text.splitlines()[0] == "SKU;Fecha;Cantidad;Almacén;Tipo de dato;Origen;Sintético/Real" and "EJ-0001" in text and "sintético" in text
     ws = load_workbook(io.BytesIO(template_xlsx())).active
-    assert ws.title == "Plantilla de datos predictivos" and ws["A1"].value == "ID de variante Siweb" and ws["D2"].value == 2
+    assert ws.title == "Plantilla de datos predictivos" and ws["A1"].value == "SKU" and ws["C2"].value == 2

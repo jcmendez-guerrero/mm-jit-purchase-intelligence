@@ -20,6 +20,27 @@ export interface SeedDataset {
   activated_by?: string | null;
   activated_at?: string | null;
   supersedes_id?: string | null;
+  /**
+   * Who ran validation; with the uploader, cannot approve activation (MMI-7).
+   */
+  validated_by?: string | null;
+  mapping_chosen_by?: string | null;
+  /**
+   * Why an active dataset was rolled back (FR-033). The code is shown to everyone and recorded in the audit trail.
+   */
+  rollback_reason_code?: ("wrong_figures" | "wrong_file" | "test" | "replaced_by_newer" | "other") | null;
+  /**
+   * Short free-text detail. Returned to admins only; never written to the audit trail.
+   */
+  rollback_reason_detail?: string | null;
+  /**
+   * Set only for an audited owner/admin self-activation.
+   */
+  self_activation_reason_code?: ("only_person" | "urgent" | "other") | null;
+  /**
+   * Short free-text detail. Returned to admins only; never written to the audit trail.
+   */
+  self_activation_reason_detail?: string | null;
   row_counts?: {
     accepted: number;
     quarantined: number;

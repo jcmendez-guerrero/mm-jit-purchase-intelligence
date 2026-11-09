@@ -2,7 +2,7 @@
 
 import pytest
 import seed_fixtures as sf
-from conftest import KNOWN
+from conftest import KNOWN, SKUS
 from db.tables import audit_events, outbox, seed_datasets
 from seeds.lifecycle import (
     LifecycleError,
@@ -27,7 +27,7 @@ def upload(conn, store, data=None, name="datos.csv", who="buyer-1"):
 
 def validated(conn, store, data=None, name="datos.csv"):
     up = upload(conn, store, data, name)
-    validate_dataset(conn, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", L)
+    validate_dataset(conn, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", L, sku_map=SKUS)
     return up["id"]
 
 
@@ -42,7 +42,7 @@ def test_validation_stores_accepted_rows_and_quarantine_and_is_repeatable(conn, 
     did = validated(conn, store, sf.static("partly_invalid.csv"))
     ds = conn.execute(select(seed_datasets)).one()
     assert (ds.status, ds.accepted_count, ds.quarantined_count) == ("validated", 2, 8)
-    again = validate_dataset(conn, store, did, register_map(), KNOWN, "buyer-1", L)
+    again = validate_dataset(conn, store, did, register_map(), KNOWN, "buyer-1", L, sku_map=SKUS)
     assert again["accepted"] == 2 and again["quarantined"] == 8
 
 
@@ -55,13 +55,13 @@ def register_map():
 def test_a_file_missing_a_required_column_cannot_be_validated(conn, store):
     up = upload(conn, store, b"Fecha;Cantidad\n2026-01-05;2\n")
     with pytest.raises(SeedFileError) as e:
-        validate_dataset(conn, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", L)
+        validate_dataset(conn, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", L, sku_map=SKUS)
     assert e.value.code == "import_missing_column"
 
 
 def test_activation_is_audited_announces_a_run_and_supersedes_the_previous_one(conn, store):
     first = validated(conn, store)
-    out = activate(conn, store, first, "buyer-1")
+    out = activate(conn, store, first, "approver-9")
     assert out["status"] == "active" and active_dataset(conn).id == first
     events = [e for e in conn.execute(select(outbox)).all() if e.type == "forecast.seed.activated.v1"]
     assert len(events) == 1
@@ -77,23 +77,23 @@ def test_activation_is_audited_announces_a_run_and_supersedes_the_previous_one(c
 def test_only_a_validated_dataset_with_rows_can_be_activated(conn, store):
     up = upload(conn, store)
     with pytest.raises(LifecycleError) as e:
-        activate(conn, store, up["id"], "buyer-1")
+        activate(conn, store, up["id"], "approver-9")
     assert e.value.code == "import_dataset_state"
     empty = upload(conn, store, sf.static("partly_invalid.csv").split(b"\n")[0] + "\n9999;2026-01-05;1;;estimado;X;sintético\n".encode(), name="vacio.csv")
-    validate_dataset(conn, store, empty["id"], empty["suggested_mapping"], KNOWN, "buyer-1", L)
+    validate_dataset(conn, store, empty["id"], empty["suggested_mapping"], KNOWN, "buyer-1", L, sku_map=SKUS)
     with pytest.raises(LifecycleError) as e2:
-        activate(conn, store, empty["id"], "buyer-1")
+        activate(conn, store, empty["id"], "approver-9")
     assert e2.value.code == "import_nothing_to_activate"
     with pytest.raises(LifecycleError):
-        activate(conn, store, "nope", "buyer-1")
+        activate(conn, store, "nope", "approver-9")
 
 
 def test_a_failure_leaves_the_previous_dataset_active(conn, store):
     first = validated(conn, store)
-    activate(conn, store, first, "buyer-1")
+    activate(conn, store, first, "approver-9")
     real = validated(conn, store, sf.static("valid.csv").replace(b"sint\xc3\xa9tico", b"real").replace(b"2026-01-05", b"2026-01-07"))
     with pytest.raises(SeedFileError) as e:
-        activate(conn, store, real, "buyer-1")
+        activate(conn, store, real, "approver-9")
     assert e.value.code == "import_mixed_origin"
     assert active_dataset(conn).id == first
     assert conn.execute(select(func.count()).select_from(outbox).where(outbox.c.type == "forecast.seed.activated.v1")).scalar() == 1
@@ -101,21 +101,21 @@ def test_a_failure_leaves_the_previous_dataset_active(conn, store):
 
 def test_a_repeated_file_is_flagged_and_needs_an_explicit_decision(conn, store):
     first = validated(conn, store)
-    activate(conn, store, first, "buyer-1")
+    activate(conn, store, first, "approver-9")
     again = upload(conn, store)
     assert again["duplicate_of"] == first and duplicate_of(conn, again["sha256"], again["id"]) == first
-    validate_dataset(conn, store, again["id"], again["suggested_mapping"], KNOWN, "buyer-1", L)
+    validate_dataset(conn, store, again["id"], again["suggested_mapping"], KNOWN, "buyer-1", L, sku_map=SKUS)
     with pytest.raises(LifecycleError) as e:
-        activate(conn, store, again["id"], "buyer-1")
+        activate(conn, store, again["id"], "approver-9")
     assert e.value.code == "import_duplicate_file"
-    assert activate(conn, store, again["id"], "buyer-1", acknowledge_duplicate=True)["status"] == "active"
+    assert activate(conn, store, again["id"], "approver-9", acknowledge_duplicate=True)["status"] == "active"
     last = [a for a in conn.execute(select(audit_events)).all() if a.action == "seed.activated"][-1]
     assert "duplicate_acknowledged" in str(last.after) and "true" in str(last.after).lower()
 
 
 def test_an_unrelated_file_is_not_a_duplicate(conn, store):
     first = validated(conn, store)
-    activate(conn, store, first, "buyer-1")
+    activate(conn, store, first, "approver-9")
     assert upload(conn, store, sf.static("valid.csv").replace(b"2026-01-05", b"2026-01-09"))["duplicate_of"] is None
 
 
@@ -124,7 +124,7 @@ def test_a_dataset_can_be_rejected_unless_active(conn, store):
     reject(conn, did, "buyer-1")
     assert conn.execute(select(seed_datasets.c.status)).scalar() == "rejected"
     other = validated(conn, store, sf.static("valid.csv").replace(b"2026-01-05", b"2026-01-10"))
-    activate(conn, store, other, "buyer-1")
+    activate(conn, store, other, "approver-9")
     with pytest.raises(LifecycleError):
         reject(conn, other, "buyer-1")
     conn.execute(update(seed_datasets).where(seed_datasets.c.id == other).values(status="active"))

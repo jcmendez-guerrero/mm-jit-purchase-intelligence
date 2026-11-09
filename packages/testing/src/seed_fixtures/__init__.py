@@ -9,7 +9,7 @@ from pathlib import Path
 from openpyxl import Workbook
 
 FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "seeds"
-HEADER = ["ID de variante Siweb", "Fecha", "Cantidad", "Almacén", "Tipo de dato", "Origen", "Sintético/Real"]
+HEADER = ["SKU", "Fecha", "Cantidad", "Almacén", "Tipo de dato", "Origen", "Sintético/Real"]      # the template layout; products are identified by SKU (fictional EJ-9001 to EJ-9005)
 XLSX_MAGIC = b"PK\x03\x04"
 
 
@@ -22,9 +22,9 @@ def valid_xlsx() -> bytes:
     ws = wb.active
     ws.append(HEADER)
     for row in (
-        (9001, "2026-01-05", 2, None, "estimado", "Hoja sintética A", "sintético"),
-        (9002, "2026-01-12", 1, None, "previsión_manual", "Hoja sintética A", "sintético"),
-        (9003, "2026-03-02", 4, None, "observado_externo", "Hoja sintética B", "sintético"),
+        ("EJ-9001", "2026-01-05", 2, None, "estimado", "Hoja sintética A", "sintético"),
+        ("EJ-9002", "2026-01-12", 1, None, "previsión_manual", "Hoja sintética A", "sintético"),
+        ("EJ-9003", "2026-03-02", 4, None, "observado_externo", "Hoja sintética B", "sintético"),
     ):
         ws.append(row)
     out = io.BytesIO()
@@ -37,14 +37,14 @@ def formula_xlsx() -> bytes:
     wb = Workbook()
     ws = wb.active
     ws.append(HEADER)
-    ws.append([9001, "2026-01-05", "=1+1", None, "estimado", '=HYPERLINK("http://example.invalid","x")', "sintético"])
+    ws.append(["EJ-9001", "2026-01-05", "=1+1", None, "estimado", '=HYPERLINK("http://example.invalid","x")', "sintético"])
     out = io.BytesIO()
     wb.save(out)
     return out.getvalue()
 
 
 def formula_csv() -> bytes:
-    lines = [";".join(HEADER), '9001;2026-01-05;2;;estimado;=cmd|" /C calc"!A0;sintético', "9002;2026-01-06;1;;estimado;+SUM(1;1);sintético", "9003;2026-01-07;1;;estimado;@SUM(1);sintético"]
+    lines = [";".join(HEADER), 'EJ-9001;2026-01-05;2;;estimado;=cmd|" /C calc"!A0;sintético', "EJ-9002;2026-01-06;1;;estimado;+SUM(1;1);sintético", "EJ-9003;2026-01-07;1;;estimado;@SUM(1);sintético"]
     return ("\n".join(lines) + "\n").encode("utf-8")
 
 
@@ -65,7 +65,7 @@ def wrong_signature_xlsx() -> bytes:
 
 
 def oversized_csv(max_bytes: int) -> bytes:
-    row = "9001;2026-01-05;1;;estimado;Hoja sintética A;sintético\n".encode()
+    row = "EJ-9001;2026-01-05;1;;estimado;Hoja sintética A;sintético\n".encode()
     body = row * (max_bytes // len(row) + 2)
     return (";".join(HEADER) + "\n").encode() + body
 

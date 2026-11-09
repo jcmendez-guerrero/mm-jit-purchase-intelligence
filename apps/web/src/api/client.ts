@@ -243,6 +243,19 @@ export interface SeedDataset {
   accepted: number;
   quarantined: number;
   kinds: Record<string, number>;
+  validated_by?: string | null;
+  rollback_reason_code?: string | null;
+  self_activation_reason_code?: string | null;
+  /** Free-text details: the server sends them to admins only. */
+  rollback_reason_detail?: string | null;
+  self_activation_reason_detail?: string | null;
+  self_activated?: boolean;
+}
+
+/** A reason for a rollback or a self-activation: a choice from a fixed list and an optional short detail (FR-033). */
+export interface SeedReason {
+  code: string;
+  detail?: string | undefined;
 }
 
 export interface SeedUpload {
@@ -1256,12 +1269,15 @@ export class ApiClient {
     return this.request<SeedDryRun>(`/imports/${id}/dry-run`, { method: "POST", body: JSON.stringify({}) });
   }
 
-  async activateSeed(id: string, acknowledgeDuplicate: boolean): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/imports/${id}/activate`, { method: "POST", body: JSON.stringify({ acknowledge_duplicate: acknowledgeDuplicate }) });
+  async activateSeed(id: string, acknowledgeDuplicate: boolean, reason?: SeedReason): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/imports/${id}/activate`, {
+      method: "POST",
+      body: JSON.stringify({ acknowledge_duplicate: acknowledgeDuplicate, ...(reason ? { reason_code: reason.code, ...(reason.detail ? { reason_detail: reason.detail } : {}) } : {}) }),
+    });
   }
 
-  async rollbackSeed(): Promise<JsonRecord> {
-    return this.request<JsonRecord>("/imports/rollback", { method: "POST", body: JSON.stringify({}) });
+  async rollbackSeed(reason: SeedReason): Promise<JsonRecord> {
+    return this.request<JsonRecord>("/imports/rollback", { method: "POST", body: JSON.stringify({ reason_code: reason.code, ...(reason.detail ? { reason_detail: reason.detail } : {}) }) });
   }
 
   async rejectSeed(id: string): Promise<void> {

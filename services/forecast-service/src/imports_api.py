@@ -19,6 +19,7 @@ from seeds import template as tpl
 from seeds.dryrun import dry_run
 from seeds.jobs import SYNC_ROWS, enqueue_validation, rerun_job
 from seeds.jobs import list_jobs as job_list
+from seeds.lookup import lookups_from_series
 from seeds.storage import SeedFileError
 from seeds.store import make_seed_store
 from sqlalchemy import create_engine, select
@@ -27,9 +28,11 @@ from upload_settings import load_limits
 
 log = logging.getLogger("forecast.imports")
 _engine: Engine | None = None
-HTTP = {"import_file_too_large": 413, "import_decompression_limit": 413, "import_too_many_rows": 413, "import_type_not_allowed": 415, "import_mixed_origin": 409,
+GOVERNANCE_ONLY = frozenset({"import_self_approval", "import_reason_required", "import_reason_invalid", "import_conflict"})        # never an upload rejection
+GOVERNANCE_REFUSALS = GOVERNANCE_ONLY | {"import_dataset_state", "import_nothing_to_activate", "import_duplicate_file"}
+HTTP = {"import_file_too_large": 413, "import_decompression_limit": 413, "import_too_many_rows": 413, "import_type_not_allowed": 415, "import_erp_export_refused": 415, "import_mixed_origin": 409,
         "import_duplicate_file": 409, "import_dataset_state": 409, "import_nothing_to_activate": 409, "import_unknown_dataset": 404, "import_unknown_job": 404, "import_job_not_rerunnable": 409, "import_missing_column": 422,
-        "import_mapping_name_taken": 409}
+        "import_mapping_name_taken": 409, "import_self_approval": 403, "import_conflict": 409, "import_reason_required": 422, "import_reason_invalid": 422}
 
 
 def get_engine() -> Engine:
@@ -51,6 +54,13 @@ class MappingBody(BaseModel):
 
 class ActivateBody(BaseModel):
     acknowledge_duplicate: bool = False
+    reason_code: str | None = None
+    reason_detail: str | None = None
+
+
+class RollbackBody(BaseModel):
+    reason_code: str | None = None
+    reason_detail: str | None = None
 
 
 def build_router(app: FastAPI) -> APIRouter:
@@ -72,7 +82,7 @@ def build_router(app: FastAPI) -> APIRouter:
             s = app.state.seed_store = make_seed_store()
         return s
 
-    def known_variants() -> tuple[set[int], list[dict[str, Any]]]:
+    def known_variants() -> tuple[set[int], list[dict[str, Any]], dict[str, set[int]]]:
         source = getattr(app.state, "series_source", None)
         if source is None:
             raise HTTPException(503, "not_configured")
@@ -80,12 +90,19 @@ def build_router(app: FastAPI) -> APIRouter:
             series = source.fetch()["series"]
         except Exception as exc:
             raise HTTPException(503, "inventory_unavailable") from exc
-        return {int(s["variant_id"]) for s in series}, series
+        known, skus = lookups_from_series(series)
+        return known, series, skus
 
     def refuse(exc: Exception) -> HTTPException:
-        if error_code(exc).startswith("import_"):
+        if error_code(exc).startswith("import_") and error_code(exc) not in GOVERNANCE_ONLY:
             log.warning("UPLOAD_REJECTED reason=%s", error_code(exc))                   # for the rejection alert; the code only
         return HTTPException(HTTP.get(error_code(exc), 422), error_code(exc))
+
+    def refuse_governance(action: str, dataset_id: str | None, principal: Any, exc: Exception) -> HTTPException:
+        """FR-028: a refused activation or rollback is recorded with who, what and which dataset (a log line: an audit row would be lost with the request's rollback)."""
+        if error_code(exc) in GOVERNANCE_REFUSALS:
+            log.warning("SEED_REFUSED action=%s dataset=%s actor=%s reason=%s", action, dataset_id or "-", principal.subject, error_code(exc))
+        return refuse(exc)
 
     @router.get("/template")
     def template(format: str = Query(default="csv", pattern="^(csv|xlsx)$"), _p: Any = Depends(require())) -> Response:
@@ -95,8 +112,8 @@ def build_router(app: FastAPI) -> APIRouter:
         return Response(tpl.template_csv(), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="plantilla-datos-predictivos.csv"'})
 
     @router.get("")
-    def list_datasets(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
-        return {"datasets": lc.list_datasets(conn)}
+    def list_datasets(conn: Connection = Depends(conn_dep), principal: Any = Depends(require())) -> dict[str, Any]:
+        return {"datasets": lc.list_datasets(conn, is_admin="admin" in principal.roles)}
 
     @router.get("/mappings")
     def mappings(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
@@ -143,9 +160,9 @@ def build_router(app: FastAPI) -> APIRouter:
             queued = enqueue_validation(conn, dataset_id, body.column_map, principal.subject, body.mapping_id)
             response.status_code = 202                                                      # the buyer is told it went to the background
             return {"id": dataset_id, "queued": True, "job_id": queued["job_id"], "rows": row.row_count, "background_over_rows": SYNC_ROWS}
-        known, _ = known_variants()
+        known, _, skus = known_variants()
         try:
-            return lc.validate_dataset(conn, store(), dataset_id, body.column_map, known, principal.subject, load_limits(), mapping_id=body.mapping_id)
+            return lc.validate_dataset(conn, store(), dataset_id, body.column_map, known, principal.subject, load_limits(), mapping_id=body.mapping_id, sku_map=skus)
         except (SeedFileError, lc.LifecycleError, mp.MappingError) as exc:
             raise refuse(exc) from exc
 
@@ -163,25 +180,29 @@ def build_router(app: FastAPI) -> APIRouter:
         return Response(tpl.quarantine_csv(texts), media_type="text/csv; charset=utf-8", headers={"Content-Disposition": 'attachment; filename="cuarentena.csv"'})
 
     @router.post("/{dataset_id}/dry-run")
-    def dryrun(dataset_id: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(editor)) -> dict[str, Any]:
-        _, series = known_variants()
+    def dryrun(dataset_id: str, conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:
+        _, series, _ = known_variants()
         if conn.execute(select(seed_datasets.c.id).where(seed_datasets.c.id == dataset_id)).first() is None:
             raise HTTPException(404, "import_unknown_dataset")
-        return dry_run(conn, dataset_id, series, RunConfig().backtest)
+        result = dry_run(conn, dataset_id, series, RunConfig().backtest)
+        lc.record_dry_run(conn, dataset_id, principal.subject, result)
+        return result
 
     @router.post("/{dataset_id}/activate")
     def activate(dataset_id: str, body: ActivateBody | None = None, conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:
         try:
-            return lc.activate(conn, store(), dataset_id, principal.subject, acknowledge_duplicate=bool(body and body.acknowledge_duplicate))
+            return lc.activate(conn, store(), dataset_id, principal.subject, acknowledge_duplicate=bool(body and body.acknowledge_duplicate),
+                               is_admin="admin" in principal.roles, reason_code=body.reason_code if body else None,
+                               reason_detail=body.reason_detail if body else None)
         except (SeedFileError, lc.LifecycleError) as exc:
-            raise refuse(exc) from exc
+            raise refuse_governance("activate", dataset_id, principal, exc) from exc
 
     @router.post("/rollback")
-    def rollback(conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:
+    def rollback(body: RollbackBody | None = None, conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:
         try:
-            return lc.rollback(conn, store(), principal.subject)
+            return lc.rollback(conn, store(), principal.subject, reason_code=body.reason_code if body else None, reason_detail=body.reason_detail if body else None)
         except lc.LifecycleError as exc:
-            raise refuse(exc) from exc
+            raise refuse_governance("rollback", None, principal, exc) from exc
 
     @router.post("/{dataset_id}/reject", status_code=204)
     def reject(dataset_id: str, conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> None:

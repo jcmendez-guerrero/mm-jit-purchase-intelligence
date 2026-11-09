@@ -12,11 +12,16 @@ from auth.session import SessionData
 from clients.forecast import ForecastClient
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
 from routes.policies import get_forecast_client
-from routes.rbac import require_roles
+from routes.rbac import require_fresh_mfa, require_roles
 from upload_settings import load_limits
 
 router = APIRouter(prefix="/imports")
 EDIT = ("buyer", "admin")
+
+
+def _only(body: dict[str, Any] | None, *keys: str) -> dict[str, Any]:
+    """Forward the fields the forecast service knows and nothing else; it validates their values."""
+    return {k: body[k] for k in keys if body and k in body}
 READ = ("viewer", "buyer", "approver", "admin")
 
 
@@ -62,9 +67,9 @@ async def upload(request: Request, file: UploadFile = File(...), name: str = For
     return res.json()
 
 
-@router.post("/rollback")
-async def rollback(session: SessionData = Depends(require_roles(*EDIT)), fc: ForecastClient = Depends(get_forecast_client)) -> Any:
-    return await fc.forward("POST", "/imports/rollback", json={}, user_id=session.user_id, roles=session.roles)
+@router.post("/rollback", dependencies=[Depends(require_fresh_mfa())])
+async def rollback(body: dict[str, Any] | None = None, session: SessionData = Depends(require_roles(*EDIT)), fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+    return await fc.forward("POST", "/imports/rollback", json=_only(body, "reason_code", "reason_detail"), user_id=session.user_id, roles=session.roles)
 
 
 @router.get("/jobs")
@@ -93,10 +98,10 @@ async def dry_run(dataset_id: str, session: SessionData = Depends(require_roles(
     return await fc.forward("POST", f"/imports/{dataset_id}/dry-run", json={}, user_id=session.user_id, roles=session.roles)
 
 
-@router.post("/{dataset_id}/activate")
+@router.post("/{dataset_id}/activate", dependencies=[Depends(require_fresh_mfa())])
 async def activate(dataset_id: str, body: dict[str, Any] | None = None, session: SessionData = Depends(require_roles(*EDIT)),
                    fc: ForecastClient = Depends(get_forecast_client)) -> Any:
-    return await fc.forward("POST", f"/imports/{dataset_id}/activate", json=body or {}, user_id=session.user_id, roles=session.roles)
+    return await fc.forward("POST", f"/imports/{dataset_id}/activate", json=_only(body, "acknowledge_duplicate", "reason_code", "reason_detail"), user_id=session.user_id, roles=session.roles)
 
 
 @router.post("/{dataset_id}/reject", status_code=204)

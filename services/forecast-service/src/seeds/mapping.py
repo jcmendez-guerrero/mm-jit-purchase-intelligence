@@ -13,9 +13,9 @@ from sqlalchemy import insert, select
 from sqlalchemy.engine import Connection
 
 CANONICAL = ("variant_id", "sku", "day", "quantity", "warehouse", "kind", "provenance", "origin")
-REQUIRED = ("variant_id", "day", "quantity", "kind", "provenance", "origin")
+REQUIRED = ("day", "quantity", "kind", "provenance", "origin")      # plus a product column: sku (a file with only variant_id has every row rejected)
 SYNONYMS: dict[str, tuple[str, ...]] = {
-    "variant_id": ("id de variante siweb", "id variante", "variante", "variant_id", "variant id"),
+    # no variant_id synonyms: users supply the SKU, so a variant-id header is never suggested (it can still be mapped by hand and every row is then rejected)
     "sku": ("sku", "referencia"),
     "day": ("fecha", "dia", "day", "date"),
     "quantity": ("cantidad", "unidades", "quantity", "qty"),
@@ -52,7 +52,8 @@ def suggest(headers: list[str]) -> dict[str, str]:
 
 def missing_required(column_map: dict[str, str]) -> list[str]:
     have = set(column_map.values())
-    return [f for f in REQUIRED if f not in have]
+    missing = [f for f in REQUIRED if f not in have]
+    return ((["sku"] if not have & {"sku", "variant_id"} else []) + missing)
 
 
 def validate_map(column_map: dict[str, str]) -> None:

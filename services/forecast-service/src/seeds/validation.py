@@ -10,7 +10,7 @@ import hashlib
 import json
 import re
 import unicodedata
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -38,6 +38,8 @@ class Accepted:
     kind: str
     provenance: str
     warehouse: str | None
+    sku: str | None = None
+    day_text: str | None = None
 
 
 @dataclass(frozen=True)
@@ -110,7 +112,17 @@ def parse_quantity(text: str) -> Decimal:
     return d
 
 
-def validate_rows(rows: list[dict[str, str]], known_variants: Collection[int], today: date | None = None) -> Validated:
+def _sku_index(sku_map: Mapping[str, int | Collection[int]]) -> dict[str, set[int]]:
+    """Folded SKU -> variants. A SKU shared by two products (identical, or differing only by case or spaces) stays ambiguous, never guessed.
+
+    The value of ``sku_map`` is one variant or a collection of them (``seeds.lookup.lookups_from_series`` builds the collection form)."""
+    idx: dict[str, set[int]] = {}
+    for sku, variants in sku_map.items():
+        idx.setdefault(" ".join(sku.split()).casefold(), set()).update({int(variants)} if isinstance(variants, int) else {int(v) for v in variants})
+    return idx
+
+
+def validate_rows(rows: list[dict[str, str]], known_variants: Collection[int], today: date | None = None, *, sku_map: Mapping[str, int | Collection[int]]) -> Validated:
     today = today or datetime.now(UTC).date()
     latest = today + timedelta(days=MAX_AHEAD_DAYS)
     origins = {ORIGINS.get(_o(r.get("origin", ""))) for r in rows if r.get("origin", "").strip()}
@@ -118,6 +130,7 @@ def validate_rows(rows: list[dict[str, str]], known_variants: Collection[int], t
     if len(origins) > 1:
         raise SeedFileError("import_mixed_origin")
     known = set(known_variants)
+    sku_index = _sku_index(sku_map)                                   # MMI-7: users supply the SKU; the variant id is resolved here, never read from the file
     result = Validated(origin=next(iter(origins), "synthetic"))
     seen: set[tuple[int, date, str]] = set()
     for n, row in enumerate(rows, start=2):                           # row 1 is the header
@@ -125,11 +138,18 @@ def validate_rows(rows: list[dict[str, str]], known_variants: Collection[int], t
         if not row.get("origin", "").strip() or _o(row["origin"]) not in ORIGINS:
             refuse("import_missing_column", field="origin")
             continue
-        vtext = row.get("variant_id", "").strip()
-        if not re.fullmatch(r"\d+", vtext) or int(vtext) < 1:
-            refuse("import_unknown_variant", value_present=bool(vtext))
+        sku = " ".join(row.get("sku", "").split())
+        if not sku:                                                   # a file that supplies only a variant id has every row rejected here
+            refuse("import_sku_required")
             continue
-        variant = int(vtext)
+        hits = sku_index.get(sku.casefold(), set())
+        if not hits:
+            refuse("import_unknown_sku", sku=sku[:60])
+            continue
+        if len(hits) > 1:
+            refuse("import_ambiguous_sku", sku=sku[:60])
+            continue
+        variant = next(iter(hits))
         if variant not in known:
             refuse("import_unknown_variant", variant_id=variant)
             continue
@@ -165,7 +185,7 @@ def validate_rows(rows: list[dict[str, str]], known_variants: Collection[int], t
             refuse("import_duplicate_row", variant_id=variant, day=day.isoformat())
             continue
         seen.add(key)
-        result.accepted.append(Accepted(n, variant, day, qty, kind, provenance[:200], (row.get("warehouse", "").strip() or None)))
+        result.accepted.append(Accepted(n, variant, day, qty, kind, provenance[:200], (row.get("warehouse", "").strip() or None), sku or None, row.get("day", "").strip()[:40] or None))
     if result.total != len(rows):                                      # nothing is dropped silently
         raise RuntimeError("row accounting mismatch")
     return result

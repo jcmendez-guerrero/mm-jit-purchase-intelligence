@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from backtest.runner import BacktestConfig
-from conftest import KNOWN, export_series
+from conftest import KNOWN, SKUS, export_series
 from db.tables import forecast_runs
 from runs.runner import RunConfig, run_forecast
 from runs.seeds import apply_seeds
@@ -44,10 +44,10 @@ def test_the_dry_run_and_the_run_report_the_overlap(engine, store, tmp_path):
     series = [short_series(9001, 20, "2026-03-01")]                                      # actuals 2026-03-01 .. 2026-03-20
     with engine.begin() as c:
         up = register_upload(c, store, "otro.csv", dense_csv(9001, date(2026, 1, 1), 90).replace(b"Hoja", b"Otra"), "Otra", "buyer-1", ParseLimits())
-        validate_dataset(c, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", ParseLimits())
+        validate_dataset(c, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", ParseLimits(), sku_map=SKUS)
         out = dry_run(c, up["id"], series, BacktestConfig())
     assert out["overlap"] == {"variants": 1, "days": 20}
     run = run_forecast(engine, FakeSource({"through_day": "2026-10-31", "series": series}), NullWriter(tmp_path), RunConfig(), clock=CLOCK)
     with engine.connect() as c:
         cfg = c.execute(select(forecast_runs.c.config).where(forecast_runs.c.id == run.run_id)).scalar_one()
-    assert cfg["seed"] == {"dataset_id": did, "variants_used": 1, "overlap_variants": 1, "overlap_days": 20}
+    assert cfg["seed"] == {"dataset_id": did, "variants_used": 1, "overlap_variants": 1, "overlap_days": 20, "retired_variants": 0}

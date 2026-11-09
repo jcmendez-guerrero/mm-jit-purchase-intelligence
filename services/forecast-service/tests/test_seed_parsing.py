@@ -14,7 +14,7 @@ L = ParseLimits()
 
 def test_csv_semicolon_utf8_with_spanish_headers():
     headers, rows = parse_csv(sf.static("valid.csv"), L)
-    assert headers[0] == "ID de variante Siweb" and rows[0]["Cantidad"] == "2" and rows[0]["Origen"] == "Hoja sintética A"
+    assert headers[0] == "SKU" and rows[0]["SKU"] == "EJ-9001" and rows[0]["Cantidad"] == "2" and rows[0]["Origen"] == "Hoja sintética A"
 
 
 def test_csv_delimiters_encodings_and_blank_lines():
@@ -37,7 +37,7 @@ def test_csv_limits_on_rows_and_columns():
 
 def test_xlsx_first_sheet_only_and_dates_and_numbers_as_text():
     headers, rows = parse_xlsx(sf.valid_xlsx(), L)
-    assert headers == sf.HEADER and len(rows) == 3 and rows[0]["ID de variante Siweb"] == "9001" and rows[2]["Tipo de dato"] == "observado_externo"
+    assert headers == sf.HEADER and len(rows) == 3 and rows[0]["SKU"] == "EJ-9001" and rows[2]["Tipo de dato"] == "observado_externo"
 
 
 def test_xlsx_with_several_sheets_reads_only_the_first_and_enforces_the_sheet_limit():
