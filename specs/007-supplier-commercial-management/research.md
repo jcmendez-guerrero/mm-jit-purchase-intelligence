@@ -52,6 +52,8 @@ Audit of the worktree's base (latest main at `9d11abb`). Statuses: complete / pa
 
 **D10 Rate refresh isolation (FR-043).** Decision: in `worker.run_once`, run the rate refresh and housekeeping after the event relay and inside a `try/except Exception` that logs, audits `fx.refresh_failed` where the database allows it, and reports `fx: "error"` in the pass result; `refresh_if_due` keeps handling download and parse failures itself, and its docstring says so precisely. Rationale: the review showed `store_rates` and `purge` run outside `refresh_if_due`'s try, so a database error aborted the pass before `relay_once`, blocking events from every service. Alternatives: only reorder (leaves the pass crashing on a persistent error); only wrap (relay still waits behind the rate step on every pass). Both together keep relay first and the pass alive. Test: a rates source whose storage raises still leaves the relay executed. Scale note (recorded as a limit): with several replicas two workers could insert the same (currency, day); use insert-or-update then.
 
+**D11 Supplier reason wording.** Decision: a line says `lower_total_with_supplier_terms` only when the plan as a whole is not dearer in cash than the baseline; when the optimiser pays a little more cash to avoid a supplier with more lead-time risk it says `lower_lead_time_risk`. Rationale: the solver minimises cash plus risk, so "lower total" would be false for those lines (Constitution III).
+
 ## C. Verification results (T002, 2026-11-09)
 
 Command: see quickstart step 1. Result: **235 passed, 0 failed** (334 deselected), 10 s, SQLite fixtures. A first run failed one test only because `mmi-testing` (which provides `export_loader`) was not installed; after installing it the same test passes.

@@ -54,6 +54,16 @@ describe("ProposalsScreen", () => {
     expect(screen.getByText("menor coste total con las condiciones del proveedor", { exact: false })).toBeTruthy();
   });
 
+  it("says in Spanish that the supplier was chosen for a lower lead-time risk even though it costs a little more", async () => {
+    const base = proposal();
+    const line = base.lines[0]!;
+    vi.spyOn(api, "getProposal").mockResolvedValue({ ...base, lines: [{ ...line, explanation: { ...line.explanation, supplier: { ...line.explanation.supplier, reason: "lower_lead_time_risk" } } }] });
+    render(<ProposalsScreen userRoles={["viewer"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ver justificación" }));
+    expect(screen.getByText("menor riesgo por plazo de entrega, aunque cueste algo más", { exact: false })).toBeTruthy();
+    expect(screen.queryByText("menor coste total con las condiciones del proveedor", { exact: false })).toBeNull();
+  });
+
   it("labels a line whose forecast rests on imported estimates, in the row and in the explanation, and not an ordinary one", async () => {
     const base = proposal();
     const line = base.lines[0]!;

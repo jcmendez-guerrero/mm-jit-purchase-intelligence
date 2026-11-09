@@ -25,5 +25,5 @@ Added on top of the audit of features 002/004: idempotent term saves (`Idempoten
 
 **Quality**
 - [x] Procurement 798+, BFF 177, contracts 208, infra 59, connector 125, writer 66, web 495 unit tests pass; Playwright supplier journeys pass; ruff, eslint and tsc clean; migrations run and reverse on real PostgreSQL
-- [x] All user-facing text is Spanish through the catalogue
+- [x] All user-facing text is Spanish through the catalogue (including the new line reason `lower_lead_time_risk`)
 - Not a merge or deploy request.

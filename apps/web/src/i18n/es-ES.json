@@ -273,6 +273,7 @@
   "proposals.why.supplier_reason.lowest_cost": "menor coste",
   "proposals.why.supplier_reason.preferred_supplier_on_tie": "mismo coste que otra opción; se elige el proveedor preferido",
   "proposals.why.supplier_reason.lower_total_with_supplier_terms": "menor coste total con las condiciones del proveedor",
+  "proposals.why.supplier_reason.lower_lead_time_risk": "menor riesgo por plazo de entrega, aunque cueste algo más",
   "proposals.why.supplier_reason.free_delivery_threshold_reached": "se alcanza el envío gratuito",
   "proposals.why.supplier_reason.top_up_for_supplier_minimum_or_free_delivery": "se completa el pedido para el mínimo o el envío gratuito",
   "proposals.why.delivery": "Entrega prevista: {{date}}.",

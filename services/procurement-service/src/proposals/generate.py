@@ -111,7 +111,7 @@ def _won_on_preference(line: LineSpec, chosen: Chosen, inputs: ProposalInputs) -
     return bool(preferred) and any(x.supplier_id != chosen.supplier_id and x.line_ticks == mine.line_ticks and x.lead == mine.lead for x in line.cands)
 
 
-def _reason(line: LineSpec, chosen: Chosen, greedy: dict[int, Chosen], group: Group, inputs: ProposalInputs) -> str:
+def _reason(line: LineSpec, chosen: Chosen, greedy: dict[int, Chosen], group: Group, inputs: ProposalInputs, plan_costs_more: bool = False) -> str:
     if line.fixed_supplier == chosen.supplier_id:
         return "buyer_override"
     if len(line.cands) == 1:
@@ -120,6 +120,9 @@ def _reason(line: LineSpec, chosen: Chosen, greedy: dict[int, Chosen], group: Gr
         return "top_up_for_supplier_minimum_or_free_delivery"
     g = greedy.get(chosen.variant_id)
     if g is not None and g.supplier_id != chosen.supplier_id:
+        risk = {c.supplier_id: c.risk_ticks for c in line.cands}
+        if plan_costs_more and risk.get(g.supplier_id, 0) > risk.get(chosen.supplier_id, 0):
+            return "lower_lead_time_risk"          # the optimum paid a little more cash to avoid a slower supplier, so it must not say "lower total"
         return "lower_total_with_supplier_terms"
     if _won_on_preference(line, chosen, inputs):
         return "preferred_supplier_on_tie"
@@ -165,7 +168,7 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
             "reorder_point": t.reorder_point,
             "position": {"on_hand": t.on_hand, "expiring": t.expiring_qty, "usable": t.usable_on_hand, "inbound": t.inbound_counted, "total": t.inventory_position},
             "need": t.need, "top_up": c.topup, "clinical_critical": v.clinical_critical,
-            "supplier": {"chosen": c.supplier_id, "reason": _reason(ln, c, greedy_by, g, inputs), "alternatives": list(alternatives),
+            "supplier": {"chosen": c.supplier_id, "reason": _reason(ln, c, greedy_by, g, inputs, alloc.total_ticks > greedy.total_ticks), "alternatives": list(alternatives),
                          "rejected": [{"supplier_id": s, "reason": r} for s, r in ln.rejected]},
             "cost": {"unit": str(money(c.unit_ticks)), "source": cand.offer.source, "status": cand.offer.cost_status, "cost_id": cand.offer.cost_id},
             "constraints": constraints,
