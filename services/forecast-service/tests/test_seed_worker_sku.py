@@ -38,3 +38,21 @@ def test_without_a_sku_in_the_series_every_row_is_quarantined_not_guessed(engine
     with engine.connect() as c:
         ds = c.execute(select(seed_datasets).where(seed_datasets.c.id == dataset)).one()
     assert ds.accepted_count == 0 and ds.quarantined_count == 5
+
+
+def test_an_empty_queue_does_not_ask_inventory_for_its_export(engine):
+    class Boom:
+        def fetch(self):
+            raise AssertionError("inventory must not be called")
+
+    assert process_imports(engine, Boom()) == {"processed": 0, "done": 0, "failed": 0, "deferred": 0}
+
+
+def test_a_queued_job_still_waits_when_inventory_is_unavailable(engine, store):
+    queue(engine, store)
+
+    class Down:
+        def fetch(self):
+            raise RuntimeError("down")
+
+    assert process_imports(engine, Down())["deferred"] == 1

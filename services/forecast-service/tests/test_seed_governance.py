@@ -43,7 +43,7 @@ def test_an_owner_admin_may_self_activate_only_with_a_listed_reason_and_it_is_au
     with pytest.raises(LifecycleError) as e:
         activate(conn, store, d, "admin-1", is_admin=True)
     assert e.value.code == "import_reason_required"
-    for bad_code, bad_detail in (("because", None), ("wrong_figures", None), ("only_person", "x" * 101)):                  # not in the self-activation list, or a detail that is too long
+    for bad_code, bad_detail in (("because", None), ("wrong_figures", None), ("only_person", "x" * 101), ("only_person", "a\x00b")):                  # not in the self-activation list, or a detail that is too long
         with pytest.raises(LifecycleError) as e:
             activate(conn, store, d, "admin-1", is_admin=True, reason_code=bad_code, reason_detail=bad_detail)
         assert e.value.code == "import_reason_invalid"
@@ -74,7 +74,7 @@ def test_rollback_needs_a_listed_reason_stores_it_and_keeps_the_detail_out_of_th
         with pytest.raises(LifecycleError) as e:
             rollback(conn, store, "approver-1", reason_code=missing)
         assert e.value.code == "import_reason_required"
-    for bad_code, bad_detail in (("because", None), ("only_person", None), ("test", "x" * 101)):                          # unknown, from the other list, detail too long
+    for bad_code, bad_detail in (("because", None), ("only_person", None), ("test", "x" * 101), ("test", "a\x00b")):                          # unknown, from the other list, detail too long
         with pytest.raises(LifecycleError) as e:
             rollback(conn, store, "approver-1", reason_code=bad_code, reason_detail=bad_detail)
         assert e.value.code == "import_reason_invalid"

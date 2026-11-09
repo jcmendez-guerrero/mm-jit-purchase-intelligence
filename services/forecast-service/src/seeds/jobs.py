@@ -55,6 +55,13 @@ def rerun_job(conn: Connection, job_id: str, actor: str, now: datetime | None = 
     return res
 
 
+def has_queued(engine: Engine) -> bool:
+    """True when a validation job waits or an abandoned one (running too long) can be put back."""
+    with engine.connect() as conn:
+        stale = import_jobs.c.state == "running"
+        return conn.execute(select(import_jobs.c.id).where(import_jobs.c.stage == STAGE, (import_jobs.c.state == "queued") | (stale & (import_jobs.c.started_at < datetime.now(UTC) - STALE_AFTER))).limit(1)).first() is not None
+
+
 def process_queued(engine: Engine, store: BlobStore, known_variants: Collection[int], limits: ParseLimits, now: datetime | None = None,
                   *, sku_map: Mapping[str, int | Collection[int]]) -> dict[str, int]:
     """One worker pass. Each job runs in its own transaction, so one failure never blocks the others."""

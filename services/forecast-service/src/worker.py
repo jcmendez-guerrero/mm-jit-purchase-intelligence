@@ -27,11 +27,13 @@ log = logging.getLogger("forecast.worker")
 
 def process_imports(engine: Engine, source) -> dict[str, int]:  # type: ignore[no-untyped-def]
     """Validates queued seed files (large uploads). Skipped, and left queued, when inventory cannot say which variants exist."""
-    from seeds.jobs import process_queued
+    from seeds.jobs import has_queued, process_queued
     from seeds.lookup import lookups_from_series
     from seeds.store import make_seed_store
     from upload_settings import load_limits
 
+    if not has_queued(engine):                                                   # nothing to validate: do not ask inventory for its whole export
+        return {"processed": 0, "done": 0, "failed": 0, "deferred": 0}
     try:
         series = source.fetch()["series"]
         known, skus = lookups_from_series(series)

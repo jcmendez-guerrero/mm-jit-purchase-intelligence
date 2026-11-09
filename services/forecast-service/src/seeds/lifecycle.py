@@ -153,7 +153,7 @@ def _reason(code: str | None, detail: str | None, allowed: tuple[str, ...]) -> t
     if not (code or "").strip():
         raise LifecycleError("import_reason_required")
     tidy = " ".join((detail or "").split())
-    if code not in allowed or len(tidy) > MAX_DETAIL:
+    if code not in allowed or len(tidy) > MAX_DETAIL or not tidy.isprintable():        # a NUL or other control character would also break the database write
         raise LifecycleError("import_reason_invalid")
     return code, tidy or None
 
