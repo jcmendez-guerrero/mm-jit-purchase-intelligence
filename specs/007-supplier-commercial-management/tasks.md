@@ -14,7 +14,7 @@
 
 - [X] T001 Prepare the Python test environment: there is no `uv.lock`, so run `uv sync` from the repository root (public PyPI only), confirm `.venv` and `uv.lock` are gitignored or leave them untracked, and write the exact working test command into `specs/007-supplier-commercial-management/quickstart.md` step 1
 - [X] T002 Run the baseline suites from quickstart step 1 and record pass/fail per audit row in `research.md` (turn "complete by reading" into verified; reclassify failures as broken)
-- [ ] T003 [P] Confirm with Agent 00 (Jira MMI-1 thread) that `Idempotency-Key`, the new error codes and the daily exchange-rate job are acceptable shared changes; note the answer in `research.md` section C
+- [X] T003 [P] Confirm with Agent 00 (Jira MMI-1 thread) that `Idempotency-Key`, the new error codes and the daily exchange-rate job are acceptable shared changes; note the answer in `research.md` section C — done: Agent 00 (feature 005) is merged to main; its gateway idempotency test now records the two terms saves
 - [X] T004 [P] Check `git diff --stat main` touches only files listed in plan.md Project Structure (guard for FR-033)
 
 ## Phase 2: Foundational (blocks all stories)
