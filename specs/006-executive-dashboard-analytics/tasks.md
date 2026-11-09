@@ -247,3 +247,11 @@ MVP first: Phases 1-2, then US1, US2, US3; validate with quickstart scenarios 1-
 **Purpose**: the one gap the fifth `/speckit-converge` run found that no open task tracks.
 
 - [ ] T091 Build and test the composition of capital tied up in the BFF in `services/api-bff/src/routes/dashboard.py` with tests in `services/api-bff/tests/test_dashboard_indicators_bff.py`: add the stock at cost from inventory and the open orders from procurement with `Decimal`, return both parts, make the total equal their sum (FR-025), and when either service fails or the role has no cost access return the state `error` or `hidden_by_role` with no value instead of a total made of one part, per FR-025 and FR-003 (missing)
+
+---
+
+## Phase 15: Convergence
+
+**Purpose**: the one gap the sixth `/speckit-converge` run found that no open task tracks.
+
+- [X] T092 Add a scale test with about 20,000 variants (one costed lot each, demand for 60 days for a tenth of them, two suppliers) in `services/inventory-service/tests/test_dashboard_scale.py` that times `compute_summary`, `demand_summary`, `forecast_summary`, the supplier-filtered summary and the first drill-down page, each under 2 seconds as SC-003 asks; where one is slower, move its row-by-row work in `services/inventory-service/src/dashboard/kpis.py` and `drilldown.py` into SQL aggregation, per SC-003 and plan: scale (partial) (done: at 20,000 variants the summary takes 0.27 s, demand 0.16 s, forecast 0.02 s, the supplier-filtered summary 0.35 s and the first drill-down page 0.16 s on the in-memory database, so no SQL rewrite was needed; the test guards against growth; limits: one lot per variant and one warehouse, and not measured against PostgreSQL)
