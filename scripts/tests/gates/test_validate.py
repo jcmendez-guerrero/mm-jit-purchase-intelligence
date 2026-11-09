@@ -79,6 +79,16 @@ def test_the_same_agent_may_overlap_itself():
     assert v.plan_errors(_plan([_owned(1, "agent-01", "a/**"), _owned(2, "agent-01", "a/b/**")])) == []
 
 
+def test_an_error_in_one_artifact_does_not_hide_checks_on_the_others(valid_artifacts: Path):
+    copy = valid_artifacts / SCHEMAS / "gate-report.schema.json"
+    data = json.loads(copy.read_text())
+    data["title"] = "Changed"
+    write_json(copy, data)  # a drifted schema copy
+    write_json(valid_artifacts / "docs/architecture/integration/integration-plan.json", _plan([_step(1, [2]), _step(2, [1])]))
+    errors = v.validate(valid_artifacts)
+    assert any("differs" in e for e in errors) and any("dependency cycle" in e for e in errors)
+
+
 def test_plan_cycle_and_unknown_dependency():
     assert "dependency cycle in steps" in v.plan_errors(_plan([_step(1, [2]), _step(2, [1])]))
     assert any("unknown pr" in e for e in v.plan_errors(_plan([_step(1, [9])])))

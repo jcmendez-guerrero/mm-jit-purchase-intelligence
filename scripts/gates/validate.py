@@ -99,9 +99,10 @@ def validate(root: Path = ROOT) -> list[str]:
             continue
         validator = jsonschema.Draft202012Validator(_load(schema_path))
         data = _load(path)
-        errors += [f"{artifact}: {e.message}" for e in validator.iter_errors(data)]
-        if artifact == "integration-plan.json" and not errors:
-            errors += [f"{artifact}: {m}" for m in plan_errors(data)]
-        if artifact == "feature-status.json" and not errors:
-            errors += [f"{artifact}: {m}" for m in audit_check.check(root, data)]
+        found = [f"{artifact}: {e.message}" for e in validator.iter_errors(data)]
+        if not found and artifact == "integration-plan.json":  # semantic checks only on a schema-valid file, and only on its own errors
+            found = [f"{artifact}: {m}" for m in plan_errors(data)]
+        if not found and artifact == "feature-status.json":
+            found = [f"{artifact}: {m}" for m in audit_check.check(root, data)]
+        errors += found
     return errors

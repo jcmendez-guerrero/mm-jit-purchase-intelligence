@@ -82,5 +82,5 @@ jobs:
           cd scripts
           for pr in $(python -c "import json;print(*[int(s['pr']) for s in json.load(open('../docs/architecture/integration/integration-plan.json'))['steps']])"); do
             python -m gates summary --report "$RUNNER_TEMP/report/gate-report.json" --pr "$pr" > "$RUNNER_TEMP/comment.md"
-            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/comment.md"
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body-file "$RUNNER_TEMP/comment.md"
           done

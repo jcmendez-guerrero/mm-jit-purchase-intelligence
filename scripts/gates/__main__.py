@@ -103,7 +103,11 @@ def _cmd_integrate(args: argparse.Namespace) -> int:
             for cmd, cwd in integrate.web_commands(tree):
                 subprocess.run(cmd, cwd=cwd, check=True)  # noqa: S603
 
-    report = integrate.integrate(ROOT, plan, make_runner(None), prepare=prepare if (args.install or args.web) else None)
+    try:
+        report = integrate.integrate(ROOT, plan, make_runner(None), prepare=prepare if (args.install or args.web) else None)
+    except ValueError as e:  # an invalid plan: say so, do not print a traceback
+        print(e, file=sys.stderr)
+        return 3
     # Integration status is only known after the run: account for every step, then recompute the aggregate.
     dropped = {d["pr"]: d for d in report.get("dropped_prs", [])}
     outcome = {**plan, "steps": [

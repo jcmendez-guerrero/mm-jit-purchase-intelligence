@@ -33,7 +33,7 @@ Run from `scripts/` (or with `scripts` on `PYTHONPATH`). `run --openapi <gateway
 - **Procurement-service** owns `supplier`, `supplier_terms`, `supplier_cost`, `lot_acquisition_cost`, `cost_write`, `proposal`, `proposal_line` and `scenario`: ADR-018 says procurement owns terms, policies and scenarios, the supplier cost and lot tables live in its schema, and cost writes are requested by procurement.
 - **Inventory-service** owns `dashboard_summary` (the dashboard aggregates), **forecast-service** owns `seed_validation_result` (predictive seed datasets), **siweb-cost-writer** owns `conditions_block` (the supplier-note block it writes). For these three no service source file references the schema by name (only the generated models do), so the owner follows the feature design, not code references.
 - **Shared, owner `agent-00`:** `money`, `variant`, `envelope` and `error_codes` (used by every service) and `load_result` (used by the local loader tooling and the gateway).
-- Consumers are still inferred from text mentions, so a false positive is possible; check one before relying on a consumer list to retire a version.
+- **Consumers are a lower bound.** They are references found in service source: the schema file or event type (`name.vN`) or the generated module (`name_vN_schema`). No service imports the generated models or names a DTO schema by version, so 34 of the 42 schema entries list no consumers even though services use the same shapes through their own models. An empty list therefore does **not** mean unused: before deprecating or retiring any version, search the code and ask the owning agents by hand. The gate's check that consumers have moved to a successor is only as good as these lists.
 
 ## Required checks (repository setting, maintainer)
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
@@ -64,6 +65,34 @@ def test_v2_with_deprecated_v1(tmp_path):
     assert any("not on successor" in p for p in g.check(root, unmoved))
     missing = _matrix(_entry(status="deprecated", superseded_by="money.v3"), _entry(version=2))
     assert any("successor" in p for p in g.check(root, missing))
+
+
+def _packaged_rule():
+    """The rule `packages/contracts/tests/test_compat.py` enforces in the contracts package's own CI."""
+    from conftest import REPO
+
+    spec = importlib.util.spec_from_file_location("mmi_package_compat", REPO / "packages/contracts/tests/test_compat.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module._breaking
+
+
+BASE = {"type": "object", "required": ["a"], "properties": {"a": {"type": "string", "enum": ["x", "y"]}, "b": {"type": "integer"}}}
+CHANGES = {
+    "removed field": {**BASE, "properties": {"a": BASE["properties"]["a"]}},
+    "retyped field": {**BASE, "properties": {**BASE["properties"], "b": {"type": "string"}}},
+    "narrowed enum": {**BASE, "properties": {**BASE["properties"], "a": {"type": "string", "enum": ["x"]}}},
+    "new required field": {**BASE, "required": ["a", "b"]},
+    "added optional field": {**BASE, "properties": {**BASE["properties"], "c": {"type": "string"}}},
+}
+
+
+def test_the_gate_and_the_packages_own_compatibility_rule_agree():
+    rule = _packaged_rule()
+    for label, new in CHANGES.items():
+        assert sorted(g.breaking(BASE, new)) == sorted(rule(BASE, new)), label
+    assert g.breaking(BASE, CHANGES["added optional field"]) == []  # additive is allowed
+    assert all(g.breaking(BASE, new) for label, new in CHANGES.items() if label != "added optional field")
 
 
 OPENAPI = {"paths": {"/api/a": {"get": {}, "post": {}, "parameters": []}}}

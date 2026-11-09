@@ -77,6 +77,15 @@ def test_lookup_prints_owner_version_consumers_and_status_and_exits_3_for_an_unk
     assert cli.main(["lookup", "money"]) == 3  # no matrix at all is an error, not an empty answer
 
 
+def test_integrate_with_an_invalid_plan_exits_3_with_a_clear_message(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "ROOT", tmp_path)
+    plan = tmp_path / "plan.json"
+    step = {"pr": 1, "agent": "agent-01", "owned_paths": ["a/**"], "depends_on": [9], "verification": ["contracts"], "state": "pending"}
+    write_json(plan, {"base": "main", "steps": [step]})
+    assert cli.main(["integrate", "--plan", str(plan)]) == 3
+    assert "unknown pr 9" in capsys.readouterr().err
+
+
 def _repo(path: Path) -> Path:
     path.mkdir()
     git(path, "init", "-q", "-b", "main")
@@ -111,7 +120,7 @@ def test_integrate_end_to_end_with_prepare_steps_and_the_recomputed_integration_
     # the command resolves PR heads as refs/pull/N/head; point those at the throwaway branches
     for n in (1, 2):
         git(repo, "update-ref", f"refs/pull/{n}/head", f"pr{n}")
-    steps = [{"pr": n, "agent": f"agent-0{n}", "owned_paths": ["a/**"], "depends_on": [], "verification": ["contracts"], "state": "pending"}
+    steps = [{"pr": n, "agent": "agent-01", "owned_paths": ["a/**"], "depends_on": [], "verification": ["contracts"], "state": "pending"}
              for n in (1, 2)]
     plan = tmp_path / "plan.json"
     write_json(plan, {"base": "main", "steps": steps})

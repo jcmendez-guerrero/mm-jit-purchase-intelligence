@@ -20,7 +20,11 @@ def render(report: dict, pr: int | None = None) -> str:
     lines = [f"### Gate report (overall: **{report['overall']}**)", "", "| Gate | Result | Time | Evidence |", "|---|---|---|---|"]
     for g in report["gates"]:
         first = clean(g["evidence"][0] if g["evidence"] else "")
-        lines.append(f"| {g['gate']} | {g['result']} | {seconds(g):.1f}s | {first} |")
+        try:
+            took = f"{seconds(g):.1f}s"
+        except (KeyError, TypeError, ValueError):  # the report is untrusted: an unreadable time must not stop the comment
+            took = "-"
+        lines.append(f"| {clean(g['gate'])} | {clean(g['result'])} | {took} | {first} |")
     dropped = report.get("dropped_prs", [])
     if pr is None:
         if dropped:

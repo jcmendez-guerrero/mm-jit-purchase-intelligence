@@ -21,31 +21,31 @@ The gateway is `services/api-bff`.
 |---|---|---|---|---|---|
 | `budget_cap` | dto | v1 | procurement-service | - | frozen |
 | `conditions_block` | dto | v1 | siweb-cost-writer | - | frozen |
-| `cost_write` | dto | v1 | procurement-service | api-bff, siweb-cost-writer | frozen |
+| `cost_write` | dto | v1 | procurement-service | - | frozen |
 | `dashboard_summary` | dto | v1 | inventory-service | - | frozen |
 | `demand_rule` | dto | v1 | inventory-service | - | frozen |
 | `forecast_accuracy` | dto | v1 | forecast-service | - | frozen |
 | `forecast_parameter` | dto | v1 | forecast-service | - | frozen |
 | `load_result` | dto | v1 | agent-00 | - | frozen |
-| `lot_acquisition_cost` | dto | v1 | procurement-service | inventory-service | frozen |
-| `money` | dto | v1 | agent-00 | forecast-service, inventory-service, procurement-service, siweb-connector | frozen |
+| `lot_acquisition_cost` | dto | v1 | procurement-service | - | frozen |
+| `money` | dto | v1 | agent-00 | - | frozen |
 | `policy_override_request` | dto | v1 | procurement-service | - | frozen |
 | `policy_set` | dto | v1 | procurement-service | - | frozen |
 | `product_supplier_terms` | dto | v1 | procurement-service | - | frozen |
-| `proposal` | dto | v1 | procurement-service | api-bff, inventory-service | frozen |
-| `proposal_line` | dto | v1 | procurement-service | api-bff | frozen |
-| `scenario` | dto | v1 | procurement-service | api-bff | frozen |
+| `proposal` | dto | v1 | procurement-service | - | frozen |
+| `proposal_line` | dto | v1 | procurement-service | - | frozen |
+| `scenario` | dto | v1 | procurement-service | - | frozen |
 | `scenario_result` | dto | v1 | procurement-service | - | frozen |
 | `scenario_sensitivity` | dto | v1 | procurement-service | - | frozen |
 | `seed_dataset` | dto | v1 | forecast-service | - | frozen |
 | `seed_mapping` | dto | v1 | forecast-service | - | frozen |
 | `seed_validation_result` | dto | v1 | forecast-service | - | frozen |
 | `stocking_setting` | dto | v1 | procurement-service | - | frozen |
-| `supplier` | dto | v1 | procurement-service | api-bff, inventory-service, siweb-connector, siweb-cost-writer | frozen |
-| `supplier_cost` | dto | v1 | procurement-service | inventory-service, siweb-connector | frozen |
+| `supplier` | dto | v1 | procurement-service | - | frozen |
+| `supplier_cost` | dto | v1 | procurement-service | - | frozen |
 | `supplier_link` | dto | v1 | procurement-service | - | frozen |
-| `supplier_terms` | dto | v1 | procurement-service | api-bff | frozen |
-| `variant` | dto | v1 | agent-00 | api-bff, forecast-service, inventory-service, procurement-service, siweb-connector, siweb-cost-writer | frozen |
+| `supplier_terms` | dto | v1 | procurement-service | - | frozen |
+| `variant` | dto | v1 | agent-00 | - | frozen |
 | `DELETE /api/suppliers/{supplier_id}/links/{sku}` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/admin/roles` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/admin/roles/mirror` | endpoint | v1 | agent-00 | web | draft |
@@ -144,8 +144,8 @@ The gateway is `services/api-bff`.
 | `PUT /api/stocking/{variant_id}` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/suppliers/{supplier_id}/links/{sku}` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/suppliers/{supplier_id}/terms` | endpoint | v1 | agent-00 | web | draft |
-| `error_codes` | error | v1 | agent-00 | api-bff, procurement-service | frozen |
-| `envelope` | event | v1 | agent-00 | api-bff, forecast-service, inventory-service, procurement-service, siweb-connector, siweb-cost-writer | frozen |
+| `error_codes` | error | v1 | agent-00 | - | frozen |
+| `envelope` | event | v1 | agent-00 | - | frozen |
 | `forecast.completed` | event | v1 | forecast-service | procurement-service | frozen |
 | `forecast.seed.activated` | event | v1 | forecast-service | - | frozen |
 | `inventory.demand.updated` | event | v1 | inventory-service | forecast-service | frozen |

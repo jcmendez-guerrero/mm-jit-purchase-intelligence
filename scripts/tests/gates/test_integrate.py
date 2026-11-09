@@ -35,7 +35,7 @@ def branch(repo: Path, name: str, files: dict[str, str]) -> None:
 
 
 def step(pr, paths, deps=(), gates=("contracts",)):
-    return {"pr": pr, "agent": f"agent-0{pr}", "owned_paths": paths, "depends_on": list(deps),
+    return {"pr": pr, "agent": "agent-01", "owned_paths": paths, "depends_on": list(deps),
             "verification": list(gates), "state": "pending"}
 
 
@@ -88,6 +88,37 @@ def test_merge_conflict_is_dropped_and_others_continue(repo):
     assert dropped(report) == {2: "gate_failed"}
     assert [d["failed_gate"] for d in report["dropped_prs"]] == ["merge"]
     assert report["integrated"] == [1, 3]
+
+
+def test_a_merge_that_adds_nothing_cannot_undo_the_previous_pr(repo):
+    """PR 2 points at the same head as PR 1, so merging it creates no commit; its gate then fails."""
+    branch(repo, "pr1", {"a/one.txt": "1"})
+    final = {}
+
+    def gates(tree, which):
+        if len(which) == 6:  # the final run over all gates
+            final["has_pr1"] = (tree / "a/one.txt").exists()
+        return [GateResult(g, "fail" if g == "isolation" else "pass", ["stub"]) for g in which]
+
+    plan = {"base": "main", "steps": [step(1, ["a/**"], gates=("contracts",)), step(2, ["a/**"], gates=("isolation",))]}
+    report = ig.integrate(repo, plan, gates, ref_for=lambda pr: "pr1")
+    assert dropped(report) == {2: "gate_failed"} and report["integrated"] == [1]
+    assert final["has_pr1"], "the report lists PR 1 as integrated, so its code must be in the tree the final gates ran on"
+
+
+def test_a_pr_head_that_does_not_exist_is_dropped_and_the_rest_continue(repo):
+    branch(repo, "pr1", {"a/one.txt": "1"})
+    refs = {1: "pr1", 2: "refs/pull/999/head"}
+    report = ig.integrate(repo, {"base": "main", "steps": [step(2, ["a/**"]), step(1, ["a/**"])]}, gates_stub, ref_for=refs.get)
+    assert dropped(report) == {2: "gate_failed"} and report["dropped_prs"][0]["failed_gate"] == "ref"
+    assert report["integrated"] == [1]
+
+
+def test_an_invalid_plan_is_refused_before_anything_is_built(repo):
+    plan = {"base": "main", "steps": [step(1, ["a/**"], deps=[9])]}
+    with pytest.raises(ValueError, match="unknown pr 9"):
+        ig.integrate(repo, plan, gates_stub, ref_for=lambda pr: "pr1")
+    assert len(git(repo, "worktree", "list").splitlines()) == 1
 
 
 def test_prepare_runs_once_on_the_integration_tree_before_any_gate(repo):

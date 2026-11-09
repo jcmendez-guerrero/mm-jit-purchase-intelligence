@@ -62,7 +62,8 @@ def generate(root: Path, endpoints: list[dict] | None = None) -> dict:
     curated = _existing_schemas(root)
     entries = []
     for path, (kind, name, version) in schema_files(root).items():
-        needles = {name, f"{name}.v{version}", f"{name}.v{version}.schema.json"}
+        # a real reference: the schema file or event type (name.vN) or the generated module (name_vN_schema); the bare name is just a word
+        needles = {f"{name}.v{version}", f"{name}_v{version}_schema"}
         users = sorted(s for s, t in text.items() if any(n in t for n in needles))
         owner = SHARED
         if kind == "event":

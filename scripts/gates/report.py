@@ -33,8 +33,8 @@ class GateResult:
 
 def seconds(entry: dict) -> float:
     """Duration of one gate entry (SC-008); the original timestamp strings stay in the report."""
-    start = datetime.strptime(entry["started_at"], _FMT).replace(tzinfo=UTC)
-    end = datetime.strptime(entry["finished_at"], _FMT).replace(tzinfo=UTC)
+    start = datetime.fromisoformat(entry["started_at"])  # any ISO 8601 form the report schema allows, including a trailing Z
+    end = datetime.fromisoformat(entry["finished_at"])
     return (end - start).total_seconds()
 
 

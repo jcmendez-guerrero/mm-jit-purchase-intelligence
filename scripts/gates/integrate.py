@@ -16,6 +16,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from .report import GATES, GateResult, build_report
+from .validate import plan_errors
 
 RunGates = Callable[[Path, list[str] | tuple[str, ...]], list[GateResult]]
 IDENT = ["-c", "user.name=mmi-gates", "-c", "user.email=gates@example.test"]
@@ -64,6 +65,9 @@ def web_commands(tree: Path) -> list[tuple[list[str], Path]]:
 def integrate(root: Path, plan: dict, run_gates: RunGates, ref_for: Callable[[int], str] = lambda pr: f"refs/pull/{pr}/head",
               prepare: Callable[[Path], None] | None = None) -> dict:
     """`prepare(tree)` runs once on the throwaway tree before any merge, for installs that must come from that tree."""
+    problems = plan_errors(plan)
+    if problems:
+        raise ValueError("invalid integration plan: " + "; ".join(problems))
     base = plan["base"]
     dropped: dict[int, dict] = {}
     integrated: list[int] = []
@@ -79,10 +83,15 @@ def integrate(root: Path, plan: dict, run_gates: RunGates, ref_for: Callable[[in
                 dropped[pr] = {"pr": pr, "agent": agent, "reason": "depends_on_dropped", "failed_gate": cause["failed_gate"]}
                 continue
             ref = ref_for(pr)
-            changed = _git(root, "diff", "--name-only", f"{base}...{ref}").split()
+            try:
+                changed = _git(root, "diff", "--name-only", f"{base}...{ref}").split()
+            except subprocess.CalledProcessError:  # the PR head is not there (wrong number, not fetched): drop it, keep going
+                dropped[pr] = {"pr": pr, "agent": agent, "reason": "gate_failed", "failed_gate": "ref"}
+                continue
             if any(not _owned(p, s["owned_paths"]) for p in changed):
                 dropped[pr] = {"pr": pr, "agent": agent, "reason": "touches_foreign_paths", "failed_gate": "ownership"}
                 continue
+            before = _git(tree, "rev-parse", "HEAD").strip()  # a merge that adds nothing makes no commit, so HEAD~1 would undo the previous PR
             try:
                 _git(tree, "merge", "--no-ff", "--no-edit", "--quiet", ref)
             except subprocess.CalledProcessError:
@@ -91,7 +100,7 @@ def integrate(root: Path, plan: dict, run_gates: RunGates, ref_for: Callable[[in
                 continue
             failing = next((r.gate for r in run_gates(tree, s["verification"]) if r.result == "fail"), None)
             if failing:
-                _git(tree, "reset", "--hard", "--quiet", "HEAD~1")
+                _git(tree, "reset", "--hard", "--quiet", before)
                 dropped[pr] = {"pr": pr, "agent": agent, "reason": "gate_failed", "failed_gate": failing}
                 continue
             integrated.append(pr)

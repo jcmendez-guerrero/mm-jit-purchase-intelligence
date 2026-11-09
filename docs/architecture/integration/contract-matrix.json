@@ -1,6 +1,6 @@
 {
   "matrix_version": 1,
-  "generated_at": "2026-11-09T15:29:10Z",
+  "generated_at": "2026-11-09T21:07:31Z",
   "schema_ownership": {
     "siweb-connector": "integration",
     "inventory-service": "inventory",
@@ -34,10 +34,7 @@
       "version": 1,
       "schema_path": "dto/cost_write.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [
-        "api-bff",
-        "siweb-cost-writer"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -91,9 +88,7 @@
       "version": 1,
       "schema_path": "dto/lot_acquisition_cost.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [
-        "inventory-service"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -102,12 +97,7 @@
       "version": 1,
       "schema_path": "dto/money.v1.schema.json",
       "owner": "agent-00",
-      "consumers": [
-        "forecast-service",
-        "inventory-service",
-        "procurement-service",
-        "siweb-connector"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -143,10 +133,7 @@
       "version": 1,
       "schema_path": "dto/proposal.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [
-        "api-bff",
-        "inventory-service"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -155,9 +142,7 @@
       "version": 1,
       "schema_path": "dto/proposal_line.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [
-        "api-bff"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -166,9 +151,7 @@
       "version": 1,
       "schema_path": "dto/scenario.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [
-        "api-bff"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -231,12 +214,7 @@
       "version": 1,
       "schema_path": "dto/supplier.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [
-        "api-bff",
-        "inventory-service",
-        "siweb-connector",
-        "siweb-cost-writer"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -245,10 +223,7 @@
       "version": 1,
       "schema_path": "dto/supplier_cost.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [
-        "inventory-service",
-        "siweb-connector"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -266,9 +241,7 @@
       "version": 1,
       "schema_path": "dto/supplier_terms.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [
-        "api-bff"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -277,14 +250,7 @@
       "version": 1,
       "schema_path": "dto/variant.v1.schema.json",
       "owner": "agent-00",
-      "consumers": [
-        "api-bff",
-        "forecast-service",
-        "inventory-service",
-        "procurement-service",
-        "siweb-connector",
-        "siweb-cost-writer"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -293,14 +259,7 @@
       "version": 1,
       "schema_path": "events/envelope.v1.schema.json",
       "owner": "agent-00",
-      "consumers": [
-        "api-bff",
-        "forecast-service",
-        "inventory-service",
-        "procurement-service",
-        "siweb-connector",
-        "siweb-cost-writer"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {
@@ -444,10 +403,7 @@
       "version": 1,
       "schema_path": "errors/error_codes.json",
       "owner": "agent-00",
-      "consumers": [
-        "api-bff",
-        "procurement-service"
-      ],
+      "consumers": [],
       "status": "frozen"
     },
     {

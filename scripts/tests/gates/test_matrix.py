@@ -57,6 +57,22 @@ def test_lookup_finds_every_version_by_name_or_by_versioned_name_and_nothing_for
     assert m.lookup(matrix, "nope") == [] and m.lookup(matrix, "money.v9") == []
 
 
+def test_consumers_come_from_versioned_references_not_from_the_bare_word(tmp_path: Path):
+    (tmp_path / "packages/contracts/dto").mkdir(parents=True)
+    (tmp_path / "packages/contracts/dto/money.v1.schema.json").write_text("{}")
+
+    def service(name: str, text: str) -> None:
+        folder = tmp_path / "services" / name / "src"
+        folder.mkdir(parents=True)
+        (folder / "x.py").write_text(text)
+
+    service("inventory-service", "total_money = 1  # the word money appears everywhere\n")
+    service("procurement-service", 'validate("dto/money.v1.schema.json")\n')
+    service("forecast-service", "from mmi_models.dto.money_v1_schema import Money\n")
+    entry = json.loads(m.write(tmp_path).read_text())["entries"][0]
+    assert sorted(entry["consumers"]) == ["forecast-service", "procurement-service"]
+
+
 def test_endpoint_entries_validate_against_the_matrix_schema():
     schema = json.loads((REPO / "docs/architecture/integration/schemas/contract-matrix.schema.json").read_text())
     doc = {"matrix_version": 1, "generated_at": "2026-11-09T00:00:00Z", "schema_ownership": {}, "entries": m.endpoint_entries(OPENAPI)}
