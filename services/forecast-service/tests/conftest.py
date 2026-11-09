@@ -34,7 +34,7 @@ def weekly_series(rng, weeks, weekly_mean, shift_after=None, shift_factor=1.0):
 
 
 def export_series(variant_id, demand, pattern="smooth", eligible=True, reasons=(), price="10", level="0.95", critical=False):
-    return {"variant_id": variant_id, "product_id": variant_id, "price": price, "start_day": "2026-01-01", "demand": list(demand),
+    return {"variant_id": variant_id, "sku": f"EJ-{variant_id}", "product_id": variant_id, "price": price, "start_day": "2026-01-01", "demand": list(demand),
             "censored": [False] * len(demand), "service_level": level, "clinical_critical": critical,
             "segment": {"abc": "B", "xyz": "Y", "pattern": pattern, "forecast_eligible": eligible, "reasons": list(reasons)}}
 
@@ -92,3 +92,4 @@ def store(tmp_path):
 
 
 KNOWN = {9001, 9002, 9003, 9004, 9005}
+SKUS = {f"EJ-{v}": v for v in KNOWN}            # the SKU each variant has in the series sources and in the SKU fixtures

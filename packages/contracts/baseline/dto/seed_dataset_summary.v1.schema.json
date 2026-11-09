@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/seed_dataset_summary.v1",
+  "title": "SeedDatasetSummary",
+  "description": "One item of the GET /imports list (MMI-7). The full record is seed_dataset.v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "status",
+    "origin",
+    "uploader",
+    "uploaded_at",
+    "row_count",
+    "accepted",
+    "quarantined"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "version": { "type": "integer", "minimum": 1 },
+    "name": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+    "status": {
+      "enum": [
+        "uploaded",
+        "validated",
+        "approved",
+        "active",
+        "superseded",
+        "rolled_back",
+        "rejected"
+      ]
+    },
+    "origin": { "enum": ["synthetic", "real"] },
+    "uploader": { "type": "string" },
+    "uploaded_at": { "type": "string", "format": "date-time" },
+    "row_count": { "type": "integer", "minimum": 0 },
+    "activated_by": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+    "activated_at": {
+      "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }]
+    },
+    "accepted": { "type": "integer", "minimum": 0 },
+    "quarantined": { "type": "integer", "minimum": 0 },
+    "kinds": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "validated_by": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+    "rollback_reason_code": {
+      "oneOf": [
+        {
+          "enum": [
+            "wrong_figures",
+            "wrong_file",
+            "test",
+            "replaced_by_newer",
+            "other"
+          ]
+        },
+        { "type": "null" }
+      ]
+    },
+    "self_activation_reason_code": {
+      "oneOf": [
+        { "enum": ["only_person", "urgent", "other"] },
+        { "type": "null" }
+      ]
+    },
+    "rollback_reason_detail": {
+      "oneOf": [{ "type": "string", "maxLength": 100 }, { "type": "null" }],
+      "description": "Present for admins only."
+    },
+    "self_activation_reason_detail": {
+      "oneOf": [{ "type": "string", "maxLength": 100 }, { "type": "null" }],
+      "description": "Present for admins only."
+    },
+    "self_activated": { "type": "boolean" }
+  }
+}

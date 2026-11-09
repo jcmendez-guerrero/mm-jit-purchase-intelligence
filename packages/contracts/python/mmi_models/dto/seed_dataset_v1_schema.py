@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, RootModel
 
 
 class Status(Enum):
@@ -23,6 +23,40 @@ class Status(Enum):
 class Origin(Enum):
     synthetic = 'synthetic'
     real = 'real'
+
+
+class RollbackReasonCode(Enum):
+    wrong_figures = 'wrong_figures'
+    wrong_file = 'wrong_file'
+    test = 'test'
+    replaced_by_newer = 'replaced_by_newer'
+    other = 'other'
+
+
+class RollbackReasonDetail(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description='Short free-text detail. Returned to admins only; never written to the audit trail.',
+            max_length=100,
+        ),
+    ]
+
+
+class SelfActivationReasonCode(Enum):
+    only_person = 'only_person'
+    urgent = 'urgent'
+    other = 'other'
+
+
+class SelfActivationReasonDetail(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description='Short free-text detail. Returned to admins only; never written to the audit trail.',
+            max_length=100,
+        ),
+    ]
 
 
 class RowCounts(BaseModel):
@@ -49,4 +83,33 @@ class SeedDataset(BaseModel):
     activated_by: str | None = None
     activated_at: AwareDatetime | None = None
     supersedes_id: UUID | None = None
+    validated_by: Annotated[
+        str | None,
+        Field(
+            description='Who ran validation; with the uploader, cannot approve activation (MMI-7).'
+        ),
+    ] = None
+    mapping_chosen_by: str | None = None
+    rollback_reason_code: Annotated[
+        RollbackReasonCode | None,
+        Field(
+            description='Why an active dataset was rolled back (FR-033). The code is shown to everyone and recorded in the audit trail.'
+        ),
+    ] = None
+    rollback_reason_detail: Annotated[
+        RollbackReasonDetail | None,
+        Field(
+            description='Short free-text detail. Returned to admins only; never written to the audit trail.'
+        ),
+    ] = None
+    self_activation_reason_code: Annotated[
+        SelfActivationReasonCode | None,
+        Field(description='Set only for an audited owner/admin self-activation.'),
+    ] = None
+    self_activation_reason_detail: Annotated[
+        SelfActivationReasonDetail | None,
+        Field(
+            description='Short free-text detail. Returned to admins only; never written to the audit trail.'
+        ),
+    ] = None
     row_counts: RowCounts | None = None

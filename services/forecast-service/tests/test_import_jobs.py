@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 import seed_fixtures as sf
-from conftest import KNOWN, FileStore, export_series
+from conftest import KNOWN, SKUS, FileStore, export_series
 from db.tables import import_jobs, seed_datasets
 from fastapi.testclient import TestClient
 from imports_api import build_router, get_engine
@@ -41,14 +41,14 @@ def test_the_worker_validates_the_file_and_records_the_job_without_file_content(
     with engine.begin() as c:
         up = upload(c, store)
         enqueue_validation(c, up["id"], up["suggested_mapping"], "buyer-1", now=NOW)
-    out = process_queued(engine, store, KNOWN, L, now=NOW)
+    out = process_queued(engine, store, KNOWN, L, now=NOW, sku_map={f"EJ-{v}": v for v in KNOWN})
     assert out == {"processed": 1, "done": 1, "failed": 0}
     with engine.connect() as c:
         ds = c.execute(select(seed_datasets)).one()
         job = c.execute(select(import_jobs).where(import_jobs.c.stage == "validate")).one()
     assert ds.status == "validated" and ds.accepted_count == 5 and job.state == "done" and job.error_key is None and job.finished_at is not None
     assert "9001" not in str(job.params) and set(job.params) == {"column_map", "mapping_id"}
-    assert process_queued(engine, store, KNOWN, L, now=NOW)["processed"] == 0                  # nothing left; running it again does nothing
+    assert process_queued(engine, store, KNOWN, L, now=NOW, sku_map=SKUS)["processed"] == 0                  # nothing left; running it again does nothing
 
 
 def test_a_failing_job_is_recorded_with_its_code_and_does_not_block_the_next(engine, store):
@@ -57,7 +57,7 @@ def test_a_failing_job_is_recorded_with_its_code_and_does_not_block_the_next(eng
         good = upload(c, store, sf.static("valid.csv").replace(b"2026-01-05", b"2026-01-06"))
         enqueue_validation(c, bad["id"], bad["suggested_mapping"], "buyer-1", now=NOW)
         enqueue_validation(c, good["id"], good["suggested_mapping"], "buyer-1", now=NOW + timedelta(seconds=1))
-    out = process_queued(engine, store, KNOWN, L, now=NOW)
+    out = process_queued(engine, store, KNOWN, L, now=NOW, sku_map=SKUS)
     assert out == {"processed": 2, "done": 1, "failed": 1}
     with engine.connect() as c:
         jobs = {j["dataset_id"]: j for j in list_jobs(c) if j["stage"] == "validate"}
@@ -69,7 +69,7 @@ def test_a_job_left_running_is_picked_up_again_and_a_failed_one_can_be_requeued(
         up = upload(c, store)
         jid = enqueue_validation(c, up["id"], up["suggested_mapping"], "buyer-1", now=NOW)["job_id"]
         c.execute(update(import_jobs).where(import_jobs.c.id == jid).values(state="running", started_at=NOW - timedelta(hours=1)))
-    assert process_queued(engine, store, KNOWN, L, now=NOW)["done"] == 1
+    assert process_queued(engine, store, KNOWN, L, now=NOW, sku_map=SKUS)["done"] == 1
     with engine.begin() as c:
         c.execute(update(import_jobs).where(import_jobs.c.id == jid).values(state="failed", error_key="import_failed"))
         again = enqueue_validation(c, up["id"], up["suggested_mapping"], "buyer-1", now=NOW)
@@ -114,7 +114,7 @@ def test_a_small_file_validates_in_the_request_a_large_one_returns_202_and_a_job
     validate = [j for j in status["jobs"] if j["stage"] == "validate" and j["dataset_id"] == big["id"]]
     assert validate[0]["state"] == "queued" and validate[0]["rows"] == 5
     assert api.get("/imports/jobs").status_code == 401
-    process_queued(engine, api.app.state.seed_store, KNOWN, L)
+    process_queued(engine, api.app.state.seed_store, KNOWN, L, sku_map=SKUS)
     assert [j["state"] for j in api.get("/imports/jobs", headers=h("viewer")).json()["jobs"] if j["stage"] == "validate" and j["dataset_id"] == big["id"]] == ["done"]
     assert jobs_mod.SYNC_ROWS == 10_000
 
@@ -126,3 +126,55 @@ def test_queueing_still_refuses_a_bad_mapping_and_a_viewer(api, monkeypatch):
     d = api.post("/imports", files={"file": ("a.csv", io.BytesIO(sf.static("valid.csv")))}, headers=h()).json()
     assert api.post(f"/imports/{d['id']}/validate", json={"column_map": {"Fecha": "day"}}, headers=h()).json()["detail"] == "import_missing_column"
     assert api.post(f"/imports/{d['id']}/validate", json={"column_map": d["suggested_mapping"]}, headers=h("viewer")).status_code == 403
+
+
+def test_requests_around_a_hard_cap_file_stay_fast_because_the_work_runs_in_the_worker(api):
+    """MMI-7 T045 (SC-006): uploading a 50,000-row file and queueing its validation answer within 2 seconds; listing datasets and jobs too."""
+    import io
+    import time
+
+    from test_seed_timing import big_csv
+
+    t0 = time.perf_counter()
+    up = api.post("/imports", files={"file": ("grande.csv", io.BytesIO(big_csv()))}, headers=h())
+    uploaded = time.perf_counter() - t0
+    assert up.status_code == 201 and up.json()["row_count"] == 50_000
+    t1 = time.perf_counter()
+    queued = api.post(f"/imports/{up.json()['id']}/validate", json={"column_map": up.json()["suggested_mapping"]}, headers=h())
+    queueing = time.perf_counter() - t1
+    assert queued.status_code == 202 and queued.json()["queued"] is True
+    t2 = time.perf_counter()
+    assert api.get("/imports", headers=h()).status_code == 200 and api.get("/imports/jobs", headers=h()).status_code == 200
+    listing = time.perf_counter() - t2
+    assert max(uploaded, queueing, listing) < 2.0, f"upload {uploaded:.2f}s, queue {queueing:.2f}s, list {listing:.2f}s"
+
+
+def test_a_file_gets_the_same_outcome_in_the_request_and_in_the_background(api, engine, monkeypatch):
+    """MMI-7 T079 (FR-024, SC-012): the same file, catalogue and mapping give the same accepted and quarantined rows with the same reasons, including a SKU shared by two products."""
+    import io
+
+    from worker import process_imports
+
+    items = [export_series(v, [1] * 20, "new", False, ["new"]) for v in sorted(KNOWN)]
+    items[-1]["sku"] = items[-2]["sku"]                                                # variants 9004 and 9005 share a SKU: every row for it must be ambiguous
+    source = FakeSource({"series": items})
+    api.app.state.series_source = source
+    monkeypatch.setattr("seeds.store.make_seed_store", lambda: api.app.state.seed_store)
+    data = sf.static("valid.csv")
+
+    def outcome(dataset_id):
+        listed = {d["id"]: d for d in api.get("/imports", headers=h()).json()["datasets"]}[dataset_id]
+        rows = api.get(f"/imports/{dataset_id}/quarantine", headers=h()).json()["rows"]
+        return listed["accepted"], listed["quarantined"], sorted((r["row_no"], r["reason_key"]) for r in rows)
+
+    in_request = api.post("/imports", files={"file": ("a.csv", io.BytesIO(data))}, headers=h()).json()
+    assert api.post(f"/imports/{in_request['id']}/validate", json={"column_map": in_request["suggested_mapping"]}, headers=h()).status_code == 200
+
+    monkeypatch.setattr("imports_api.SYNC_ROWS", 1)                                    # the second copy goes to the background
+    queued = api.post("/imports", files={"file": ("b.csv", io.BytesIO(data))}, headers=h()).json()
+    assert api.post(f"/imports/{queued['id']}/validate", json={"column_map": queued["suggested_mapping"]}, headers=h()).status_code == 202
+    assert process_imports(engine, source)["done"] == 1
+
+    first, second = outcome(in_request["id"]), outcome(queued["id"])
+    assert first == second
+    assert first[1] >= 1 and {reason for _, reason in first[2]} == {"import_ambiguous_sku"}          # the rows for the shared SKU are quarantined as ambiguous, in both paths

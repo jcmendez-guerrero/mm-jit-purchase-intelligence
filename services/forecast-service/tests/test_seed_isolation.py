@@ -3,7 +3,7 @@
 from datetime import UTC, date, datetime, timedelta
 
 import seed_fixtures as sf
-from conftest import KNOWN, export_series
+from conftest import KNOWN, SKUS, export_series
 from db.tables import forecast_runs, forecast_values, seed_rows
 from runs.runner import RunConfig, run_forecast
 from runs.seeds import ActiveSeeds, apply_seeds, load_active
@@ -65,14 +65,14 @@ def test_variants_without_seed_rows_are_untouched():
 def activate_valid(engine, store, data):
     with engine.begin() as c:
         up = register_upload(c, store, "d.csv", data, "x", "buyer-1", ParseLimits())
-        validate_dataset(c, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", ParseLimits())
-        activate(c, store, up["id"], "buyer-1")
+        validate_dataset(c, store, up["id"], up["suggested_mapping"], KNOWN, "buyer-1", ParseLimits(), sku_map=SKUS)
+        activate(c, store, up["id"], "approver-9")
         return up["id"]
 
 
 def dense_csv(variant=9001, start=date(2026, 1, 1), days=60):
     head = ";".join(sf.HEADER)
-    rows = [f"{variant};{(start + timedelta(days=i)).isoformat()};2;;estimado;Hoja sintética A;sintético" for i in range(days)]
+    rows = [f"EJ-{variant};{(start + timedelta(days=i)).isoformat()};2;;estimado;Hoja sintética A;sintético" for i in range(days)]
     return ("\n".join([head, *rows]) + "\n").encode()
 
 
@@ -101,7 +101,7 @@ def test_rollback_makes_the_next_run_identical_to_the_one_before_the_activation(
     before = run_forecast(engine, FakeSource(export_with_new_variant()), NullWriter(tmp_path), RunConfig(), clock=CLOCK)
     activate_valid(engine, store, dense_csv())
     with engine.begin() as c:
-        rollback(c, store, "admin-1")
+        rollback(c, store, "admin-1", reason_code="test")
     after = run_forecast(engine, FakeSource(export_with_new_variant()), NullWriter(tmp_path), RunConfig(), clock=CLOCK)
     assert after.reused and after.run_id == before.run_id
 

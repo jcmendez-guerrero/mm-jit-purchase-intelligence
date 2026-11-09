@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 import seed_fixtures as sf
-from conftest import KNOWN, FileStore, export_series
+from conftest import KNOWN, SKUS, FileStore, export_series
 from db.tables import audit_events, forecast_runs, import_jobs
 from fastapi.testclient import TestClient
 from imports_api import build_router, get_engine
@@ -114,7 +114,7 @@ def test_failures_and_rejections_leave_a_stable_marker_for_the_alerts(engine, st
     with engine.begin() as c:
         up = register_upload(c, store, "datos.csv", sf.static("valid.csv"), "Hoja", "buyer-1", L, NOW)
         enqueue_validation(c, up["id"], {"nonsense": "nothing"}, "buyer-1", now=NOW)
-    process_queued(engine, store, KNOWN, L, now=NOW)
+    process_queued(engine, store, KNOWN, L, now=NOW, sku_map=SKUS)
     assert any(r.getMessage().startswith("IMPORT_FAILED job=") for r in caplog.records)
     assert api.post("/imports/zzz/activate", headers=h("admin")).status_code == 404
     assert any(r.getMessage() == "UPLOAD_REJECTED reason=import_unknown_dataset" for r in caplog.records)

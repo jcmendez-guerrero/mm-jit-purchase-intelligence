@@ -14,7 +14,7 @@ from i18n import t
 from openpyxl import Workbook
 
 DANGEROUS = ("=", "+", "-", "@", "\t", "\r")
-COLUMNS = ("variant_id", "sku", "day", "quantity", "warehouse", "kind", "provenance", "origin")
+COLUMNS = ("sku", "day", "quantity", "warehouse", "kind", "provenance", "origin")
 
 
 def neutralise(value: Any) -> Any:
@@ -30,9 +30,9 @@ def headers() -> list[str]:
 
 
 def example_rows() -> list[list[Any]]:
-    """Made-up values only (variants 9001 and 9002, 2026 dates)."""
-    return [[9001, "", "2026-01-05", 2, "", t("kind.estimated"), "Hoja sintética A", t("origin.synthetic")],
-            [9002, "", "2026-01-12", 1, "", t("kind.manual_forecast"), "Hoja sintética A", t("origin.synthetic")]]
+    """Made-up values only (fictional SKUs EJ-0001 and EJ-0002, 2026 dates)."""
+    return [["EJ-0001", "2026-01-05", 2, "", t("kind.estimated"), "Hoja sintética A", t("origin.synthetic")],
+            ["EJ-0002", "2026-01-12", 1, "", t("kind.manual_forecast"), "Hoja sintética A", t("origin.synthetic")]]
 
 
 def template_csv() -> bytes:

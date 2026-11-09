@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, errorMessage, SeedDataset, SeedDryRun, SeedJob, SeedQuarantineRow, SeedUpload, SeedValidation } from "../../api/client";
+import { api, ApiError, errorMessage, SeedDataset, SeedDryRun, SeedJob, SeedQuarantineRow, SeedUpload, SeedValidation } from "../../api/client";
 import { formatCurrencyEUR, formatDateTime } from "../../i18n/formatters";
 import { FormField } from "../../ui/FormField";
-import { ALL_FIELDS, canImport, fileProblem, hasLiveJob, isQueued, missingFields, REQUIRED_FIELDS, setMapping } from "./importsModel";
+import { ALL_FIELDS, canImport, canSelfActivate, detailProblem, fileProblem, hasLiveJob, isQueued, kindMix, MAX_DETAIL, missingFields, REQUIRED_FIELDS, ROLLBACK_REASONS, SELF_ACTIVATION_REASONS, setMapping, tidyDetail } from "./importsModel";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { ScreenState } from "../../ui/ScreenState";
 import { EmptyState } from "../../ui/EmptyState";
@@ -22,6 +22,26 @@ interface Props {
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
+/** A labelled pick-list of reason codes; the Spanish text of each code is `<prefix>.<code>`. */
+const ReasonSelect: React.FC<{ id: string; label: string; value: string; onChange: (code: string) => void; codes: readonly string[]; prefix: string }> = ({ id, label, value, onChange, codes, prefix }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="mmi-field">
+      <label htmlFor={id} className="mmi-field__label">
+        {label}
+      </label>
+      <select id={id} className="mmi-input" value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{t("imports.reason.choose")}</option>
+        {codes.map((c) => (
+          <option key={c} value={c}>
+            {t(`${prefix}.${c}`)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
 export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
   const { t } = useTranslation();
   const [datasets, setDatasets] = useState<SeedDataset[]>([]);
@@ -34,6 +54,10 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
   const [quarantine, setQuarantine] = useState<SeedQuarantineRow[]>([]);
   const [dry, setDry] = useState<SeedDryRun | null>(null);
   const [ack, setAck] = useState(false);
+  const [activateCode, setActivateCode] = useState("");
+  const [activateDetail, setActivateDetail] = useState("");
+  const [rollbackCode, setRollbackCode] = useState("");
+  const [rollbackDetail, setRollbackDetail] = useState("");
   const [jobs, setJobs] = useState<SeedJob[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -133,14 +157,17 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
     clear();
     if (!upload) return;
     try {
-      await api.activateSeed(upload.id, ack);
+      await api.activateSeed(upload.id, ack, activateCode ? { code: activateCode, detail: tidyDetail(activateDetail) } : undefined);
       setNotice(t("imports.activated"));
+      setActivateCode("");
+      setActivateDetail("");
       setUpload(null);
       setValidation(null);
       setDry(null);
       await loadList();
     } catch (err) {
-      fail(err);
+      if (err instanceof ApiError && err.code === "import_self_approval" && canSelfActivate(userRoles)) setError(t("imports.self_approval_admin"));
+      else fail(err);
     }
   };
 
@@ -160,7 +187,9 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
   const doRollback = async () => {
     clear();
     try {
-      await api.rollbackSeed();
+      await api.rollbackSeed({ code: rollbackCode, detail: tidyDetail(rollbackDetail) });
+      setRollbackCode("");
+      setRollbackDetail("");
       setNotice(t("imports.rolled_back"));
       await loadList();
     } catch (err) {
@@ -356,6 +385,12 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
                 <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} /> {t("imports.acknowledge_duplicate")}
               </label>
             )}
+            {canSelfActivate(userRoles) && (
+              <>
+                <ReasonSelect id="imp-activate-reason" label={t("imports.reason.activate_label")} value={activateCode} onChange={setActivateCode} codes={SELF_ACTIVATION_REASONS} prefix="imports.reason.activate" />
+                <FormField id="imp-activate-detail" label={t("imports.reason.detail", { max: MAX_DETAIL })} value={activateDetail} onChange={setActivateDetail} maxLength={MAX_DETAIL} />
+              </>
+            )}
             <Button disabled={validation.accepted === 0} onClick={() => setConfirming("activate")}>
               {t("imports.activate")}
             </Button>
@@ -398,13 +433,21 @@ export const ImportScreen: React.FC<Props> = ({ userRoles }) => {
               { id: "origin", header: t("imports.col.origin"), cell: (d) => t(`imports.origin.${d.origin}`), sortValue: (d) => d.origin },
               { id: "rows", header: t("imports.col.rows"), cell: (d) => d.accepted, sortValue: (d) => d.accepted, align: "end" },
               { id: "by", header: t("imports.col.by"), cell: (d) => d.uploader, sortValue: (d) => d.uploader },
+              { id: "validated", header: t("imports.col.validated_by"), cell: (d) => d.validated_by ?? "—", sortValue: (d) => d.validated_by ?? "" },
+              { id: "activated", header: t("imports.col.activated_by"), cell: (d) => (d.activated_by ? (d.self_activated ? t("imports.self_activated", { who: d.activated_by }) : d.activated_by) : "—"), sortValue: (d) => d.activated_by ?? "" },
+              { id: "kinds", header: t("imports.col.kinds"), cell: (d) => kindMix(d.kinds, (k) => t(`imports.kind.${k}`, { defaultValue: k })) },
+              { id: "reason", header: t("imports.col.rollback_reason"), cell: (d) => (d.rollback_reason_code ? [t(`imports.reason.rollback.${d.rollback_reason_code}`, { defaultValue: d.rollback_reason_code }), d.rollback_reason_detail].filter(Boolean).join(" · ") : "—") },
             ]}
           />
         )}
         {canEdit && datasets.some((d) => d.status === "active") && (
-          <Button variant="secondary" onClick={() => setConfirming("rollback")}>
-            {t("imports.rollback")}
-          </Button>
+          <>
+            <ReasonSelect id="imp-rollback-reason" label={t("imports.reason.rollback_label")} value={rollbackCode} onChange={setRollbackCode} codes={ROLLBACK_REASONS} prefix="imports.reason.rollback" />
+            <FormField id="imp-rollback-detail" label={t("imports.reason.detail", { max: MAX_DETAIL })} value={rollbackDetail} onChange={setRollbackDetail} maxLength={MAX_DETAIL} />
+            <Button variant="secondary" disabled={rollbackCode === "" || detailProblem(rollbackDetail)} onClick={() => setConfirming("rollback")}>
+              {t("imports.rollback")}
+            </Button>
+          </>
         )}
       </Card>
     </section>

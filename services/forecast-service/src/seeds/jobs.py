@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -55,7 +55,15 @@ def rerun_job(conn: Connection, job_id: str, actor: str, now: datetime | None = 
     return res
 
 
-def process_queued(engine: Engine, store: BlobStore, known_variants: Collection[int], limits: ParseLimits, now: datetime | None = None) -> dict[str, int]:
+def has_queued(engine: Engine) -> bool:
+    """True when a validation job waits or an abandoned one (running too long) can be put back."""
+    with engine.connect() as conn:
+        stale = import_jobs.c.state == "running"
+        return conn.execute(select(import_jobs.c.id).where(import_jobs.c.stage == STAGE, (import_jobs.c.state == "queued") | (stale & (import_jobs.c.started_at < datetime.now(UTC) - STALE_AFTER))).limit(1)).first() is not None
+
+
+def process_queued(engine: Engine, store: BlobStore, known_variants: Collection[int], limits: ParseLimits, now: datetime | None = None,
+                  *, sku_map: Mapping[str, int | Collection[int]]) -> dict[str, int]:
     """One worker pass. Each job runs in its own transaction, so one failure never blocks the others."""
     now = now or datetime.now(UTC)
     with engine.begin() as conn:                                               # put abandoned jobs back in the queue
@@ -72,7 +80,7 @@ def process_queued(engine: Engine, store: BlobStore, known_variants: Collection[
         try:
             with engine.begin() as conn:
                 p = job.params or {}
-                validate_dataset(conn, store, job.dataset_id, p["column_map"], set(known_variants), job.requested_by or "system", limits, mapping_id=p.get("mapping_id"), now=now, record_job=False)
+                validate_dataset(conn, store, job.dataset_id, p["column_map"], set(known_variants), job.requested_by or "system", limits, mapping_id=p.get("mapping_id"), now=now, record_job=False, sku_map=sku_map)
         except (SeedFileError, LifecycleError) as exc:
             error = exc.code
         except Exception:
@@ -88,6 +96,8 @@ def process_queued(engine: Engine, store: BlobStore, known_variants: Collection[
 def list_jobs(conn: Connection, limit: int = 50) -> list[dict[str, Any]]:
     rows = conn.execute(select(import_jobs, seed_datasets.c.version, seed_datasets.c.name, seed_datasets.c.row_count).join(seed_datasets, seed_datasets.c.id == import_jobs.c.dataset_id)
                         .order_by(import_jobs.c.queued_at.desc().nullslast(), import_jobs.c.started_at.desc().nullslast()).limit(min(limit, 200))).all()
-    iso = lambda d: None if d is None else d.isoformat()  # noqa: E731
+    def iso(d: datetime | None) -> str | None:
+        return None if d is None else d.isoformat()
+
     return [{"id": r.id, "dataset_id": r.dataset_id, "version": r.version, "name": r.name, "rows": r.row_count, "stage": r.stage, "state": r.state, "queued_at": iso(r.queued_at),
              "started_at": iso(r.started_at), "finished_at": iso(r.finished_at), "error_key": r.error_key, "requested_by": r.requested_by} for r in rows]

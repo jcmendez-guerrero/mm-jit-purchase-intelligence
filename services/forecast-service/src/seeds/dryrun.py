@@ -65,7 +65,7 @@ def dry_run(conn: Connection, dataset_id: str, series: list[dict[str, Any]], cfg
     return {"dataset_id": dataset_id, "compared_with": None if cur is None or cur.id == dataset_id else cur.id,
             "rows": {"added": len(added), "removed": len(removed), "changed": len(changed), "unchanged": len(cand) - len(added) - len(changed)},
             "variants_gaining_history": gained[:200], "variants_losing_history": lost[:200], "skipped_sparse": sorted(cand_rep.skipped_sparse)[:200],
-            "overlap": {"variants": cand_rep.overlap_variants, "days": cand_rep.overlap_days},
+            "overlap": {"variants": cand_rep.overlap_variants, "days": cand_rep.overlap_days}, "retired_variants": sorted(cand_rep.retired)[:200],
             "backtest": _comparison(base_series, cand_series, bt_cfg, None if cur is None or cur.id == dataset_id else cur.id)}
 
 
