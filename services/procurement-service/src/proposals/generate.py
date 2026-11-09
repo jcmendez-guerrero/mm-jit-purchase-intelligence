@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -21,8 +21,9 @@ from audit.chain import append as audit
 from db.tables import proposal_lines, proposals, replenishment_targets, supplier_order_groups
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
+from terms.schedule import delivery_date
 
-from proposals.model import RULES_VERSION, Offer, ProposalInputs, inputs_hash, money
+from proposals.model import RULES_VERSION, Offer, ProposalInputs, SupplierTermsIn, inputs_hash, money
 from proposals.targets import Target
 
 RULE_VERSIONS = {"targets": RULES_VERSION, "allocation": RULES_VERSION, "explanation": RULES_VERSION, "solver": "cp-sat"}
@@ -99,10 +100,18 @@ def _terms_explanation(offer: Offer, group: Group) -> dict[str, Any]:
     info = dict(offer.terms_info)
     return {"supplier_version": info.get("supplier_version"), "override_version": info.get("override_version"),
             "sources": dict(info.get("sources", ())), "conflicts": [dict(c) for c in info.get("conflicts", ())],
-            "preferred": offer.preferred, "supplier_discount": str(money(group.discount_ticks))}
+            "preferred": offer.preferred, "supplier_discount": str(money(group.discount_ticks)),
+            **({"fx": dict(info["fx"])} if "fx" in info else {})}      # MMI-6: the exchange rate behind a converted cost (currency, original cost, rate, day)
 
 
-def _reason(line: LineSpec, chosen: Chosen, greedy: dict[int, Chosen], group: Group) -> str:
+def _won_on_preference(line: LineSpec, chosen: Chosen, inputs: ProposalInputs) -> bool:
+    """MMI-6 FR-019: the chosen supplier is preferred and another offer cost exactly the same with the same lead time (a preference only breaks ties)."""
+    mine = next(x for x in line.cands if x.supplier_id == chosen.supplier_id)
+    preferred = mine.offer.preferred if mine.offer.preferred is not None else inputs.suppliers.get(chosen.supplier_id, SupplierTermsIn(chosen.supplier_id)).preferred
+    return bool(preferred) and any(x.supplier_id != chosen.supplier_id and x.line_ticks == mine.line_ticks and x.lead == mine.lead for x in line.cands)
+
+
+def _reason(line: LineSpec, chosen: Chosen, greedy: dict[int, Chosen], group: Group, inputs: ProposalInputs) -> str:
     if line.fixed_supplier == chosen.supplier_id:
         return "buyer_override"
     if len(line.cands) == 1:
@@ -112,6 +121,8 @@ def _reason(line: LineSpec, chosen: Chosen, greedy: dict[int, Chosen], group: Gr
     g = greedy.get(chosen.variant_id)
     if g is not None and g.supplier_id != chosen.supplier_id:
         return "lower_total_with_supplier_terms"
+    if _won_on_preference(line, chosen, inputs):
+        return "preferred_supplier_on_tie"
     return "free_delivery_threshold_reached" if group.free_delivery else "lowest_cost"
 
 
@@ -124,6 +135,7 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
     spec = {ln.variant_id: ln for ln in lines}
     greedy_by = {c.variant_id: c for c in greedy.chosen}
     groups = {g.supplier_id: g for g in alloc.groups}
+    max_lead = {sid: max((c.lead for c in alloc.chosen if c.supplier_id == sid), default=0) for sid in groups}
     out_lines: list[DraftLine] = []
     targets: list[Target] = []
     for c in sorted(alloc.chosen, key=lambda c: c.variant_id):
@@ -153,11 +165,11 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
             "reorder_point": t.reorder_point,
             "position": {"on_hand": t.on_hand, "expiring": t.expiring_qty, "usable": t.usable_on_hand, "inbound": t.inbound_counted, "total": t.inventory_position},
             "need": t.need, "top_up": c.topup, "clinical_critical": v.clinical_critical,
-            "supplier": {"chosen": c.supplier_id, "reason": _reason(ln, c, greedy_by, g), "alternatives": list(alternatives),
+            "supplier": {"chosen": c.supplier_id, "reason": _reason(ln, c, greedy_by, g, inputs), "alternatives": list(alternatives),
                          "rejected": [{"supplier_id": s, "reason": r} for s, r in ln.rejected]},
             "cost": {"unit": str(money(c.unit_ticks)), "source": cand.offer.source, "status": cand.offer.cost_status, "cost_id": cand.offer.cost_id},
             "constraints": constraints,
-            "terms": _terms_explanation(cand.offer, g),
+            "terms": {**_terms_explanation(cand.offer, g), "expected_delivery_date": _expected_delivery(inputs, c.supplier_id, max_lead[c.supplier_id]).isoformat()},
             "floor_reason": t.floor_reason, "policy_applied": {k: v2 for k, v2 in v.policy_info},
         }
         out_lines.append(DraftLine(
@@ -166,12 +178,21 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
     opts_by_supplier: dict[str, list[dict[str, Any]]] = {}
     for o in options:
         opts_by_supplier.setdefault(o.supplier_id, []).append({"kind": o.kind, "cost_delta": str(money(o.cost_delta_ticks)), "detail": o.detail})
-    max_lead = {sid: max((c.lead for c in alloc.chosen if c.supplier_id == sid), default=0) for sid in groups}
     out_groups = tuple(DraftGroup(
-        g.supplier_id, money(g.subtotal_ticks), money(g.delivery_charge_ticks), money(g.total_ticks), inputs.today + timedelta(days=max_lead[g.supplier_id]),
+        g.supplier_id, money(g.subtotal_ticks), money(g.delivery_charge_ticks), money(g.total_ticks), _expected_delivery(inputs, g.supplier_id, max_lead[g.supplier_id]),
         g.minimum_status, g.free_delivery, tuple(opts_by_supplier.get(g.supplier_id, ())), money(g.discount_ticks)) for g in alloc.groups)
     return Draft(tuple(out_lines), out_groups, tuple(targets), alloc.solver_status, inputs_hash(inputs, RULE_VERSIONS), dict(RULE_VERSIONS),
                  money(greedy.total_ticks), money(alloc.total_ticks), money(alloc.over_budget_ticks), tuple(alloc.notes), dict(inputs.terms_versions), dict(inputs.policy_versions), inputs.forecast_run_id, inputs.dataset_version_id)
+
+
+def _expected_delivery(inputs: ProposalInputs, supplier_id: str, lead_days: int) -> date:
+    """MMI-6 FR-020: the first order day the supplier accepts (cutoff applied) plus the longest lead time, on the supplier's delivery weekdays.
+
+    A supplier with no schedule rules keeps the old meaning: today plus the lead time.
+    """
+    t = inputs.suppliers.get(supplier_id)
+    return delivery_date(t.next_order_date if t is not None and t.next_order_date is not None else inputs.today, lead_days,
+                         t.delivery_weekdays if t is not None else ())
 
 
 def store(conn: Connection, draft: Draft, created_by: str, week: str, budget: Decimal | None = None, now: datetime | None = None) -> str:

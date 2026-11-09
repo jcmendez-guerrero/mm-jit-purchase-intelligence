@@ -68,7 +68,7 @@ def test_apply_creates_links_with_the_export_cost_and_audits_each_product(conn):
     b = preview(conn, s.id, {"skus": ["SYN-000001", "SYN-000002"]})
     out = apply(conn, b)
     rows = list(conn.execute(select(supplier_costs)).all())
-    assert out == {"changed": 2, "skipped_conflicts": 0, "no_cost": 0} and {r.source for r in rows} == {"inventory_export"}
+    assert totals(out) == {"changed": 2, "skipped_conflicts": 0, "no_cost": 0} and {r.source for r in rows} == {"inventory_export"}
     assert {r.cost_with_recargo for r in rows} == {D("2.1040")}
     per_product = [a for a in conn.execute(select(audit_events)).all() if a.action == "supplier.link_bulk"]
     assert len(per_product) == 2
@@ -98,12 +98,44 @@ def test_a_preferred_other_supplier_is_a_conflict_that_must_be_skipped_explicitl
     assert out["changed"] == 1 and out["skipped_conflicts"] == 1
 
 
+def outcomes(out):
+    return {r["sku"]: r["outcome"] for r in out["rows"]}
+
+
+def totals(out):
+    """The three counters of an apply result, without the per-row list."""
+    return {k: out[k] for k in ("changed", "skipped_conflicts", "no_cost")}
+
+
+def test_apply_reports_an_outcome_for_every_matched_product(conn):
+    """FR-018: the buyer sees what happened to each row, not only totals."""
+    from costs.rules import CostRules as Rules
+    from suppliers.links import LinkInput, put_link
+
+    catalogue(conn, 4)
+    conn.execute(export_costs.delete().where(export_costs.c.sku == "SYN-000004"))                 # no usable cost
+    other = add_supplier(conn, 55, "Otro")
+    save_override(conn, 3, other, OverrideTerms(preferred=True), "buyer-1", NOW, expected_version=0)   # SYN-000003 prefers another supplier
+    s = supplier(conn)
+    put_link(conn, s.id, "SYN-000001", LinkInput(source="inventory_export"), "buyer-1", Rules(), load_table(conn), now=NOW)   # already linked
+    out = apply(conn, preview(conn, s.id, {"skus": ["SYN-000001", "SYN-000002", "SYN-000003", "SYN-000004"]}), skip_conflicts=True)
+    assert outcomes(out) == {"SYN-000001": "already_linked", "SYN-000002": "linked", "SYN-000003": "conflict_skipped", "SYN-000004": "no_cost"}
+    assert (out["changed"], out["skipped_conflicts"], out["no_cost"]) == (1, 1, 1)                 # the totals still agree with the rows
+
+
+def test_the_rows_are_in_sku_order_and_list_each_product_once(conn):
+    catalogue(conn, 3)
+    s = supplier(conn)
+    out = apply(conn, preview(conn, s.id, {"skus": ["SYN-000003", "SYN-000001", "syn-000001", "SYN-000002"]}))
+    assert [r["sku"] for r in out["rows"]] == ["SYN-000001", "SYN-000002", "SYN-000003"]
+
+
 def test_products_without_any_usable_cost_are_skipped_and_counted(conn):
     catalogue(conn, 2)
     conn.execute(export_costs.delete().where(export_costs.c.sku == "SYN-000002"))
     s = supplier(conn)
     out = apply(conn, preview(conn, s.id, {"skus": ["SYN-000001", "SYN-000002"]}))
-    assert out == {"changed": 1, "skipped_conflicts": 0, "no_cost": 1}
+    assert totals(out) == {"changed": 1, "skipped_conflicts": 0, "no_cost": 1}
 
 
 def test_a_stale_or_superseded_preview_cannot_be_applied(conn):

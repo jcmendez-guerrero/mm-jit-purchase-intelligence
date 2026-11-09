@@ -17,6 +17,12 @@ export function formatCurrencyEUR(amount: number | string): string {
   }).format(num);
 }
 
+/** An amount in the currency it was quoted in (a supplier's own currency), never shown with the euro sign. */
+export function formatCurrency(amount: number | string, currency: string): string {
+  const num = typeof amount === "string" ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat(LOCALE, { style: "currency", currency, useGrouping: true, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(isNaN(num) ? 0 : num);
+}
+
 export function formatNumber(value: number | string, decimals: number = 0): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(num)) return "0";

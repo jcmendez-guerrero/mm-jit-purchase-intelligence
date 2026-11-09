@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 from audit.chain import append as audit
-from db.tables import approvals, proposals
+from db.tables import approvals, proposal_lines, proposals, suppliers
 from mmi_common.auth import Principal
 from proposals.edit import ConcurrencyError, ProposalStateError
 from sqlalchemy import insert, select, update
@@ -39,6 +39,14 @@ def _get(conn: Connection, proposal_id: str):  # type: ignore[no-untyped-def]
     return p
 
 
+def _refuse_deactivated_suppliers(conn: Connection, proposal_id: str) -> None:
+    """MMI-6 FR-037: lines for a supplier that is no longer active must be reallocated (or the supplier reactivated) before approval."""
+    n = conn.execute(select(proposal_lines.c.id).join(suppliers, suppliers.c.id == proposal_lines.c.supplier_id)
+                     .where(proposal_lines.c.proposal_id == proposal_id, suppliers.c.status != "active").limit(1)).first()
+    if n is not None:
+        raise ApprovalError("proposal_has_deactivated_supplier")
+
+
 def submit(conn: Connection, proposal_id: str, actor: str, expected_version: int, users: UserDirectory, now: datetime | None = None) -> None:
     now = now or datetime.now(UTC)
     p = _get(conn, proposal_id)
@@ -46,6 +54,7 @@ def submit(conn: Connection, proposal_id: str, actor: str, expected_version: int
         raise ProposalStateError(f"only a draft can be submitted, this one is {p.status}")
     if p.version != expected_version:
         raise ConcurrencyError(f"proposal is at version {p.version}, not {expected_version}")
+    _refuse_deactivated_suppliers(conn, proposal_id)
     eligible = users.active_approvers() - {p.created_by, p.last_edited_by}
     if not eligible:  # FR-029: refuse to enter approval when nobody could satisfy the separation-of-duties rule
         raise ApprovalError("no_eligible_approver")
@@ -66,7 +75,9 @@ def decide(conn: Connection, proposal_id: str, principal: Principal, expected_ve
         raise ApprovalError("separation_of_duties")
     if not principal.mfa_fresh(MFA_MAX_AGE, now) or principal.auth_time is None:
         raise ApprovalError("mfa_required")
-    decision = "approved" if approve else "rejected"
+    if approve:                                   # a rejection stays possible: it sends the proposal back to draft for reallocation
+        _refuse_deactivated_suppliers(conn, proposal_id)
+    decision ="approved" if approve else "rejected"
     conn.execute(insert(approvals).values(proposal_id=proposal_id, approver_id=principal.subject, decided_at=now, decision=decision,
                                           mfa_auth_time=principal.auth_time, proposal_version=p.version))
     status = "approved" if approve else "draft"

@@ -26,6 +26,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
 from terms.service import current_terms, current_version
 
+from api.refusals import AuditedRoute
 from api.terms import register as register_terms_routes
 from api.terms import terms_json
 
@@ -89,7 +90,7 @@ def _need_writer(app: FastAPI) -> Any:
 
 def build_router(app: FastAPI) -> APIRouter:
     require: Callable[..., Any] = app.state.require_roles
-    router = APIRouter()
+    router = APIRouter(route_class=AuditedRoute)               # MMI-6: refused supplier/terms/link changes are recorded (api/refusals.py); other routes are untouched
 
     def conn_dep(engine: Engine = Depends(get_engine)) -> Iterator[Connection]:
         with engine.begin() as conn:

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -19,6 +19,7 @@ from costs.recargo import RecargoTable, UnknownVatError, gross_from_net, net_fro
 from costs.rules import CostRules
 from costs.store import CostError, NewCost, add_version, current
 from db.tables import erp_supplier_links, product_refs, supplier_costs, supplier_review_items, suppliers
+from fx.rates import convert, latest_rate, rate_state
 from sqlalchemy import func, select, update
 from sqlalchemy.engine import Connection, Row
 
@@ -137,11 +138,12 @@ def remove_link(conn: Connection, supplier_id: str, sku: str, actor: str, *, now
     audit(conn, actor, "supplier.link_removed", "supplier_link", f"{supplier_id}:{ref.sku}"[:60], before={"version": int(cost.version)}, now=now)
 
 
-def list_links(conn: Connection, supplier_id: str) -> list[dict[str, Any]]:
+def list_links(conn: Connection, supplier_id: str, today: date | None = None) -> list[dict[str, Any]]:
     try:
         supplier = get_supplier(conn, supplier_id)
     except SupplierError:
         return []
+    today = today or datetime.now(UTC).date()
     out = []
     for c in conn.execute(select(supplier_costs).where(supplier_costs.c.supplier_id == supplier_id, supplier_costs.c.superseded_by.is_(None))
                           .order_by(supplier_costs.c.product_id, supplier_costs.c.variant_id)).all():
@@ -150,8 +152,43 @@ def list_links(conn: Connection, supplier_id: str) -> list[dict[str, Any]]:
         out.append({"sku": None if ref is None else ref.sku, "name": None if ref is None else ref.name, "product_id": int(c.product_id),
                     "cost": str(Decimal(str(c.cost_with_recargo)).quantize(Decimal("0.0001"))), "currency": c.currency, "cost_source": c.source,
                     "includes_recargo": bool(c.entered_includes_recargo), "pack_size": c.pack_size, "min_qty": c.min_order_qty,
-                    "verified_at": (c.verified_at if c.verified_at.tzinfo else c.verified_at.replace(tzinfo=UTC)).isoformat(), "erp_link": erp})
+                    "verified_at": (c.verified_at if c.verified_at.tzinfo else c.verified_at.replace(tzinfo=UTC)).isoformat(), "erp_link": erp,
+                    "created_by": c.created_by, **_erp_comparison(conn, c), **_fx_view(conn, c, today)})
     return out
+
+
+def _fx_view(conn: Connection, cost: Row[Any], today: date) -> dict[str, Any]:
+    """MMI-6 FR-035: a cost quoted in another currency shows its euro equivalent, the rate used and the day it was published, or why there is none."""
+    view: dict[str, Any] = {"fx_state": None, "eur_equivalent": None, "fx_rate": None, "fx_date": None}
+    if cost.currency == "EUR":
+        return view
+    rate = latest_rate(conn, cost.currency, today)
+    state = rate_state(rate, today)
+    view["fx_state"] = state
+    if rate is not None:
+        view["fx_rate"], view["fx_date"] = format(rate.eur_per_unit.normalize(), "f"), rate.published_on.isoformat()
+        if state == "ok":
+            view["eur_equivalent"] = str(convert(Decimal(str(cost.cost_with_recargo)), rate))
+    return view
+
+
+_ERP_COST_SOURCE = "siweb_product_supplier"
+
+
+def _erp_comparison(conn: Connection, current_cost: Row[Any]) -> dict[str, Any]:
+    """MMI-6 FR-016: when the current cost is not the ERP's own, show the latest ERP cost beside it and the difference. Nothing is changed or hidden."""
+    none: dict[str, Any] = {"erp_cost": None, "erp_verified_at": None, "cost_difference": None, "cost_difference_pct": None}
+    if current_cost.source == _ERP_COST_SOURCE:
+        return none
+    erp = conn.execute(select(supplier_costs).where(supplier_costs.c.product_id == current_cost.product_id, supplier_costs.c.supplier_id == current_cost.supplier_id,
+                                                    supplier_costs.c.variant_id.is_(None), supplier_costs.c.source == _ERP_COST_SOURCE)
+                       .order_by(supplier_costs.c.version.desc()).limit(1)).first()
+    if erp is None:
+        return none
+    mine, theirs = Decimal(str(current_cost.cost_with_recargo)), Decimal(str(erp.cost_with_recargo))
+    pct = None if theirs == 0 else ((mine - theirs) / theirs * 100).quantize(Decimal("0.1"))
+    return {"erp_cost": str(theirs.quantize(Decimal("0.0001"))), "erp_verified_at": (erp.verified_at if erp.verified_at.tzinfo else erp.verified_at.replace(tzinfo=UTC)).isoformat(),
+            "cost_difference": str((mine - theirs).quantize(Decimal("0.0001"))), "cost_difference_pct": None if pct is None else str(pct)}
 
 
 def _review_once(conn: Connection, kind: str, supplier_id: str | None, detail: str, now: datetime) -> None:

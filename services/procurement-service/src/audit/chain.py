@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -53,6 +54,22 @@ def append(conn: Connection, actor: str, action: str, entity: str, entity_id: st
             if attempt == retries - 1:
                 raise
     raise AssertionError("unreachable")
+
+
+_CODE = re.compile(r"[a-z][a-z0-9_]*")
+
+
+def record_refusal(conn: Connection, actor: str, action: str, entity: str, entity_id: str, code: str, status: int,
+                   now: datetime | None = None) -> str:
+    """Records that a request was refused (MMI-6 FR-028): who, what it targeted, the stable error code and the HTTP status.
+
+    Never takes the request body, so a refused payload (possibly malformed or oversized) cannot reach the audit trail.
+    """
+    if not action.endswith(".refused") or action.count(".") != 1 or action.startswith("."):
+        raise ValueError("a refusal action looks like '<area>.refused'")
+    if not _CODE.fullmatch(code) or not 400 <= status <= 599:
+        raise ValueError("a refusal needs a snake_case error code and an HTTP error status")
+    return append(conn, actor, action, entity, entity_id, None, {"code": code, "status": status}, now)
 
 
 @dataclass(frozen=True)

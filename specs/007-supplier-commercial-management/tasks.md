@@ -1,0 +1,153 @@
+# Tasks: Supplier Commercial Management (MMI-6)
+
+**Input**: `specs/007-supplier-commercial-management/` (spec, plan, research, data-model, contracts, quickstart)
+
+**Tests**: Included. The project rules require tests before implementation within a story, and the spec asks for unit, contract, integration, security and Playwright coverage. Synthetic fixtures from `packages/testing` only.
+
+**Format**: `- [ ] ID [P] [Story] Description with path` (`[P]` = parallel, different files)
+
+**Paths**: service `services/procurement-service/` (PS), BFF `services/api-bff/`, web `apps/web/`, contracts `packages/contracts/`. Last migration is `0011_suppliers.py`.
+
+**Baseline-only requirements**: FR-007, 008, 009, 013, 015, 024 and 031 are already implemented and tested (see research.md audit rows 2 to 5, 7, 20). They get no new task; T002 runs their tests and T010 records the named test per requirement. FR-006 (duplicate warning) is checked in T013.
+
+## Phase 1: Setup and audit baseline
+
+- [X] T001 Prepare the Python test environment: there is no `uv.lock`, so run `uv sync` from the repository root (public PyPI only), confirm `.venv` and `uv.lock` are gitignored or leave them untracked, and write the exact working test command into `specs/007-supplier-commercial-management/quickstart.md` step 1
+- [X] T002 Run the baseline suites from quickstart step 1 and record pass/fail per audit row in `research.md` (turn "complete by reading" into verified; reclassify failures as broken)
+- [ ] T003 [P] Confirm with Agent 00 (Jira MMI-1 thread) that `Idempotency-Key`, the new error codes and the daily exchange-rate job are acceptable shared changes; note the answer in `research.md` section C
+- [X] T004 [P] Check `git diff --stat main` touches only files listed in plan.md Project Structure (guard for FR-033)
+
+## Phase 2: Foundational (blocks all stories)
+
+- [X] T005 Contract first: in `packages/contracts/` add error codes `idempotency_key_reuse`, `invalid_idempotency_key`, `fx_rate_missing`, `fx_rate_stale` to `errors/error_codes.json`, document the `Idempotency-Key` header on the two terms PUT operations, and regenerate types (done: the four codes are in `error_codes.json`, the web catalogue and the feature-002 `error-keys.md` table that a guard test requires; there is no HTTP contract file in `packages/contracts`, so the header is documented in `contracts/supplier-terms-api.md` and the code meanings; no types depend on error codes)
+- [X] T006 [P] Contract first: add the optional `expected_delivery_date` field to the proposal-line explanation schema in `packages/contracts/` and regenerate types (done: schema and Python model regenerated, compatibility tests pass; the TypeScript types in `apps/web/src/api/generated` are NOT regenerated yet because the generator downloads an npm package, so run `packages/contracts/tools/codegen.py` where npm is available before the PR)
+- [X] T007 [P] Add Spanish messages for the new codes and any new supplier-screen strings to `services/procurement-service/src/locale/es-ES.json` and the web text catalogue under `apps/web/src/` (done for the four error codes in `apps/web/src/i18n/es-ES.json`; the service file only holds export sheet texts, so it is untouched; screen strings are added by the UI tasks)
+- [X] T008 Add migration `services/procurement-service/migrations/versions/0012_terms_idempotency_fx_rates.py` creating `terms_idempotency` and `fx_rates` per data-model.md, and the tables in `services/procurement-service/src/db/tables.py`
+- [X] T009 [P] Add `record_refusal(conn, actor, action, entity, entity_id, code, status)` to `services/procurement-service/src/audit/chain.py`, appending an entry without any request body (done with `tests/test_audit_refusal.py`; `action` must be `<area>.refused`)
+
+## Phase 3: User Story 1 - Audit evidence (P1)
+
+**Goal**: audit table complete and verified. **Independent test**: every row has a status and evidence; no row unclassified.
+
+- [X] T010 [US1] Review each audit row in `research.md` against T002 results; fix statuses, add file and line evidence, and name the proving test per baseline-only requirement
+- [X] T011 [US1] Check every non-complete row names a real task ID in its "Closes via" column and no row is orphaned (FR-002)
+
+## Phase 4: User Story 2 - Supplier master and terms (P1)
+
+**Goal**: CRUD persists, validation, roles, safe deactivation. **Independent test**: create, read back after reload, edit, deactivate, reactivate; viewer read-only.
+
+- [X] T012 [P] [US2] Test: server-side role enforcement on every change route (viewer refused on supplier, terms, link, bulk) in `services/procurement-service/tests/test_terms_roles.py` (done: scans the 13 change routes of the supplier, terms, override, link and bulk families, including routes wrapped by included routers; all refuse viewers with 403 and anonymous callers with 401)
+- [X] T013 [P] [US2] Test: persistence round-trip across a new connection (supplier, terms, links) and duplicate-name warning without auto-merge in `services/procurement-service/tests/test_supplier_persistence.py` (done as a round trip across committed transactions; the test engine is one shared SQLite connection, so true cross-connection isolation waits for the PostgreSQL run in T049; the duplicate-name warning was already tested at `test_suppliers_service.py:45,82`)
+- [X] T014 [P] [US2] Test: a proposal with a line for a deactivated supplier cannot be submitted or approved until reallocated (FR-037), in `services/procurement-service/tests/test_supplier_deactivation.py`. The preview, confirmation and review item (FR-005) already exist and are tested (`test_suppliers_service.py:106,116,138`), so they are not re-tested here
+- [X] T015 [US2] Enforce any role check found missing by T012 in `services/procurement-service/src/api/terms.py` and `src/api/suppliers.py` (no-op: T012 found no missing check)
+- [X] T016 [US2] Implement the approval block (audit row 23 confirms it is missing) in `services/procurement-service/src/approvals/workflow.py` `submit` and `decide`: refuse with a stable code while a line belongs to a deactivated supplier (done: code `proposal_has_deactivated_supplier`, HTTP 409, added to `error_codes.json`, the web catalogue and the 002 `error-keys.md` table; blocks submit and approve, still allows rejection; `api/proposals.py` returns 409 for it; tests in `test_supplier_deactivation.py` and `test_api_proposals.py`)
+- [X] T017 [P] [US2] Playwright journey in `apps/web/tests/e2e/suppliers-terms-journey.spec.ts` (done: 7 tests pass under Node 20 against an in-test backend: saved terms persist across a reload and show in the history; a future-dated version leaves today's terms in force; a stale save names the newer version, stores nothing and recovers on reload; a viewer reads but cannot change; search narrows 100 suppliers; no ERP contact or variant id on screen; no serious accessibility problem). Creating a supplier, the duplicate warning, deactivation preview and bulk preview are already covered by `suppliers-manage.spec.ts`. The tests pass on the existing UI, so they are regression coverage; they were not mutation-checked
+- [X] T018 [US2] Fix any UI defect T017 exposes in `apps/web/src/features/suppliers/SupplierForm.tsx`, `SupplierTermsEditor.tsx`, `SuppliersScreen.tsx` (no-op: T017 exposed no defect)
+
+## Phase 5: User Story 3 - Effective dates, conflicts, idempotency (P1)
+
+**Goal**: future-dated versions, stale-save rejection, retry safety. **Independent test**: quickstart step 3.
+
+- [X] T019 [P] [US3] Test: same `Idempotency-Key` and body creates one version and replays with `Idempotent-Replay: true`; different body gives `idempotency_key_reuse`; malformed key gives `invalid_idempotency_key`, in `services/procurement-service/tests/test_terms_idempotency.py` (done: 10 tests in `test_terms_idempotency.py`; the key is checked before If-Match so a retry with a stale precondition is still a replay; only successful saves are remembered; the key is also scoped per supplier-terms vs override)
+- [X] T020 [P] [US3] Test: same-start tie keeps the latest saved version and history marks the other superseded, in `services/procurement-service/tests/test_terms_versions.py` (done in `test_terms_versions.py` plus `test_terms_api.py`: the later saved of two same-day versions wins; added `version_statuses` (in force, planned, superseded, expired) to `terms/service.py` and a `status` field on each history item of `GET /suppliers/{id}/terms`)
+- [X] T021 [US3] Implement idempotent save (key, request hash, result version) in `services/procurement-service/src/terms/service.py` and `src/terms/overrides.py`, wired in `src/api/terms.py` (depends on T005, T008) (done: new `terms/idempotency.py` (also holds `forget_older_than` for the T038 purge), `Idempotency-Key` handled in `api/terms.py` for both PUTs; a concurrent request with the same key gets a 412 and the retry replays the winner)
+- [X] T022 [US3] Forward `Idempotency-Key` unchanged in the BFF terms routes in `services/api-bff/src/routes/api.py` (the two PUT terms handlers) and send a fresh key per save from `apps/web/src/features/suppliers/termsModel.ts` (done: BFF forwards the header in `routes/api.py` and `clients/procurement.py`, 3 tests in `test_terms_idempotency_forwarding.py`; web client sends it, `saveKeys` in `termsModel.ts` keeps one key per distinct save, used by both the supplier and the override editor; 4 unit tests)
+- [X] T023 [US3] UI: show version history (who, when, in force, planned, superseded), end-date warning, and the stale-save conflict message with the newer version in `apps/web/src/features/suppliers/SupplierTermsEditor.tsx` (done: history shows each version's status and the editor warns when the terms in force end with nothing scheduled after them; conflict message and history table already existed; Playwright covers retry key reuse, statuses and the warning)
+- [X] T024 [US3] Extend `suppliers-terms-journey.spec.ts` with future-dated version and two-session conflict scenarios (SC-003, SC-004) (done inside T017's file; the history statuses and end-date warning of T023 are still to build, with assertions to add then)
+
+## Phase 6: User Story 5 - Proposals use local terms; ERP untouched (P1)
+
+**Goal**: delivery date from terms, versions shown, ERP data unchanged. **Independent test**: quickstart steps 2 and 5.
+
+- [X] T025 [P] [US5] Test: table-driven expected delivery date (order days, cutoff before/after, lead time, delivery weekdays) in `services/procurement-service/tests/test_terms_delivery_date.py` (done: 21 tests in `test_terms_delivery_date.py` covering order days, the cutoff in Madrid time with the cutoff minute inclusive, lead time, delivery weekdays and the group date)
+- [X] T026 [P] [US5] Test: at least 20 synthetic scenarios (minimums, schedules, thresholds, discounts, overrides) assert supplier, quantity, date and cited terms version in `services/procurement-service/tests/test_terms_scenarios.py` (SC-005) (done: 25 scenarios in `test_terms_scenarios.py` through the real inputs builder and the database; they assert supplier choice, pack multiples, minimums, shortfalls, delivery dates and cited versions. Four first expectations were wrong because the optimizer avoids a supplier whose minimum or charge makes it dearer; those became paired scenarios (with and without the alternative supplier))
+- [X] T027 [P] [US5] Test: ERP-owned data identical before and after supplier maintenance, and ERP unreachable still works, extending `tests/test_terms_no_erp.py` (SC-006, SC-009) (done in `test_terms_no_erp.py`: a full maintenance round and a proposal run make no network call, and every ERP-owned table (catalogue refs, ERP links, ERP costs, lot costs, cost-write requests) is identical before and after)
+- [X] T028 [US5] First carry `order_days`, `order_cutoff_time`, `delivery_weekdays` and `payment_terms_days` from the effective terms through `services/procurement-service/src/proposals/inputs.py` into `SupplierTermsIn` in `src/proposals/model.py` (audit rows 11 and 12: they are stored but never reach the optimizer). Then implement pure `expected_delivery_date` in `services/procurement-service/src/terms/resolve.py` and add `explanation.terms.expected_delivery_date` in `src/proposals/generate.py` (depends on T006) (done: new pure module `terms/schedule.py` (not `resolve.py`) with `next_order_date`, `delivery_date`, `order_date_from`; `SupplierTermsIn` gained `next_order_date` and `delivery_weekdays`, set by `proposals/inputs.py` only when the supplier has order days or a cutoff, so suppliers without a schedule behave exactly as before; payment terms are deliberately not carried because no decision uses them; the date is also on each line's `explanation.terms.expected_delivery_date`, matching the T006 contract field)
+- [X] T029 [US5] Show delivery date and terms version on the proposal line in `apps/web/src/features/proposals/ProposalLineExplanation.tsx` (done: each line's explanation shows "Entrega prevista" in Spanish format next to the terms versions, hidden for older proposals; the group table already showed the group date, which is now schedule-aware; 2 unit tests)
+- [X] T030 [US5] Verify shortfalls against minimums and thresholds are shown and never drop a line (FR-022): extend the T026 scenarios with shortfall cases and fix `services/procurement-service/src/allocation/common.py` or `shortfall.py` for any failure (done as verification: the line is kept, the group is `shortfall` with the missing value, the line risk is `high` and the buyer gets an `accept` option; locked in by `test_10c`; no code change was needed)
+
+## Phase 7: User Story 4 - Overrides, costs, provenance, currency (P2)
+
+**Goal**: product-level overrides win, provenance visible, non-EUR suppliers handled by stored rates. **Independent test**: link one product to two suppliers with an override and verify the proposal; allocate with a fresh, stale and missing rate.
+
+- [X] T031 [P] [US4] Test: a preferred supplier wins an otherwise equal tie, a clearly cheaper compliant supplier still wins, and each line states why its supplier was chosen and why the alternatives were not (FR-019, tie-break decided 2026-11-09), in `services/procurement-service/tests/test_preferred_fallback_reason.py` (done: 4 tests in `test_preferred_fallback_reason.py`; they exposed that a tie won by the preferred supplier was explained as "lowest cost", fixed in T033)
+- [X] T032 [P] [US4] Test: manual cost differing from ERP cost keeps both values, flags the difference, overwrites nothing, in `services/procurement-service/tests/test_cost_provenance_difference.py` (done: `test_cost_provenance_difference.py`, 6 tests; the ERP version is never changed or removed, only its chain link moves to the newer version)
+- [X] T033 [US4] Only if T031 shows a missing reason, implement the choice/alternatives reason text in `services/procurement-service/src/allocation/common.py` and its Spanish message in `es-ES.json` (if T031 fails) (done: new reason `preferred_supplier_on_tie` in `proposals/generate.py` with its Spanish text; allocation itself is unchanged)
+- [X] T034 [US4] Show cost source, author, date and the ERP-versus-manual difference in `apps/web/src/features/suppliers/LinksPanel.tsx` and `OverrideEditor.tsx` (done: the links table shows who set the cost and the ERP cost with the difference and percentage, or "equal"; 4 unit tests)
+- [X] T035 [US4] Playwright: the no-ERP-id check is already in `suppliers-terms-journey.spec.ts`; add only the bulk-assign per-row outcome after apply (preview is covered by `suppliers-manage.spec.ts`), in the same file (FR-017, FR-018) (done differently from the task text: `apply_batch` now returns an outcome per row (linked, already_linked, conflict_skipped, no_cost) and the screen lists them; proven by backend tests and 3 unit tests rather than a Playwright test, because the existing Playwright mock stops at the preview; the no-ERP-id check is in `suppliers-terms-journey.spec.ts`)
+- [X] T036 [P] [US4] First make one public, read-only `GET https://api.frankfurter.dev/v2/providers/ecb/rates?base=EUR` by hand (no data sent; the only real network call in this plan, and nothing from it is committed except the synthetic fixture), record the real response shape and the behaviour for weekends and holidays in `research.md` D3, and build a synthetic fixture from that shape in `packages/testing`. Then test the rate job in `services/procurement-service/tests/test_fx_rates.py` with a fake HTTP transport and that fixture, including the purge of rows older than 400 days and of idempotency rows older than 7 days: only host `api.frankfurter.dev`, one rates path, GET (anything else refused before a request), ECB provider only, rate stored with publication date and fetch time, failure keeps the last rate, no call occurs during proposal generation (FR-034, FR-036) (done: one real read-only GET recorded the answer shape (list of {date, base, quote, rate}, 30 quotes, newest date was the previous Friday on a Monday); the fixture `packages/testing/fixtures/fx/ecb_rates.v1.json` uses invented round numbers; 32 tests in `test_fx_rates.py`; `eur_per_unit` widened to 12 decimals because a currency near 17,000 per euro lost accuracy at 8)
+- [X] T037 [P] [US4] Test allocation with non-EUR suppliers in `services/procurement-service/tests/test_non_eur_supplier.py`: fresh rate converts; no rate, unsupported currency, or a rate older than 7 days excludes the supplier and creates a review item (FR-035, SC-012) (done: 15 tests in `test_non_eur_supplier.py`)
+- [X] T038 [US4] Implement the rate job in `services/procurement-service/src/fx/rates.py` (HTTP GET with the allowlist; request rates for EUR as base from the ECB provider; store the inverse as EUR per unit as an exact decimal) and run it inside the existing one-pass worker in `src/worker.py` (already a scale-to-zero job on a short cron): fetch only when the newest stored rate is more than 20 hours old, so it runs about once a day and adds no job or always-on service; the same pass purges expired `fx_rates` and `terms_idempotency` rows (done: `fx/rates.py` (allowlisted GET, parser, store, refresh, purge) run from `worker.py` with `MMI_FX_DISABLED=1` to skip it; a confirmed-unchanged answer moves `fetched_at` so a weekend does not re-trigger the call, and a failure is audited and backs off for an hour; 4 worker tests)
+- [X] T039 [US4] Implement conversion and exclusion in `services/procurement-service/src/proposals/inputs.py` using stored rates only, raising a review item with `fx_rate_missing` or `fx_rate_stale` (done in `proposals/inputs.py`: cost currency was never checked before, so a foreign cost was compared as euros; now converted or excluded with a review item, the rate is on the line's explanation, and the original cost, rate and day are in the inputs hash)
+- [X] T040 [US4] Show the rate used and its date wherever an EUR equivalent appears, and list excluded suppliers, in `apps/web/src/features/suppliers/SuppliersScreen.tsx` and `LinksPanel.tsx` (done: the links table shows a foreign cost in its own currency with the euro equivalent, rate and day or why there is none, the review list explains the two new kinds with the currency, the proposal line names the rate; 7 unit tests)
+- [X] T041 [US4] Record the new outbound dependency in an architecture decision `docs/adr/` (next free number): host, path, method, no credentials, no data sent, daily cadence, fallback, cost impact, and the "as is" data disclaimer (constitution: exceptions need a documented decision and cost review); also check `infra/bicep/modules/serviceJobs.bicep` and `containerAppJob.bicep` for outbound restrictions on the procurement worker and allow only `api.frankfurter.dev` if any exist (no new job is added) (done: `docs/adr/021-exchange-rates.md` and its index row; the infrastructure has no network-level egress rule and none can be added within the budget (Azure Firewall), so no Bicep change was needed; the application allowlist is the control, as for the cost writer)
+
+## Phase 8: User Story 6 - Security and traceability (P2)
+
+**Goal**: every change and every refusal is audited. **Independent test**: abuse cases refused and recorded.
+
+- [X] T042 [P] [US6] Test: each refusal class (403, 412, 422, 428) leaves a `terms.refused`, `supplier.refused` or `link.refused` audit entry with no request body, in `services/procurement-service/tests/test_terms_refusal_audit.py`
+- [X] T043 [P] [US6] Test: abuse inputs (oversized payload, malformed number, out-of-range value, another supplier's link, replayed request) refused with Spanish messages, in `services/procurement-service/tests/test_terms_abuse.py`
+- [X] T044 [P] [US6] Test: a sensitive operation (release or override of an ERP cost) is refused with a stale second factor and accepted after re-confirmation (FR-027), in `services/api-bff/tests/test_sensitive_fresh_mfa.py` — done; found and closed a gap: the BFF cost override now also requires a fresh second factor
+- [X] T045 [US6] Call `record_refusal` on every refusal path in `services/procurement-service/src/api/terms.py` and `src/api/suppliers.py` (depends on T009) — done as `AuditedRoute` in `src/api/refusals.py` (one route class, applied to the supplier, product-supplier and link families)
+- [X] T046 [P] [US6] Test that free-text note content, tax ids and bank details are never stored or returned by supplier endpoints, in `services/procurement-service/tests/test_supplier_privacy.py` — done; sensitive fields are refused with 422 (strict models), no column can hold them, only `has_note` exists
+
+## Phase 9: Polish and delivery
+
+- [X] T047 [P] Playwright check of no untranslated or hard-coded text on supplier screens and Spanish number, date and EUR formats (SC-008), in `apps/web/tests/e2e/suppliers-terms-journey.spec.ts` — done: one more journey test, no raw keys or English, `2,10 €`, dd/mm/yyyy
+- [X] T048 [P] Performance test: terms save and read under 300 ms p95 with 50 versions (SC-011), under `services/procurement-service/tests/perf` — done: `tests/perf/test_terms_latency.py`, 50 versions, p95 under 300 ms
+- [X] T049 Run the full quickstart (steps 1 to 5), ruff, mypy and the web lint and unit suites; fix failures — done: quickstart 1-5, ruff, eslint, tsc, web 495 unit tests, contracts/infra/BFF/procurement/connector/writer suites, and migrations on real PostgreSQL (9 pass, 0012 included); mypy is not a CI gate and has long-standing errors
+- [X] T050 Capture Spanish UI screenshots for the PR — done: `SCREENSHOT_DIR=<dir>` makes the Spanish-format journey test save a screenshot; not committed
+- [ ] T051 Update the `research.md` audit table with final statuses, then open one PR from the PR template (data, security, cost including the daily rate job, contract impact), linking MMI-6 and Confluence page 3080407; no merge to main, no deploy
+
+## Dependencies and order
+
+- Phase 1 -> Phase 2 -> stories. T021 needs T005 and T008; T045 needs T009; T028 needs T006; T038 and T039 need T008, and T038 also needs the first step of T036 (the recorded response shape and fixture); T041 can be written alongside T038.
+- Stories are independent after Phase 2. Suggested order: US1 -> US3 -> US2 -> US5 -> US4 -> US6.
+- Within a story: tests first (must fail), then implementation.
+- Parallel: T003/T004; T006, T007 and T009 alongside T005 and T008; all `[P]` tests inside a phase.
+
+## Requirement coverage map
+
+| Requirement | Tasks |
+|---|---|
+| FR-001, FR-002 | T002, T010, T011 |
+| FR-003, FR-006 | T013, T017, T018 |
+| FR-004 | T039, T040, T046 |
+| FR-005, FR-037 | T014, T016 |
+| FR-007, 008, 009, 013, 015, 024, 031 | baseline-only: T002, T010 |
+| FR-010 | T023 |
+| FR-011, FR-012 | T020, T024 |
+| FR-014 | T005, T019, T021, T022 |
+| FR-016 | T032, T034 |
+| FR-017, FR-018 | T035 |
+| FR-019 | T031, T033 |
+| FR-020, FR-021 | T006, T025, T026, T028, T029 |
+| FR-022 | T030 |
+| FR-023, FR-025 | T027 |
+| FR-026, FR-028 | T009, T042, T043, T045 |
+| FR-027 | T012, T015, T044 |
+| FR-029 | T046 |
+| FR-030 | T007, T047 |
+| FR-032 | T004, T048, T051 |
+| FR-033 | T003, T004 |
+| FR-034, FR-035, FR-036 | T036 to T041 |
+| SC-001 | T010, T011 |
+| SC-002 | T017 (proxy) |
+| SC-003, SC-004 | T024 |
+| SC-005 | T026 |
+| SC-006, SC-009 | T027 |
+| SC-007 | T042, T043, T044 |
+| SC-008 | T047 |
+| SC-010 | T038, T041, T051 |
+| SC-011 | T048 |
+| SC-012 | T037, T039 |
+
+## MVP
+
+Phases 1 and 2 plus US1 and US3 (audit, then idempotent, conflict-safe, effective-dated saves): this closes the main verified code gap and two acceptance criteria. US5 then closes "optimizer consumes local terms".
+
+## Phase 10: Convergence
+
+- [X] T052 Regenerate the TypeScript types in `apps/web/src/api/generated` with `packages/contracts/tools/codegen.py` so `explanation.terms.expected_delivery_date` appears there, and run `tsc` and the web unit tests per FR-012 and constitution rule 9 contract-first (partial: the JSON Schema and Python model have the field, the generated TypeScript does not) — done for `proposal_line.v1.schema.d.ts` (the only changed schema)
+- [X] T053 [P] Add an explicit test in `services/procurement-service/tests/test_money_and_time_storage.py` that no money column in the supplier, terms, link and cost tables is a float type and that timestamps are timezone-aware and keep the original text where supplied, per FR-031 (partial: only indirect coverage, noted in research.md) — done

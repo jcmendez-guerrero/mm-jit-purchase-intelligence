@@ -61,6 +61,17 @@ def test_reading_returns_the_current_terms_the_version_to_send_back_and_the_hist
     assert client.get(f"/suppliers/{sid}/terms?as_of=2020-01-01T00:00:00Z", headers=auth()).json()["current"] is None
 
 
+def test_each_history_item_says_whether_it_is_in_force_planned_superseded_or_expired(client, engine):
+    sid = seed(engine)
+    put(client, sid)
+    put(client, sid, {**BODY, "lead_time_days": 4}, etag=1)
+    put(client, sid, {**BODY, "lead_time_days": 9, "valid_from": "2099-01-01T00:00:00Z"}, etag=2)
+    status = {h["version"]: h["status"] for h in client.get(f"/suppliers/{sid}/terms", headers=auth()).json()["history"]}
+    assert status == {1: "superseded", 2: "in_force", 3: "planned"}
+    far = client.get(f"/suppliers/{sid}/terms?as_of=2100-01-01T00:00:00Z", headers=auth()).json()["history"]
+    assert {h["version"]: h["status"] for h in far} == {1: "superseded", 2: "superseded", 3: "in_force"}
+
+
 def test_roles_are_enforced(client, engine):
     sid = seed(engine)
     assert put(client, sid, role="viewer").status_code == 403

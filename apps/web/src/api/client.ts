@@ -403,6 +403,8 @@ export interface TermsHistoryItem {
   version: number;
   valid_from: string;
   valid_to: string | null;
+  /** Where the version stands today; older servers omit it. */
+  status?: "in_force" | "planned" | "superseded" | "expired";
   source: "erp" | "import" | "manual";
   reason: string | null;
   changed_by: string;
@@ -457,6 +459,30 @@ export interface SupplierLinkRow {
   min_qty: number | null;
   verified_at: string;
   erp_link: "no_link" | "link_without_cost" | "link_with_cost";
+  /** Who set the current cost, and (when it is not the ERP's own) the latest ERP cost and the difference; older servers omit them. */
+  created_by?: string | null;
+  erp_cost?: string | null;
+  erp_verified_at?: string | null;
+  cost_difference?: string | null;
+  cost_difference_pct?: string | null;
+  /** A cost in another currency: its euro equivalent, the rate used and its day, or why there is none (ok / missing / stale); null for euro costs. */
+  fx_state?: "ok" | "missing" | "stale" | null;
+  eur_equivalent?: string | null;
+  fx_rate?: string | null;
+  fx_date?: string | null;
+}
+
+/** What happened to one product of a bulk assignment; older servers send only the totals. */
+export interface BulkApplyRow {
+  sku: string;
+  outcome: "linked" | "already_linked" | "conflict_skipped" | "no_cost";
+}
+
+export interface BulkApplyResult {
+  changed: number;
+  skipped_conflicts: number;
+  no_cost: number;
+  rows?: BulkApplyRow[];
 }
 
 export interface LinkInputDoc {
@@ -709,6 +735,10 @@ export interface ProposalExplanation {
     conflicts: Array<{ field: string; erp_value: unknown; local_value: unknown; winner: string }>;
     preferred: boolean;
     supplier_discount: string;
+    /** Date (ISO) the supplier's order is expected, from its order days, cutoff, lead time and delivery weekdays; older proposals omit it. */
+    expected_delivery_date?: string;
+    /** Present when the cost was quoted in another currency and converted with a stored ECB rate. */
+    fx?: { currency: string; original_cost: string; eur_per_unit: string; published_on: string };
   };
 }
 
@@ -1120,7 +1150,7 @@ export class ApiClient {
     return this.request<BulkPreview>(`/suppliers/${encodeURIComponent(id)}/links/bulk/preview`, { method: "POST", body: JSON.stringify(criteria) });
   }
 
-  async applyBulkLinks(id: string, batchId: string, skipConflicts: boolean): Promise<{ changed: number; skipped_conflicts: number; no_cost: number }> {
+  async applyBulkLinks(id: string, batchId: string, skipConflicts: boolean): Promise<BulkApplyResult> {
     return this.request(`/suppliers/${encodeURIComponent(id)}/links/bulk/apply`, { method: "POST", body: JSON.stringify({ batch_id: batchId, skip_conflicts: skipConflicts }) });
   }
 
@@ -1278,10 +1308,11 @@ export class ApiClient {
     return this.request<SupplierTermsView>(`/suppliers/${encodeURIComponent(supplierId)}/terms`);
   }
 
-  async putSupplierTerms(supplierId: string, payload: Record<string, unknown>, version: number): Promise<{ version: number }> {
+  /** The optional key makes a retry of this very save safe: the server returns the first result instead of a conflict or a second version. */
+  async putSupplierTerms(supplierId: string, payload: Record<string, unknown>, version: number, idempotencyKey?: string): Promise<{ version: number }> {
     return this.request<{ version: number }>(`/suppliers/${encodeURIComponent(supplierId)}/terms`, {
       method: "PUT",
-      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      headers: saveHeaders(version, idempotencyKey),
       body: JSON.stringify(payload),
     });
   }
@@ -1290,13 +1321,17 @@ export class ApiClient {
     return this.request<OverrideView>(`/product-suppliers/${variantId}/${encodeURIComponent(supplierId)}/terms`);
   }
 
-  async putOverrideTerms(variantId: number, supplierId: string, payload: Record<string, unknown>, version: number): Promise<{ version: number }> {
+  async putOverrideTerms(variantId: number, supplierId: string, payload: Record<string, unknown>, version: number, idempotencyKey?: string): Promise<{ version: number }> {
     return this.request<{ version: number }>(`/product-suppliers/${variantId}/${encodeURIComponent(supplierId)}/terms`, {
       method: "PUT",
-      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      headers: saveHeaders(version, idempotencyKey),
       body: JSON.stringify(payload),
     });
   }
+}
+
+function saveHeaders(version: number, idempotencyKey?: string): Record<string, string> {
+  return { ...(version > 0 ? { "If-Match": `"${version}"` } : {}), ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}) };
 }
 
 export const api = new ApiClient();

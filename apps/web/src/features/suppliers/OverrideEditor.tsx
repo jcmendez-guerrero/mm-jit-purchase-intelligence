@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { api, ApiError, errorMessage, OverrideView } from "../../api/client";
 import { focusFirstInvalid, FormField } from "../../ui/FormField";
 import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
-import { OverrideForm, Tri, overrideToForm, overrideToPayload, sourceKey, validateOverride } from "./termsModel";
+import { OverrideForm, Tri, overrideToForm, overrideToPayload, saveKeys, sourceKey, validateOverride } from "./termsModel";
 import { useActionNotice } from "../../ui/NoticeProvider";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { Card } from "../../ui/Card";
@@ -24,6 +24,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
   const [baseline, setBaseline] = useState<OverrideForm>(overrideToForm(null));
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const formRef = useRef<HTMLDivElement>(null);
+  const keyFor = useRef(saveKeys()).current;               // a retry of the same save reuses its key; any change gets a new one
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useActionNotice();
 
@@ -65,7 +66,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
       return;
     }
     try {
-      const r = await api.putOverrideTerms(variantId, supplierId, overrideToPayload(form), view.version);
+      const r = await api.putOverrideTerms(variantId, supplierId, overrideToPayload(form), view.version, keyFor(JSON.stringify([variantId, form, view.version])));
       setNotice(t("suppliers.override.saved", { version: r.version }));
       await load();
     } catch (err) {

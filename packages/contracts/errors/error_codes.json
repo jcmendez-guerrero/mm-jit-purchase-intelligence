@@ -605,6 +605,36 @@
       "http": 409,
       "kind": "request",
       "meaning": "The review item was already resolved"
+    },
+    "payload_too_large": {
+      "http": 413,
+      "kind": "request",
+      "meaning": "The request body is larger than a supplier, terms or link change may be"
+    },
+    "idempotency_key_reuse": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The Idempotency-Key was already used with different content"
+    },
+    "invalid_idempotency_key": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The Idempotency-Key is too long or has control characters"
+    },
+    "fx_rate_missing": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "No stored exchange rate for the supplier currency"
+    },
+    "proposal_has_deactivated_supplier": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "A proposal line belongs to a deactivated supplier"
+    },
+    "fx_rate_stale": {
+      "http": 422,
+      "kind": "row",
+      "meaning": "The stored exchange rate is older than 7 days"
     }
   }
 }

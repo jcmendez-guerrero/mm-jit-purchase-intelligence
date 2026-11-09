@@ -20,7 +20,7 @@ from proposals.model import Discount
 from sqlalchemy import func, insert, select
 from sqlalchemy.engine import Connection, Row
 
-__all__ = ["Discount", "Terms", "TermsConflict", "TermsError", "current_terms", "current_version", "history", "save_terms", "validate", "versions"]
+__all__ = ["Discount", "Terms", "TermsConflict", "TermsError", "current_terms", "current_version", "history", "save_terms", "validate", "version_statuses", "versions"]
 
 MAX_TIERS = 5
 SOURCES = ("erp", "import", "manual")
@@ -94,8 +94,16 @@ def check_int(value: int | None, name: str, lo: int, hi: int | None = None, quan
         raise _bad(f"{name} is out of range")
 
 
+MAX_MONEY = Decimal("9999999999999.9999")         # what the 18-digit, 4-decimal money columns can hold
+MAX_UNITS = 10_000_000                            # no supplier minimum is anywhere near this; it keeps absurd counts out of the integer column
+
+
 def check_money(value: Decimal | None, name: str) -> None:
-    if value is not None and value < 0:
+    if value is None:
+        return
+    if not value.is_finite() or value > MAX_MONEY:
+        raise _bad(f"{name} is out of range")
+    if value < 0:
         raise _bad(f"{name} must not be negative", "terms_negative_amount")
 
 
@@ -110,14 +118,14 @@ def check_discounts(discounts: tuple[Discount, ...] | None) -> None:
         check_money(d.threshold, "discount threshold")
         if d.kind == "amount":
             check_money(d.value, "discount amount")
-        elif not Decimal(0) < d.value <= Decimal(100):
+        elif not d.value.is_finite() or not Decimal(0) < d.value <= Decimal(100):
             raise _bad("a percentage discount must be above 0 and at most 100")
 
 
 def validate(t: Terms) -> None:
     for name in ("min_order_value", "free_delivery_threshold", "delivery_charge"):
         check_money(getattr(t, name), name)
-    check_int(t.min_qty_for_delivery, "min_qty_for_delivery", 0, quantity=True)
+    check_int(t.min_qty_for_delivery, "min_qty_for_delivery", 0, MAX_UNITS, quantity=True)
     check_weekdays(t.order_days)
     check_weekdays(t.delivery_weekdays)
     check_discounts(t.discounts)
@@ -205,6 +213,27 @@ def current_row(conn: Connection, supplier_id: str, as_of: datetime | None = Non
 def history(conn: Connection, supplier_id: str) -> list[dict[str, Any]]:
     return [{"version": r.version, "valid_from": _aware(r.valid_from), "valid_to": _aware(r.valid_to), "source": r.source, "reason": r.reason,
              "changed_by": r.changed_by, "terms": row_to_terms(r)} for r in sorted(versions(conn, supplier_id), key=lambda x: x.version)]
+
+
+def version_statuses(conn: Connection, supplier_id: str, as_of: datetime | None = None) -> dict[int, str]:
+    """Where each version stands on ``as_of``: in_force, planned (not started), superseded (a later started version replaced it) or expired.
+
+    Of versions that start on the same day the latest saved one is the one in force, so the others are superseded.
+    """
+    when = as_of or datetime.now(UTC)
+    rows = versions(conn, supplier_id)
+    started = [r for r in rows if (rf := _aware(r.valid_from)) is not None and rf <= when]
+    last = started[-1] if started else None
+    out: dict[int, str] = {}
+    for r in rows:
+        if r not in started:
+            out[int(r.version)] = "planned"
+        elif r is not last:
+            out[int(r.version)] = "superseded"
+        else:
+            rt = _aware(r.valid_to)
+            out[int(r.version)] = "expired" if rt is not None and when >= rt else "in_force"
+    return out
 
 
 def save_terms(conn: Connection, supplier_id: str, terms: Terms, actor: str, now: datetime | None = None, *, valid_from: datetime | None = None,

@@ -125,3 +125,9 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | merge_open_lines | 409 | The supplier has lines in open proposals |
 | review_item_not_found | 404 | The review item does not exist |
 | review_item_closed | 409 | The review item was already resolved |
+| payload_too_large | 413 | The request body is larger than a supplier, terms or link change may be |
+| idempotency_key_reuse | 422 | The Idempotency-Key was already used with different content |
+| invalid_idempotency_key | 422 | The Idempotency-Key is too long or has control characters |
+| proposal_has_deactivated_supplier | 409 | A proposal line belongs to a deactivated supplier |
+| fx_rate_missing | 422 | No stored exchange rate for the supplier currency |
+| fx_rate_stale | 422 | The stored exchange rate is older than 7 days |

@@ -204,7 +204,7 @@ def build_router(app: FastAPI) -> APIRouter:
         except (ConcurrencyError, ProposalStateError) as exc:
             raise HTTPException(409, error_code(exc)) from exc
         except ApprovalError as exc:
-            raise HTTPException(403, exc.code) from exc
+            raise HTTPException(409 if exc.code == "proposal_has_deactivated_supplier" else 403, exc.code) from exc   # a state conflict, not a permission
         return {"status": "approved"}
 
     @router.get("/proposals/{proposal_id}/export")

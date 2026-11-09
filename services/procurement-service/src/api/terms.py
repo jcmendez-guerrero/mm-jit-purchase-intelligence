@@ -13,7 +13,7 @@ from typing import Any
 
 from costs.store import current as current_cost
 from db.tables import product_refs
-from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
 from mmi_common.time import get_correlation_id
@@ -21,6 +21,7 @@ from proposals.publisher import terms_changed
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.engine import Connection
+from terms.idempotency import IdempotencyError, remember, replay, request_hash, validate_key
 from terms.overrides import (
     OverrideTerms,
     current_override,
@@ -40,6 +41,7 @@ from terms.service import (
     history,
     save_terms,
     validate,
+    version_statuses,
 )
 
 
@@ -121,6 +123,24 @@ def _conflict(exc: TermsConflict) -> JSONResponse:
     return JSONResponse({"detail": exc.code, "current_version": exc.current_version}, status_code=412)
 
 
+def _idempotency(conn: Connection, header: str | None, scope: str, target: str, if_match: str | None, body: BaseModel) -> tuple[str | None, str, JSONResponse | None]:
+    """The checked key, the request hash, and the original result when this is a retry. Runs before the precondition: a retry's If-Match is already stale."""
+    if header is None:
+        return None, "", None
+    try:
+        key = validate_key(header)
+        digest = request_hash(scope, target, if_match, body.model_dump(mode="json"))
+        version = replay(conn, scope, key, digest)
+    except IdempotencyError as exc:
+        raise HTTPException(422, exc.code) from exc
+    return key, digest, None if version is None else JSONResponse({"version": version}, headers={"Idempotent-Replay": "true"})
+
+
+def _remember(conn: Connection, key: str | None, scope: str, digest: str, version: int, actor: str) -> None:
+    if key is not None and not remember(conn, scope, key, digest, version, actor):
+        raise HTTPException(412, "revision_conflict")      # a concurrent request with the same key won; raising rolls this save back, a retry replays the winner
+
+
 def _parse_as_of(value: str | None) -> datetime:
     if value is None:
         return datetime.now(UTC)
@@ -138,16 +158,29 @@ def register(router: APIRouter, conn_dep: Callable[..., Any], require: Callable[
         if writer is not None:
             terms_changed(conn, writer, scope, key, version, get_correlation_id())
 
+    def buyer(request: Request, principal: Any = Depends(require())) -> Any:
+        """Any signed-in caller first (so a refusal can name who tried, api/refusals.py), then the buyer role."""
+        request.state.actor = principal.subject
+        if "buyer" not in principal.roles:
+            raise HTTPException(403, "auth_forbidden_role")
+        return principal
+
     @router.get("/suppliers/{supplier_id}/terms")
     def get_terms(supplier_id: str, as_of: str | None = Query(default=None), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
-        t = current_terms(conn, supplier_id, _parse_as_of(as_of))
+        when = _parse_as_of(as_of)
+        t = current_terms(conn, supplier_id, when)
+        status = version_statuses(conn, supplier_id, when)
         return {"supplier_id": supplier_id, "version": current_version(conn, supplier_id), "current": None if t is None else terms_json(t),
                 "history": [{"version": h["version"], "valid_from": h["valid_from"].isoformat(), "valid_to": None if h["valid_to"] is None else h["valid_to"].isoformat(),
-                             "source": h["source"], "reason": h["reason"], "changed_by": h["changed_by"], "terms": terms_json(h["terms"])} for h in history(conn, supplier_id)]}
+                             "status": status[h["version"]], "source": h["source"], "reason": h["reason"], "changed_by": h["changed_by"],
+                             "terms": terms_json(h["terms"])} for h in history(conn, supplier_id)]}
 
     @router.put("/suppliers/{supplier_id}/terms")
-    def put_terms(supplier_id: str, body: TermsBody, if_match: str | None = Header(default=None), conn: Connection = Depends(conn_dep),
-                  principal: Any = Depends(require("buyer"))) -> Any:
+    def put_terms(supplier_id: str, body: TermsBody, if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None),
+                  conn: Connection = Depends(conn_dep), principal: Any = Depends(buyer)) -> Any:
+        key, digest, replayed = _idempotency(conn, idempotency_key, "supplier_terms", supplier_id, if_match, body)
+        if replayed is not None:
+            return replayed
         terms = Terms(body.min_order_value, body.min_qty_for_delivery, body.free_delivery_threshold, body.delivery_charge, tuple(body.order_days), body.delivery_schedule,
                       body.lead_time_days, body.order_cutoff_time, tuple(body.delivery_weekdays), tuple(Discount(d.kind, d.basis, d.threshold, d.value) for d in body.discounts),
                       body.payment_terms_days, body.preferred, body.reliability, body.disabled, body.valid_to)
@@ -162,6 +195,7 @@ def register(router: APIRouter, conn_dep: Callable[..., Any], require: Callable[
             return _conflict(exc)
         except TermsError as exc:
             raise HTTPException(422, error_code(exc)) from exc
+        _remember(conn, key, "supplier_terms", digest, version, principal.subject)
         announce(conn, "supplier_terms", supplier_id, version)
         return {"version": version}
 
@@ -183,9 +217,13 @@ def register(router: APIRouter, conn_dep: Callable[..., Any], require: Callable[
                               "override_version": eff.override_version, "flags": list(eff.flags)}}
 
     @router.put("/product-suppliers/{variant_id}/{supplier_id}/terms")
-    def put_override(variant_id: int, supplier_id: str, body: OverrideBody, if_match: str | None = Header(default=None), conn: Connection = Depends(conn_dep),
-                     principal: Any = Depends(require("buyer"))) -> Any:
-        fields = {f: getattr(body, f) for f in OverrideTerms.__dataclass_fields__}
+    def put_override(variant_id: int, supplier_id: str, body: OverrideBody, if_match: str | None = Header(default=None),
+                     idempotency_key: str | None = Header(default=None), conn: Connection = Depends(conn_dep),
+                     principal: Any = Depends(buyer)) -> Any:
+        key, digest, replayed = _idempotency(conn, idempotency_key, "product_supplier_terms", f"{variant_id}:{supplier_id}", if_match, body)
+        if replayed is not None:
+            return replayed
+        fields ={f: getattr(body, f) for f in OverrideTerms.__dataclass_fields__}
         try:
             validate_override(OverrideTerms(**fields))
         except TermsError as exc:
@@ -198,5 +236,6 @@ def register(router: APIRouter, conn_dep: Callable[..., Any], require: Callable[
             return _conflict(exc)
         except TermsError as exc:
             raise HTTPException(422, error_code(exc)) from exc
+        _remember(conn, key, "product_supplier_terms", digest, version, principal.subject)
         announce(conn, "product_supplier_terms", f"{variant_id}:{supplier_id}", version)
         return {"version": version}
