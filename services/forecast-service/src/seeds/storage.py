@@ -59,6 +59,8 @@ def _check_zip(data: bytes, limits: ParseLimits) -> None:
     names = [i.filename.lower() for i in infos]
     if any(n.endswith("vbaproject.bin") or n.startswith("xl/macrosheets") or (n.endswith(".bin") and "vba" in n) for n in names) or "xl/workbook.xml" not in names:
         raise SeedFileError("import_type_not_allowed", "macro part or not a workbook")
+    if any(n.startswith("xl/externallinks/") for n in names):
+        raise SeedFileError("import_type_not_allowed", "external links")                     # a workbook must not pull data from another file
     total = sum(i.file_size for i in infos)
     if total > limits.max_decompressed_bytes or any(i.compress_size and i.file_size / i.compress_size > MAX_RATIO and i.file_size > 1024 * 1024 for i in infos):
         raise SeedFileError("import_decompression_limit")

@@ -3,7 +3,7 @@
 import seed_fixtures as sf
 from i18n import catalogue, t
 
-CANONICAL = ["variant_id", "sku", "day", "quantity", "warehouse", "kind", "provenance", "origin"]
+CANONICAL = ["sku", "day", "quantity", "warehouse", "kind", "provenance", "origin"]
 
 
 def test_template_headers_cover_every_canonical_field():
@@ -12,7 +12,7 @@ def test_template_headers_cover_every_canonical_field():
 
 
 def test_fixture_header_row_matches_the_template():
-    expected = [t(f"template.col.{f}") for f in ("variant_id", "day", "quantity", "warehouse", "kind", "provenance", "origin")]
+    expected = [t(f"template.col.{f}") for f in ("sku", "day", "quantity", "warehouse", "kind", "provenance", "origin")]
     assert sf.HEADER == expected
 
 

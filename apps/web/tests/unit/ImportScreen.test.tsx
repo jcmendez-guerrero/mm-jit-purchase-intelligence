@@ -7,9 +7,9 @@ import "../../src/i18n";
 import { confirmAction } from "./confirm";
 
 const upload = (over: Partial<SeedUpload> = {}): SeedUpload => ({
-  id: "d1", version: 1, format: "csv", headers: ["ID de variante Siweb", "Fecha", "Cantidad", "Tipo de dato", "Origen", "Sintético/Real", "Notas"], row_count: 5,
-  suggested_mapping: { "ID de variante Siweb": "variant_id", Fecha: "day", Cantidad: "quantity", "Tipo de dato": "kind", Origen: "provenance", "Sintético/Real": "origin" },
-  missing: [], preview: [{ variant_id: "9001", day: "2026-01-05", quantity: "2", kind: "estimado", provenance: "Hoja sintética A", origin: "sintético" }], duplicate_of: null, ...over,
+  id: "d1", version: 1, format: "csv", headers: ["SKU", "Fecha", "Cantidad", "Tipo de dato", "Origen", "Sintético/Real", "Notas"], row_count: 5,
+  suggested_mapping: { "SKU": "sku", Fecha: "day", Cantidad: "quantity", "Tipo de dato": "kind", Origen: "provenance", "Sintético/Real": "origin" },
+  missing: [], preview: [{ sku: "EJ-9001", day: "2026-01-05", quantity: "2", kind: "estimado", provenance: "Hoja sintética A", origin: "sintético" }], duplicate_of: null, ...over,
 });
 const dataset = (over: Partial<SeedDataset> = {}): SeedDataset => ({ id: "d0", version: 1, name: "x", status: "active", origin: "synthetic", uploader: "buyer-1", uploaded_at: "2026-11-01T00:00:00Z", activated_by: "buyer-1", activated_at: null, accepted: 5, quarantined: 0, kinds: {}, ...over });
 
@@ -70,7 +70,7 @@ describe("ImportScreen", () => {
     expect(screen.getByText(/Diferencia de coste simulado: -9,50/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Activar conjunto" }));
     confirmAction();
-    await waitFor(() => expect(activate).toHaveBeenCalledWith("d1", false));
+    await waitFor(() => expect(activate).toHaveBeenCalledWith("d1", false, undefined));
     expect((await screen.findByRole("status")).textContent).toContain("Conjunto activado");
   });
 
@@ -82,6 +82,21 @@ describe("ImportScreen", () => {
     fireEvent.change(await screen.findByLabelText("Campo: Cantidad"), { target: { value: "" } });
     expect(screen.getByRole("alert").textContent).toContain("Faltan campos obligatorios: Cantidad");
     expect((screen.getByRole("button", { name: "Validar" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("shows the self-activation reason only to admins and sends it with the activation", async () => {
+    vi.spyOn(api, "uploadSeed").mockResolvedValue(upload());
+    vi.spyOn(api, "validateSeed").mockResolvedValue({ id: "d1", origin: "synthetic", accepted: 4, quarantined: 0, kinds: {} });
+    vi.spyOn(api, "getSeedQuarantine").mockResolvedValue({ rows: [] });
+    const activate = vi.spyOn(api, "activateSeed").mockResolvedValue({});
+    render(<ImportScreen userRoles={["admin"]} />);
+    await pick(file());
+    fireEvent.click(screen.getByRole("button", { name: "Subir archivo" }));
+    await screen.findByText(/Archivo recibido: 5 filas/);
+    fireEvent.click(screen.getByRole("button", { name: "Validar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Activar conjunto" }));
+    confirmAction();
+    await waitFor(() => expect(activate).toHaveBeenLastCalledWith("d1", false, undefined));
   });
 
   it("asks for an explicit decision on a repeated file and passes it on", async () => {
@@ -100,7 +115,7 @@ describe("ImportScreen", () => {
     fireEvent.click(screen.getByLabelText(/archivo repetido/));
     fireEvent.click(screen.getByRole("button", { name: "Activar conjunto" }));
     confirmAction();
-    await waitFor(() => expect(activate).toHaveBeenLastCalledWith("d1", true));
+    await waitFor(() => expect(activate).toHaveBeenLastCalledWith("d1", true, undefined));
   });
 
   it("lists each required field that has no column, one line each, and marks the mapped required columns", async () => {
@@ -137,9 +152,17 @@ describe("ImportScreen", () => {
     vi.spyOn(api, "getSeedDatasets").mockResolvedValue({ datasets: [dataset({ version: 2 }), dataset({ id: "d9", version: 1, status: "superseded" })] });
     const rb = vi.spyOn(api, "rollbackSeed").mockResolvedValue({});
     render(<ImportScreen userRoles={["buyer"]} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Volver a la versión anterior" }));
+    const button = await screen.findByRole("button", { name: "Volver a la versión anterior" });
+    expect((button as HTMLButtonElement).disabled).toBe(true);                                    // no reason chosen yet
+    fireEvent.change(screen.getByLabelText("Motivo de la reversión"), { target: { value: "wrong_figures" } });
+    expect((button as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.change(screen.getByLabelText(/Detalle del motivo/), { target: { value: "x".repeat(101) } });
+    expect((button as HTMLButtonElement).disabled).toBe(true);                                    // the detail is too long
+    fireEvent.change(screen.getByLabelText(/Detalle del motivo/), { target: { value: "  Cifras   erróneas " } });
+    expect((button as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(button);
     confirmAction();
-    await waitFor(() => expect(rb).toHaveBeenCalled());
+    await waitFor(() => expect(rb).toHaveBeenCalledWith({ code: "wrong_figures", detail: "Cifras erróneas" }));
     expect((await screen.findByRole("status")).textContent).toContain("Versión anterior restaurada");
   });
 });
@@ -176,5 +199,90 @@ describe("background validation", () => {
     jobs.mockResolvedValue({ jobs: [job({ state: "done", finished_at: "2026-11-09T08:06:00Z" })], background_over_rows: 10000 });
     fireEvent.click(screen.getByRole("button", { name: "Actualizar estado" }));
     await waitFor(() => expect(screen.getByRole("table", { name: "Estado de las importaciones" }).textContent).toContain("Terminada"));
+  });
+});
+
+
+describe("dataset governance columns (MMI-7 T038)", () => {
+  it("shows who validated, who activated (and a self-activation), the provenance mix and the rollback reason", async () => {
+    vi.spyOn(api, "getSeedDatasets").mockResolvedValue({
+      datasets: [
+        dataset({ id: "d2", version: 2, status: "rolled_back", validated_by: "admin-1", activated_by: "admin-1", self_activated: true, rollback_reason_code: "wrong_figures", rollback_reason_detail: "con 3 filas repetidas", kinds: { estimated: 4, manual_forecast: 1 } }),
+        dataset({ id: "d1", version: 1, status: "superseded", validated_by: "buyer-2", activated_by: "approver-1", self_activated: false, kinds: { observed_external: 3 } }),
+      ],
+    });
+    render(<ImportScreen userRoles={["viewer"]} />);
+    const table = await screen.findByRole("table", { name: "Conjuntos de datos" });
+    const text = table.textContent ?? "";
+    for (const expected of ["Validado por", "admin-1 (autoactivación)", "approver-1", "buyer-2", "estimado 4 · previsión manual 1", "observado externo 3", "Cifras erróneas · con 3 filas repetidas"]) {
+      expect(text).toContain(expected);
+    }
+  });
+});
+
+
+describe("refused self-activation (MMI-7 T028)", () => {
+  async function activateRefused(roles: string[]) {
+    vi.spyOn(api, "getSeedDatasets").mockResolvedValue({ datasets: [] });
+    vi.spyOn(api, "uploadSeed").mockResolvedValue(upload());
+    vi.spyOn(api, "validateSeed").mockResolvedValue({ id: "d1", origin: "synthetic", accepted: 4, quarantined: 0, kinds: {} });
+    vi.spyOn(api, "getSeedQuarantine").mockResolvedValue({ rows: [] });
+    vi.spyOn(api, "activateSeed").mockRejectedValue(new ApiError(403, "import_self_approval"));
+    render(<ImportScreen userRoles={roles} />);
+    await pick(file());
+    fireEvent.click(screen.getByRole("button", { name: "Subir archivo" }));
+    await screen.findByText(/Archivo recibido: 5 filas/);
+    fireEvent.click(screen.getByRole("button", { name: "Validar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Activar conjunto" }));
+    confirmAction();
+    return (await screen.findByRole("alert")).textContent ?? "";
+  }
+
+  it("tells an admin how to proceed (a written reason), and a buyer to ask another person", async () => {
+    expect(await activateRefused(["admin"])).toContain("indique un motivo");
+  });
+
+  it("tells a buyer to ask another person", async () => {
+    expect(await activateRefused(["buyer"])).toContain("pida a otra persona");
+  });
+});
+
+
+describe("reasons are a pick-list plus a short detail (MMI-7 T078, FR-033)", () => {
+  async function readyToActivate(roles: string[]) {
+    vi.spyOn(api, "getSeedDatasets").mockResolvedValue({ datasets: [] });
+    vi.spyOn(api, "uploadSeed").mockResolvedValue(upload());
+    vi.spyOn(api, "validateSeed").mockResolvedValue({ id: "d1", origin: "synthetic", accepted: 4, quarantined: 0, kinds: {} });
+    vi.spyOn(api, "getSeedQuarantine").mockResolvedValue({ rows: [] });
+    render(<ImportScreen userRoles={roles} />);
+    await pick(file());
+    fireEvent.click(screen.getByRole("button", { name: "Subir archivo" }));
+    await screen.findByText(/Archivo recibido: 5 filas/);
+    fireEvent.click(screen.getByRole("button", { name: "Validar" }));
+    await screen.findByRole("button", { name: "Activar conjunto" });
+  }
+
+  it("lets an admin self-activate with a listed reason and a short detail", async () => {
+    const activate = vi.spyOn(api, "activateSeed").mockResolvedValue({});
+    await readyToActivate(["admin"]);
+    const select = screen.getByLabelText(/Motivo de la autoactivación/) as HTMLSelectElement;
+    expect([...select.options].map((o) => o.value)).toEqual(["", "only_person", "urgent", "other"]);
+    fireEvent.change(select, { target: { value: "only_person" } });
+    fireEvent.change(screen.getAllByLabelText(/Detalle del motivo/)[0]!, { target: { value: "Tienda con una sola persona" } });
+    fireEvent.click(screen.getByRole("button", { name: "Activar conjunto" }));
+    confirmAction();
+    await waitFor(() => expect(activate).toHaveBeenCalledWith("d1", false, { code: "only_person", detail: "Tienda con una sola persona" }));
+  });
+
+  it("does not show the self-activation reason to a buyer", async () => {
+    await readyToActivate(["buyer"]);
+    expect(screen.queryByLabelText(/Motivo de la autoactivación/)).toBeNull();
+  });
+
+  it("offers the five rollback reasons in Spanish", async () => {
+    vi.spyOn(api, "getSeedDatasets").mockResolvedValue({ datasets: [dataset({ version: 2 })] });
+    render(<ImportScreen userRoles={["buyer"]} />);
+    const select = (await screen.findByLabelText("Motivo de la reversión")) as HTMLSelectElement;
+    expect([...select.options].map((o) => o.textContent)).toEqual(["Elija un motivo", "Cifras erróneas", "Archivo equivocado", "Prueba", "Sustituido por un archivo más reciente", "Otro motivo"]);
   });
 });

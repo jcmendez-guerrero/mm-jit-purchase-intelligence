@@ -126,7 +126,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
         """Per-variant daily demand with segment and service-level target: the forecast job's only input."""
         series = load_series(conn, through_day)
         segs = {r.variant_id: r for r in conn.execute(select(product_segments)).all()}
-        prod = {r.external_id: r for r in conn.execute(select(variants.c.external_id, variants.c.product_id)).all()}
+        prod = {r.external_id: r for r in conn.execute(select(variants.c.external_id, variants.c.product_id, variants.c.sku)).all()}
         crit = {r.external_id for r in conn.execute(select(products.c.external_id).where(products.c.clinical_critical)).all()}
         now = datetime.now(UTC)
         out = []
@@ -134,7 +134,8 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
             seg = segs.get(s.variant_id)
             pid = prod[s.variant_id].product_id if s.variant_id in prod else None
             out.append({
-                "variant_id": s.variant_id, "product_id": pid, "price": str(s.price), "start_day": s.days[0].isoformat(),
+                "variant_id": s.variant_id, "sku": prod[s.variant_id].sku if s.variant_id in prod else None,   # additive (MMI-7): seed import resolves SKU here
+                "product_id": pid, "price": str(s.price), "start_day": s.days[0].isoformat(),
                 "demand": s.demand, "censored": s.censored,
                 "segment": {"abc": seg.abc, "xyz": seg.xyz, "pattern": seg.pattern, "forecast_eligible": seg.forecast_eligible,
                             "reasons": [r for r in seg.reason.split(",") if r]} if seg else None,

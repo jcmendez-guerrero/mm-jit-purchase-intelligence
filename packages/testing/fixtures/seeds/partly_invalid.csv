@@ -1,11 +1,11 @@
-ID de variante Siweb;Fecha;Cantidad;Almacén;Tipo de dato;Origen;Sintético/Real
-9001;2026-01-05;2;;estimado;Hoja sintética A;sintético
-9999;2026-01-06;2;;estimado;Hoja sintética A;sintético
-9002;2026-01-07;-3;;estimado;Hoja sintética A;sintético
-9002;2026-01-07;-3;;estimado;Hoja sintética A;sintético
-9003;1999-01-01;1;;estimado;Hoja sintética A;sintético
-9003;2026-02-30;1;;estimado;Hoja sintética A;sintético
-9004;2026-03-01;abc;;estimado;Hoja sintética A;sintético
-9004;2026-03-02;1;;estimado;;sintético
-9005;2026-03-03;1;;estimado;Hoja sintética A;sintético
-9005;2026-03-03;1;;estimado;Hoja sintética A;sintético
+SKU;Fecha;Cantidad;Almacén;Tipo de dato;Origen;Sintético/Real
+EJ-9001;2026-01-05;2;;estimado;Hoja sintética A;sintético
+EJ-9999;2026-01-06;2;;estimado;Hoja sintética A;sintético
+EJ-9002;2026-01-07;-3;;estimado;Hoja sintética A;sintético
+EJ-9002;2026-01-07;-3;;estimado;Hoja sintética A;sintético
+EJ-9003;1999-01-01;1;;estimado;Hoja sintética A;sintético
+EJ-9003;2026-02-30;1;;estimado;Hoja sintética A;sintético
+EJ-9004;2026-03-01;abc;;estimado;Hoja sintética A;sintético
+EJ-9004;2026-03-02;1;;estimado;;sintético
+EJ-9005;2026-03-03;1;;estimado;Hoja sintética A;sintético
+EJ-9005;2026-03-03;1;;estimado;Hoja sintética A;sintético

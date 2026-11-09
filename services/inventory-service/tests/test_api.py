@@ -63,5 +63,6 @@ def test_export_series_carries_segment_and_service_level(client, engine):
     s = body["series"][0]
     assert body["count"] == 1 and len(s["demand"]) == len(s["censored"]) == len(SMOOTH) * 7
     assert s["segment"]["pattern"] == "smooth" and s["service_level"] == "0.99" and s["clinical_critical"] is True
+    assert isinstance(s["sku"], str) and s["sku"]               # MMI-7: the seed import resolves SKU from the series export
     detail = client.get("/variants/1", headers=auth()).json()
     assert detail["segment"]["abc"] == "A" and detail["segment"]["forecast_eligible"] is True

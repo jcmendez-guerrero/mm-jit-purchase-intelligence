@@ -50,3 +50,22 @@ def test_a_decompression_bomb_is_refused():
 
 def test_the_checksum_is_stable():
     assert sha256_hex(b"abc") == sha256_hex(b"abc") != sha256_hex(b"abd") and len(sha256_hex(b"")) == 64
+
+
+def _workbook_with(extra_name, extra_content=b"<externalLink/>"):
+    import io
+    import zipfile
+
+    src = zipfile.ZipFile(io.BytesIO(sf.valid_xlsx()))
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+        for item in src.infolist():
+            zf.writestr(item, src.read(item.filename))
+        zf.writestr(extra_name, extra_content)
+    return out.getvalue()
+
+
+def test_workbooks_with_external_links_are_refused_by_part():          # MMI-7 FR-004
+    assert code(lambda: detect_format("datos.xlsx", _workbook_with("xl/externalLinks/externalLink1.xml"), L)) == "import_type_not_allowed"
+    assert code(lambda: detect_format("datos.xlsx", _workbook_with("xl/externalLinks/_rels/externalLink1.xml.rels", b"<Relationships/>"), L)) == "import_type_not_allowed"
+    assert detect_format("datos.xlsx", sf.valid_xlsx(), L) == "xlsx"                  # a plain workbook still passes
