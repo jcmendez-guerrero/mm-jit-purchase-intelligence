@@ -1,10 +1,10 @@
 ## What and why
 
-Supplier Commercial Management (Jira MMI-6, Confluence page 3080407, epic MMI-1), Spec Kit feature `specs/007-supplier-commercial-management/`. Tasks T001–T050 in that `tasks.md`.
+Supplier Commercial Management (Jira MMI-6, Confluence page 3080407, epic MMI-1), Spec Kit feature `specs/007-supplier-commercial-management/`. Tasks T001–T080 in that `tasks.md` (T078 and T080 wait for the first merge of #17, #18 and #19).
 
 Acceptance: CRUD persists; effective dates and revision conflicts are handled; the optimizer consumes the local terms; Siweb canonical facts are unchanged.
 
-Added on top of the audit of features 002/004: idempotent term saves (`Idempotency-Key`), expected delivery date from the order schedule and cutoff, per-row bulk-assign outcomes, ERP-vs-manual cost difference, non-EUR suppliers through stored ECB rates (ADR-021), audit of refused changes, and a block on approving a proposal that uses a deactivated supplier.
+Added on top of the audit of features 002/004: idempotent term saves (`Idempotency-Key`), expected delivery date from the order schedule and cutoff, per-row bulk-assign outcomes, ERP-vs-manual cost difference, non-EUR suppliers through stored ECB rates (ADR-024), audit of refused changes, and a block on approving a proposal that uses a deactivated supplier.
 
 ## Checklist
 
@@ -25,10 +25,17 @@ Added on top of the audit of features 002/004: idempotent term saves (`Idempoten
 **Contracts**
 
 - [x] New error codes (`idempotency_key_reuse`, `invalid_idempotency_key`, `fx_rate_missing`, `fx_rate_stale`, `proposal_has_deactivated_supplier`, `payload_too_large`) are in the catalogue, Spanish texts and the 002 key table; optional `explanation.terms.expected_delivery_date` added to the proposal line schema
-- [ ] Agent 00 sign-off on the shared contract changes (T003) is still pending
+- [x] Agent 00 (feature 005) is merged to `main`; this branch is merged with it and its gateway idempotency test now records the two terms saves
 
 **Quality**
 
-- [x] Procurement 798+, BFF 177, contracts 208, infra 59, connector 125, writer 66, web 495 unit tests pass; Playwright supplier journeys pass; ruff, eslint and tsc clean; migrations run and reverse on real PostgreSQL
+- [x] Procurement 824, BFF 182, contracts 208, infra 59, connector 125, writer 66, web 496 unit tests pass; Playwright supplier journeys pass; ruff, eslint and tsc clean; migrations run and reverse on real PostgreSQL
 - [x] All user-facing text is Spanish through the catalogue (including the new line reason `lower_lead_time_risk`)
-- Not a merge or deploy request.
+- Jira: <https://mundomascotix.atlassian.net/browse/MMI-6> · Confluence page 3080407. Not a merge or deploy request.
+
+## Merge order and known conflicts
+
+- **PR #18** (MMI-7) conflicts with this PR in `packages/contracts/errors/error_codes.json` and `specs/002-mmi-operational-console/contracts/error-keys.md`: both append at the end. Whichever merges second merges `main`, keeps both sets of codes and table rows, and runs the error-code guard tests (`infra/tests/test_error_codes.py`, `test_error_keys_localised.py`). No other file conflicts (trial merge on 2026-11-09).
+- **PR #19** (feature 006) merges cleanly today. It shares `apps/web/src/api/client.ts` and `apps/web/src/i18n/es-ES.json` with this PR, so the second of the two re-checks them after the first merges.
+- **ADR numbering:** the exchange-rate decision is `docs/adr/024-exchange-rates.md` (ADR-024), so it does not clash with ADR-021 to ADR-023 of feature 005 under `docs/architecture/adr/`.
+- **Gates** (`python -m gates run`, run on this branch on 2026-11-09): contracts pass, isolation pass, security pass (8 commands), cost pass (1 command). Integration and e2e were not run; endpoints are covered by the BFF tests.

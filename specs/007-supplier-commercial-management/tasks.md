@@ -201,3 +201,21 @@ Tests first, then the fixes.
 - [X] T076 Run the procurement, web unit and contracts suites, ruff, tsc and the Playwright proposal journeys; update `research.md` decision D4 neighbours with the new reason and `pr-body.md` (depends on T075) — done: procurement 824, web 496 unit and 12 e2e, BFF 177, contracts 208, infra 59, ruff, eslint and tsc clean
 
 **Order**: T074 (test, must fail), then T075, then T076.
+
+## Phase 16: Convergence
+
+Source: Agent 00's integration feedback on PR #17 (comment of 2026-11-09, feature 005 gates).
+
+- [X] T077 Renumber the exchange-rate ADR from 021 to 024: rename `docs/adr/021-exchange-rates.md` to `docs/adr/024-exchange-rates.md`, change its title to `ADR-024`, update the row and link in `docs/adr/README.md`, and replace `ADR-021` with `ADR-024` in `specs/007-supplier-commercial-management/research.md` (audit row 19), `plan.md`, `spec.md`, `pr-body.md` and any code comment that names it; leave the `ADR-021` of feature 005 (`docs/architecture/adr/021-contract-versioning.md`) untouched; confirm with Agent 00 which folder holds ADRs (he will move his into `docs/adr/`), then run `uv run python -m pytest infra` per Agent 00 review item 1 (contradicts: two different ADRs carry the number 021 on main) — done: `docs/adr/024-exchange-rates.md` (ADR-024), README row and the references in research.md and pr-body.md updated; the ADR-021 of feature 005 is untouched; infra tests pass
+- [ ] T078 Resolve the append-at-the-end conflict with PR #18 in `packages/contracts/errors/error_codes.json` and `specs/002-mmi-operational-console/contracts/error-keys.md` (a trial merge on 2026-11-09 conflicts in exactly these two files; PR #19 merges cleanly): whichever of #17 and #18 merges second merges `main`, keeps both sets of appended codes and table rows, re-sorts nothing, and runs `infra/tests/test_error_codes.py`, `infra/tests/test_error_keys_localised.py` and `apps/web` unit tests; if #17 goes first, post the merge order on PR #18 per Agent 00 review item 2 (partial: the conflict is known and not yet resolved, because it depends on merge order)
+
+**Order**: T077 now (independent, small); T078 only when the first of #17 and #18 is merged.
+
+## Phase 17: Convergence
+
+Source: Agent 00's comments on PRs #18 and #19 that name this PR, and the gate run of 2026-11-09 (contracts, isolation, security and cost all pass on this branch).
+
+- [X] T079 Record the merge order and the known conflicts in the description of PR #17, as PR #18 did: the conflict with #18 in `packages/contracts/errors/error_codes.json` and `specs/002-mmi-operational-console/contracts/error-keys.md`, the clean trial merge with #19 today, the gate results (contracts, isolation, security 8 commands, cost 1 command: pass), and the ADR renumbering of T077; update `specs/007-supplier-commercial-management/pr-body.md` first and then the PR body with `gh pr edit 17`, per Agent 00's request that the second PR is rebased (partial: the PR body does not mention merge order or the gate results) — done: `pr-body.md` has the merge order, the conflicts, the ADR number and the gate results, and the PR description was updated with `gh pr edit`
+- [ ] T080 When the first of #17, #18 and #19 is merged to `main`, merge `main` into this branch and re-check the shared files that Agent 00 flagged on #19, `apps/web/src/api/client.ts` and `apps/web/src/i18n/es-ES.json`, in addition to the two error files of T078; resolve by keeping both sides, then run the web unit tests, `tsc`, `infra/tests/test_error_codes.py` and `python -m gates run --gate contracts --gate isolation` (partial: a trial merge of #19 is clean today, but this PR changes both files heavily and that combination was not tested by Agent 00)
+
+**Order**: T079 now (documentation only); T080 only after another PR merges.

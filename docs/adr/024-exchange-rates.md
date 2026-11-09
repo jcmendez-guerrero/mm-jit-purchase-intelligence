@@ -1,4 +1,4 @@
-# ADR-021: Exchange rates for suppliers that quote in another currency
+# ADR-024: Exchange rates for suppliers that quote in another currency
 
 - Status: accepted (owner, 2026-11-08)
 - Date: 2026-11-09
