@@ -603,7 +603,41 @@ export interface DashTrend {
   estimated_basis?: { variants: number; seed_assisted: number; reason: "no_forecast" | "company_wide_only" | null; upper_level: string };
 }
 
+export type IndicatorKey = "stock_value" | "coverage_days" | "demand" | "forecast" | "stockout_risk" | "expiry_exposure" | "capital_tied_up" | "purchasing_budget" | "wape" | "bias";
+export type IndicatorState = "ok" | "no_data" | "stale" | "error" | "hidden_by_role";
+
+export interface IndicatorPart {
+  key: string;
+  label_key: string;
+  value: string | null;
+  period?: { from: string; to: string } | undefined;
+}
+
+export interface IndicatorFreshness {
+  source: "inventory_snapshot" | "movements" | "forecast" | "accuracy" | "budget_spend";
+  refreshed_at: string | null;
+  refreshed_at_original?: string | null | undefined;
+  origin: "erp_sync" | "local_load" | "forecast" | "proposal";
+  state: "ok" | "no_data" | "stale" | "error";
+  stale_after_hours?: number | undefined;
+}
+
+/** One dashboard indicator in the v2 contract shape (packages/contracts/dto/dashboard_indicators.v2.schema.json). */
+export interface Indicator {
+  key: IndicatorKey;
+  value: string | null;
+  unit: "EUR" | "days" | "units" | "count" | "percent";
+  state: IndicatorState;
+  basis: string;
+  definition_key: string;
+  freshness: IndicatorFreshness;
+  incomplete_count?: number | undefined;
+  filters_unsupported?: Array<"date" | "warehouse" | "supplier" | "category" | "family"> | undefined;
+  parts?: IndicatorPart[] | undefined;
+}
+
 export interface DashOverview {
+  indicators?: Indicator[];
   summary: DashCard<DashSummary>;
   trend: DashCard<DashTrend>;
   abc_xyz: DashCard<{ cells: Array<{ abc: string; xyz: string; variant_count: number; value?: string }> }>;

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -19,6 +20,17 @@ from routes.rbac import require_roles
 router = APIRouter(prefix="/dashboard")
 READ = ("viewer", "buyer", "approver", "admin")
 MONEY_ROLES = frozenset({"buyer", "approver", "admin"})      # same rule as inventory-service dashboard/roles.py (FR-017)
+
+
+KEYS = ("stock_value", "coverage_days", "demand", "forecast", "stockout_risk", "expiry_exposure", "capital_tied_up", "purchasing_budget", "wape", "bias")
+UNITS = {"coverage_days": "days", "demand": "units", "forecast": "units", "stockout_risk": "count", "wape": "percent", "bias": "percent"}      # the others are EUR
+SOURCES = {"demand": ("movements", "erp_sync"), "forecast": ("forecast", "forecast"), "purchasing_budget": ("budget_spend", "proposal"), "wape": ("accuracy", "forecast"), "bias": ("accuracy", "forecast")}
+
+
+def _indicator(key: str, state: str, value: str | None = None, **extra: Any) -> dict[str, Any]:
+    source, origin = SOURCES.get(key, ("inventory_snapshot", "erp_sync"))
+    return {"key": key, "value": value, "unit": UNITS.get(key, "EUR"), "state": state, "basis": f"dashboard.basis.{state}" if value is None else f"dashboard.basis.{key}",
+            "definition_key": f"dashboard.def.{key}", "freshness": {"source": source, "refreshed_at": None, "refreshed_at_original": None, "origin": origin, "state": "error" if state == "error" else "ok"}, **extra}
 
 
 async def _card(call: Any) -> dict[str, Any]:
@@ -40,6 +52,45 @@ async def _supplier_options(proc: ProcurementClient, who: dict[str, Any]) -> lis
     return [{"id": r["id"], "name": r["name"]} for r in rows]
 
 
+def budget_indicator(spend: dict[str, Any], can_see_costs: bool) -> dict[str, Any]:
+    """FR-026, research R15: the budget is the sum of the weekly caps in the range, shown with each cap and the spend; no cap at all is ``no_data`` that still shows the spend."""
+    if not can_see_costs:
+        return _indicator("purchasing_budget", "hidden_by_role")
+    r = (spend.get("data") or {}).get("range") if spend.get("ok") else None
+    if r is None:
+        return _indicator("purchasing_budget", "error")
+    spend_part = {"key": "spend", "label_key": "dashboard.part.spend", "value": r["spend"]}
+    caps = [{"key": "cap_week", "label_key": "dashboard.part.cap_week", "value": w["cap"],
+             "period": {"from": w["week_start"], "to": (date.fromisoformat(w["week_start"]) + timedelta(days=6)).isoformat()}} for w in r["weeks"] if w["cap"] is not None]
+    if r["budget"] is None:
+        return {**_indicator("purchasing_budget", "no_data"), "basis": "dashboard.basis.no_budget", "parts": [spend_part]}
+    return {**_indicator("purchasing_budget", "ok", r["budget"]), "parts": [*caps, spend_part]}
+
+
+def accuracy_indicators(acc: dict[str, Any], unsupported: list[str]) -> list[dict[str, Any]]:
+    """WAPE and bias as percentages of the overall group of the latest scored run; company-wide, so the filters present are named as not followed."""
+    if not acc.get("ok"):
+        return [_indicator("wape", "error"), _indicator("bias", "error")]
+    overall = ((acc.get("data") or {}).get("metrics") or {}).get("all") or {}
+    out = []
+    for key in ("wape", "bias"):
+        raw = _money(overall.get(key))
+        extra = {"filters_unsupported": unsupported} if unsupported else {}
+        out.append(_indicator(key, "no_data", **extra) if raw is None else _indicator(key, "ok", str((raw * 100).quantize(Decimal("0.01"))), **extra))
+    return out
+
+
+def _overview_indicators(inv: dict[str, Any], spend: dict[str, Any], acc: dict[str, Any], roles: Any, filters: dict[str, Any]) -> list[dict[str, Any]]:
+    can_see_costs = bool(MONEY_ROLES.intersection(roles))
+    six = {i["key"]: i for i in ((inv.get("data") or {}).get("indicators") or []) if inv.get("ok")}
+    unsupported = [k.removesuffix("_id") for k in ("warehouse_id", "category", "family") if k in filters]
+    capital = _indicator("capital_tied_up", "hidden_by_role") if not can_see_costs else capital_indicator(inv.get("data") or {}, spend.get("data") or {}, unsupported)
+    accuracy_unsupported = [k.removesuffix("_id") for k in ("warehouse_id", "supplier_id", "category", "family") if k in filters]
+    by = {**{k: six.get(k) or _indicator(k, "error") for k in KEYS[:6]}, "capital_tied_up": capital, "purchasing_budget": budget_indicator(spend, can_see_costs),
+          **{i["key"]: i for i in accuracy_indicators(acc, accuracy_unsupported)}}
+    return [by[k] for k in KEYS]
+
+
 @router.get("/overview")
 async def overview(
     warehouse_id: int | None = Query(default=None, ge=0),
@@ -54,16 +105,20 @@ async def overview(
 ) -> dict[str, Any]:
     who = {"user_id": session.user_id, "roles": session.roles}
     f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id)) if v is not None}
-    summary, trend, abc, risks, options, accuracy, spend, suppliers = await asyncio.gather(
+    today = datetime.now(UTC).date()
+    window = {"date_from": (today - timedelta(days=days - 1)).isoformat(), "date_to": today.isoformat()}
+    summary, trend, abc, risks, options, accuracy, spend, suppliers, indicators = await asyncio.gather(
         _card(inv.forward("GET", "/dashboard/summary", params=f, **who)),
         _card(inv.forward("GET", "/dashboard/demand-trend", params={**f, "days": days}, **who)),
         _card(inv.forward("GET", "/dashboard/abc-xyz", **who)),
         _card(inv.forward("GET", "/risk", params={"warehouse_id": warehouse_id} if warehouse_id is not None else None, **who)),
         _card(inv.forward("GET", "/dashboard/filters/options", **who)),
         _card(fc.forward("GET", "/accuracy", **who)),
-        _card(proc.forward("GET", "/summary/spend", params={"supplier_id": supplier_id} if supplier_id else None, **who)) if MONEY_ROLES.intersection(session.roles) else _hidden_by_role(),
-        _card(_supplier_options(proc, who)))
-    return {"summary": summary, "trend": trend, "abc_xyz": abc, "risks": risks, "options": options, "accuracy": accuracy, "spend": spend, "suppliers": suppliers}
+        _card(proc.forward("GET", "/summary/spend", params={**({"supplier_id": supplier_id} if supplier_id else {}), **window}, **who)) if MONEY_ROLES.intersection(session.roles) else _hidden_by_role(),
+        _card(_supplier_options(proc, who)),
+        _card(inv.forward("GET", "/dashboard/indicators", params={**f, **window}, **who)))
+    return {"summary": summary, "trend": trend, "abc_xyz": abc, "risks": risks, "options": options, "accuracy": accuracy, "spend": spend, "suppliers": suppliers,
+            "indicators": _overview_indicators(indicators, spend, accuracy, session.roles, f)}
 
 
 def _money(raw: Any) -> Decimal | None:
@@ -87,26 +142,6 @@ def capital_indicator(stock: dict[str, Any], spend: dict[str, Any], unsupported:
     return {**out, "value": str((held + open_orders).quantize(Decimal("0.01"))), "state": "stale" if ind.get("state") == "stale" else "ok",
             "parts": [{"key": "stock_at_cost", "label_key": "dashboard.part.stock_at_cost", "value": str(held)},
                       {"key": "open_orders", "label_key": "dashboard.part.open_orders", "value": str(open_orders)}]}
-
-
-@router.get("/capital")
-async def capital(
-    warehouse_id: int | None = Query(default=None, ge=0),
-    category: str | None = Query(default=None, pattern="^(A|B|C|critical)$"),
-    family: str | None = Query(default=None, min_length=1, max_length=120),
-    supplier_id: str | None = Query(default=None, pattern="^[A-Za-z0-9_-]{1,36}$"),
-    session: SessionData = Depends(require_roles(*READ)),
-    inv: InventoryClient = Depends(get_inventory_client),
-    proc: ProcurementClient = Depends(get_procurement_client),
-) -> dict[str, Any]:
-    """Capital tied up (T091). The viewer gets ``hidden_by_role`` without any service being called."""
-    who = {"user_id": session.user_id, "roles": session.roles}
-    f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id)) if v is not None}
-    unsupported = [k.removesuffix("_id") for k in ("warehouse_id", "category", "family") if k in f]          # procurement cannot split open orders by these
-    if not MONEY_ROLES.intersection(session.roles):
-        return {**capital_indicator({}, {}, []), "state": "hidden_by_role"}
-    stock, spend = await asyncio.gather(_card(inv.forward("GET", "/dashboard/indicators", params=f, **who)), _card(proc.forward("GET", "/summary/spend", params={"supplier_id": supplier_id} if supplier_id else None, **who)))
-    return capital_indicator(stock.get("data") or {}, spend.get("data") or {}, unsupported)
 
 
 @router.get("/drilldown")

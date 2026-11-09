@@ -39,7 +39,7 @@ def test_all_cards_are_combined_and_filters_are_forwarded_unchanged(role_store):
                        "/risk": [], "/dashboard/filters/options": {"warehouses": [], "categories": []}})
     res = call("/api/dashboard/overview?warehouse_id=2&category=A&days=30", headers_for("v", ["viewer"]), inv)
     body = res.json()
-    assert res.status_code == 200 and set(body) == {"summary", "trend", "abc_xyz", "risks", "options", "accuracy", "spend", "suppliers"} and body["summary"] == {"ok": True, "data": {"inventory_value": "52.00"}}
+    assert res.status_code == 200 and set(body) == {"summary", "trend", "abc_xyz", "risks", "options", "accuracy", "spend", "suppliers", "indicators"} and body["summary"] == {"ok": True, "data": {"inventory_value": "52.00"}}
     calls = {c.args[1]: c.kwargs for c in inv.forward.call_args_list}
     assert calls["/dashboard/summary"]["params"] == {"warehouse_id": 2, "category": "A"} and calls["/dashboard/demand-trend"]["params"] == {"warehouse_id": 2, "category": "A", "days": 30}
     assert calls["/risk"]["params"] == {"warehouse_id": 2} and calls["/dashboard/summary"]["user_id"] == "v"
@@ -71,7 +71,7 @@ def test_spend_and_accuracy_come_from_their_own_services_and_fail_alone(role_sto
     body = call("/api/dashboard/overview?supplier_id=s1", headers_for("v", ["buyer"]), inv, proc, fc).json()      # spend is money: cost roles only
     assert body["spend"] == {"ok": True, "data": {"total": "95.00", "by_supplier": []}} and body["accuracy"] == {"ok": False, "error": "downstream_unavailable"}
     spend_call = next(c for c in proc.forward.call_args_list if c.args[1] == "/summary/spend")
-    assert spend_call.kwargs["params"] == {"supplier_id": "s1"}
+    assert spend_call.kwargs["params"]["supplier_id"] == "s1" and set(spend_call.kwargs["params"]) == {"supplier_id", "date_from", "date_to"}
     assert body["suppliers"] == {"ok": True, "data": [{"id": "s1", "name": "Proveedor A"}]}
 
 
@@ -132,7 +132,7 @@ def test_the_supplier_filter_reaches_stock_figures_and_the_spend_card_and_a_bad_
     res = call("/api/dashboard/overview?supplier_id=sup-a", headers_for("v", ["buyer"]), inv, proc)
     calls = {c.args[1]: c.kwargs for c in inv.forward.call_args_list}
     assert res.status_code == 200 and calls["/dashboard/summary"]["params"] == {"supplier_id": "sup-a"} and calls["/dashboard/demand-trend"]["params"] == {"supplier_id": "sup-a", "days": 60}
-    assert any(c.kwargs.get("params") == {"supplier_id": "sup-a"} for c in proc.forward.call_args_list)
+    assert any((c.kwargs.get("params") or {}).get("supplier_id") == "sup-a" for c in proc.forward.call_args_list)
     assert call("/api/dashboard/overview?supplier_id=a%20b", headers_for("v", ["viewer"]), inventory()).status_code == 422
     drill = call("/api/dashboard/drilldown?kind=inventory_value&supplier_id=sup-a", headers_for("v", ["viewer"]), inv)
     assert drill.status_code == 200 and inv.forward.call_args.kwargs["params"] == {"kind": "inventory_value", "supplier_id": "sup-a"}
