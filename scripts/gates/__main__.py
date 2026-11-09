@@ -45,19 +45,30 @@ def _write(path: str | None, report: dict) -> None:
 
 def _print(report: dict) -> None:
     for g in report["gates"]:
-        print(f"{g['gate']:12} {g['result']:8} {g['evidence'][0] if g['evidence'] else ''}")  # noqa: T201
+        print(f"{g['gate']:12} {g['result']:8} {g['evidence'][0] if g['evidence'] else ''}")
 
 
 def _cmd_validate(_args: argparse.Namespace) -> int:
     errors = validate(ROOT)
     for e in errors:
-        print(e, file=sys.stderr)  # noqa: T201
+        print(e, file=sys.stderr)
     return 3 if errors else 0
 
 
 def _cmd_matrix(args: argparse.Namespace) -> int:
     openapi = json.loads(Path(args.openapi).read_text()) if args.openapi else None
-    print(matrix.write(ROOT, openapi))  # noqa: T201
+    print(matrix.write(ROOT, openapi))
+    return 0
+
+
+def _cmd_lookup(args: argparse.Namespace) -> int:
+    doc = _load(ROOT, "contract-matrix.json")
+    hits = matrix.lookup(doc, args.name) if doc else []
+    if not hits:
+        print(f"no interface named {args.name!r} in contract-matrix.json", file=sys.stderr)
+        return 3
+    for e in hits:
+        print(f"{e['name']} v{e['version']} | {e['kind']} | owner: {e['owner']} | consumers: {', '.join(e['consumers']) or '-'} | status: {e['status']}")
     return 0
 
 
@@ -107,7 +118,7 @@ def _cmd_integrate(args: argparse.Namespace) -> int:
 
 
 def _cmd_summary(args: argparse.Namespace) -> int:
-    print(summary.render(json.loads(Path(args.report).read_text()), args.pr), end="")  # noqa: T201
+    print(summary.render(json.loads(Path(args.report).read_text()), args.pr), end="")
     return 0
 
 
@@ -119,6 +130,9 @@ def main(argv: list[str] | None = None) -> int:
     mx.add_argument("--openapi", help="the gateway's exported openapi.json")
     mx.set_defaults(func=_cmd_matrix)
     sub.add_parser("matrix-md", help="render contract-matrix.json to contract-matrix.md").set_defaults(func=_cmd_matrix_md)
+    lk = sub.add_parser("lookup", help="print owner, version, consumers and status of an interface; exit 3 if unknown")
+    lk.add_argument("name", help="a schema name (money), a versioned name (money.v1) or an endpoint name ('GET /api/dashboard/overview')")
+    lk.set_defaults(func=_cmd_lookup)
     sub.add_parser("audit-md", help="render feature-status.json to feature-status.md").set_defaults(func=_cmd_audit_md)
     run = sub.add_parser("run")
     run.add_argument("--gate", action="append", choices=rep.GATES)

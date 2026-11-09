@@ -45,7 +45,7 @@ The limits are about 7 to 15 times these warm-cache timings, to leave room for a
 
 ## SC-007: finding an interface's owner, version and consumers
 
-One lookup was done by the author (an AI agent, not a new reader): `grep procurement.order.confirmed contract-matrix.md` returned the owner (`procurement-service`), version (v1), consumer (`inventory-service`) and status (frozen) in one command, well under a second. That shows the matrix is searchable; it does **not** show that a person unfamiliar with the repository finds the file and the row within 2 minutes. That human check is still to be done by the maintainer.
+Clarified on 2026-11-09: SC-007 is checked by a command and its test, not by a timed human trial. `python -m gates lookup NAME` prints the owner, version, consumers and status (exit 3 for an unknown name); `scripts/tests/gates/test_matrix.py` and `test_cli.py` cover it, and a run against the real matrix returned, for example, `procurement.order.confirmed v1 | event | owner: procurement-service | consumers: inventory-service | status: frozen`. This supersedes the manual timed check asked for in T061, which was therefore not carried out.
 
 ## Not verified
 

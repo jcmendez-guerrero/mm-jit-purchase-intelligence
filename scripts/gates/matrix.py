@@ -8,6 +8,7 @@ upgrade if owners come out wrong.
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -32,9 +33,6 @@ def _service_text(root: Path) -> dict[str, str]:
             parts.append(f.read_text(encoding="utf-8", errors="replace"))
         out[service] = "\n".join(parts)
     return out
-
-
-HTTP = ("get", "post", "put", "patch", "delete")
 
 
 def endpoint_entries(openapi: dict) -> list[dict]:
@@ -81,6 +79,15 @@ def generate(root: Path, endpoints: list[dict] | None = None) -> dict:
     entries += endpoints if endpoints is not None else _existing_endpoints(root)  # regeneration keeps curated endpoints
     return {"matrix_version": 1, "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "schema_ownership": OWNERSHIP, "entries": entries}
+
+
+def lookup(matrix: dict, name: str) -> list[dict]:
+    """Entries named `name` (every version), or the single `name.vN` (SC-007, T075); empty when nothing matches."""
+    hits = [e for e in matrix["entries"] if e["name"] == name]
+    versioned = re.fullmatch(r"(.+)\.v([0-9]+)", name)
+    if versioned:
+        hits += [e for e in matrix["entries"] if e["name"] == versioned[1] and e["version"] == int(versioned[2])]
+    return sorted(hits, key=lambda e: e["version"])
 
 
 def render(matrix: dict) -> str:

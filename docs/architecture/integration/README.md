@@ -18,6 +18,14 @@ python -m gates run --report gate-report.json
 
 Run from `scripts/` (or with `scripts` on `PYTHONPATH`). `run --openapi <gateway openapi.json>` also checks that the matrix's `endpoint` entries equal the gateway's real endpoints; without it the gate says endpoints were not checked, and `services/api-bff/tests/test_gateway_matrix.py` covers them in the gateway's own CI job. `MMI_GATES_DATABASE=1` makes the isolation gate also run the PostgreSQL role-grant test (`infra/tests/test_migrations_postgres.py`, needs Docker, about a minute; the integration workflow sets it); without it the gate says role grants were not checked. A missing Docker or an all-skipped test run reports `not_run`, never `pass`. The `cost` gate runs the guardrail tests against `infra/bicep/guardrails.json` (budget EUR 120/month, scale to zero, replica and job caps, forbidden always-on resource types, storage rules): it checks the settings that bound spend and names the Bicep file and the setting on failure. It does not estimate euros; the repository holds no price data. Refresh the endpoint entries with `python -m gates matrix --openapi <openapi.json>`. Exit codes: 0 pass, 1 fail, 2 not run, 3 invalid input. All six gates are implemented. `integration` is `not_run` until `integration-plan.json` lists PRs; `e2e` is `not_run` without the browser tooling or, for the live journey, without `MMI_GATES_LIVE_STACK=1` (the gate then starts and removes its own compose project, `mmi-gates-live`, on ports 8080 and 8081, so stop any local stack that uses them first). `integrate --install --web` installs the shared packages and the browser tooling from the integration tree before the gates run.
 
+## Finding who owns an interface
+
+`python -m gates lookup NAME` (from `scripts/`) prints the owner, version, consumers and status of an interface, for example `python -m gates lookup procurement.order.confirmed`, `lookup supplier.v1` or `lookup 'GET /api/dashboard/overview'`. It exits 3 for an unknown name. The same data is in `contract-matrix.md`.
+
+## Lint and type checking
+
+`scripts/gates` and its tests are checked by `ruff` with the repository configuration (the `gates` CI job runs `ruff check scripts/gates scripts/tests/gates`). They are **outside the strict `mypy` scope**: CI installs `mypy` but does not run it on any target, and `mypy --strict scripts/gates` reports 54 errors (mostly missing type arguments and parameter annotations). Annotate the package if strict typing is ever enforced in CI.
+
 ## How contract owners were set
 
 `python -m gates matrix` guesses an owner from which service mentions a schema, and keeps any owner, status or successor already in `contract-matrix.json`, so hand curation survives regeneration. Curated on 2026-11-09:

@@ -86,7 +86,7 @@ def integrate(root: Path, plan: dict, run_gates: RunGates, ref_for: Callable[[in
             try:
                 _git(tree, "merge", "--no-ff", "--no-edit", "--quiet", ref)
             except subprocess.CalledProcessError:
-                subprocess.run(["git", "merge", "--abort"], cwd=tree, check=False, capture_output=True)  # noqa: S603, S607
+                subprocess.run(["git", "merge", "--abort"], cwd=tree, check=False, capture_output=True)  # noqa: S607
                 dropped[pr] = {"pr": pr, "agent": agent, "reason": "gate_failed", "failed_gate": "merge"}
                 continue
             failing = next((r.gate for r in run_gates(tree, s["verification"]) if r.result == "fail"), None)

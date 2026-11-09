@@ -44,6 +44,19 @@ def test_regeneration_keeps_a_curated_owner_and_status_but_new_schemas_get_the_h
     assert again["fresh"]["owner"] == "agent-00" and again["fresh"]["status"] == "frozen"
 
 
+def _entry(name, version, kind="dto", owner="svc", consumers=(), status="frozen"):
+    return {"name": name, "kind": kind, "version": version, "owner": owner, "consumers": list(consumers), "status": status}
+
+
+def test_lookup_finds_every_version_by_name_or_by_versioned_name_and_nothing_for_an_unknown_name():
+    matrix = {"entries": [_entry("money", 2, owner="b"), _entry("money", 1, owner="a", status="deprecated"),
+                          _entry("GET /api/x", 1, kind="endpoint")]}
+    assert [e["version"] for e in m.lookup(matrix, "money")] == [1, 2]
+    assert [e["owner"] for e in m.lookup(matrix, "money.v1")] == ["a"]
+    assert [e["name"] for e in m.lookup(matrix, "GET /api/x")] == ["GET /api/x"]
+    assert m.lookup(matrix, "nope") == [] and m.lookup(matrix, "money.v9") == []
+
+
 def test_endpoint_entries_validate_against_the_matrix_schema():
     schema = json.loads((REPO / "docs/architecture/integration/schemas/contract-matrix.schema.json").read_text())
     doc = {"matrix_version": 1, "generated_at": "2026-11-09T00:00:00Z", "schema_ownership": {}, "entries": m.endpoint_entries(OPENAPI)}
