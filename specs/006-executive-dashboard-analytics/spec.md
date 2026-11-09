@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "get the specification from https://mundomascotix.atlassian.net/browse/MMI-3" (Jira MMI-3, "AGENT 01 | Executive Dashboard & Analytics", epic MMI-1; scope and acceptance criteria from the linked Confluence page "MMI 003 — Agent 01 — Executive Dashboard & Analytics").
+**Input**: User description: "get the specification from <https://mundomascotix.atlassian.net/browse/MMI-3>" (Jira MMI-3, "AGENT 01 | Executive Dashboard & Analytics", epic MMI-1; scope and acceptance criteria from the linked Confluence page "MMI 003 — Agent 01 — Executive Dashboard & Analytics").
 
 ## Background
 

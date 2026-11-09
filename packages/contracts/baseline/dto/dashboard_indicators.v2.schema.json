@@ -5,10 +5,7 @@
   "description": "Executive dashboard indicators (feature 006): ten indicators with freshness, state and an optional breakdown, plus the drill-down page and chart series shapes. Added beside dashboard_summary.v1, which is untouched.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "filters",
-    "indicators"
-  ],
+  "required": ["filters", "indicators"],
   "properties": {
     "filters": {
       "$ref": "#/$defs/FilterSet"
@@ -24,10 +21,7 @@
     "FilterSet": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "date_from",
-        "date_to"
-      ],
+      "required": ["date_from", "date_to"],
       "properties": {
         "date_from": {
           "type": "string",
@@ -38,33 +32,18 @@
           "format": "date"
         },
         "warehouse_id": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": ["integer", "null"],
           "minimum": 0
         },
         "supplier_id": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "maxLength": 36
         },
         "category": {
-          "enum": [
-            "A",
-            "B",
-            "C",
-            "critical",
-            null
-          ]
+          "enum": ["A", "B", "C", "critical", null]
         },
         "family": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "minLength": 1,
           "maxLength": 120
         }
@@ -73,11 +52,7 @@
     "DataFreshness": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "source",
-        "origin",
-        "state"
-      ],
+      "required": ["source", "origin", "state"],
       "properties": {
         "source": {
           "enum": [
@@ -89,33 +64,17 @@
           ]
         },
         "refreshed_at": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "format": "date-time"
         },
         "refreshed_at_original": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "origin": {
-          "enum": [
-            "erp_sync",
-            "local_load",
-            "forecast",
-            "proposal"
-          ]
+          "enum": ["erp_sync", "local_load", "forecast", "proposal"]
         },
         "state": {
-          "enum": [
-            "ok",
-            "no_data",
-            "stale",
-            "error"
-          ]
+          "enum": ["ok", "no_data", "stale", "error"]
         },
         "stale_after_hours": {
           "type": "integer",
@@ -152,29 +111,14 @@
         },
         "value": {
           "description": "Decimal or integer as a string; null when state is not ok",
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "pattern": "^-?\\d+(\\.\\d+)?$"
         },
         "unit": {
-          "enum": [
-            "EUR",
-            "days",
-            "units",
-            "count",
-            "percent"
-          ]
+          "enum": ["EUR", "days", "units", "count", "percent"]
         },
         "state": {
-          "enum": [
-            "ok",
-            "no_data",
-            "stale",
-            "error",
-            "hidden_by_role"
-          ]
+          "enum": ["ok", "no_data", "stale", "error", "hidden_by_role"]
         },
         "basis": {
           "type": "string"
@@ -192,13 +136,7 @@
         "filters_unsupported": {
           "type": "array",
           "items": {
-            "enum": [
-              "date",
-              "warehouse",
-              "supplier",
-              "category",
-              "family"
-            ]
+            "enum": ["date", "warehouse", "supplier", "category", "family"]
           }
         },
         "parts": {
@@ -212,35 +150,21 @@
     "ContributionRow": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "variant_id",
-        "sku",
-        "name",
-        "figure"
-      ],
+      "required": ["variant_id", "sku", "name", "figure"],
       "properties": {
         "variant_id": {
           "type": "integer",
           "description": "Internal id, sent only so the screen can open the product detail; it is never displayed."
         },
         "sku": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "description": "What users see and supply."
         },
         "name": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "figure": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "description": "The row's contribution as a Decimal string; null for kinds without a figure."
         }
       }
@@ -248,14 +172,7 @@
     "DrillPage": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "kind",
-        "rows",
-        "total",
-        "truncated",
-        "offset",
-        "sum"
-      ],
+      "required": ["kind", "rows", "total", "truncated", "offset", "sum"],
       "properties": {
         "kind": {
           "enum": [
@@ -286,10 +203,7 @@
           "minimum": 0
         },
         "sum": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "pattern": "^-?\\d+(\\.\\d+)?$",
           "description": "Sum of every row (not only this page); equals the card value for the same filters. Null for kinds without a total."
         }
@@ -298,13 +212,7 @@
     "ChartSeries": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "key",
-        "title_key",
-        "columns",
-        "rows",
-        "state"
-      ],
+      "required": ["key", "title_key", "columns", "rows", "state"],
       "properties": {
         "key": {
           "enum": [
@@ -350,22 +258,14 @@
           }
         },
         "state": {
-          "enum": [
-            "ok",
-            "no_data",
-            "error"
-          ]
+          "enum": ["ok", "no_data", "error"]
         }
       }
     },
     "Part": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "key",
-        "label_key",
-        "value"
-      ],
+      "required": ["key", "label_key", "value"],
       "properties": {
         "key": {
           "type": "string"
@@ -374,10 +274,7 @@
           "type": "string"
         },
         "value": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": ["string", "null"],
           "pattern": "^-?\\d+(\\.\\d+)?$"
         },
         "period": {

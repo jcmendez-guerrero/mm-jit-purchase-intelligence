@@ -80,8 +80,10 @@ Decision: the amounts in a supplier's terms (minimum order value, delivery charg
 ## Approval of the cross-service changes (T075, decided by the owner on 2026-11-09)
 
 Approved by the owner in place of Agent 00, who is to be informed (a comment on Jira MMI-3). Scope, additive only, no existing field removed or changed:
+
 - forecast-service `GET /accuracy`: add accuracy history (WAPE and bias per run, with its date) so the dashboard can show forecast error over time.
 - procurement-service `GET /summary/spend`: add the budget for the period and the amount of confirmed supplier orders not yet received, the second being the open-order part of capital tied up (spec FR-025).
+
 Each change needs its own tests in the owning service, and neither touches another agent's files beyond these two endpoints. Moving the v2 schema into `packages/contracts` (T005) is a separate shared-contract change and is not covered by this approval.
 
 ## Capital tied up (T003, definition decided by the owner on 2026-11-09)
