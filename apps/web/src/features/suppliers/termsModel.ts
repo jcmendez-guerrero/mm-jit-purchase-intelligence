@@ -1,4 +1,17 @@
 import type { DiscountDoc, OverrideDoc, TermsDoc } from "../../api/client";
+import { newIdempotencyKey } from "../localload/localLoadModel";
+
+/**
+ * One Idempotency-Key per distinct save: the same key while the form and the version it was read at are unchanged (so a retry after a
+ * lost response is recognised), a new one as soon as either changes.
+ */
+export function saveKeys(make: () => string = newIdempotencyKey): (signature: string) => string {
+  let last: { signature: string; key: string } | null = null;
+  return (signature) => {
+    if (!last || last.signature !== signature) last = { signature, key: make() };
+    return last.key;
+  };
+}
 
 /** The editor keeps every input as text; the payload parses it. Spanish users type "12,50": accept it, send "12.50". */
 export interface DiscountForm {

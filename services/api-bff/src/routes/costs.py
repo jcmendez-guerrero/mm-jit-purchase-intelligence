@@ -70,6 +70,7 @@ async def override_cost_write(
     write_id: str,
     body: OverrideBody,
     session: SessionData = Depends(require_roles("admin")),
+    _fresh: SessionData = Depends(require_fresh_mfa()),         # MMI-6 FR-027: an override is a sensitive ERP-cost operation; the role is checked first
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
     return await client.override_cost_write(write_id, body.model_dump(), user_id=session.user_id, roles=session.roles)

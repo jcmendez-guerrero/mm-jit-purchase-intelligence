@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
+from datetime import date
 from enum import Enum
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -24,6 +25,22 @@ class Confidence(Enum):
     high = 'high'
 
 
+class Terms(BaseModel):
+    expected_delivery_date: Annotated[
+        date | None,
+        Field(
+            description='Expected delivery date derived from the terms in force (order days, cutoff, lead time, delivery weekdays); optional'
+        ),
+    ] = None
+
+
+class Explanation(BaseModel):
+    terms: Annotated[
+        Terms | None,
+        Field(description='Supplier terms versions and values that produced this line'),
+    ] = None
+
+
 class ProposalLine(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -39,6 +56,6 @@ class ProposalLine(BaseModel):
     confidence: Confidence | None = None
     manual_override: bool | None = None
     explanation: Annotated[
-        dict[str, Any],
+        Explanation,
         Field(description='Structured explanation; es-ES text is rendered from it'),
     ]

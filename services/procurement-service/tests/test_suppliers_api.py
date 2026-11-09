@@ -132,7 +132,7 @@ def test_bulk_preview_apply_and_stale_codes(client, engine):
     p = client.post(f"/suppliers/{s['id']}/links/bulk/preview", json={"q": "producto"}, headers=h()).json()
     assert (p["matched"], p["new"]) == (3, 3)
     out = client.post(f"/suppliers/{s['id']}/links/bulk/apply", json={"batch_id": p["batch_id"]}, headers=h())
-    assert out.json() == {"changed": 3, "skipped_conflicts": 0, "no_cost": 0}
+    assert out.json() == {"changed": 3, "skipped_conflicts": 0, "no_cost": 0, "rows": [{"sku": f"SYN-{i:06d}", "outcome": "linked"} for i in (1, 2, 3)]}
     assert client.post(f"/suppliers/{s['id']}/links/bulk/apply", json={"batch_id": p["batch_id"]}, headers=h()).json() == {"detail": "bulk_preview_stale"}
     assert len(client.get(f"/suppliers/{s['id']}/links", headers=h()).json()) == 3
 

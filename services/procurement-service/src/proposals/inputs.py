@@ -18,14 +18,17 @@ from typing import Any, Protocol
 import httpx
 from costs.resolve import resolve_cost
 from costs.rules import load_rules
-from db.tables import product_refs, supplier_costs, suppliers
+from db.tables import product_refs, supplier_costs, supplier_review_items, suppliers
+from fx.rates import convert, latest_rate, rate_state
 from orders.confirm import open_inbound
 from policies.overrides import effective_overrides
 from policies.service import effective_weekly_budget, resolve_policy
 from policies.stocking import MONTHLY_CHECK_DAYS, last_order_dates, stocking_map
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
+from suppliers.service import add_review_item
 from terms.resolve import resolve_effective
+from terms.schedule import order_date_from
 from terms.service import current_row, row_to_terms
 
 from proposals.model import (
@@ -88,6 +91,15 @@ def refresh_product_refs(conn: Connection, variants: list[dict[str, Any]]) -> in
     return n
 
 
+def _flag_fx(conn: Connection, code: str, supplier_id: str, currency: str, now: datetime) -> None:
+    """One open review item per supplier, problem and currency, however many builds see it (the screen explains the code, the detail is the currency)."""
+    open_item = conn.execute(select(supplier_review_items.c.id).where(
+        supplier_review_items.c.kind == code, supplier_review_items.c.supplier_id == supplier_id, supplier_review_items.c.detail == currency,
+        supplier_review_items.c.status == "open")).first()
+    if open_item is None:
+        add_review_item(conn, code, supplier_id, currency, now)
+
+
 @dataclass
 class InputsReport:
     variants: int = 0
@@ -96,6 +108,7 @@ class InputsReport:
     disabled_pairs: list[tuple[int, str]] = field(default_factory=list)      # (variant_id, supplier_id) removed by a manual disable
     on_request: list[int] = field(default_factory=list)                      # stocking mode "on request": never proposed
     always_stocked_unserved: list[int] = field(default_factory=list)         # always-stocked but no supplier can serve it: shown, not hidden
+    fx_excluded: list[tuple[int, str, str]] = field(default_factory=list)    # (variant_id, supplier_id, fx_rate_missing / fx_rate_stale): no usable exchange rate (MMI-6)
 
 
 @dataclass
@@ -151,9 +164,20 @@ class InputsProvider:
                 if eff.disabled:                                    # a manual disable removes the offer; the report says so
                     report.disabled_pairs.append((vid, sid))
                     continue
+                unit_cost, fx_info = Decimal(str(c.cost_with_recargo)), ()
+                if c.currency != "EUR":                             # MMI-6 FR-035: stored ECB rate for the proposal date, or the supplier stays out and is flagged
+                    rate = latest_rate(conn, c.currency, today)
+                    state = rate_state(rate, today)
+                    if rate is None or state != "ok":
+                        report.fx_excluded.append((vid, sid, f"fx_rate_{state}"))
+                        _flag_fx(conn, f"fx_rate_{state}", sid, c.currency, now)
+                        continue
+                    fx_info = (("fx", (("currency", c.currency), ("original_cost", str(unit_cost.quantize(Decimal("0.0001")))),
+                                       ("eur_per_unit", format(rate.eur_per_unit.normalize(), "f")), ("published_on", rate.published_on.isoformat()))),)
+                    unit_cost = convert(unit_cost, rate)
                 info = (("supplier_version", eff.supplier_version), ("override_version", eff.override_version), ("sources", tuple(sorted(eff.sources.items()))),
-                        ("conflicts", tuple(tuple(sorted(x.items())) for x in eff.conflicts)))
-                offers.append(Offer(sid, Decimal(str(c.cost_with_recargo)), c.id, c.source, res.status, eff.pack_multiple or 1, eff.lead_time_days,
+                        ("conflicts", tuple(tuple(sorted(x.items())) for x in eff.conflicts)), *fx_info)
+                offers.append(Offer(sid, unit_cost, c.id, c.source, res.status, eff.pack_multiple or 1, eff.lead_time_days,
                                     eff.min_qty_units or 0, eff.preferred, info))
                 used_suppliers.add(sid)
                 if eff.override_version is not None:
@@ -189,7 +213,9 @@ class InputsProvider:
             row = current_row(conn, sid, now)
             t = None if row is None else row_to_terms(row)
             terms[sid] = SupplierTermsIn(sid) if t is None else SupplierTermsIn(
-                sid, t.min_order_value, t.min_qty_for_delivery, t.free_delivery_threshold, t.delivery_charge, t.discounts, t.preferred, t.disabled, int(row.version))
+                sid, t.min_order_value, t.min_qty_for_delivery, t.free_delivery_threshold, t.delivery_charge, t.discounts, t.preferred, t.disabled, int(row.version),
+                next_order_date=order_date_from(now, t.order_days, t.order_cutoff_time) if t.order_days or t.order_cutoff_time else None,   # MMI-6 FR-020
+                delivery_weekdays=t.delivery_weekdays)
             versions_used[sid] = {"supplier": None if row is None else int(row.version), "overrides": overrides_used.get(sid, {})}
         self.report = report
         capped = effective_weekly_budget(conn, today)

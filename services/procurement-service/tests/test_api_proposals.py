@@ -138,6 +138,32 @@ def test_the_creator_with_both_roles_still_cannot_approve_their_own_proposal(api
     assert denied.status_code == 403 and denied.json()["detail"] == "separation_of_duties"
 
 
+def test_a_deactivated_supplier_blocks_approval_with_a_409_until_it_is_reactivated(api, engine):
+    from suppliers.service import deactivate_supplier, reactivate_supplier
+
+    c, sid = api
+    pid = generate(c)
+    assert c.post(f"/proposals/{pid}/submit", headers=h("buyer")).status_code == 200
+    with engine.begin() as conn:
+        deactivate_supplier(conn, sid, "buyer-1", confirm=True)
+    blocked = c.post(f"/proposals/{pid}/approve", headers=h("approver"))
+    assert blocked.status_code == 409 and blocked.json()["detail"] == "proposal_has_deactivated_supplier"
+    with engine.begin() as conn:
+        reactivate_supplier(conn, sid, "buyer-1")
+    assert c.post(f"/proposals/{pid}/approve", headers=h("approver")).json() == {"status": "approved"}
+
+
+def test_a_deactivated_supplier_blocks_submission_with_a_409(api, engine):
+    from suppliers.service import deactivate_supplier
+
+    c, sid = api
+    pid = generate(c)
+    with engine.begin() as conn:
+        deactivate_supplier(conn, sid, "buyer-1", confirm=True)
+    refused = c.post(f"/proposals/{pid}/submit", headers=h("buyer"))
+    assert refused.status_code == 409 and refused.json()["detail"] == "proposal_has_deactivated_supplier"
+
+
 def test_cost_write_review_release_and_internal_view_for_the_writer(api, engine, tmp_path):
     from builders import FakeLots
     from costs.lot_costs import record_lot_cost

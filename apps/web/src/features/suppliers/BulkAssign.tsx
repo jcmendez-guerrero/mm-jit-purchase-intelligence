@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, BulkPreview, errorMessage, SupplierSummary } from "../../api/client";
+import { api, BulkApplyRow, BulkPreview, errorMessage, SupplierSummary } from "../../api/client";
 import { Button } from "../../ui/Button";
 import { Card } from "../../ui/Card";
+import { DataTable } from "../../ui/DataTable";
 import { FormField } from "../../ui/FormField";
 import { parseSkuList } from "./supplierModel";
 
@@ -20,6 +21,7 @@ export const BulkAssign: React.FC<Props> = ({ supplier, onDone }) => {
   const [skip, setSkip] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [rows, setRows] = useState<BulkApplyRow[]>([]);          // what happened to each product after the last apply (FR-018)
   const [busy, setBusy] = useState(false);
 
   const criteria = (): { skus?: string[]; q?: string } | null => {
@@ -44,6 +46,7 @@ export const BulkAssign: React.FC<Props> = ({ supplier, onDone }) => {
     const c = criteria();
     if (c === null) return setError(t("suppliers.bulk.need_input"));
     setNote(null);
+    setRows([]);
     setSkip(false);
     setPreview(await api.previewBulkLinks(supplier.id, c));
   });
@@ -52,6 +55,7 @@ export const BulkAssign: React.FC<Props> = ({ supplier, onDone }) => {
     if (!preview) return;
     const res = await api.applyBulkLinks(supplier.id, preview.batch_id, skip);
     setNote(t("suppliers.bulk.done", { changed: res.changed, skipped: res.skipped_conflicts, no_cost: res.no_cost }));
+    setRows(res.rows ?? []);
     setPreview(null);
     setSkus("");
     setQ("");
@@ -103,6 +107,15 @@ export const BulkAssign: React.FC<Props> = ({ supplier, onDone }) => {
       )}
       {error && <p role="alert" className="mmi-error">{error}</p>}
       {note && <p role="status" className="mmi-notice">{note}</p>}
+      {rows.length > 0 && (
+        <DataTable
+          ariaLabel={t("suppliers.bulk.outcome.title")} rows={rows} rowKey={(r) => r.sku}
+          columns={[
+            { id: "sku", header: t("suppliers.links.sku"), cell: (r) => r.sku, sortValue: (r) => r.sku },
+            { id: "outcome", header: t("suppliers.bulk.outcome.header"), cell: (r) => t(`suppliers.bulk.outcome.${r.outcome}`), sortValue: (r) => r.outcome },
+          ]}
+        />
+      )}
     </Card>
   );
 };

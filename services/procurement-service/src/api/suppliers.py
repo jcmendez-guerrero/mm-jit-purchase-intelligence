@@ -13,7 +13,7 @@ from typing import Any
 from costs.recargo import load_table
 from costs.rules import load_rules
 from db.tables import supplier_review_items
-from fastapi import APIRouter, Depends, FastAPI, File, Header, HTTPException, Query, Response, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, File, Header, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
@@ -33,6 +33,7 @@ from suppliers.service import (
 )
 
 from api.costs import get_engine
+from api.refusals import AuditedRoute
 from api.terms import parse_if_match
 
 MAX_UPLOAD = 5 * 1024 * 1024
@@ -121,11 +122,12 @@ def _error(exc: Exception) -> JSONResponse:
 
 def build_router(app: FastAPI) -> APIRouter:
     require: Callable[..., Any] = app.state.require_roles
-    router = APIRouter()
+    router = APIRouter(route_class=AuditedRoute)
     read = require()
     write_dep = require()
 
-    def writer(principal: Any = Depends(write_dep)) -> Any:
+    def writer(request: Request, principal: Any = Depends(write_dep)) -> Any:
+        request.state.actor = principal.subject                 # so a refusal below names who tried (api/refusals.py)
         if not ({"buyer", "admin"} & set(principal.roles)):
             raise HTTPException(403, "auth_forbidden_role")
         return principal

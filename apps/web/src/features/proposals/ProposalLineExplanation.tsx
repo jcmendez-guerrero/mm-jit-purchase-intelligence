@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { ProposalLine } from "../../api/client";
-import { formatCurrencyEUR, formatNumber } from "../../i18n/formatters";
+import { formatCurrencyEUR, formatDate, formatNumber } from "../../i18n/formatters";
 
 /** Structured, Spanish-rendered reasoning for one line: quantity, supplier choice, saved terms and ERP conflicts. */
 export const ProposalLineExplanation: React.FC<{ line: ProposalLine }> = ({ line }) => {
@@ -28,6 +28,11 @@ export const ProposalLineExplanation: React.FC<{ line: ProposalLine }> = ({ line
       {terms && (
         <>
           <p>{t("proposals.why.terms", { supplier: terms.supplier_version ?? none, override: terms.override_version ?? none })}</p>
+          {terms.fx && (
+            <p>{t("proposals.why.fx", { original: formatNumber(Number(terms.fx.original_cost), 2), currency: terms.fx.currency, rate: terms.fx.eur_per_unit.replace(".", ","),
+              date: formatDate(new Date(`${terms.fx.published_on}T12:00:00`)) })}</p>
+          )}
+          {terms.expected_delivery_date &&<p>{t("proposals.why.delivery", { date: formatDate(new Date(`${terms.expected_delivery_date}T12:00:00`)) })}</p>}
           <ul>
             {Object.entries(terms.sources).map(([field, source]) => (
               <li key={field}>{t("proposals.why.source", { field: t(`suppliers.f.${field}`, { defaultValue: field }), source: known("proposals.why.source_value", source) })}</li>

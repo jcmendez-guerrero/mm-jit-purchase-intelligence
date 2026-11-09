@@ -51,6 +51,7 @@ export const SupplierReview: React.FC<Props> = ({ suppliers, onChanged }) => {
           <li key={item.id}>
             <strong>{t(`suppliers.review.kind.${item.kind}`, { defaultValue: item.kind })}</strong> — {name(item.supplier_id)}
             {item.kind === "payment_terms_unparsed" && <span className="mmi-muted"> {t("suppliers.review.terms_hint")}</span>}
+            {item.kind.startsWith("fx_rate_") && <span className="mmi-muted"> ({item.detail})</span>}
             <div className="mmi-actions">
               {item.kind === "possible_duplicate" && (
                 <>

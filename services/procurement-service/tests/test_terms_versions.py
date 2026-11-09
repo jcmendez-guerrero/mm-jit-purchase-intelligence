@@ -77,6 +77,35 @@ def test_history_lists_every_version_with_who_why_and_source(conn, sid):
     assert h[1]["terms"].lead_time_days == 5 and h[1]["valid_from"] == JUN
 
 
+def test_two_versions_starting_on_the_same_day_the_later_saved_wins_and_the_other_is_superseded(conn, sid):
+    from terms.service import version_statuses
+
+    save_terms(conn, sid, Terms(lead_time_days=3), "b", JAN, valid_from=JUN)
+    save_terms(conn, sid, Terms(lead_time_days=8), "b", JAN, valid_from=JUN)
+    later = JUN + timedelta(days=1)
+    assert current_terms(conn, sid, later).lead_time_days == 8
+    assert version_statuses(conn, sid, later) == {1: "superseded", 2: "in_force"}
+
+
+def test_each_version_is_in_force_planned_superseded_or_expired(conn, sid):
+    from terms.service import version_statuses
+
+    save_terms(conn, sid, Terms(lead_time_days=3), "b", JAN, valid_from=JAN)
+    save_terms(conn, sid, Terms(lead_time_days=5), "b", JAN, valid_from=JUN)
+    save_terms(conn, sid, Terms(lead_time_days=9), "b", JAN, valid_from=DEC)
+    assert version_statuses(conn, sid, JUN + timedelta(days=10)) == {1: "superseded", 2: "in_force", 3: "planned"}
+    assert version_statuses(conn, sid, JAN - timedelta(days=1)) == {1: "planned", 2: "planned", 3: "planned"}
+    assert version_statuses(conn, sid, DEC + timedelta(days=1)) == {1: "superseded", 2: "superseded", 3: "in_force"}
+
+
+def test_a_window_that_ended_with_no_successor_is_expired(conn, sid):
+    from terms.service import version_statuses
+
+    save_terms(conn, sid, Terms(lead_time_days=3, valid_to=JUN), "b", JAN, valid_from=JAN)
+    assert version_statuses(conn, sid, JAN + timedelta(days=5)) == {1: "in_force"}
+    assert version_statuses(conn, sid, DEC) == {1: "expired"}
+
+
 def test_every_save_is_audited_in_the_hash_chain(conn, sid):
     from audit.chain import verify_chain
     from db.tables import audit_events

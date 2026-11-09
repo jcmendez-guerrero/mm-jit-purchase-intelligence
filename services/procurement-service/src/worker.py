@@ -9,14 +9,17 @@ import logging
 import os
 import sys
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import httpx
+from audit.chain import append as audit
 from consumer import ReceiptSource, consume_once, sync_receipts
 from costs.lot_lookup import HttpLotsSource, LotsSource
 from costs.pvp import HttpPvpSource, PvpSource
 from db.tables import outbox
+from fx.rates import HttpRatesSource, RatesSource, purge, refresh_if_due
 from mmi_common.busfactory import bus_from_env
 from mmi_common.logging import configure_logging
 from mmi_common.outbox import relay_once
@@ -51,7 +54,8 @@ class FileBlobs:
         return Path(uri.removeprefix("file://")).read_bytes()
 
 
-def run_once(engine: Engine, bus, blobs, receipts: ReceiptSource | None, writer: BlobWriter | None = None, lots: LotsSource | None = None, pvp: PvpSource | None = None) -> dict[str, Any]:  # type: ignore[no-untyped-def]
+def run_once(engine: Engine, bus, blobs, receipts: ReceiptSource | None, writer: BlobWriter | None = None, lots: LotsSource | None = None, pvp: PvpSource | None = None,  # type: ignore[no-untyped-def]
+             rates: RatesSource | None = None) -> dict[str, Any]:
     stats = consume_once(engine, bus, blobs)
     receipt_stats: dict[str, int] = {}
     if receipts is not None:
@@ -59,7 +63,26 @@ def run_once(engine: Engine, bus, blobs, receipts: ReceiptSource | None, writer:
             receipt_stats = sync_receipts(conn, receipts, writer=writer, lots=lots, pvp=pvp)
     with engine.begin() as conn:
         sent = relay_once(conn, outbox, bus, SUBSCRIPTIONS)
-    return {"applied": stats.applied, "duplicates": stats.duplicates, "rejected": stats.rejected, "failed": stats.failed, "relayed": sent, "receipts": receipt_stats}
+    fx_status = None
+    if rates is not None:                                       # MMI-6: about once a day, after the relay and never fatal (FR-043)
+        try:
+            with engine.begin() as conn:
+                fx_status = refresh_if_due(conn, rates, datetime.now(UTC))
+            try:
+                with engine.begin() as conn:                    # its own transaction: a failing cleanup must not roll back the stored rates
+                    purge(conn, datetime.now(UTC))
+            except Exception:
+                log.exception("exchange-rate cleanup failed; the rates were stored")
+        except Exception:
+            log.exception("exchange-rate step failed; events were relayed")
+            fx_status = "error"
+            try:                                                # best effort, in its own transaction: the failed one was rolled back
+                with engine.begin() as conn:
+                    audit(conn, "svc-procurement", "fx.refresh_failed", "fx_rates", "ecb", after={"code": "fx_storage_error"})
+            except Exception:
+                log.exception("could not audit the exchange-rate failure")
+    return {"applied": stats.applied, "duplicates": stats.duplicates, "rejected": stats.rejected, "failed": stats.failed, "relayed": sent, "receipts": receipt_stats,
+            **({"fx": fx_status} if rates is not None else {})}
 
 
 def main() -> int:
@@ -71,7 +94,8 @@ def main() -> int:
         src = HttpReceiptSource(url, token) if url else None
         lots = HttpLotsSource(url, token) if url else None
         writer = FileWriter(Path(os.environ.get("MMI_BLOB_ROOT", "/tmp/mmi-procurement")))  # noqa: S108 - local default only
-        result = run_once(engine, bus_from_env(), FileBlobs(), src, writer, lots, HttpPvpSource(url, token) if url else None)
+        rates = None if os.environ.get("MMI_FX_DISABLED") == "1" else HttpRatesSource()       # public ECB rates; set MMI_FX_DISABLED=1 for runs that must stay offline
+        result = run_once(engine, bus_from_env(), FileBlobs(), src, writer, lots, HttpPvpSource(url, token) if url else None, rates)
     except Exception:
         log.exception("WORKER_FAILED")
         return 1

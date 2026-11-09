@@ -9,6 +9,12 @@ from urllib.parse import quote
 from .base import DownstreamClient
 
 
+def _save_headers(if_match: str | None, idempotency_key: str | None) -> dict[str, str] | None:
+    """The precondition and the retry key, passed through unchanged; None when the caller sent neither."""
+    headers = {**({"If-Match": if_match} if if_match else {}), **({"Idempotency-Key": idempotency_key} if idempotency_key else {})}
+    return headers or None
+
+
 class ProcurementClient(DownstreamClient):
     def __init__(self, base_url: str | None = None):
         url = base_url or os.environ.get("MMI_PROCUREMENT_URL", "http://procurement-service:8000")
@@ -20,9 +26,9 @@ class ProcurementClient(DownstreamClient):
         return res.json()
 
     async def put_supplier_terms(self, supplier_id: str, terms: dict[str, Any], user_id: str, roles: list[str] | None = None,
-                                 if_match: str | None = None) -> dict[str, Any]:
+                                 if_match: str | None = None, idempotency_key: str | None = None) -> dict[str, Any]:
         res = await self.put(f"/suppliers/{quote(supplier_id, safe='')}/terms", json=terms, user_id=user_id, roles=roles,
-                             extra_headers={"If-Match": if_match} if if_match else None)
+                             extra_headers=_save_headers(if_match, idempotency_key))
         res.raise_for_status()
         return res.json()
 
@@ -37,9 +43,9 @@ class ProcurementClient(DownstreamClient):
         return res.json()
 
     async def put_override_terms(self, variant_id: int, supplier_id: str, body: dict[str, Any], user_id: str, roles: list[str] | None = None,
-                                 if_match: str | None = None) -> dict[str, Any]:
+                                 if_match: str | None = None, idempotency_key: str | None = None) -> dict[str, Any]:
         res = await self.put(f"/product-suppliers/{variant_id}/{quote(supplier_id, safe='')}/terms", json=body, user_id=user_id, roles=roles,
-                             extra_headers={"If-Match": if_match} if if_match else None)
+                             extra_headers=_save_headers(if_match, idempotency_key))
         res.raise_for_status()
         return res.json()
 
