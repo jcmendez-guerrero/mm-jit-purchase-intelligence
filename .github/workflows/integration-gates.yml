@@ -1,0 +1,86 @@
+name: integration-gates
+
+# Feature 005 (ADR-022): started manually. Builds the integration tree inside the run from main and each PR head in
+# docs/architecture/integration/integration-plan.json, runs all six gates, uploads the report and comments on each
+# domain PR. Nothing is pushed and nothing is merged.
+#
+# Trust boundary (T054): the `integrate` job runs code from the PRs (their tests and npm scripts), so it has read
+# access only. The `comment` job has the write permission but never checks out or runs PR code: it uses trusted code
+# from the default branch, takes the plan from there too, and treats the downloaded report as untrusted data.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch PR heads (public repository, read only)
+        run: git fetch origin '+refs/pull/*/head:refs/pull/*/head'
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 20 }
+      # Third-party dependencies only: the shared packages are installed from the integration tree by `--install` below.
+      - name: Install
+        run: |
+          uv venv --python 3.12
+          uv pip install pytest pyyaml jsonschema "psycopg[binary]" alembic sqlalchemy \
+            azure-storage-queue azure-storage-blob fastapi httpx pydantic hypothesis openpyxl
+      - name: Run all gates on the integration tree
+        id: gates
+        env:
+          MMI_GATES_DATABASE: "1"      # also run the PostgreSQL role-grant test in the isolation gate
+          MMI_GATES_LIVE_STACK: "1"    # e2e gate starts the compose stack for the real-services journey and removes it afterwards
+        run: |
+          . .venv/bin/activate
+          cd scripts
+          python -m gates integrate --install --web --report "$RUNNER_TEMP/gate-report.json" || echo "exit=$?" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: gate-report
+          path: ${{ runner.temp }}/gate-report.json
+      - name: Fail the run when a gate failed
+        if: steps.gates.outputs.exit != ''
+        run: exit 1
+
+  comment:
+    needs: integrate
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      # Trusted code only: the default branch, never a PR head or the dispatched ref.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv venv --python 3.12 && uv pip install jsonschema
+      - name: Download the gate report (untrusted data)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name gate-report --dir "$RUNNER_TEMP/report"
+      - name: Comment on each domain PR listed in the plan on the default branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          . .venv/bin/activate
+          cd scripts
+          for pr in $(python -c "import json;print(*[int(s['pr']) for s in json.load(open('../docs/architecture/integration/integration-plan.json'))['steps']])"); do
+            python -m gates summary --report "$RUNNER_TEMP/report/gate-report.json" --pr "$pr" > "$RUNNER_TEMP/comment.md"
+            gh pr comment "$pr" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body-file "$RUNNER_TEMP/comment.md"
+          done

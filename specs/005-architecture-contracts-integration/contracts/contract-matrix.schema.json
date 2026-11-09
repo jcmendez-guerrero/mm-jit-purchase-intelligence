@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ContractMatrix",
+  "type": "object",
+  "required": ["matrix_version", "generated_at", "schema_ownership", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "matrix_version": { "type": "integer", "minimum": 1 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "schema_ownership": {
+      "type": "object",
+      "description": "service name -> database schema it owns (one to one)",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]*$"
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind", "version", "owner", "consumers", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "kind": { "enum": ["dto", "event", "error", "endpoint"] },
+          "version": { "type": "integer", "minimum": 1 },
+          "schema_path": { "type": "string" },
+          "owner": { "type": "string" },
+          "consumers": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          },
+          "status": { "enum": ["draft", "frozen", "deprecated"] },
+          "superseded_by": { "type": "string" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "kind": { "const": "endpoint" } } },
+            "else": { "required": ["schema_path"] }
+          },
+          {
+            "if": { "properties": { "status": { "const": "deprecated" } } },
+            "then": { "required": ["superseded_by"] }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -23,6 +23,7 @@
 | 2026-11-05 | **Predictive seed datasets are never ERP movements** (proposed, ADR-020) | Versioned, origin-flagged, atomically activated and reversible; hardened upload; private container with retention |
 | 2026-11-05 | **Stock is valued at lot acquisition cost; the ERP cost update is the median of lot costs** (owner decision; constitution v1.2.0 accepted by the owner on 2026-11-06, formal merge pending) | ERP movements carry PVP, not cost, and the ERP holds one cost per supplier. Margin check blocks below 15% unless an admin overrides; the releaser must differ from the override setter |
 | 2026-11-06 | **Margin check implementation choices (pending owner confirmation, T066)**: PVP = lowest variant price (`variants.price`, treated as net of VAT; decided 2026-11-06 — superseding the stock-movement assumption); margin unavailable (no price) blocks the release until an admin overrides; an admin override unblocks even when its value leaves the margin below 15% (flagged `override_margin_below_minimum` and audited); thresholds are evaluated on exact cost comparisons | Conservative on the margin floor; all three can be tightened once the PVP source is confirmed |
+| 2026-11-09 | **Coordination for the parallel completion effort** (ADR-021 contract versioning, ADR-022 integration branch and auto-fix, ADR-023 gateway boundaries) | Records in `docs/architecture/adr/`; contract matrix, audit and gates in `docs/architecture/integration/` (feature 005) |
 
 ---
 
