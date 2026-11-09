@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "get the specification of https://mundomascotix.atlassian.net/browse/MMI-7" — Jira MMI-7 "AGENT 05 | Predictive Seed Import & Dataset Governance" and its linked Confluence page. Scope there: CSV/XLSX upload, templates, column mapping, SKU matching, duplicates, quarantine, preview, provenance observed/estimated/manual, dry-run backtest, activation, rollback and asynchronous jobs. Acceptance: an end-to-end import changes the subsequent forecast, rollback works, imported data never becomes an ERP movement, security tests pass.
+**Input**: User description: "get the specification of <https://mundomascotix.atlassian.net/browse/MMI-7>" — Jira MMI-7 "AGENT 05 | Predictive Seed Import & Dataset Governance" and its linked Confluence page. Scope there: CSV/XLSX upload, templates, column mapping, SKU matching, duplicates, quarantine, preview, provenance observed/estimated/manual, dry-run backtest, activation, rollback and asynchronous jobs. Acceptance: an end-to-end import changes the subsequent forecast, rollback works, imported data never becomes an ERP movement, security tests pass.
 
 ## Context
 

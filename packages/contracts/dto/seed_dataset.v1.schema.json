@@ -82,7 +82,18 @@
       "oneOf": [{ "type": "string" }, { "type": "null" }]
     },
     "rollback_reason_code": {
-      "oneOf": [{ "enum": ["wrong_figures", "wrong_file", "test", "replaced_by_newer", "other"] }, { "type": "null" }],
+      "oneOf": [
+        {
+          "enum": [
+            "wrong_figures",
+            "wrong_file",
+            "test",
+            "replaced_by_newer",
+            "other"
+          ]
+        },
+        { "type": "null" }
+      ],
       "description": "Why an active dataset was rolled back (FR-033). The code is shown to everyone and recorded in the audit trail."
     },
     "rollback_reason_detail": {
@@ -90,7 +101,10 @@
       "description": "Short free-text detail. Returned to admins only; never written to the audit trail."
     },
     "self_activation_reason_code": {
-      "oneOf": [{ "enum": ["only_person", "urgent", "other"] }, { "type": "null" }],
+      "oneOf": [
+        { "enum": ["only_person", "urgent", "other"] },
+        { "type": "null" }
+      ],
       "description": "Set only for an audited owner/admin self-activation."
     },
     "self_activation_reason_detail": {

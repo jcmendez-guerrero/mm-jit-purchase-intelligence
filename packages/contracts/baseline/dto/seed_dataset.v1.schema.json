@@ -74,29 +74,6 @@
         }
       ]
     },
-    "validated_by": {
-      "oneOf": [{ "type": "string" }, { "type": "null" }],
-      "description": "Who ran validation; with the uploader, cannot approve activation (MMI-7)."
-    },
-    "mapping_chosen_by": {
-      "oneOf": [{ "type": "string" }, { "type": "null" }]
-    },
-    "rollback_reason_code": {
-      "oneOf": [{ "enum": ["wrong_figures", "wrong_file", "test", "replaced_by_newer", "other"] }, { "type": "null" }],
-      "description": "Why an active dataset was rolled back (FR-033). The code is shown to everyone and recorded in the audit trail."
-    },
-    "rollback_reason_detail": {
-      "oneOf": [{ "type": "string", "maxLength": 100 }, { "type": "null" }],
-      "description": "Short free-text detail. Returned to admins only; never written to the audit trail."
-    },
-    "self_activation_reason_code": {
-      "oneOf": [{ "enum": ["only_person", "urgent", "other"] }, { "type": "null" }],
-      "description": "Set only for an audited owner/admin self-activation."
-    },
-    "self_activation_reason_detail": {
-      "oneOf": [{ "type": "string", "maxLength": 100 }, { "type": "null" }],
-      "description": "Short free-text detail. Returned to admins only; never written to the audit trail."
-    },
     "row_counts": {
       "type": "object",
       "additionalProperties": false,

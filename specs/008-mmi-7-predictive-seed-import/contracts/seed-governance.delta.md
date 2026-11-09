@@ -30,3 +30,7 @@ Additive changes on top of feature 002 contracts (`specs/002-mmi-operational-con
 | import_erp_export_refused | 415 | The file looks like an ERP export, not a seed file |
 
 All keys need Spanish text in the web and service locale files (T009).
+
+## Baseline (PR 18, Agent 00)
+
+The baseline copy of `seed_dataset.v1` stays at its previous version until Agent 00 confirms the six added optional fields; the new `seed_dataset_summary.v1` has its own baseline copy. `seed_dataset_summary` is in the contract matrix (owner `forecast-service`, consumer `api-bff`).

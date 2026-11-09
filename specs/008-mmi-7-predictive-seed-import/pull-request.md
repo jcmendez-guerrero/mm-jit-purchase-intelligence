@@ -4,7 +4,7 @@
 
 ## What and why
 
-Jira MMI-7 (epic MMI-1, "MMI 003 / Agent 05 — Predictive Seed Import & Dataset Governance"): https://mundomascotix.atlassian.net/browse/MMI-7 · Scope page: https://mundomascotix.atlassian.net/wiki/spaces/MMJDI/pages/3080433
+Jira MMI-7 (epic MMI-1, "MMI 003 / Agent 05 — Predictive Seed Import & Dataset Governance"): <https://mundomascotix.atlassian.net/browse/MMI-7> · Scope page: <https://mundomascotix.atlassian.net/wiki/spaces/MMJDI/pages/3080433>
 
 Feature 002 and ADR-020 already built most of the seed import. This PR audits that baseline against `specs/008-mmi-7-predictive-seed-import/spec.md`, closes the gaps and proves the acceptance criteria: an import changes the next forecast, rollback restores it, and imported data never becomes an ERP movement.
 
@@ -39,6 +39,10 @@ Additive. `seed_dataset.v1` gains optional fields (the `approved` status stays a
 | Web | tsc and eslint clean; 464 unit tests passed |
 | Playwright | 190 passed, 6 skipped |
 | Lint and types | ruff clean; mypy unchanged at its 24 pre-existing errors |
+
+### Merge order
+
+This PR and PR 17 both append keys at the end of `packages/contracts/errors/error_codes.json` and `specs/002-mmi-operational-console/contracts/error-keys.md`. Whichever merges second is rebased (keep both sets of keys).
 
 ### Known limitations
 
