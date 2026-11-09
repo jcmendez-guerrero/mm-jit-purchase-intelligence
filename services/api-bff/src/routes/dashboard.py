@@ -17,6 +17,7 @@ from routes.rbac import require_roles
 
 router = APIRouter(prefix="/dashboard")
 READ = ("viewer", "buyer", "approver", "admin")
+MONEY_ROLES = frozenset({"buyer", "approver", "admin"})      # same rule as inventory-service dashboard/roles.py (FR-017)
 
 
 async def _card(call: Any) -> dict[str, Any]:
@@ -26,6 +27,10 @@ async def _card(call: Any) -> dict[str, Any]:
         return {"ok": False, "error": "downstream_refused" if 400 <= exc.response.status_code < 500 else "downstream_unavailable"}
     except (httpx.TransportError, RuntimeError):
         return {"ok": False, "error": "downstream_unavailable"}
+
+
+async def _hidden_by_role() -> dict[str, Any]:
+    return {"ok": False, "error": "hidden_by_role"}
 
 
 async def _supplier_options(proc: ProcurementClient, who: dict[str, Any]) -> list[dict[str, str]]:
@@ -55,7 +60,7 @@ async def overview(
         _card(inv.forward("GET", "/risk", params={"warehouse_id": warehouse_id} if warehouse_id is not None else None, **who)),
         _card(inv.forward("GET", "/dashboard/filters/options", **who)),
         _card(fc.forward("GET", "/accuracy", **who)),
-        _card(proc.forward("GET", "/summary/spend", params={"supplier_id": supplier_id} if supplier_id else None, **who)),
+        _card(proc.forward("GET", "/summary/spend", params={"supplier_id": supplier_id} if supplier_id else None, **who)) if MONEY_ROLES.intersection(session.roles) else _hidden_by_role(),
         _card(_supplier_options(proc, who)))
     return {"summary": summary, "trend": trend, "abc_xyz": abc, "risks": risks, "options": options, "accuracy": accuracy, "spend": spend, "suppliers": suppliers}
 

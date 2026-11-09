@@ -230,7 +230,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
               <h3 className="mmi-figure__label">{t("dashboard.kpi.value")}</h3>
               {s ? (
                 <>
-                  <p className="mmi-figure__value">{s.inventory_value === null ? "—" : formatCurrencyEUR(s.inventory_value)}</p>
+                  <p className="mmi-figure__value">{s.hidden_by_role?.includes("inventory_value") ? t("dashboard.kpi.hidden_by_role") : s.inventory_value == null ? "—" : formatCurrencyEUR(s.inventory_value)}</p>
                   <p className="mmi-figure__note">{t("dashboard.kpi.value_basis")}</p>
                   {s.valued_with_estimate > 0 && <p className="mmi-figure__note">{t("dashboard.kpi.value_estimated", { n: s.valued_with_estimate })}</p>}
                   {s.unvalued_lots > 0 && <p className="mmi-figure__note">{t("dashboard.kpi.value_unvalued", { n: s.unvalued_lots })}</p>}
@@ -257,7 +257,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
               <h3 className="mmi-figure__label">{t("dashboard.kpi.expiring")}</h3>
               {s ? (
                 <>
-                  <p className="mmi-figure__value">{s.expiring_value === null ? "—" : formatCurrencyEUR(s.expiring_value)}</p>
+                  <p className="mmi-figure__value">{s.hidden_by_role?.includes("expiring_value") ? t("dashboard.kpi.hidden_by_role") : s.expiring_value == null ? "—" : formatCurrencyEUR(s.expiring_value)}</p>
                   <p className="mmi-figure__note">{t("dashboard.kpi.expiry_count", { n: s.expiry_risk })}</p>
                   {viewProducts("expiry_risk")}
                 </>
@@ -291,6 +291,8 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                     )}
                   </>
                 )
+              ) : data.spend.error === "hidden_by_role" ? (
+                <p className="mmi-figure__note">{t("dashboard.kpi.hidden_by_role")}</p>
               ) : (
                 <Unavailable />
               )}
@@ -377,7 +379,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                   title={t("dashboard.chart.abc")}
                   summary={t("dashboard.chart.abc_summary", { count: cells.reduce((n, c) => n + c.variant_count, 0), cells: cells.length })}
                   columns={[t("dashboard.chart.col.group"), t("dashboard.chart.col.variants"), t("dashboard.chart.col.value")]}
-                  rows={cells.map((c) => [`${c.abc}${c.xyz}`, c.variant_count, formatCurrencyEUR(c.value)])}
+                  rows={cells.map((c) => [`${c.abc}${c.xyz}`, c.variant_count, c.value === undefined ? "—" : formatCurrencyEUR(c.value)])}
                   rowAction={(i) => {
                     const c = cells[i];
                     const group = c ? `${c.abc}${c.xyz}` : "";

@@ -17,6 +17,7 @@ from dashboard.kpis import (
     filter_options,
     forecast_series,
 )
+from dashboard.roles import hide_cell_values, hide_money, hide_money_page
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
 from sqlalchemy.engine import Connection
 
@@ -47,7 +48,7 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
             forecast_ok = True
         except Exception:
             s, forecast_ok = compute_summary(conn, today, f, None), False
-        return {**s.as_json(), "forecast_available": forecast_ok and means() is not None}
+        return hide_money({**s.as_json(), "forecast_available": forecast_ok and means() is not None}, _p.roles)
 
     @router.get("/demand-trend")
     def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, family: str | None = None, supplier_id: str | None = None,
@@ -66,12 +67,12 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
         if kind not in KINDS:
             raise HTTPException(422, "request_invalid")
         try:
-            return drilldown(conn, kind, datetime.now(UTC).date(), filters(warehouse_id, category, family, supplier_id), means(), abc, xyz, day, limit, offset, sort, order)
+            return hide_money_page(drilldown(conn, kind, datetime.now(UTC).date(), filters(warehouse_id, category, family, supplier_id), means(), abc, xyz, day, limit, offset, sort, order), _p.roles)
         except DrillError as exc:
             raise HTTPException(422, exc.code) from exc
 
     @router.get("/abc-xyz")
     def abc_xyz(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
-        return {"cells": [{**d, "value": str(d["value"].quantize(Decimal("0.01")))} for d in abc_xyz_distribution(conn)]}
+        return {"cells": hide_cell_values([{**d, "value": str(d["value"].quantize(Decimal("0.01")))} for d in abc_xyz_distribution(conn)], _p.roles)}
 
     return router

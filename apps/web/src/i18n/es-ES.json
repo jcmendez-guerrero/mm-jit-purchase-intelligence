@@ -642,6 +642,7 @@
   "dashboard.filter.all_suppliers": "Todos los proveedores",
   "dashboard.filter.supplier_note": "El proveedor filtra el gasto propuesto y el stock valorado con costes de ese proveedor.",
   "dashboard.kpi.spend": "Gasto propuesto",
+  "dashboard.kpi.hidden_by_role": "No disponible para tu rol",
   "dashboard.kpi.spend_week": "Propuesta de la semana {{week}} ({{status}})",
   "dashboard.kpi.spend_none": "Todavía no hay propuesta.",
   "dashboard.kpi.spend_budget": "Presupuesto semanal: {{value}}",

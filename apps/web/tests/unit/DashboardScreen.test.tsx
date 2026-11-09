@@ -268,3 +268,26 @@ describe("DashboardScreen", () => {
     expect((await screen.findByLabelText("Detalle de la variante 7")).textContent).toContain("Todavía no hay previsión para este producto");
   });
 });
+
+
+describe("DashboardScreen when the role may not see money", () => {
+  it("says so instead of showing a broken figure, and keeps the counts", async () => {
+    const base = overview();
+    const summary = { ...base.summary.data! };
+    delete summary.inventory_value;
+    delete summary.expiring_value;
+    summary.hidden_by_role = ["inventory_value", "expiring_value"];
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview({
+      summary: { ok: true, data: summary },
+      abc_xyz: { ok: true, data: { cells: [{ abc: "A", xyz: "X", variant_count: 4 }] } },
+      spend: { ok: false, error: "hidden_by_role" },
+    }));
+    const { container } = render(<DashboardScreen />);
+    const value = await screen.findByLabelText("Valor del inventario");
+    expect(value.textContent).toContain("No disponible para tu rol");
+    expect(screen.getByLabelText("Valor que caduca en 60 días").textContent).toContain("No disponible para tu rol");
+    expect(screen.getByLabelText("Variantes con riesgo de rotura").textContent).toContain("3");
+    expect(screen.getByLabelText("Gasto propuesto").textContent).toContain("No disponible para tu rol");
+    expect(container.textContent).not.toMatch(/undefined|NaN/);
+  });
+});

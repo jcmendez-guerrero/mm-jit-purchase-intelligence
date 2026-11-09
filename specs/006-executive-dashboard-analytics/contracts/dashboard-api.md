@@ -54,7 +54,7 @@ Response: `text/csv; charset=utf-8` with BOM, `;` separator, decimal comma, Span
 
 1. No hard-coded or placeholder value in any response; an empty source yields `state: no_data`, never zero.
 2. A viewer receives no money fields (`state: hidden_by_role`).
-3. Products are identified by `sku`; internal ids appear only inside the opaque `detail_ref`.
+3. Products are identified by `sku`. The internal id travels as `variant_id` in each drill-down row only so the screen can open the product detail; it is never displayed. T040 and T042 replace it with a lookup by SKU.
 4. Data originating from a local load is labelled `origin: local_load` and is not summed with `erp_sync` data.
 5. Excluded or quarantined records are counted in `incomplete_count`.
 6. Timestamps are UTC ISO-8601 with the original string alongside.

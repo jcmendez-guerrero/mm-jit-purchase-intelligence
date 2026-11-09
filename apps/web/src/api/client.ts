@@ -580,11 +580,12 @@ export interface DashCard<T> {
 
 export interface DashSummary {
   day: string;
-  inventory_value: string | null;
+  inventory_value?: string | null;
+  hidden_by_role?: string[];
   valued_with_estimate: number;
   unvalued_lots: number;
   value_basis: string;
-  expiring_value: string | null;
+  expiring_value?: string | null;
   stockout_risk: number;
   expiry_risk: number;
   coverage_days_avg: string | null;
@@ -605,7 +606,7 @@ export interface DashTrend {
 export interface DashOverview {
   summary: DashCard<DashSummary>;
   trend: DashCard<DashTrend>;
-  abc_xyz: DashCard<{ cells: Array<{ abc: string; xyz: string; variant_count: number; value: string }> }>;
+  abc_xyz: DashCard<{ cells: Array<{ abc: string; xyz: string; variant_count: number; value?: string }> }>;
   risks: DashCard<RiskItem[]>;
   options: DashCard<{ warehouses: Array<{ id: number; name: string }>; categories: Array<{ id: string; kind: string }>; families?: Array<{ id: string }>; family_available: boolean }>;
   accuracy: DashCard<{ run_id: string | null; window_days: number; metrics: Record<string, Record<string, string>> }>;
