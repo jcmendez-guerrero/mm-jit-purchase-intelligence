@@ -27,6 +27,7 @@ This is one of the parallel agent assignments of epic MMI-1 ("MMI 003 | Product 
 ### Session 2026-11-09
 
 - Q: How are the review findings on the delivered work (audit volume, request handling, size limits, rate-feed read) folded into this specification? → A: They update this feature (no new feature): FR-038 to FR-041 and SC-013 are added, FR-028 is tightened, and the matching tasks are appended to tasks.md.
+- Q: How are the second review's findings (concurrent refusals, rate-refresh failure) folded in? → A: Into this same feature: FR-042, FR-043 and SC-014 are added, the replica limit is recorded as an assumption, and the matching tasks are appended to tasks.md.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -148,6 +149,8 @@ Every change to a supplier, its terms, a link or a cost is attributable, tamper-
 - Very long supplier lists: the screen stays usable through search and filters; pagination is not needed at the expected scale of tens of suppliers.
 - The ERP is unreachable: all supplier maintenance and proposals keep working from local terms.
 - A caller repeats the same invalid request many times (or sends requests with no sign-in): the audit trail records one entry per minute per caller, target and reason with a repeat count, and other users are not slowed.
+- Fifty identical refused requests arrive at the same instant: exactly one audit entry is stored and the skipped count is fifty minus one; none is lost silently.
+- The exchange-rate refresh fails in its storage step (not only in the download): change events still leave the service in the same pass and the failure is reported.
 - A change request is sent with a body larger than the limit under a non-JSON content type: refused as too large, nothing is read beyond the limit.
 
 ## Requirements *(mandatory)*
@@ -221,6 +224,8 @@ Every change to a supplier, its terms, a link or a cost is attributable, tamper-
 - **FR-039**: Recording a refusal MUST NOT delay other users' requests: a burst of refused requests leaves the time to save or read terms for other users within SC-011.
 - **FR-040**: Every change request MUST be refused with a clear "payload too large" answer when its body exceeds the size limit, whatever content type or length declaration the caller uses, and the body MUST NOT be held in memory beyond that limit.
 - **FR-041**: Reading the exchange-rate answer MUST stop once the maximum accepted size is reached, so an oversized or endless answer cannot use more memory than that limit; the stored rates stay unchanged and the failure is audited as any other rate-service failure.
+- **FR-042**: When many refused requests arrive at the same moment, the audit trail MUST still hold exactly one entry per distinct caller, target and reason per minute, and no refusal that should be stored may be lost without a visible error; the counts of skipped refusals MUST stay accurate.
+- **FR-043**: A failure in the exchange-rate refresh or its housekeeping (an unreachable service, a database error) MUST NOT stop any other background work of the service, in particular the delivery of change events to other services, and MUST be reported and audited.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -250,9 +255,11 @@ Every change to a supplier, its terms, a link or a cost is attributable, tamper-
 - **SC-011**: Saving or reading a supplier's terms takes under 300 ms for 95% of requests with 50 stored versions.
 - **SC-012**: 100% of non-EUR amounts used in an allocation have a stored rate no older than 7 days; every other case appears in the review list, none is silently converted or dropped.
 - **SC-013**: 1,000 identical refused requests in one minute add at most one audit entry per distinct caller, target and reason, while the 95th-percentile time to save terms for other users stays under 300 ms; a 50 MB body of any content type is refused without exhausting memory.
+- **SC-014**: With 50 identical refused requests sent at once, exactly one audit entry is stored and the skipped count is accurate; with the exchange-rate storage step forced to fail, change events are still delivered in the same pass in 100% of tested runs.
 
 ## Assumptions
 
+- The service runs as a single replica; the once-a-minute limit on stored refusals and the once-a-day rate refresh are per process, and moving to several replicas needs shared storage for both (recorded as a limit, not built now).
 - Work builds on features 002 and 004 on the latest main branch; existing supplier terms, link, bulk assignment, cost-resolution and audit code is reused wherever the audit shows it works.
 - The roles are the existing ones (viewer, buyer, admin); buyers and admins maintain suppliers, viewers read only; releasing or overriding an ERP cost needs a fresh second factor.
 - "MOQ value/units" means a minimum order value and a minimum order quantity; when both are set the stricter applies.

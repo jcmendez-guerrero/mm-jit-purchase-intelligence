@@ -76,3 +76,11 @@ cd services/procurement-service && python -m pytest tests/test_terms_no_erp.py t
 ```
 
 Expected: ERP-owned data identical before and after; zero ERP requests.
+
+## 6. Review hardening (FR-038 to FR-043)
+
+```bash
+uv run --no-sync python -m pytest services/procurement-service/tests/test_refusal_volume.py services/procurement-service/tests/test_terms_abuse.py services/procurement-service/tests/perf/test_refusal_burst.py services/procurement-service/tests/test_worker_fx.py -q -p no:cacheprovider
+```
+
+Expected: 50 simultaneous identical refusals leave one audit entry with an accurate skipped count; a body over the limit is refused under any content type; a forced failure of the rate storage step does not stop event relay, and the pass reports it.

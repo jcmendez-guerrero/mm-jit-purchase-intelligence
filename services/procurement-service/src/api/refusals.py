@@ -96,24 +96,24 @@ def _skip(request: Request, key: tuple[str, str, str, str, int]) -> int | None:
     return repeats
 
 
-def _record_now(request: Request, path: str, status: int, detail: Any) -> None:
-    action, entity, entity_id = _target(path, dict(request.path_params))
-    actor = str(getattr(request.state, "actor", "unknown"))[:120]
-    if status == 401:                                           # FR-038: no valid sign-in is counted, never stored one by one
-        request.app.state.refusal_unauthenticated = getattr(request.app.state, "refusal_unauthenticated", 0) + 1   # FR-038: counted, not stored
-        return
-    code = _code(status, detail)
-    repeats = _skip(request, (actor, entity, entity_id[:60], code, status))
-    if repeats is None:
-        return
+def _write(request: Request, action: str, entity: str, entity_id: str, actor: str, code: str, status: int, repeats: int) -> None:
     with _engine(request).begin() as conn:
-        record_refusal(conn, actor, action, entity, entity_id[:60], code, status, repeats=repeats)
+        record_refusal(conn, actor, action, entity, entity_id, code, status, repeats=repeats)
 
 
 async def _record(request: Request, path: str, status: int, detail: Any) -> None:
-    """FR-039: the database write runs in a worker thread, so a burst of refusals never blocks the other requests."""
+    """Records one refusal. The bookkeeping (FR-038, FR-042) runs here, on the event loop's single thread, so the check-then-store step cannot
+    race; only the database write goes to a worker thread, so a burst of refusals never blocks the other requests (FR-039)."""
     try:
-        await run_in_threadpool(_record_now, request, path, status, detail)
+        action, entity, entity_id = _target(path, dict(request.path_params))
+        actor = str(getattr(request.state, "actor", "unknown"))[:120]
+        if status == 401:                                       # no valid sign-in: counted, never stored one by one
+            request.app.state.refusal_unauthenticated = getattr(request.app.state, "refusal_unauthenticated", 0) + 1
+            return
+        code, entity_id = _code(status, detail), entity_id[:60]
+        repeats = _skip(request, (actor, entity, entity_id, code, status))
+        if repeats is not None:
+            await run_in_threadpool(_write, request, action, entity, entity_id, actor, code, status, repeats)
     except Exception:
         log.exception("refusal not recorded")
 

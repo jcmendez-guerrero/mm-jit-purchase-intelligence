@@ -13,6 +13,8 @@ Features 002 and 004 already implement most of the supplier commercial domain. T
 3. **Currency equivalence** (FR-034 to FR-036): no EUR-rate rule exists in the code. Decided: the existing worker, about once a day, caches ECB reference rates from Frankfurter in a local table; allocation uses stored rates only; missing, unsupported or stale (over 7 days) rates exclude the supplier and raise a review item.
 4. **Proof gaps**: delivery date from schedule and cutoff on proposals (US5-2), cost-provenance difference display (FR-016), terms-history and conflict UI states, and an end-to-end Playwright journey for the P1 stories.
 
+5. **Review hardening** (FR-038 to FR-043, SC-013, SC-014; spec update of 2026-11-09): refusal audit volume is bounded and race-free, the refusal write runs off the event loop, the size limit holds for every content type, the rate-feed read is capped, and a failed rate refresh never stops event relay. Design in [research.md](research.md) decisions D7 to D10; all inside `procurement-service` (`src/api/refusals.py`, `src/fx/rates.py`, `src/worker.py`), no schema, contract or ERP change.
+
 No new service, table family or ERP interaction is introduced; changes stay inside `procurement-service` (own schema), the BFF passthrough, the contracts package and the suppliers feature of the web app.
 
 ## Technical Context

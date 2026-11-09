@@ -14,7 +14,7 @@ Added on top of the audit of features 002/004: idempotent term saves (`Idempoten
 
 **Security**
 - [x] No secrets or real identifiers. No new Siweb request type; the only new outbound call is the public ECB rate feed (`https://api.frankfurter.dev/v2/providers/ecb/rates?base=EUR`, fixed URL, no credentials)
-- [x] Refused changes are audited without the request body, bounded: no valid sign-in is counted not stored, identical refusals collapse to one entry per minute with a repeat count, the write runs off the event loop, the 256 KB limit holds for every content type, and the rate-feed read stops at its limit (review fixes, FR-038 to FR-041); the BFF cost override now also needs a fresh second factor (gap found by T044)
+- [x] Refused changes are audited without the request body, bounded: no valid sign-in is counted not stored, identical refusals collapse to one entry per minute with a repeat count, the write runs off the event loop, the 256 KB limit holds for every content type, the rate-feed read stops at its limit, the refusal bookkeeping runs on one thread (no race), and a failed rate step never stops event relay (review fixes, FR-038 to FR-043); the BFF cost override now also needs a fresh second factor (gap found by T044)
 
 **Cost**
 - [x] No new always-on resource. One rate fetch about daily inside the existing procurement worker (`MMI_FX_DISABLED=1` turns it off); two small tables (`terms_idempotency`, `fx_rates`, purged at 400 days)

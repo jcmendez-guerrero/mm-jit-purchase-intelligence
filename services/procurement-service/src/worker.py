@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from audit.chain import append as audit
 from consumer import ReceiptSource, consume_once, sync_receipts
 from costs.lot_lookup import HttpLotsSource, LotsSource
 from costs.pvp import HttpPvpSource, PvpSource
@@ -60,14 +61,23 @@ def run_once(engine: Engine, bus, blobs, receipts: ReceiptSource | None, writer:
     if receipts is not None:
         with engine.begin() as conn:
             receipt_stats = sync_receipts(conn, receipts, writer=writer, lots=lots, pvp=pvp)
-    fx_status = None
-    if rates is not None:                                       # MMI-6: about once a day; a failure is reported, never fatal (fx/rates.py)
-        with engine.begin() as conn:
-            now = datetime.now(UTC)
-            fx_status = refresh_if_due(conn, rates, now)
-            purge(conn, now)
     with engine.begin() as conn:
         sent = relay_once(conn, outbox, bus, SUBSCRIPTIONS)
+    fx_status = None
+    if rates is not None:                                       # MMI-6: about once a day, after the relay and never fatal (FR-043)
+        try:
+            with engine.begin() as conn:
+                now = datetime.now(UTC)
+                fx_status = refresh_if_due(conn, rates, now)
+                purge(conn, now)
+        except Exception:
+            log.exception("exchange-rate step failed; events were relayed")
+            fx_status = "error"
+            try:                                                # best effort, in its own transaction: the failed one was rolled back
+                with engine.begin() as conn:
+                    audit(conn, "svc-procurement", "fx.refresh_failed", "fx_rates", "ecb", after={"code": "fx_storage_error"})
+            except Exception:
+                log.exception("could not audit the exchange-rate failure")
     return {"applied": stats.applied, "duplicates": stats.duplicates, "rejected": stats.rejected, "failed": stats.failed, "relayed": sent, "receipts": receipt_stats,
             **({"fx": fx_status} if rates is not None else {})}
 

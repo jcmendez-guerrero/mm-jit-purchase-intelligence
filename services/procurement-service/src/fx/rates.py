@@ -131,7 +131,11 @@ def store_rates(conn: Connection, rates: list[Rate], fetched_at: datetime) -> No
 
 
 def refresh_if_due(conn: Connection, source: RatesSource, now: datetime) -> str:
-    """One worker pass: ``fresh`` (nothing to do), ``backoff`` (a recent failure), ``stored`` or ``failed``. Never raises: the worker has other work."""
+    """One worker pass: ``fresh`` (nothing to do), ``backoff`` (a recent failure), ``stored`` or ``failed``.
+
+    Absorbs download and parse failures (``failed``, audited). A database error while reading or storing is not absorbed here: the worker catches it
+    around the whole step, so the other work of the pass still runs (FR-043).
+    """
     newest = conn.execute(select(func.max(fx_rates.c.fetched_at))).scalar()
     if newest is not None and now - _aware(newest) < REFRESH_AFTER:
         return "fresh"

@@ -79,3 +79,22 @@ def test_skipped_sign_in_failures_are_counted(client, sid, clock):
     for _ in range(12):
         client.put(f"/suppliers/{sid}/terms", json=BODY)
     assert client.app.state.refusal_unauthenticated == 12
+
+
+def test_fifty_identical_refusals_at_the_same_instant_leave_one_entry_and_an_exact_count(client, engine, sid, clock, monkeypatch):
+    """T065 (FR-042, SC-014): the check-then-store step cannot race, and no count is lost."""
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    def slow_clock():                                        # widens any race window; harmless when the bookkeeping is on one thread
+        time.sleep(0.002)
+        return clock[0]
+
+    monkeypatch.setattr("api.refusals._clock", slow_clock)
+    with ThreadPoolExecutor(50) as pool:
+        statuses = list(pool.map(lambda _: bad(client, sid).status_code, range(50)))
+    assert set(statuses) == {422}
+    assert len(refusals(engine)) == 1
+    clock[0] += 61
+    bad(client, sid)
+    assert [e[4].get("repeats") for e in refusals(engine)] == [None, 49]
