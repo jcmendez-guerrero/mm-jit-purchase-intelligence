@@ -76,3 +76,18 @@ Run on a throwaway `postgres:16-alpine` container (local, removed afterwards) wi
 ## Supplier terms and FR-017 (T089, decided by the owner)
 
 Decision: the amounts in a supplier's terms (minimum order value, delivery charge, free-delivery threshold) are **not** cost figures for FR-017. They stay readable by every role in the dashboard's supplier panel (`apps/web/src/features/dashboard/SupplierPanel.tsx`) and through `GET /api/suppliers/{id}` (`services/api-bff/src/routes/suppliers.py`, readers: viewer, buyer, approver, admin), as set by the supplier management rules of feature 004. What roles without cost access do not receive on the dashboard: stock value, expiring value, ABC/XYZ group values, the amounts of money drill-downs, and the proposed-spend card (including the spend line of the supplier panel, which is empty for them). No code change.
+
+## Approval of the cross-service changes (T075, decided by the owner on 2026-11-09)
+
+Approved by the owner in place of Agent 00, who is to be informed (a comment on Jira MMI-3). Scope, additive only, no existing field removed or changed:
+- forecast-service `GET /accuracy`: add accuracy history (WAPE and bias per run, with its date) so the dashboard can show forecast error over time.
+- procurement-service `GET /summary/spend`: add the budget for the period and the amount of confirmed supplier orders not yet received, the second being the open-order part of capital tied up (spec FR-025).
+Each change needs its own tests in the owning service, and neither touches another agent's files beyond these two endpoints. Moving the v2 schema into `packages/contracts` (T005) is a separate shared-contract change and is not covered by this approval.
+
+## Capital tied up (T003, definition decided by the owner on 2026-11-09)
+
+Stock valued at lot acquisition cost plus the amount of confirmed supplier orders not yet received (spec FR-025).
+
+## Approval to add the v2 schema to the shared contracts (T003/T005, decided by the owner on 2026-11-09)
+
+Approved by the owner in place of Agent 00, who is to be informed (a comment on Jira MMI-3). Scope: add `dashboard_indicators.v2.schema.json` to `packages/contracts/dto` and regenerate the types; `dashboard_summary.v1.schema.json` and every other contract stay untouched; any later change to a contract of another agent needs its own approval.

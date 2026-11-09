@@ -18,6 +18,13 @@ The buyer web app already has a dashboard screen with some charts and drill-down
 
 - Numbering: the Jira page names the folder `specs/003-agent-01/`, but numbers 001-004 are taken, so this feature uses the next free number (006), because 005 is being developed in parallel. The Jira issue and Confluence page remain the source of scope.
 
+### Session 2026-11-09
+
+- Q: What should the "capital tied up" indicator count? → A: Stock valued at lot acquisition cost plus the amount of confirmed supplier orders not yet received (option B).
+- Q: Who can approve the additive changes to the forecast and procurement services that the dashboard needs (accuracy history, period budget)? → A: The owner, now; the approval is recorded in the audit file with the exact endpoints and Agent 00 is informed (option B).
+- Q: Who can approve moving the new indicators schema into the shared contracts folder? → A: The owner, now; only a new version is added, the existing one is not touched, it is recorded in the audit file and Agent 00 is informed (option B).
+- Q: Which period should the purchasing budget indicator compare against? → A: The budgets in force within the date range chosen in the filters (weekly and monthly caps), against the proposed and confirmed spend in that same range (option B).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Read the business at a glance (Priority: P1)
@@ -134,6 +141,8 @@ Every figure shows when its data was last refreshed and where it came from (ERP 
 - Roles without access to costs or capital: monetary cards are hidden, not blanked.
 - Daylight-saving transitions at period boundaries.
 - Records that cannot be classified go to the review list and are surfaced as a count on the dashboard.
+- A date range partly covered by budget caps, or with no cap in force: the caps in force are used and listed, and a range with none shows "sin presupuesto" instead of zero.
+- Capital tied up with a partly received order: only the part not yet received counts as open order, and an order line with no known cost is counted in the incomplete bucket, never as zero.
 
 ## Requirements *(mandatory)*
 
@@ -180,6 +189,8 @@ Every figure shows when its data was last refreshed and where it came from (ERP 
 - **FR-022**: Timestamps MUST be stored in UTC with the original value preserved, and shown in the local time zone.
 - **FR-023**: Analytics MUST NOT require always-on services beyond the existing platform and MUST stay within the shared monthly cost budget.
 - **FR-024**: The feature MUST include a written audit of the current dashboard (complete, partial, broken, missing, unverified, with file and line evidence), and working parts MUST be reused.
+- **FR-025**: The capital tied up indicator MUST equal the stock valued at lot acquisition cost plus the amount of confirmed supplier orders not yet received, with the two parts shown separately in its definition and in its drill-down, and its total MUST equal the sum of the two parts for the same filters.
+- **FR-026**: The purchasing budget indicator MUST compare the budget caps in force within the selected date range (weekly and monthly) with the proposed and confirmed spend in that same range, MUST list each cap used with the period it covers so the figure can be explained, and MUST show "sin presupuesto" when no cap is in force in the range while still showing the spend.
 
 ### Key Entities
 
@@ -214,6 +225,7 @@ Every figure shows when its data was last refreshed and where it came from (ERP 
 - Forecast quality uses the project's existing definitions of WAPE and bias.
 - Exports are spreadsheet-friendly files; a printable/PDF layout is out of scope for this version.
 - Roles and permissions already exist; this feature adds no new roles.
-- Shared API contracts with other parallel work are coordinated by the integration owner (Agent 00); this feature does not change another agent's owned files.
+- Shared API contracts with other parallel work are coordinated by the integration owner (Agent 00); this feature does not change another agent's owned files, with one approved exception: the owner approved on 2026-11-09 the additive changes to the forecast service (accuracy history) and the procurement service (period budget and open orders), recorded in the audit file, and Agent 00 is informed. A second approved exception: the owner approved adding the new indicators schema as a new version in the shared contracts folder, leaving the existing version untouched.
 - Delivery is by a single reviewable change with tests, screenshots in Spanish and no production deployment or ERP write.
 - Tests use synthetic data only; no real exports or identifiers are committed.
+- How overlapping weekly and monthly caps are combined into one comparison is settled during planning and shown to the user in the indicator's definition.

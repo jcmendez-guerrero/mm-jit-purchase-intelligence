@@ -1,6 +1,6 @@
 # Contract: Dashboard API (BFF)
 
-All routes are `GET`, read-only, under `/api/dashboard`, require a signed-in session and the roles shown. Payload shapes are defined in [dashboard_indicators.v2.schema.json](dashboard_indicators.v2.schema.json); the existing `dashboard_summary.v1` schema is left unchanged. Errors use the project's error codes (`request_invalid`, `downstream_unavailable`, `downstream_refused`, `forbidden`), never raw downstream text.
+All routes are `GET`, read-only, under `/api/dashboard`, require a signed-in session and the roles shown. Payload shapes are defined in [dashboard_indicators.v2.schema.json](../../../packages/contracts/dto/dashboard_indicators.v2.schema.json); the existing `dashboard_summary.v1` schema is left unchanged. Errors use the project's error codes (`request_invalid`, `downstream_unavailable`, `downstream_refused`, `forbidden`), never raw downstream text.
 
 ## Common query parameters (FilterSet)
 
@@ -65,7 +65,7 @@ Response: `text/csv; charset=utf-8` with BOM, `;` separator, decimal comma, Span
 | Service | Call | Contract owner |
 |---------|------|----------------|
 | inventory-service | `/dashboard/*` (extended, same prefix) | inventory |
-| forecast-service | `/accuracy` (extended with history) | forecast |
-| procurement-service | `/summary/spend` (budget and open orders) | procurement |
+| forecast-service | `/accuracy` (additive: accuracy history per run, approved by the owner 2026-11-09) | forecast |
+| procurement-service | `/summary/spend` (additive: budget caps in force for a date range, per week, and the amount of confirmed unreceived orders; approved by the owner 2026-11-09) | procurement |
 
-Changes to the forecast and procurement endpoints are additive and raised with their owners through Agent 00 before implementation.
+Both changes are additive (no existing field removed or changed), each needs its own tests in the owning service, and Agent 00 is informed (audit file, T075).

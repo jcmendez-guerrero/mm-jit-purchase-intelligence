@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mmi/dto/dashboard_indicators.v2",
   "title": "DashboardIndicators",
-  "description": "Draft for review with Agent 00. To be moved to packages/contracts/dto when approved; v1 stays unchanged.",
+  "description": "Executive dashboard indicators (feature 006): ten indicators with freshness, state and an optional breakdown, plus the drill-down page and chart series shapes. Added beside dashboard_summary.v1, which is untouched.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -200,6 +200,12 @@
               "family"
             ]
           }
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Part"
+          }
         }
       }
     },
@@ -349,6 +355,44 @@
             "no_data",
             "error"
           ]
+        }
+      }
+    },
+    "Part": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "label_key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "label_key": {
+          "type": "string"
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^-?\\d+(\\.\\d+)?$"
+        },
+        "period": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "from": {
+              "type": "string",
+              "format": "date"
+            },
+            "to": {
+              "type": "string",
+              "format": "date"
+            }
+          }
         }
       }
     }

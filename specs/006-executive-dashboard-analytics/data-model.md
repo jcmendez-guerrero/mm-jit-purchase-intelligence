@@ -27,7 +27,17 @@ Invalid values are refused with `request_invalid`; they are never coerced silent
 | definition_key | string | translation key for the definition |
 | freshness | DataFreshness | |
 | incomplete_count | int | records excluded or estimated, linked to the review list |
+| parts | list of Part | optional breakdown that explains the value: for capital tied up `stock_at_cost` and `open_orders`; for the purchasing budget one part per cap used with its period, and `spend` |
 | filters_unsupported | list of strings | filters this indicator cannot honour, stated in text |
+
+## Part (inside an Indicator)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| key | string | e.g. `stock_at_cost`, `open_orders`, `cap_week`, `cap_month`, `spend` |
+| label_key | string | translation key |
+| value | string or null | Decimal as string; the parts of capital add up to the indicator value |
+| period | object, optional | `from` and `to` of the weeks or months the part covers |
 
 ## DataFreshness
 

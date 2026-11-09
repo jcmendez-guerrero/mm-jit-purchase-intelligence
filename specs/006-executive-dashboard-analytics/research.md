@@ -55,8 +55,9 @@ Status values: **complete**, **partial**, **broken**, **missing**, **unverified*
 - **Decision**:
   - *Demand*: units sold (real ERP sales, uncensored) in the period, with daily average; local-load data labelled separately.
   - *Forecast*: forecast units for the next 28 days for forecast-eligible variants, with the upper band; variants without forecast counted in an "incomplete" bucket.
-  - *Capital tied up*: stock value at lot acquisition cost plus the value of confirmed supplier orders not yet received. **Assumption to confirm with the owner** (stock value alone is already card A1).
-  - *Purchasing budget*: budget for the period (budget cap) against proposed and confirmed spend.
+  - *Capital tied up* (confirmed by the owner 2026-11-09, FR-025): stock at lot acquisition cost plus the amount of confirmed supplier orders not yet received, the two parts shown separately; a partly received order counts only its unreceived part, and an order line with no known cost goes to the incomplete bucket.
+  - *Where each part is computed* (checked in code): inventory-service holds the stock at lot cost, but its `inbound_lines` keep only quantities, with no prices and no receipts. The amount of confirmed orders not yet received therefore comes from procurement-service (the approved additive change to `GET /summary/spend`), and the BFF composes `capital_tied_up = stock_at_cost + open_orders` in one tested function, returning both parts. The BFF adds two numbers it received; it applies no rule of its own.
+  - *Purchasing budget* (FR-026): the budget caps in force within the selected date range against the proposed and confirmed spend in that range; see R15.
   - *WAPE and bias*: existing forecast-service definitions, shown as cards with a time series.
 - **Rationale**: the spec asks for each; definitions are stored with the indicator (FR-005).
 - **Alternatives**: capital equal to stock value (rejected: duplicate card).
@@ -117,11 +118,17 @@ Charts 1-6 satisfy the "five or more" gate; chart 7 uses the `agg_daily_kpis` hi
 ### R14 Parallel work
 - **Decision**: additive-only edits in shared files (`es-ES.json` under `dashboard.*`, a new `api/dashboard.ts`, `v2` schema beside `v1`). Anything that changes a shared contract is raised with Agent 00 first. Feature 005 runs in parallel; a conflict in `.specify/feature.json` is resolved at merge by keeping each branch's own value.
 
-## Open assumptions and how the audit resolved them
+### R15 Purchasing budget over a date range (decided in planning, FR-026)
+- **Decision**: reuse the rule the procurement service already applies to one week (`effective_weekly_budget`: the global weekly cap in force, a monthly cap split over 4.33 weeks, the stricter of the two). For a range, take every ISO week whose Monday falls inside the range, apply that rule as of each Monday and add the results. List each cap row used with its period. Weeks without any cap add nothing; if no week has a cap the card says "sin presupuesto" and still shows the spend. Spend in the range is the total of the newest non-superseded proposal of each week, which already covers proposed and confirmed amounts, so confirmed orders are not added a second time.
+- **Rationale**: one rule for one week and for many; explainable (the caps and weeks are listed); no new budget logic in the BFF.
+- **Alternatives**: summing weekly and monthly caps together (rejected: double counts); prorating by calendar days (rejected: unlike the rule already in use).
+- **To verify** in T022 with a test: a range spanning a week with a weekly cap, a week covered only by a monthly cap, and a week with none.
 
-1. Capital tied up includes confirmed, unreceived orders (R3): **still open, owner answer needed (T003)**.
-2. Supplier links reach inventory by an event (R4): **resolved, not needed** (lot cost projection).
-3. Historical snapshots start at deployment (R6): **resolved, history already exists** in `agg_daily_kpis`.
-4. Viewer role receives money fields (R10): **confirmed leak**; the helper exists (T012), wiring is part of T023/T026.
-5. New: the dropdown's supplier ids must match `lot_cost_projection.supplier_id` (R4): verify before T033.
-6. New: Agent 00 must approve the additive forecast and procurement changes (T075).
+## Open assumptions and how they were resolved
+
+1. Capital tied up (R3): **decided by the owner on 2026-11-09**, FR-025.
+2. Supplier links (R4): **resolved, not needed** (lot cost projection); the dropdown ids match the lot cost ids (T081).
+3. History (R6): **resolved**, `agg_daily_kpis` already holds it.
+4. Viewer role and money (R10): **fixed** (T012); supplier-term amounts stay visible by the owner's decision (T089).
+5. Cross-service changes (T075) and the v2 schema in `packages/contracts` (T003): **approved by the owner on 2026-11-09**, Agent 00 to be informed.
+6. Open: the spend counted per week (R15) is verified by the T022 tests.

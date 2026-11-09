@@ -1,6 +1,6 @@
 """T086 (Constitution IV): the real drill-down payload, from the function and from the route, validates against DrillPage in the v2 contract.
 
-The schema is still a draft under specs/; T005 moves it to packages/contracts/dto, and SCHEMA below changes with it.
+The schema lives in packages/contracts/dto (moved there by T005).
 """
 
 import copy
@@ -14,7 +14,7 @@ from dashboard.drilldown import drilldown
 from dashboard.kpis import Filters
 from reference_dataset import TODAY, seed_reference
 
-SCHEMA = Path(__file__).resolve().parents[3] / "specs" / "006-executive-dashboard-analytics" / "contracts" / "dashboard_indicators.v2.schema.json"
+SCHEMA = Path(__file__).resolve().parents[3] / "packages" / "contracts" / "dto" / "dashboard_indicators.v2.schema.json"
 KINDS = [("inventory_value", {}), ("coverage", {}), ("stockout_risk", {}), ("expiry_risk", {}), ("abc_xyz", {"abc": "A", "xyz": "X"}), ("trend_day", {"day": "2026-11-08"})]
 
 

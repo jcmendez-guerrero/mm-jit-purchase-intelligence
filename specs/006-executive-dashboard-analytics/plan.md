@@ -8,7 +8,7 @@
 
 Turn the existing buyer dashboard into an executive dashboard whose every figure is computed from stored data. The baseline is already substantial (inventory value, coverage, expiring value, stockout severity, proposal spend, ABC/XYZ, demand trend with forecast, accuracy table, risk list, drill-down, product and supplier panels). The audit in [research.md](research.md) shows what is complete, partial, missing and unverified. The plan reuses the working parts and closes the gaps:
 
-- add the missing indicators (demand, forecast, capital tied up, purchasing budget as a card, WAPE/bias as cards);
+- add the missing indicators (demand, forecast, capital tied up as stock at lot cost plus confirmed unreceived orders (FR-025), purchasing budget over the chosen date range (FR-026), WAPE/bias as cards);
 - make the date, warehouse, supplier and category filters apply to every figure, and make them shareable by link;
 - add per-card freshness, origin and definition;
 - add at least five live charts, each with a table view;
@@ -48,11 +48,11 @@ No new service and no new always-on resource. The inventory service owns the fig
 | I. Least-privilege integrations | Feature reads only the app's own databases; adds no Siweb call, no write, no allowlist change. | Pass |
 | II. Privacy and synthetic data | Tests and fixtures synthetic (`packages/testing`); exports exclude notes, tax ids and Siweb ids; local-load data labelled and never mixed with ERP data. | Pass |
 | III. Explainable, human-controlled | Read-only; every figure has a definition, basis and drill-down to contributing SKUs; no autonomous action. Money is Decimal. | Pass |
-| IV. Contract-first boundaries | New and changed payloads defined first as JSON Schema in `packages/contracts` (additive `v2`, `v1` untouched); each service keeps its schema and role; the supplier filter reads inventory's own lot cost projection, never another service's tables; BFF holds no business rule. | Pass |
+| IV. Contract-first boundaries | New and changed payloads defined first as JSON Schema in `packages/contracts` (additive `v2`, `v1` untouched); each service keeps its schema and role; the supplier filter reads inventory's own lot cost projection, never another service's tables; the two additive endpoint changes in forecast-service and procurement-service are approved by the owner (audit file), each with contract tests in its own service; BFF holds no business rule. | Pass |
 | V. Testable, observable, cost-bounded | Unit, contract, integration, abuse and E2E tests planned; export and refresh emit operational signals; no new always-on service; reuses the aggregate refresh job. | Pass |
 | Additional constraints | UI Spanish only; UTC plus original timestamp; quarantined records counted and linked, not dropped. | Pass |
 
-**Post-design re-check**: still passing after the audit and the review fixes. Two items stay explicit assumptions, not violations: the definition of "capital tied up" (owner answer, T003) and Agent 00's approval of the forecast and procurement changes (T075). The audit resolved the rest (supplier filter, history, viewer money; see `audit/dashboard-audit.md`).
+**Post-design re-check**: still passing after the clarifications of 2026-11-09 (FR-025 capital tied up, FR-026 purchasing budget, owner approvals recorded in `audit/dashboard-audit.md`). One decision stays to verify in code and test: the spend compared with the budget counts the newest non-superseded proposal of each week, so confirmed orders are not counted twice (research R15, T022).
 
 ## Project Structure
 
@@ -66,8 +66,7 @@ specs/006-executive-dashboard-analytics/
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
-│   ├── dashboard-api.md
-│   └── dashboard_indicators.v2.schema.json
+│   └── dashboard-api.md        # the schema itself lives in packages/contracts/dto
 ├── checklists/requirements.md
 └── tasks.md             # created by /speckit-tasks
 ```
@@ -76,7 +75,7 @@ specs/006-executive-dashboard-analytics/
 
 ```text
 packages/contracts/dto/
-└── dashboard_indicators.v2.schema.json     # new; v1 left as is (contract-first, additive)
+└── dashboard_indicators.v2.schema.json     # added (T005); v1 left as is (contract-first, additive)
 
 services/inventory-service/
 ├── src/dashboard/
@@ -94,6 +93,9 @@ services/inventory-service/
 services/api-bff/
 ├── src/routes/dashboard.py   # orchestrate only; pass-through filters; export audit entry
 └── tests/                    # orchestration, RBAC, export audit, downstream failures
+
+services/forecast-service/                       # approved additive change only (T022): accuracy history on GET /accuracy, with its tests
+services/procurement-service/                    # approved additive change only (T022): period budget and open orders on GET /summary/spend, with its tests
 
 apps/web/src/
 ├── features/dashboard/       # reuse existing files; add indicator cards, charts/, useDashboardFilters.ts (done), useNewerDataNotice.ts, export
@@ -113,4 +115,4 @@ specs/006-executive-dashboard-analytics/audit/   # verified audit (done, T001/T0
 
 ## Complexity Tracking
 
-No constitution violations and no extra tables, services or events: the audit showed that the existing `agg_daily_kpis` history and `lot_cost_projection` cover the daily history and the supplier filter.
+No constitution violations and no extra tables, services or events: the audit showed that the existing `agg_daily_kpis` history and `lot_cost_projection` cover the daily history and the supplier filter. The only reach beyond inventory-service is the two owner-approved additive endpoint changes in forecast-service and procurement-service.

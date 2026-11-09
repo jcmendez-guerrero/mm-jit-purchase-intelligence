@@ -15,6 +15,11 @@ Synthetic data only. Never point these steps at a real Siweb host or load real e
 3. Empty one source (for example forecasts) and reload: only the dependent cards show "sin datos".
 4. Expected: values equal the fixture totals; no card shows a placeholder or a silent zero.
 
+### Capital and budget checks (FR-025, FR-026)
+
+1. Open the capital tied up card: its value equals stock at cost plus confirmed unreceived orders, and the two parts are listed.
+2. Choose a range spanning a week with a weekly cap, a week covered only by a monthly cap and a week with none: the budget card lists each cap used with its period and compares it with the spend of those weeks; a range with no cap shows "sin presupuesto" and still shows the spend.
+
 ## Scenario 2 - Filters (US2, SC-003)
 
 1. Apply warehouse, then supplier, then category, then a date range; then all together.

@@ -28,7 +28,7 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 
 - [X] T001 Confirm tool versions and the exact commands for tests, lint, contract codegen and Playwright from `pyproject.toml`, `apps/web/package.json` and `apps/web/playwright.config.ts`; record them at the top of `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md`
 - [X] T002 Write the verified audit in `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md`: re-check every row A1-A30 of research.md against current files with exact line numbers, and resolve the four open assumptions (supplier-link event, viewer money fields, snapshot availability, local-load origin flag) with evidence (FR-024, SC-008)
-- [ ] T003 Open the contract review with Agent 00: share `contracts/dashboard_indicators.v2.schema.json` and `contracts/dashboard-api.md`; get the owner's confirmation of the capital-tied-up definition (research R3) and record both decisions in the audit file. **Blocks T021, T022 and T005.**
+- [X] T003 Open the contract review with Agent 00: share `contracts/dashboard_indicators.v2.schema.json` and `contracts/dashboard-api.md`; get the owner's confirmation of the capital-tied-up definition (research R3) and record both decisions in the audit file. **Blocks T021, T022 and T005.** (done: capital definition decided by the owner (spec FR-025) and the move of the v2 schema approved by the owner instead of Agent 00 on 2026-11-09, both in the audit file; Agent 00 still has to be informed on Jira MMI-3)
 - [X] T004 [P] Add the reference synthetic dataset with documented totals (two warehouses, three suppliers, A/B/C categories, expiring lots, forecasts, a proposal) under `packages/testing/fixtures/dashboard_reference/` with a `TOTALS.md` of independently computed expected values
 
 ---
@@ -37,8 +37,8 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 
 **⚠️ CRITICAL**: no user story starts before this phase is done.
 
-- [ ] T005 Move the approved schema to `packages/contracts/dto/dashboard_indicators.v2.schema.json`, add it to the codegen config and regenerate Python and TypeScript types; keep `dashboard_summary.v1.schema.json` unchanged
-- [ ] T006 [P] Contract tests for v2 (valid and invalid examples, v1 untouched) in `packages/contracts/tests/test_dashboard_indicators_v2.py`
+- [X] T005 Move the approved schema to `packages/contracts/dto/dashboard_indicators.v2.schema.json`, add it to the codegen config and regenerate Python and TypeScript types; keep `dashboard_summary.v1.schema.json` unchanged (done: schema moved to `packages/contracts/dto` with a copy in `baseline/dto`, Python model generated for this schema only (`dashboard_indicators_v2_schema.py`); `dashboard_summary.v1` untouched; no TypeScript types are generated in this repo yet)
+- [X] T006 [P] Contract tests for v2 (valid and invalid examples, v1 untouched) in `packages/contracts/tests/test_dashboard_indicators_v2.py` (done: 20 tests in `packages/contracts/tests/test_dashboard_indicators_v2.py`; the compatibility and baseline checks pass)
 - [X] T007 Add an Alembic migration extending the existing `agg_daily_kpis` table (capital, demand, forecast, origin columns; no new tables, per audit) in `services/inventory-service/migrations/versions/` and `services/inventory-service/src/db/tables.py` (data-model.md)
 - [X] T008 [P] Implement the shared `FilterSet` (validation rules from data-model.md, `request_invalid` on bad values) in `services/inventory-service/src/dashboard/filters.py` and migrate `Filters` usage in `kpis.py` and `drilldown.py` to it
 - [X] T009 [P] Test `FilterSet` validation (ranges, spans, injection-like strings; an unknown supplier gives empty figures, not an error) in `services/inventory-service/tests/test_dashboard_filters.py`
@@ -51,7 +51,7 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 - [X] T016 [P] Add the additive `dashboard.*` keys needed by the shared pieces to `apps/web/src/i18n/es-ES.json`; confirm `apps/web/tests/unit/hardcoded-strings.baseline.json` does not grow
 
 - [ ] T074 [P] Add a seed loader and short run guide that bring up the existing `infra/compose.yaml` stack with `packages/testing/fixtures/dashboard_reference/` (no Azure credentials) in `scripts/live-stack/`; CI and T066 use it
-- [ ] T075 Record Agent 00's written approval of the additive forecast-service and procurement-service changes (accuracy history, budget and open orders) in `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md` (extends the T003 decision record); no edit outside this feature's domain starts before it
+- [X] T075 Record Agent 00's written approval of the additive forecast-service and procurement-service changes (accuracy history, budget and open orders) in `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md` (extends the T003 decision record); no edit outside this feature's domain starts before it (done: approved by the owner instead of Agent 00 on 2026-11-09, scope recorded in the audit file; Agent 00 still has to be informed on Jira MMI-3)
 
 **Checkpoint**: contracts, tables, filters, freshness, roles, live stack and web plumbing are ready.
 
@@ -73,8 +73,8 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 
 ### Implementation
 
-- [ ] T021 [US1] (after T003 records the capital definition) Extend `compute_summary` in `services/inventory-service/src/dashboard/kpis.py` with demand, forecast (28 days plus upper band, incomplete bucket) and capital tied up (research R3), keeping existing stock value, coverage, stockout and expiry logic
-- [ ] T022 [US1] (after T075) Extend the accuracy and budget sources: WAPE and bias with history (forecast-service `/accuracy`) and period budget against proposed and confirmed spend (procurement-service `/summary/spend`); additive changes agreed via Agent 00, with tests in the owning service
+- [ ] T021 (now unblocked; inventory computes stock at cost, demand and forecast; the open-orders part of capital comes from procurement through T022 and the BFF composes the total, see research R3) [US1] (after T003 records the capital definition) Extend `compute_summary` in `services/inventory-service/src/dashboard/kpis.py` with demand, forecast (28 days plus upper band, incomplete bucket) and capital tied up (research R3), keeping existing stock value, coverage, stockout and expiry logic
+- [ ] T022 (now unblocked by the owner's approval; also returns the amount of confirmed orders not yet received and the budget caps per week, rule in research R15, with the three-week test) [US1] (after T075) Extend the accuracy and budget sources: WAPE and bias with history (forecast-service `/accuracy`) and period budget against proposed and confirmed spend (procurement-service `/summary/spend`); additive changes agreed via Agent 00, with tests in the owning service
 - [ ] T023 [US1] Add the indicators route returning the v2 shape with freshness, basis, definition key and `incomplete_count` in `services/inventory-service/src/api/dashboard.py`
 - [ ] T024 [US1] Wire BFF `/dashboard/overview` to return v2 indicators plus the existing cards during transition in `services/api-bff/src/routes/dashboard.py`
 - [ ] T025 [P] [US1] Build `IndicatorCard` (value, period, refresh time, origin, state text, definition popover, drill action) in `apps/web/src/features/dashboard/IndicatorCard.tsx`
