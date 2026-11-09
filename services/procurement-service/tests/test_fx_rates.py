@@ -208,3 +208,24 @@ def test_purge_removes_old_rates_and_old_retry_keys_only(conn):
     assert removed == {"fx_rates": 1, "terms_idempotency": 1}
     assert [r.published_on for r in conn.execute(select(fx_rates)).all()] == [recent.date()]
     assert [r.key for r in conn.execute(select(terms_idempotency)).all()] == ["new"]
+
+
+def test_an_endless_answer_is_cut_off_at_the_size_limit_and_audited_as_a_failure(conn):
+    """T057 (FR-041): the read stops at the limit instead of holding the whole body; nothing is stored."""
+    from db.tables import audit_events
+    from fx.rates import MAX_BODY_BYTES
+
+    chunk, sent = b"x" * 10_000, []
+
+    def endless():
+        while len(sent) < 1_000:                    # a safety stop of 10 MB so a missing limit fails the test instead of hanging it
+            sent.append(1)
+            yield chunk
+
+    transport = httpx.MockTransport(lambda r: httpx.Response(200, headers={"content-type": "application/json"}, content=endless()))
+    source = HttpRatesSource(ALLOWED_URL, httpx.Client(transport=transport))
+    assert refresh_if_due(conn, source, NOW) == "failed"
+    assert len(sent) * len(chunk) <= MAX_BODY_BYTES + 2 * len(chunk), "the read must stop near the limit"
+    assert count(conn, fx_rates) == 0
+    events = [e for e in conn.execute(select(audit_events)).all() if e.action == "fx.refresh_failed"]
+    assert [e.after for e in events] == [{"code": "fx_response_invalid"}]

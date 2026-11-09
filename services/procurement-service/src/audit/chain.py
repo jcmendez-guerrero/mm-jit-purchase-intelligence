@@ -60,7 +60,7 @@ _CODE = re.compile(r"[a-z][a-z0-9_]*")
 
 
 def record_refusal(conn: Connection, actor: str, action: str, entity: str, entity_id: str, code: str, status: int,
-                   now: datetime | None = None) -> str:
+                   now: datetime | None = None, repeats: int = 0) -> str:
     """Records that a request was refused (MMI-6 FR-028): who, what it targeted, the stable error code and the HTTP status.
 
     Never takes the request body, so a refused payload (possibly malformed or oversized) cannot reach the audit trail.
@@ -69,7 +69,10 @@ def record_refusal(conn: Connection, actor: str, action: str, entity: str, entit
         raise ValueError("a refusal action looks like '<area>.refused'")
     if not _CODE.fullmatch(code) or not 400 <= status <= 599:
         raise ValueError("a refusal needs a snake_case error code and an HTTP error status")
-    return append(conn, actor, action, entity, entity_id, None, {"code": code, "status": status}, now)
+    after: dict[str, Any] = {"code": code, "status": status}
+    if repeats > 0:                                  # FR-038: identical refusals skipped since the previous entry for this key
+        after["repeats"] = repeats
+    return append(conn, actor, action, entity, entity_id, None, after, now)
 
 
 @dataclass(frozen=True)

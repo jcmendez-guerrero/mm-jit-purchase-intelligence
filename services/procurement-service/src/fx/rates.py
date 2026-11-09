@@ -80,14 +80,19 @@ class HttpRatesSource:
     def fetch(self) -> str:
         client = self.client or httpx.Client(timeout=TIMEOUT_S, follow_redirects=False)
         try:
-            res = client.get(self.url, headers={"Accept": "application/json"})
+            with client.stream("GET", self.url, headers={"Accept": "application/json"}) as res:
+                if res.status_code != 200:
+                    raise FxError("fx_unavailable")
+                if "json" not in res.headers.get("content-type", ""):
+                    raise FxError("fx_response_invalid")
+                body = bytearray()
+                for chunk in res.iter_bytes():                 # FR-041: stop at the limit; the rest of the answer is never read
+                    body += chunk
+                    if len(body) > MAX_BODY_BYTES:
+                        raise FxError("fx_response_invalid")
+                return bytes(body).decode("utf-8", errors="replace")
         except httpx.HTTPError as exc:
             raise FxError("fx_unavailable") from exc
-        if res.status_code != 200:
-            raise FxError("fx_unavailable")
-        if "json" not in res.headers.get("content-type", "") or len(res.content) > MAX_BODY_BYTES:
-            raise FxError("fx_response_invalid")
-        return res.text
 
 
 def parse_rates(text: str) -> list[Rate]:

@@ -11,10 +11,10 @@ import re
 
 import pytest
 from db.tables import metadata
+from refusal_support import app, client, engine, h, sid  # noqa: F401
 from sqlalchemy import func, select, text
 from test_internal_supplier_import import client as loader_client  # noqa: F401  (fixture: the local loader's import route)
 from test_internal_supplier_import import post, row
-from test_terms_refusal_audit import app, client, engine, h, sid  # noqa: F401  (fixtures: a file database, so refusals are recorded too)
 
 MARKER = "MARCADOR-PRIVADO-9F3A"
 SENSITIVE_FIELDS = ["tax_id", "cif", "nif", "supplier_cif", "iban", "bank_account", "note", "notes", "observaciones", "nota"]

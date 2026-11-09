@@ -24,6 +24,10 @@ This is one of the parallel agent assignments of epic MMI-1 ("MMI 003 | Product 
 
 - Q: How should a supplier quoting in a currency other than EUR be handled when no exchange rate is configured? → A: Use Frankfurter (https://frankfurter.dev) as the exchange-rate source: a scheduled job fetches the official ECB reference rates and stores them locally with their date; allocation converts using the stored rate and never calls the rate service during a proposal. Currencies the ECB does not publish, or a rate older than 7 days, leave the supplier out of automatic allocation and list it for buyer review.
 
+### Session 2026-11-09
+
+- Q: How are the review findings on the delivered work (audit volume, request handling, size limits, rate-feed read) folded into this specification? → A: They update this feature (no new feature): FR-038 to FR-041 and SC-013 are added, FR-028 is tightened, and the matching tasks are appended to tasks.md.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Audit the current state and publish the evidence (Priority: P1)
@@ -143,6 +147,8 @@ Every change to a supplier, its terms, a link or a cost is attributable, tamper-
 - Duplicate supplier name (ignoring case and accents): warn and require confirmation; never merge automatically.
 - Very long supplier lists: the screen stays usable through search and filters; pagination is not needed at the expected scale of tens of suppliers.
 - The ERP is unreachable: all supplier maintenance and proposals keep working from local terms.
+- A caller repeats the same invalid request many times (or sends requests with no sign-in): the audit trail records one entry per minute per caller, target and reason with a repeat count, and other users are not slowed.
+- A change request is sent with a body larger than the limit under a non-JSON content type: refused as too large, nothing is read beyond the limit.
 
 ## Requirements *(mandatory)*
 
@@ -198,7 +204,7 @@ Every change to a supplier, its terms, a link or a cost is attributable, tamper-
 
 - **FR-026**: Every create, edit, deactivation, terms version, link change and cost change MUST be audited with who, when, before and after values, and be tamper-evident.
 - **FR-027**: Change operations MUST enforce roles on the server regardless of the interface; viewers MUST NOT change anything; sensitive operations MUST require a recent second factor.
-- **FR-028**: The system MUST refuse and record abusive input: oversized payloads, malformed numbers, out-of-range values, requests for a supplier or product the caller may not access, and replayed requests.
+- **FR-028**: The system MUST refuse and record abusive input: oversized payloads, malformed numbers, out-of-range values, requests for a supplier or product the caller may not access, and replayed requests. Oversized payloads MUST be refused whatever content type the caller declares (FR-040).
 - **FR-029**: Free-text ERP notes MUST NOT be stored, logged, displayed or used for decisions, apart from the existing in-memory handling during the permitted supplier-conditions write; only a "has note" indicator may be kept.
 
 **Interface, data and cost**
@@ -211,6 +217,10 @@ Every change to a supplier, its terms, a link or a cost is attributable, tamper-
 - **FR-035**: A supplier whose currency is not EUR MUST be excluded from automatic allocation and listed for buyer review when no stored rate exists, the currency is not published by the ECB, or the stored rate is older than 7 days; the screen MUST show the rate used and its date wherever an EUR equivalent appears.
 - **FR-036**: Outbound calls to the rate service MUST be limited to a single approved host, a fixed path and read-only requests, carry no personal or business data, and need no credentials.
 - **FR-037**: A proposal containing a line for a supplier that has been deactivated MUST NOT be approvable until those lines are reallocated or removed.
+- **FR-038**: Recording refused requests MUST NOT let any caller grow the audit trail without limit: requests with no valid sign-in are counted but not stored one by one, and an identical refusal (same caller, same target, same reason) repeated within one minute MUST be stored once with a repeat count; every refusal by a signed-in caller for a different caller, target or reason is still recorded (FR-028).
+- **FR-039**: Recording a refusal MUST NOT delay other users' requests: a burst of refused requests leaves the time to save or read terms for other users within SC-011.
+- **FR-040**: Every change request MUST be refused with a clear "payload too large" answer when its body exceeds the size limit, whatever content type or length declaration the caller uses, and the body MUST NOT be held in memory beyond that limit.
+- **FR-041**: Reading the exchange-rate answer MUST stop once the maximum accepted size is reached, so an oversized or endless answer cannot use more memory than that limit; the stored rates stay unchanged and the failure is audited as any other rate-service failure.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -239,6 +249,7 @@ Every change to a supplier, its terms, a link or a cost is attributable, tamper-
 - **SC-010**: The change adds no always-on service and no recurring cost beyond the shared monthly target; the rate job runs at most once a day and scales to zero.
 - **SC-011**: Saving or reading a supplier's terms takes under 300 ms for 95% of requests with 50 stored versions.
 - **SC-012**: 100% of non-EUR amounts used in an allocation have a stored rate no older than 7 days; every other case appears in the review list, none is silently converted or dropped.
+- **SC-013**: 1,000 identical refused requests in one minute add at most one audit entry per distinct caller, target and reason, while the 95th-percentile time to save terms for other users stays under 300 ms; a 50 MB body of any content type is refused without exhausting memory.
 
 ## Assumptions
 

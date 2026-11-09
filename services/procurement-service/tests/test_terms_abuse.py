@@ -13,11 +13,11 @@ from pathlib import Path
 import pytest
 from conftest import NOW
 from db.tables import audit_events, supplier_terms, suppliers
+from refusal_support import app, client, engine, h, refusals  # noqa: F401
 from sqlalchemy import func, select
 from suppliers.service import SupplierInput, create_supplier
 from terms.service import history
 from test_terms_api import BODY
-from test_terms_refusal_audit import app, client, engine, h, refusals  # noqa: F401  (fixtures: a file database so refusals can be recorded beside the request)
 
 CATALOGUE = set(json.loads((Path(__file__).resolve().parents[3] / "packages" / "contracts" / "errors" / "error_codes.json").read_text(encoding="utf-8"))["codes"])
 
@@ -73,6 +73,19 @@ def test_an_oversized_body_is_refused_before_it_is_read_into_the_terms(client, e
     res = put(client, sid, {"reason": "x" * 300_000})
     assert (res.status_code, res.json()) == (413, {"detail": "payload_too_large"})
     assert "payload_too_large" in CATALOGUE and versions(engine, sid) == 0
+    assert [r[4] for r in refusals(engine)] == [{"code": "payload_too_large", "status": 413}]
+
+
+@pytest.mark.parametrize(("label", "headers", "make"), [
+    ("plain text", {"Content-Type": "text/plain"}, lambda: b"x" * 300_000),
+    ("no content type", {"Content-Type": ""}, lambda: b"x" * 300_000),
+    ("chunked without a length", {"Content-Type": "application/octet-stream"}, lambda: (b"x" * 10_000 for _ in range(30))),
+])
+def test_an_oversized_body_is_refused_whatever_its_content_type_or_length_declaration(client, engine, sid, label, headers, make):
+    """T056 (FR-040)."""
+    res = client.put(f"/suppliers/{sid}/terms", content=make(), headers=h(**headers))
+    assert (res.status_code, res.json()) == (413, {"detail": "payload_too_large"}), label
+    assert versions(engine, sid) == 0
     assert [r[4] for r in refusals(engine)] == [{"code": "payload_too_large", "status": 413}]
 
 

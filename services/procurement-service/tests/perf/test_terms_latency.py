@@ -8,8 +8,8 @@ not the network. Production adds only a database round trip.
 import statistics
 import time
 
+from refusal_support import app, client, engine, h, sid  # noqa: F401
 from test_terms_api import BODY
-from test_terms_refusal_audit import app, client, engine, h, sid  # noqa: F401  (a file database, as in production: separate connections)
 
 VERSIONS = 50
 BUDGET_MS = 300.0
