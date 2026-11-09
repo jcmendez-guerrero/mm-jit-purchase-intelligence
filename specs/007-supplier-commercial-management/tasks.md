@@ -168,3 +168,7 @@ Tests first, then the fixes. Findings come from the review of the delivered comm
 - [X] T063 Run the procurement, BFF, contracts and infra suites, ruff and the PostgreSQL migration test; update research.md audit row 16 and the PR text in `pr-body.md` for the new behaviour (depends on T054 to T062) — done: procurement 812, BFF 177, contracts 208, infra 59, PostgreSQL migrations 9, ruff clean
 
 **Order**: T054 to T057 and T062 first (parallel); then T058, T059, T060 (same file, in order); T061 alongside; T063 last.
+
+## Phase 12: Convergence
+
+- [X] T064 Make the skipped refusals countable in `services/procurement-service/src/api/refusals.py`: log one summary line (key and number skipped) when a window closes without a later identical refusal, and increment a per-process counter for 401s so "counted but not stored" in FR-038 is observable; fix the stale `_repeats` reference in the `_skip` docstring; add a test in `tests/test_refusal_volume.py` per FR-038 (partial: skipped repeats are lost if no later identical refusal arrives, and skipped 401s are only logged individually) — done: a sweep at most once a minute logs repeats of closed windows, `app.state.refusal_unauthenticated` counts skipped 401s, docstring fixed

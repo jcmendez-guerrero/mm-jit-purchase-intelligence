@@ -61,3 +61,21 @@ def test_the_chain_still_verifies_and_real_changes_are_still_audited(client, eng
     assert client.put(f"/suppliers/{sid}/terms", json=BODY, headers=h()).status_code == 200
     with engine.begin() as c:
         assert verify_chain(c).ok
+
+
+def test_skipped_repeats_are_logged_when_the_window_closes_without_a_later_identical_refusal(client, engine, sid, clock, caplog):
+    """T064 (FR-038): the count is not lost when no identical refusal comes after the minute."""
+    import logging
+
+    caplog.set_level(logging.INFO, logger="procurement.refusals")
+    for _ in range(8):
+        bad(client, sid)
+    clock[0] += 61
+    client.put("/suppliers/another/terms", json=BAD, headers=h())                    # any later refusal closes the old window
+    assert any("skipped 7" in r.getMessage() and "terms_negative_amount" in r.getMessage() for r in caplog.records)
+
+
+def test_skipped_sign_in_failures_are_counted(client, sid, clock):
+    for _ in range(12):
+        client.put(f"/suppliers/{sid}/terms", json=BODY)
+    assert client.app.state.refusal_unauthenticated == 12

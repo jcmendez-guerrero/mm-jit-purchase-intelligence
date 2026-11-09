@@ -72,7 +72,7 @@ def _engine(request: Request) -> Any:
 
 
 def _skip(request: Request, key: tuple[str, str, str, str, int]) -> int | None:
-    """FR-038: None when this refusal must be stored (the repeats skipped before it are returned by ``_repeats``); otherwise it is only counted.
+    """FR-038: None when this refusal must be stored (the repeats skipped before it are returned); otherwise it is only counted.
 
     shortcut: the table lives in this process, so each replica stores at most one entry per key per minute; move it to shared storage if the
     service ever runs more than one replica.
@@ -83,9 +83,14 @@ def _skip(request: Request, key: tuple[str, str, str, str, int]) -> int | None:
     if entry is not None and now - entry[0] < WINDOW_S:
         entry[1] += 1
         return None
-    if len(seen) >= MAX_KEYS:
+    state = request.app.state.__dict__
+    if len(seen) >= MAX_KEYS or now - state.setdefault("refusal_swept", now) >= WINDOW_S:
+        state["refusal_swept"] = now
         for old in [k for k, v in seen.items() if now - v[0] >= WINDOW_S]:
-            del seen[old]
+            if seen[old][1] and old != key:                                  # the window closed with repeats nobody will carry: log them once
+                log.info("refusals skipped in the last minute: skipped %d for %s", int(seen[old][1]), old)
+            if old != key:
+                del seen[old]
     repeats = int(entry[1]) if entry is not None else 0
     seen[key] = [now, 0]
     return repeats
@@ -95,7 +100,7 @@ def _record_now(request: Request, path: str, status: int, detail: Any) -> None:
     action, entity, entity_id = _target(path, dict(request.path_params))
     actor = str(getattr(request.state, "actor", "unknown"))[:120]
     if status == 401:                                           # FR-038: no valid sign-in is counted, never stored one by one
-        log.info("refusal without a valid sign-in: %s %s", status, entity)
+        request.app.state.refusal_unauthenticated = getattr(request.app.state, "refusal_unauthenticated", 0) + 1   # FR-038: counted, not stored
         return
     code = _code(status, detail)
     repeats = _skip(request, (actor, entity, entity_id[:60], code, status))
