@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { api, DashOverview, DrillRequest, errorMessage, RiskItem } from "../../api/client";
+import { api, DashOverview, DrillRequest, errorMessage, type IndicatorKey, RiskItem } from "../../api/client";
 import { formatCurrencyEUR, formatDate, formatNumber, formatPercent } from "../../i18n/formatters";
 import { DataTable, type Column } from "../../ui/DataTable";
 import { FilterBar, type FilterChip } from "../../ui/FilterBar";
@@ -11,8 +11,9 @@ import { StatusBadge } from "../../ui/StatusBadge";
 import { statusInfo } from "../../ui/statusVocabulary";
 import { useChartColors } from "../../ui/useChartColors";
 import { ChartWithTable } from "./ChartWithTable";
-import { ageInDays, coverageDays, forecastStats, isStale, mergeTrend, PERIODS, severitySplitIsReliable, stockoutSeverityCounts, trendStats } from "./dashboardModel";
+import { ageInDays, forecastStats, mergeTrend, PERIODS, periodFor, severitySplitIsReliable, stockoutSeverityCounts, trendStats } from "./dashboardModel";
 import { DrillDownPanel } from "./DrillDownPanel";
+import { IndicatorCard } from "./IndicatorCard";
 import { ProductDetail } from "./ProductDetail";
 import { SupplierPanel } from "./SupplierPanel";
 import { Button } from "../../ui/Button";
@@ -23,6 +24,7 @@ interface Props {
   onSelectWarehouse?: ((id: number | undefined) => void) | undefined;
 }
 
+const DRILL_OF: Partial<Record<IndicatorKey, DrillRequest["kind"]>> = { stock_value: "inventory_value", coverage_days: "coverage", stockout_risk: "stockout_risk", expiry_exposure: "expiry_risk" };
 const METRICS = ["wape", "bias", "stockout_rate"] as const;
 type AccuracyRow = [string, Record<string, string>];
 
@@ -96,7 +98,9 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const opts = data?.options.ok ? data.options.data : undefined;
   const risks = data?.risks.ok ? (data.risks.data ?? []) : [];
   const cells = data?.abc_xyz.ok ? (data.abc_xyz.data?.cells ?? []) : [];
-  const cov = s ? coverageDays(s) : null;
+  const indicators = data?.indicators ?? [];
+  const period = periodFor(days);
+  const hasStale = indicators.some((i) => i.freshness.state === "stale");
   const severityCounts = stockoutSeverityCounts(risks);
   const splitReliable = severitySplitIsReliable(severityCounts, s?.stockout_risk);
   const shownRisks = severity && splitReliable ? risks.filter((r) => r.risk_type === "stockout" && r.explanation_key === `risk.stockout.${severity}`) : risks;
@@ -206,7 +210,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
       {s && (
         <p className="mmi-muted">
           {t("dashboard.freshness", { day: formatDate(s.day) })}
-          {isStale(s) ? ` · ${t("dashboard.stale", { days: ageInDays(s.day) })}` : ""}
+          {hasStale ? ` · ${t("dashboard.stale", { days: ageInDays(s.day) })}` : ""}
         </p>
       )}
       {loading && !data && <ScreenState state="loading" skeletonShape="dashboard" skeletonLines={5} />}
@@ -226,45 +230,14 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           />
 
           <div className="mmi-figures">
-            <div className="mmi-figure" role="group" aria-label={t("dashboard.kpi.value")}>
-              <h3 className="mmi-figure__label">{t("dashboard.kpi.value")}</h3>
-              {s ? (
-                <>
-                  <p className="mmi-figure__value">{s.hidden_by_role?.includes("inventory_value") ? t("dashboard.kpi.hidden_by_role") : s.inventory_value == null ? "—" : formatCurrencyEUR(s.inventory_value)}</p>
-                  <p className="mmi-figure__note">{t("dashboard.kpi.value_basis")}</p>
-                  {s.valued_with_estimate > 0 && <p className="mmi-figure__note">{t("dashboard.kpi.value_estimated", { n: s.valued_with_estimate })}</p>}
-                  {s.unvalued_lots > 0 && <p className="mmi-figure__note">{t("dashboard.kpi.value_unvalued", { n: s.unvalued_lots })}</p>}
-                  {viewProducts("inventory_value")}
-                </>
-              ) : (
-                <Unavailable />
-              )}
-            </div>
-            <div className="mmi-figure" role="group" aria-label={t("dashboard.kpi.coverage")}>
-              <h3 className="mmi-figure__label">{t("dashboard.kpi.coverage")}</h3>
-              {s ? (
-                <>
-                  <p className="mmi-figure__value">{cov === null ? t("dashboard.kpi.coverage_none") : t("dashboard.kpi.coverage_days", { n: formatNumber(cov, 1) })}</p>
-                  <p className="mmi-figure__note">{t("dashboard.kpi.coverage_basis", { forecast: s.coverage_basis.forecast, actual: s.coverage_basis.actual_90d })}</p>
-                  {s.variants_without_demand > 0 && <p className="mmi-figure__note">{t("dashboard.kpi.coverage_no_demand", { n: s.variants_without_demand })}</p>}
-                  {viewProducts("coverage")}
-                </>
-              ) : (
-                <Unavailable />
-              )}
-            </div>
-            <div className="mmi-figure" role="group" aria-label={t("dashboard.kpi.expiring")}>
-              <h3 className="mmi-figure__label">{t("dashboard.kpi.expiring")}</h3>
-              {s ? (
-                <>
-                  <p className="mmi-figure__value">{s.hidden_by_role?.includes("expiring_value") ? t("dashboard.kpi.hidden_by_role") : s.expiring_value == null ? "—" : formatCurrencyEUR(s.expiring_value)}</p>
-                  <p className="mmi-figure__note">{t("dashboard.kpi.expiry_count", { n: s.expiry_risk })}</p>
-                  {viewProducts("expiry_risk")}
-                </>
-              ) : (
-                <Unavailable />
-              )}
-            </div>
+            {indicators.map((i) => {
+              const kind = DRILL_OF[i.key];
+              return <IndicatorCard key={i.key} indicator={i} period={period} onDrill={kind && s ? () => openDrill({ kind }, t(`dashboard.drill.title.${kind}`)) : undefined} />;
+            })}
+          </div>
+          {s && s.valued_with_estimate > 0 && <p className="mmi-muted">{t("dashboard.kpi.value_estimated", { n: s.valued_with_estimate })}</p>}
+
+          <div className="mmi-figures">
             <div className="mmi-figure" role="group" aria-label={t("dashboard.kpi.spend")}>
               <h3 className="mmi-figure__label">{t("dashboard.kpi.spend")}</h3>
               {data.spend.ok && data.spend.data ? (

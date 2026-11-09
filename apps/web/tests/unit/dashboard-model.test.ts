@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageInDays, coverageDays, forecastStats, isStale, mergeTrend, trendStats } from "../../src/features/dashboard/dashboardModel";
+import { ageInDays, forecastStats, mergeTrend, periodFor, trendStats } from "../../src/features/dashboard/dashboardModel";
 
 const today = new Date(Date.UTC(2026, 10, 9, 15));
 
@@ -9,9 +9,9 @@ describe("dashboard model", () => {
     expect(ageInDays("2026-11-06", today)).toBe(3);
     expect(ageInDays("2026-11-20", today)).toBe(0);
   });
-  it("marks figures stale after two days", () => {
-    expect(isStale({ day: "2026-11-07" }, today)).toBe(false);
-    expect(isStale({ day: "2026-11-06" }, today)).toBe(true);
+  it("gives the date range of a last-N-days choice, ending today", () => {
+    expect(periodFor(60, today)).toEqual({ from: "2026-09-11", to: "2026-11-09" });
+    expect(periodFor(1, today)).toEqual({ from: "2026-11-09", to: "2026-11-09" });
   });
   it("summarises a trend: total, peak day and span", () => {
     const series = [
@@ -21,11 +21,6 @@ describe("dashboard model", () => {
     ];
     expect(trendStats(series)).toEqual({ total: 16, max: 9, maxDay: "2026-11-02", days: 3 });
     expect(trendStats([])).toBeNull();
-  });
-  it("rounds coverage to one decimal and keeps 'no demand' as null", () => {
-    const base = { coverage_days_avg: "5.75" } as Parameters<typeof coverageDays>[0];
-    expect(coverageDays(base)).toBe(5.8);
-    expect(coverageDays({ ...base, coverage_days_avg: null })).toBeNull();
   });
   it("merges actual days and forecast days into one ordered list without mixing them", () => {
     const rows = mergeTrend({

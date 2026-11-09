@@ -97,13 +97,18 @@ describe("indicator card content", () => {
     expect(container.textContent).toMatch(/Periodo: 11\/09\/2026 – 09\/11\/2026/);
   });
 
-  it("offers the drill action only when there is a figure to drill into", () => {
+  it("offers the drill action when there is a figure or only the amount is hidden, and not for no data or an error", () => {
     const onDrill = vi.fn();
     render(<IndicatorCard indicator={ind({})} onDrill={onDrill} />);
     fireEvent.click(screen.getByRole("button", { name: /Ver productos/ }));
     expect(onDrill).toHaveBeenCalledTimes(1);
     cleanup();
     render(<IndicatorCard indicator={ind({ value: null, state: "hidden_by_role" })} onDrill={onDrill} />);
-    expect(screen.queryByRole("button", { name: /Ver productos/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /Ver productos/ })).toBeTruthy();
+    for (const state of ["no_data", "error"] as const) {
+      cleanup();
+      render(<IndicatorCard indicator={ind({ value: null, state })} onDrill={onDrill} />);
+      expect(screen.queryByRole("button", { name: /Ver productos/ })).toBeNull();
+    }
   });
 });

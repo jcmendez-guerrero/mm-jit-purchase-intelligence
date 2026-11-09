@@ -22,6 +22,7 @@ The gateway is `services/api-bff`.
 | `budget_cap` | dto | v1 | procurement-service | - | frozen |
 | `conditions_block` | dto | v1 | siweb-cost-writer | - | frozen |
 | `cost_write` | dto | v1 | procurement-service | - | frozen |
+| `dashboard_indicators` | dto | v2 | inventory-service | api-bff, web | frozen |
 | `dashboard_summary` | dto | v1 | inventory-service | - | frozen |
 | `demand_rule` | dto | v1 | inventory-service | - | frozen |
 | `forecast_accuracy` | dto | v1 | forecast-service | - | frozen |

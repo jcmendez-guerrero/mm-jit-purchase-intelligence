@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
@@ -68,27 +67,30 @@ def budget_indicator(spend: dict[str, Any], can_see_costs: bool) -> dict[str, An
 
 
 def accuracy_indicators(acc: dict[str, Any], unsupported: list[str]) -> list[dict[str, Any]]:
-    """WAPE and bias as percentages of the overall group of the latest scored run; company-wide, so the filters present are named as not followed."""
+    """WAPE and bias of the overall group of the latest scored run, as the percentages forecast-service sends; company-wide, so the filters present are named as not followed."""
     if not acc.get("ok"):
         return [_indicator("wape", "error"), _indicator("bias", "error")]
-    overall = ((acc.get("data") or {}).get("metrics") or {}).get("all") or {}
-    out = []
-    for key in ("wape", "bias"):
-        raw = _money(overall.get(key))
-        extra = {"filters_unsupported": unsupported} if unsupported else {}
-        out.append(_indicator(key, "no_data", **extra) if raw is None else _indicator(key, "ok", str((raw * 100).quantize(Decimal("0.01"))), **extra))
-    return out
+    overall = ((acc.get("data") or {}).get("percent") or {}).get("all") or {}
+    extra = {"filters_unsupported": unsupported} if unsupported else {}
+    return [_indicator(key, "no_data", **extra) if overall.get(key) is None else _indicator(key, "ok", overall[key], **extra) for key in ("wape", "bias")]
 
 
 def _overview_indicators(inv: dict[str, Any], spend: dict[str, Any], acc: dict[str, Any], roles: Any, filters: dict[str, Any]) -> list[dict[str, Any]]:
-    can_see_costs = bool(MONEY_ROLES.intersection(roles))
-    six = {i["key"]: i for i in ((inv.get("data") or {}).get("indicators") or []) if inv.get("ok")}
-    unsupported = [k.removesuffix("_id") for k in ("warehouse_id", "category", "family") if k in filters]
-    capital = _indicator("capital_tied_up", "hidden_by_role") if not can_see_costs else capital_indicator(inv.get("data") or {}, spend.get("data") or {}, unsupported)
+    """The ten indicators in order: inventory's seven (capital included, summed there), then budget, WAPE and bias. A failed service leaves its indicators as ``error``."""
+    own = {i["key"]: i for i in ((inv.get("data") or {}).get("indicators") or []) if inv.get("ok")}
     accuracy_unsupported = [k.removesuffix("_id") for k in ("warehouse_id", "supplier_id", "category", "family") if k in filters]
-    by = {**{k: six.get(k) or _indicator(k, "error") for k in KEYS[:6]}, "capital_tied_up": capital, "purchasing_budget": budget_indicator(spend, can_see_costs),
+    by = {**{k: own.get(k) or _indicator(k, "error") for k in KEYS[:7]}, "purchasing_budget": budget_indicator(spend, bool(MONEY_ROLES.intersection(roles))),
           **{i["key"]: i for i in accuracy_indicators(acc, accuracy_unsupported)}}
     return [by[k] for k in KEYS]
+
+
+async def _spend_then_indicators(inv: InventoryClient, proc: ProcurementClient, who: dict[str, Any], f: dict[str, Any], window: dict[str, str], supplier_id: str | None,
+                                 can_see_costs: bool) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Procurement owns the open orders, inventory makes the capital total; the amount is passed through as it came, with no arithmetic here (ADR-023)."""
+    spend = await _card(proc.forward("GET", "/summary/spend", params={**({"supplier_id": supplier_id} if supplier_id else {}), **window}, **who)) if can_see_costs else await _hidden_by_role()
+    open_orders = (spend.get("data") or {}).get("open_orders") if spend.get("ok") else None
+    extra = {"open_orders": open_orders} if isinstance(open_orders, str) else {}
+    return spend, await _card(inv.forward("GET", "/dashboard/indicators", params={**f, **window, **extra}, **who))
 
 
 @router.get("/overview")
@@ -107,41 +109,17 @@ async def overview(
     f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id)) if v is not None}
     today = datetime.now(UTC).date()
     window = {"date_from": (today - timedelta(days=days - 1)).isoformat(), "date_to": today.isoformat()}
-    summary, trend, abc, risks, options, accuracy, spend, suppliers, indicators = await asyncio.gather(
+    summary, trend, abc, risks, options, accuracy, (spend, indicators), suppliers = await asyncio.gather(
         _card(inv.forward("GET", "/dashboard/summary", params=f, **who)),
         _card(inv.forward("GET", "/dashboard/demand-trend", params={**f, "days": days}, **who)),
         _card(inv.forward("GET", "/dashboard/abc-xyz", **who)),
         _card(inv.forward("GET", "/risk", params={"warehouse_id": warehouse_id} if warehouse_id is not None else None, **who)),
         _card(inv.forward("GET", "/dashboard/filters/options", **who)),
         _card(fc.forward("GET", "/accuracy", **who)),
-        _card(proc.forward("GET", "/summary/spend", params={**({"supplier_id": supplier_id} if supplier_id else {}), **window}, **who)) if MONEY_ROLES.intersection(session.roles) else _hidden_by_role(),
-        _card(_supplier_options(proc, who)),
-        _card(inv.forward("GET", "/dashboard/indicators", params={**f, **window}, **who)))
+        _spend_then_indicators(inv, proc, who, f, window, supplier_id, bool(MONEY_ROLES.intersection(session.roles))),
+        _card(_supplier_options(proc, who)))
     return {"summary": summary, "trend": trend, "abc_xyz": abc, "risks": risks, "options": options, "accuracy": accuracy, "spend": spend, "suppliers": suppliers,
             "indicators": _overview_indicators(indicators, spend, accuracy, session.roles, f)}
-
-
-def _money(raw: Any) -> Decimal | None:
-    try:
-        return Decimal(raw) if isinstance(raw, str) else None
-    except InvalidOperation:
-        return None
-
-
-def capital_indicator(stock: dict[str, Any], spend: dict[str, Any], unsupported: list[str]) -> dict[str, Any]:
-    """FR-025: capital tied up = stock at lot cost + confirmed orders not yet received. Adds two numbers it received; a missing part gives ``error``, never a partial total."""
-    ind = next((i for i in stock.get("indicators", []) if i.get("key") == "stock_value"), {})
-    held, open_orders = _money(ind.get("value")), _money(spend.get("open_orders"))
-    out: dict[str, Any] = {"key": "capital_tied_up", "value": None, "unit": "EUR", "state": "error", "basis": "dashboard.basis.stock_plus_open_orders",
-                           "definition_key": "dashboard.def.capital_tied_up",
-                           "freshness": ind.get("freshness") or {"source": "inventory_snapshot", "refreshed_at": None, "refreshed_at_original": None, "origin": "erp_sync", "state": "error"}}
-    if unsupported:
-        out["filters_unsupported"] = unsupported
-    if held is None or open_orders is None:
-        return out
-    return {**out, "value": str((held + open_orders).quantize(Decimal("0.01"))), "state": "stale" if ind.get("state") == "stale" else "ok",
-            "parts": [{"key": "stock_at_cost", "label_key": "dashboard.part.stock_at_cost", "value": str(held)},
-                      {"key": "open_orders", "label_key": "dashboard.part.open_orders", "value": str(open_orders)}]}
 
 
 @router.get("/drilldown")

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { api, DashOverview } from "../../src/api/client";
+import { api, DashOverview, type Indicator, type IndicatorKey } from "../../src/api/client";
 import { DashboardScreen } from "../../src/features/dashboard/DashboardScreen";
 import "../../src/i18n";
 
@@ -15,7 +15,14 @@ beforeAll(() => {
 });
 
 const today = new Date().toISOString().slice(0, 10);
+const fresh = (state: Indicator["freshness"]["state"] = "ok"): Indicator["freshness"] => ({ source: "inventory_snapshot", refreshed_at: `${today}T08:00:00Z`, origin: "erp_sync", state, stale_after_hours: 48 });
+const UNITS: Record<IndicatorKey, Indicator["unit"]> = { stock_value: "EUR", coverage_days: "days", demand: "units", forecast: "units", stockout_risk: "count", expiry_exposure: "EUR", capital_tied_up: "EUR", purchasing_budget: "EUR", wape: "percent", bias: "percent" };
+const VALUES: Record<IndicatorKey, string> = { stock_value: "1234.50", coverage_days: "5.75", demand: "239", forecast: "98.00", stockout_risk: "3", expiry_exposure: "20.00", capital_tied_up: "1264.50", purchasing_budget: "250.00", wape: "25.00", bias: "-5.00" };
+const indicator = (key: IndicatorKey, over: Partial<Indicator> = {}): Indicator => ({ key, value: VALUES[key], unit: UNITS[key], state: "ok", basis: "dashboard.basis.lot_cost", definition_key: `dashboard.def.${key}`, freshness: fresh(), ...over });
+const KEYS = Object.keys(UNITS) as IndicatorKey[];
+const indicators = (over: Partial<Record<IndicatorKey, Partial<Indicator>>> = {}): Indicator[] => KEYS.map((k) => indicator(k, { ...(k === "stock_value" ? { incomplete_count: 1 } : {}), ...over[k] }));
 const overview = (over: Partial<DashOverview> = {}): DashOverview => ({
+  indicators: indicators(),
   summary: {
     ok: true,
     data: {
@@ -45,7 +52,7 @@ describe("DashboardScreen", () => {
   it("offers the product family filter only when families exist, and sends the choice with the other filters", async () => {
     const spy = vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview());
     const first = render(<DashboardScreen />);
-    await screen.findByLabelText("Valor del inventario");
+    await screen.findByRole("heading", { name: "Valor del stock" });
     expect(screen.queryByLabelText("Familia de producto")).toBeNull();                       // none synchronised: no empty filter
     first.unmount();
     const withFamilies = overview({
@@ -57,18 +64,19 @@ describe("DashboardScreen", () => {
     await waitFor(() => expect(spy).toHaveBeenLastCalledWith(expect.objectContaining({ family: "Familia sintética B" })));
   });
 
-  it("shows the four KPIs in Spanish with their basis and the estimated and unvalued counts", async () => {
-    render(<DashboardScreen />);
-    const value = await screen.findByLabelText("Valor del inventario");
-    expect(value.textContent).toContain("1.234,50");
-    expect(value.textContent).toContain("A coste de adquisición por lote");
-    expect(value.textContent).toContain("2 lotes valorados con un coste estimado");
-    expect(value.textContent).toContain("1 lotes sin coste");
-    const cov = screen.getByLabelText("Cobertura media");
-    expect(cov.textContent).toContain("5,8 días");
-    expect(cov.textContent).toContain("previsión en 6 variantes, demanda real de 90 días en 9");
-    expect(screen.getByLabelText("Variantes con riesgo de rotura").textContent).toContain("3");
-    expect(screen.getByLabelText("Valor que caduca en 60 días").textContent).toContain("20,00");
+  it("shows the ten indicators in Spanish with their period, and the estimated-cost count", async () => {
+    const { container } = render(<DashboardScreen />);
+    await screen.findByRole("heading", { name: "Valor del stock" });
+    for (const name of ["Valor del stock", "Cobertura", "Demanda", "Previsión", "Riesgo de rotura", "Exposición a caducidad", "Capital inmovilizado", "Presupuesto de compras", "Error de previsión (WAPE)", "Sesgo de la previsión"]) {
+      expect(screen.getByRole("heading", { name })).toBeTruthy();
+    }
+    const card = (name: string) => screen.getByRole("heading", { name }).closest("article")!;
+    expect(card("Valor del stock").textContent).toContain("1.234,50");
+    expect(card("Valor del stock").textContent).toContain("1 registros no incluidos");
+    expect(card("Cobertura").textContent).toContain("5,8 días");
+    expect(card("Exposición a caducidad").textContent).toContain("20,00");
+    expect(container.textContent).toContain("2 lotes valorados con un coste estimado");
+    expect(container.textContent).toMatch(/Periodo: \d{2}\/\d{2}\/\d{4} – \d{2}\/\d{2}\/\d{4}/);
   });
 
   it("fills the filter options from the data and says the product family is pending", async () => {
@@ -103,7 +111,7 @@ describe("DashboardScreen", () => {
 
   it("labels the warehouse view as informational and says the proposal and forecast stay company-wide", async () => {
     render(<DashboardScreen />);
-    await screen.findByLabelText("Valor del inventario");
+    await screen.findByRole("heading", { name: "Valor del stock" });
     expect(screen.queryByText(/Vista informativa por almacén/)).toBeNull();                  // company-wide: nothing to qualify
     fireEvent.change(screen.getByLabelText("Almacén"), { target: { value: "2" } });
     const note = await screen.findByText(/Vista informativa por almacén/);
@@ -171,16 +179,18 @@ describe("DashboardScreen", () => {
   });
 
   it("degrades one card without hiding the others", async () => {
-    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview({ summary: { ok: false, error: "downstream_unavailable" }, trend: { ok: false, error: "downstream_unavailable" } }));
+    const failed = Object.fromEntries(KEYS.slice(0, 7).map((k) => [k, { value: null, state: "error" as const, freshness: fresh("error") }]));
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview({ indicators: indicators(failed), summary: { ok: false, error: "downstream_unavailable" }, trend: { ok: false, error: "downstream_unavailable" } }));
     render(<DashboardScreen />);
-    await screen.findByLabelText("Valor del inventario");
-    expect(screen.getAllByText(/No se pudo cargar este indicador/).length).toBeGreaterThanOrEqual(4);
+    await screen.findByRole("heading", { name: "Valor del stock" });
+    expect(screen.getAllByText(/No se pudo calcular/).length).toBe(7);
+    expect(screen.getAllByText(/No se pudo cargar este indicador/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("table", { name: "Tabla de riesgos detectados" })).toBeTruthy();
     expect(screen.getByText(/Variantes por grupo ABC\/XYZ/)).toBeTruthy();
   });
 
   it("shows an empty state when nothing is at risk and a stale warning for old data", async () => {
-    const old = overview({ risks: { ok: true, data: [] } });
+    const old = overview({ risks: { ok: true, data: [] }, indicators: indicators({ stock_value: { state: "stale", freshness: fresh("stale") } }) });
     old.summary.data!.day = "2020-01-01";
     vi.spyOn(api, "getDashboardOverview").mockResolvedValue(old);
     render(<DashboardScreen />);
@@ -277,16 +287,19 @@ describe("DashboardScreen when the role may not see money", () => {
     delete summary.inventory_value;
     delete summary.expiring_value;
     summary.hidden_by_role = ["inventory_value", "expiring_value"];
+    const hide = { value: null, state: "hidden_by_role" as const };
     vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview({
+      indicators: indicators({ stock_value: hide, expiry_exposure: hide, capital_tied_up: hide, purchasing_budget: hide }),
       summary: { ok: true, data: summary },
       abc_xyz: { ok: true, data: { cells: [{ abc: "A", xyz: "X", variant_count: 4 }] } },
       spend: { ok: false, error: "hidden_by_role" },
     }));
     const { container } = render(<DashboardScreen />);
-    const value = await screen.findByLabelText("Valor del inventario");
-    expect(value.textContent).toContain("No disponible para tu rol");
-    expect(screen.getByLabelText("Valor que caduca en 60 días").textContent).toContain("No disponible para tu rol");
-    expect(screen.getByLabelText("Variantes con riesgo de rotura").textContent).toContain("3");
+    const card = async (name: string) => (await screen.findByRole("heading", { name })).closest("article")!;
+    expect((await card("Valor del stock")).textContent).toContain("No disponible para tu rol");
+    expect((await card("Exposición a caducidad")).textContent).toContain("No disponible para tu rol");
+    expect((await card("Capital inmovilizado")).textContent).toContain("No disponible para tu rol");
+    expect((await card("Riesgo de rotura")).textContent).toContain("3");
     expect(screen.getByLabelText("Gasto propuesto").textContent).toContain("No disponible para tu rol");
     expect(container.textContent).not.toMatch(/undefined|NaN/);
   });

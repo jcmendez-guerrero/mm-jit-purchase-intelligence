@@ -569,6 +569,15 @@
   color: var(--mmi-text-note);
 }
 
+/* "How it is calculated": a target of at least 24 px (WCAG 2.5.8) */
+.mmi-figure summary {
+  display: inline-block;
+  min-height: 1.5rem;
+  padding: var(--mmi-space-1) 0;
+  font-size: var(--mmi-text-sm);
+  cursor: pointer;
+}
+
 /* Filter bar */
 .mmi-filterbar {
   display: flex;

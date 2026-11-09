@@ -64,8 +64,8 @@ Response: `text/csv; charset=utf-8` with BOM, `;` separator, decimal comma, Span
 
 | Service | Call | Contract owner |
 |---------|------|----------------|
-| inventory-service | `/dashboard/*` (extended, same prefix); `GET /dashboard/indicators` returns the six indicators inventory owns (stock value, coverage, demand, forecast, stockout risk, expiry exposure) with `date_from`, `date_to` and the filters; money indicators are `hidden_by_role` for roles without cost access | inventory |
-| forecast-service | `/accuracy` (additive: `?history=N`, 0 to 52, adds `history`, the overall WAPE and bias of each scored run newest first; approved by the owner 2026-11-09) | forecast |
+| inventory-service | `/dashboard/*` (extended, same prefix); `GET /dashboard/indicators` returns the seven indicators inventory owns (stock value, coverage, demand, forecast, stockout risk, expiry exposure, capital tied up) with `date_from`, `date_to`, the filters and an optional `open_orders` amount (`^\d{1,12}(\.\d{1,2})?$`, passed through by the gateway from procurement) that the capital total adds to the stock at cost; money indicators are `hidden_by_role` for roles without cost access, and capital is `error` with no value when `open_orders` is missing | inventory |
+| forecast-service | `/accuracy` (additive: `?history=N`, 0 to 52, adds `history`, the overall WAPE and bias of each scored run newest first; every response also carries `percent`, the same WAPE and bias times 100 per group, so the gateway does no arithmetic; approved by the owner 2026-11-09) | forecast |
 | procurement-service | `/summary/spend` (additive: `date_from` and `date_to` together, at most 366 days, add `range` with the cap in force on each ISO week's Monday, the spend of that week's newest live proposal, their sums; always adds `open_orders`, the confirmed orders not yet received at confirmed cost; approved by the owner 2026-11-09) | procurement |
 
 Both changes are additive (no existing field removed or changed), each needs its own tests in the owning service, and Agent 00 is informed (audit file, T075).

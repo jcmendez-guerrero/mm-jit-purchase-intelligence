@@ -8,7 +8,7 @@ interface Props {
   indicator: Indicator;
   /** The date range the figure covers, when the screen has one. */
   period?: { from: string; to: string } | undefined;
-  /** Opens the products behind the figure; offered only when there is a figure. */
+  /** Opens the products behind the figure; offered when there is a figure, or when only the amount is hidden. */
   onDrill?: (() => void) | undefined;
 }
 
@@ -59,7 +59,7 @@ export const IndicatorCard: React.FC<Props> = ({ indicator: i, period, onDrill }
         <summary>{t("dashboard.ind.definition")}</summary>
         <p>{t(i.definition_key)}</p>
       </details>
-      {hasFigure && onDrill && (
+      {(hasFigure || hidden) && onDrill && (                               // a role without cost access still lists the products, only the amounts are removed
         <Button variant="secondary" small onClick={onDrill}>
           {t("dashboard.drill.view")}
         </Button>

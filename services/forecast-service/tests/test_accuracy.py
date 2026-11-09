@@ -115,3 +115,15 @@ def test_the_accuracy_history_lists_each_scored_run_newest_first_and_defaults_to
     assert set(newest["metrics"]) == {"wape", "bias"} and Decimal(oldest["metrics"]["wape"]) >= 0
     with engine.begin() as c:
         assert len(latest_accuracy(c, history=1)["history"]) == 1
+
+
+def test_accuracy_also_gives_wape_and_bias_as_percentages_so_the_gateway_does_no_arithmetic(engine, tmp_path):
+    """T022 / ADR-023: the 0-1 fractions stay as they were; ``percent`` carries the same values times 100 for the dashboard."""
+    run_forecast(engine, FakeSource(export(120, 0)), NullWriter(tmp_path), RunConfig())
+    assert acc_now(engine)["percent"] == {}
+    run_forecast(engine, FakeSource(export(130, 4)), NullWriter(tmp_path), RunConfig())
+    acc = acc_now(engine)
+    fractions, percent = acc["metrics"]["B"], acc["percent"]["B"]
+    assert set(percent) == {"wape", "bias"}
+    for k in ("wape", "bias"):
+        assert Decimal(percent[k]) == (Decimal(fractions[k]) * 100).quantize(Decimal("0.01"))

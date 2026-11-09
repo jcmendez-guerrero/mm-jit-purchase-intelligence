@@ -16,9 +16,9 @@ test.describe("Dashboard (T124)", () => {
 
   test("shows the KPIs with their basis and the charts with a text summary", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByLabel("Valor del inventario")).toContainText("1.234,50");
-    await expect(page.getByLabel("Valor del inventario")).toContainText("A coste de adquisición por lote");
-    await expect(page.getByLabel("Cobertura media")).toContainText("5,8 días");
+    await expect(page.getByLabel("Valor del stock")).toContainText("1.234,50");
+    await expect(page.getByLabel("Valor del stock")).toContainText("Según el coste de adquisición de cada lote");
+    await expect(page.getByLabel("Cobertura", { exact: true })).toContainText("5,8 días");
     await expect(page.getByRole("img", { name: /unidades en 60 días/ })).toBeVisible();
     await expect(page.getByText("Solo ventas reales del ERP")).toBeVisible();
   });
@@ -87,7 +87,7 @@ test.describe("Dashboard (T124)", () => {
       return r.fulfill(json({ kind, truncated: kind === "inventory_value", total: kind === "inventory_value" ? 80 : rows.length, rows }));
     });
     await page.goto("/");
-    await page.getByLabel("Valor del inventario").getByRole("button", { name: "Ver productos" }).click();
+    await page.getByLabel("Valor del stock").getByRole("button", { name: "Ver productos" }).click();
     const panel = page.getByRole("complementary", { name: "Productos que forman el valor del inventario" });
     await expect(panel).toContainText("SYN-100 · Variante sintética");
     await expect(panel).toContainText("40,00");
@@ -96,7 +96,7 @@ test.describe("Dashboard (T124)", () => {
     await expect(page.getByLabel("Detalle de la variante 100")).toBeVisible();
     await page.getByRole("button", { name: "Cerrar detalle" }).click();
     await page.keyboard.press("Escape");
-    for (const kpi of ['Cobertura media', 'Variantes con riesgo de rotura', 'Valor que caduca en 60 días']) await page.getByLabel(kpi, { exact: true }).getByRole("button", { name: "Ver productos" }).click();
+    for (const kpi of ['Cobertura', 'Variantes con riesgo de rotura', 'Exposición a caducidad']) await page.getByLabel(kpi, { exact: true }).getByRole("button", { name: "Ver productos" }).click();
     expect(asked.some((q) => q.includes("kind=stockout_risk"))).toBe(true);
     expect(asked.some((q) => q.includes("kind=coverage"))).toBe(true);
     await page.getByRole("button", { name: "Ver como tabla" }).nth(1).click();
@@ -138,6 +138,7 @@ test.describe("Dashboard (T124)", () => {
     await page.unroute("**/api/dashboard/overview*");
     const old = overview(0);
     (old.summary.data as { day: string }).day = "2020-01-01";
+    (old.indicators[0]!.freshness as { state: string }).state = "stale";           // the server decides what is stale
     await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(old)));
     await page.reload();
     await expect(page.getByText("No se detectaron riesgos de inventario hoy.")).toBeVisible();
@@ -146,7 +147,7 @@ test.describe("Dashboard (T124)", () => {
 
   test("a failing card does not hide the others", async ({ page }) => {
     await page.unroute("**/api/dashboard/overview*");
-    await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview(1, { summary: { ok: false, error: "downstream_unavailable" } }))));
+    await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview(1, { trend: { ok: false, error: "downstream_unavailable" } }))));
     await page.goto("/");
     await expect(page.getByText(/No se pudo cargar este indicador/).first()).toBeVisible();
     await expect(page.getByRole("table", { name: "Tabla de riesgos detectados" })).toBeVisible();
@@ -154,7 +155,7 @@ test.describe("Dashboard (T124)", () => {
 
   test("has no serious or critical accessibility violations", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByLabel("Valor del inventario")).toBeVisible();
+    await expect(page.getByLabel("Valor del stock")).toBeVisible();
     for (const scheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: scheme });
       await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute("data-theme"))).toBe(scheme);

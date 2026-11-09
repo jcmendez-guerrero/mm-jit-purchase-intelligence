@@ -23,7 +23,7 @@ test("first meaningful content is visible within 2 seconds with 1,000 alerts, wi
   });
   const t0 = Date.now();
   await page.goto("/");
-  await expect(page.getByLabel("Valor del inventario")).toContainText("1.234,50");
+  await expect(page.getByLabel("Valor del stock")).toContainText("1.234,50");
   await expect(page.getByRole("table", { name: "Tabla de riesgos detectados" })).toBeVisible();
   const elapsed = Date.now() - t0;
   await page.waitForTimeout(500); // let late shifts happen
@@ -49,7 +49,7 @@ test("when the data arrives after a delay the page does not jump (the skeleton h
   });
   await page.goto("/");
   await expect(page.getByRole("status", { name: "Cargando datos" })).toBeVisible();
-  await expect(page.getByLabel("Valor del inventario")).toBeVisible({ timeout: 5000 });
+  await expect(page.getByLabel("Valor del stock")).toBeVisible({ timeout: 5000 });
   await page.waitForTimeout(500);
   const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
   console.log(`layout shift when data arrives after a delay: ${cls.toFixed(3)}`);

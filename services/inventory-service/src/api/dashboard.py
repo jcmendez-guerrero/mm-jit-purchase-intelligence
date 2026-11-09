@@ -53,13 +53,15 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
 
     @router.get("/indicators")
     def indicators(date_from: date | None = None, date_to: date | None = None, warehouse_id: int | None = None, category: str | None = None, family: str | None = None,
-                   supplier_id: str | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+                   supplier_id: str | None = None, open_orders: str | None = Query(default=None, pattern=r"^\d{1,12}(\.\d{1,2})?$"),
+                   conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """``open_orders`` is the amount of confirmed unreceived orders that procurement owns; the gateway passes it through and the capital total is made here."""
         today = datetime.now(UTC).date()
         try:
             fs = FilterSet.parse(today, date_from, date_to, warehouse_id, supplier_id, category, family)
         except FilterError as exc:
             raise HTTPException(422, "request_invalid") from exc
-        return build_indicators(conn, today, fs, means(), _p.roles)
+        return build_indicators(conn, today, fs, means(), _p.roles, None if open_orders is None else Decimal(open_orders))
 
     @router.get("/demand-trend")
     def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, family: str | None = None, supplier_id: str | None = None,
