@@ -269,6 +269,42 @@ def forecast_series(conn: Connection, today: date, f: Filters, forecast: Forecas
     return {"points": pts, "variants": len(use), "seed_assisted": sum(1 for b in use.values() if b[2]), "reason": None}
 
 
+def demand_summary(conn: Connection, today: date, days: int, f: Filters) -> dict[str, Any]:
+    """Units sold in the last ``days`` days (today included): real ERP sales only. Censored rows (days when the product was out of stock, so demand was not
+    observed) are left out and counted. Nothing to count gives ``no_data``, never zero."""
+    scope = variant_scope(conn, f)
+    q = select(demand_observations.c.variant_id, demand_observations.c.demand_qty, demand_observations.c.censored).where(
+        demand_observations.c.day > today - timedelta(days=days), demand_observations.c.day <= today)
+    if f.warehouse_id is not None:
+        q = q.where(demand_observations.c.warehouse_id == f.warehouse_id)
+    units, censored, sellers = 0, 0, set()
+    for r in conn.execute(q).all():
+        if r.variant_id not in scope:
+            continue
+        if r.censored:
+            censored += 1
+            continue
+        units += r.demand_qty
+        sellers.add(r.variant_id)
+    if not sellers:
+        return {"state": "no_data", "units": None, "daily_average": None, "censored_rows": censored, "variants_with_demand": 0, "days": days}
+    return {"state": "ok", "units": units, "daily_average": str((Decimal(units) / Decimal(days)).quantize(Decimal("0.01"))), "censored_rows": censored,
+            "variants_with_demand": len(sellers), "days": days}
+
+
+def forecast_summary(conn: Connection, today: date, f: Filters, forecast: ForecastMeans | None, days: int = FORECAST_DAYS) -> dict[str, Any]:
+    """Forecast units for the next ``days`` days: the sum of the same daily points the trend chart draws, so the card and the chart agree. Variants in scope that
+    have no forecast are counted in ``incomplete``, never valued at zero. Without a forecast, or with a warehouse filter (the forecast is company-wide),
+    the state is ``no_data`` and ``reason`` says why."""
+    fs = forecast_series(conn, today, f, forecast, days)
+    if fs["reason"] is not None:
+        return {"state": "no_data", "units": None, "upper": None, "variants": 0, "incomplete": None, "seed_assisted": 0, "days": days, "reason": fs["reason"]}
+    units = sum((Decimal(p["mean"]) for p in fs["points"]), ZERO)
+    upper = sum((Decimal(p["upper"]) for p in fs["points"]), ZERO)
+    return {"state": "ok", "units": str(units.quantize(Decimal("0.01"))), "upper": str(upper.quantize(Decimal("0.01"))), "variants": fs["variants"],
+            "incomplete": len(variant_scope(conn, f)) - fs["variants"], "seed_assisted": fs["seed_assisted"], "days": days, "reason": None}
+
+
 def filter_options(conn: Connection) -> dict[str, Any]:
     whs = [{"id": r.external_id, "name": r.name} for r in conn.execute(select(warehouses).where(warehouses.c.is_unassigned.is_(False)).order_by(warehouses.c.name)).all()]
     present = {r.abc for r in conn.execute(select(product_segments.c.abc).distinct()).all()}

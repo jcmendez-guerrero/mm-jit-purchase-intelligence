@@ -73,7 +73,7 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 
 ### Implementation
 
-- [ ] T021 (now unblocked; inventory computes stock at cost, demand and forecast; the open-orders part of capital comes from procurement through T022 and the BFF composes the total, see research R3) [US1] (after T003 records the capital definition) Extend `compute_summary` in `services/inventory-service/src/dashboard/kpis.py` with demand, forecast (28 days plus upper band, incomplete bucket) and capital tied up (research R3), keeping existing stock value, coverage, stockout and expiry logic
+- [X] T021 (now unblocked; inventory computes stock at cost, demand and forecast; the open-orders part of capital comes from procurement through T022 and the BFF composes the total, see research R3) [US1] (after T003 records the capital definition) Extend `compute_summary` in `services/inventory-service/src/dashboard/kpis.py` with demand, forecast (28 days plus upper band, incomplete bucket) and capital tied up (research R3), keeping existing stock value, coverage, stockout and expiry logic (done in `services/inventory-service/src/dashboard/kpis.py`: `demand_summary` and `forecast_summary`, 6 tests in `test_dashboard_demand_forecast.py`; the stock part of capital is the existing `inventory_value`; exposure through the route is T023, the open-orders part and the total are T022 and T091)
 - [ ] T022 (now unblocked by the owner's approval; also returns the amount of confirmed orders not yet received and the budget caps per week, rule in research R15, with the three-week test) [US1] (after T075) Extend the accuracy and budget sources: WAPE and bias with history (forecast-service `/accuracy`) and period budget against proposed and confirmed spend (procurement-service `/summary/spend`); additive changes agreed via Agent 00, with tests in the owning service
 - [ ] T023 [US1] Add the indicators route returning the v2 shape with freshness, basis, definition key and `incomplete_count` in `services/inventory-service/src/api/dashboard.py`
 - [ ] T024 [US1] Wire BFF `/dashboard/overview` to return v2 indicators plus the existing cards during transition in `services/api-bff/src/routes/dashboard.py`
@@ -239,3 +239,11 @@ MVP first: Phases 1-2, then US1, US2, US3; validate with quickstart scenarios 1-
 
 - [X] T089 Decide whether the amounts in a supplier's terms (minimum order value, delivery charge, free-delivery threshold) are cost figures for FR-017: either hide them from roles without cost access in `apps/web/src/features/dashboard/SupplierPanel.tsx` and `services/api-bff/src/routes/suppliers.py` with tests, or record in `specs/006-executive-dashboard-analytics/audit/dashboard-audit.md` that supplier terms stay readable by every role because of the supplier management rules of feature 004, per FR-017 (partial) (decided by the owner: supplier terms stay visible to every role; recorded in the audit file, no code change)
 - [X] T090 Add a Playwright spec with simulated viewer responses that checks the dashboard shows counts and "No disponible para tu rol" and no amounts, in `apps/web/tests/e2e/dashboard-roles.spec.ts` using `apps/web/tests/e2e/dashboard-mock.ts`, per FR-017 (missing) (done: three tests, the role message in the three money cards, the products by SKU without amounts, and an accessibility scan; the amount pattern is checked against the real currency format)
+
+---
+
+## Phase 14: Convergence
+
+**Purpose**: the one gap the fifth `/speckit-converge` run found that no open task tracks.
+
+- [ ] T091 Build and test the composition of capital tied up in the BFF in `services/api-bff/src/routes/dashboard.py` with tests in `services/api-bff/tests/test_dashboard_indicators_bff.py`: add the stock at cost from inventory and the open orders from procurement with `Decimal`, return both parts, make the total equal their sum (FR-025), and when either service fails or the role has no cost access return the state `error` or `hidden_by_role` with no value instead of a total made of one part, per FR-025 and FR-003 (missing)
