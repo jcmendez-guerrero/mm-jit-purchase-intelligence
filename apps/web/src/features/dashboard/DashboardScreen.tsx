@@ -44,7 +44,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const [error, setError] = useState<string | null>(null);
   const [warehouse, setWarehouse] = useState<number | undefined>(selectedWarehouse);
   useEffect(() => setWarehouse(selectedWarehouse), [selectedWarehouse]); // the address (?almacen=) is the source of truth
-  const { filters, set: setFilters, clear: clearAddressFilters } = useDashboardFilters();            // the address carries every filter but the warehouse (App owns that one)
+  const { filters, ignored, set: setFilters, clear: clearAddressFilters } = useDashboardFilters();            // the address carries every filter but the warehouse (App owns that one)
   const category = filters.category ?? "";
   const family = filters.family ?? "";
   const supplier = filters.supplier ?? "";
@@ -206,6 +206,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           <input id="f-to" type="date" value={period.to} min={period.from} onChange={(e) => setFilters({ to: e.target.value || undefined })} />
         </div>
       </FilterBar>
+      {ignored.length > 0 && <p role="note">{t("dashboard.filter.ignored", { names: ignored.join(", ") })}</p>}
       {warehouse !== undefined && <p role="note">{t("dashboard.warehouse_informational")}</p>}
       {opts && !opts.family_available && <p className="mmi-muted">{t("dashboard.family_pending")}</p>}
       {s && (

@@ -33,6 +33,8 @@ Existing `/overview` and `/drilldown` behaviour stays backward compatible until 
 
 ### `/drilldown` extra parameters
 
+The stock, coverage, risk and expiry lists describe the current state, so the date range does not narrow them; the page response is the frozen `DrillPage` and carries no `filters_unsupported`, so the web names that limit next to the list (T034). Warehouse, category, family and supplier do apply.
+
 | Parameter | Rules |
 |-----------|-------|
 | kind | `inventory_value`, `coverage`, `stockout_risk`, `expiry_risk`, `abc_xyz`, `trend_day`, plus `demand`, `forecast`, `capital`, `budget`, `expiry_band` |
