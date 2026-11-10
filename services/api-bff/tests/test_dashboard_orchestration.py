@@ -164,3 +164,13 @@ def test_the_spend_card_is_hidden_from_roles_without_cost_access_and_not_even_re
     assert all(c.args[1] != "/summary/spend" for c in proc.forward.call_args_list)
     buyer = call("/api/dashboard/overview", headers_for("b", ["buyer"]), inv, proc).json()
     assert buyer["spend"] == {"ok": True, "data": {"proposal_id": "p1", "total": "300.00"}}
+
+
+def test_the_abc_xyz_cells_get_the_filters_and_the_range_only_when_the_user_gave_them(role_store):
+    inv = inventory(**{"/dashboard/abc-xyz": {"cells": []}})
+    call("/api/dashboard/overview?category=A&supplier_id=s1&warehouse_id=2", headers_for("v", ["buyer"]), inv)
+    p = next(c for c in inv.forward.call_args_list if c.args[1] == "/dashboard/abc-xyz").kwargs["params"]
+    assert p == {"category": "A", "supplier_id": "s1", "warehouse_id": 2}                         # no default window: it would always be named unsupported
+    call("/api/dashboard/overview?date_from=2026-10-01&date_to=2026-10-10", headers_for("v", ["buyer"]), inv)
+    p = [c for c in inv.forward.call_args_list if c.args[1] == "/dashboard/abc-xyz"][-1].kwargs["params"]
+    assert p == {"date_from": "2026-10-01", "date_to": "2026-10-10"}

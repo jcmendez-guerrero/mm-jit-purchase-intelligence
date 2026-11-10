@@ -116,7 +116,7 @@ async def overview(
     summary, trend, abc, risks, options, accuracy, (spend, indicators), suppliers = await asyncio.gather(
         _card(inv.forward("GET", "/dashboard/summary", params=f, **who)),
         _card(inv.forward("GET", "/dashboard/demand-trend", params={**f, **trend_range}, **who)),
-        _card(inv.forward("GET", "/dashboard/abc-xyz", **who)),
+        _card(inv.forward("GET", "/dashboard/abc-xyz", params={**f, **(window if (date_from or date_to) else {})}, **who)),
         _card(inv.forward("GET", "/risk", params={"warehouse_id": warehouse_id} if warehouse_id is not None else None, **who)),
         _card(inv.forward("GET", "/dashboard/filters/options", **who)),
         _card(fc.forward("GET", "/accuracy", **who)),
