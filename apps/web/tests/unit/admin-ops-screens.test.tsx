@@ -13,7 +13,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const thresholds: OpsThresholds = { source_stale_hours: 36, backup_max_age_hours: 26, budget_warn_pct: 80, budget_critical_pct: 100, mirror_lag_minutes: 15, alert_repeat_hours: 24 };
+const thresholds: OpsThresholds = { source_stale_hours: 36, backup_max_age_hours: 26, budget_warn_pct: 80, budget_critical_pct: 100, mirror_lag_minutes: 15, alert_repeat_hours: 24, job_failed_observations: 2 };
 
 describe("OpsCards (Spanish)", () => {
   it("says unavailable instead of showing a number", async () => {

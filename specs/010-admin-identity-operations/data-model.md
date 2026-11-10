@@ -30,6 +30,10 @@ Unique partial index on (condition_key, subject) where state <> `closed` — enf
 
 Transitions: re-evaluation of a live condition updates `last_seen_at` only; a cleared condition sets `closed_at`; acknowledging an already closed alert is a no-op (idempotent).
 
+### `alert_observations`
+
+Consecutive-sighting counter for conditions that must repeat before opening (D15): primary key (`condition_key`, `subject`), `count`, `last_seen_at`. Deleted when the condition is no longer seen.
+
 ### `ops_snapshots`
 
 | Column | Type | Rule |
@@ -45,7 +49,7 @@ Only the latest row per kind is shown as current; a row older than its limit is 
 
 ### `ops_settings`
 
-Single-row-per-key configuration: `source_stale_hours` (36), `backup_max_age_hours` (26), `budget_warn_pct` (80), `budget_critical_pct` (100), `mirror_lag_minutes` (15), `alert_repeat_hours` (24). Changes are audited, admin plus fresh MFA, with `updated_by` and `updated_at`.
+Single-row-per-key configuration: `source_stale_hours` (36), `backup_max_age_hours` (26), `budget_warn_pct` (80), `budget_critical_pct` (100), `mirror_lag_minutes` (15), `alert_repeat_hours` (24), `job_failed_observations` (2). Changes are audited, admin plus fresh MFA, with `updated_by` and `updated_at`.
 
 ## Validation rules (from the spec)
 

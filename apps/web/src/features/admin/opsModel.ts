@@ -25,4 +25,4 @@ export function validateThresholds(v: Record<string, number>): string | null {
   return null;
 }
 
-export const SETTING_KEYS = ["source_stale_hours", "backup_max_age_hours", "budget_warn_pct", "budget_critical_pct", "mirror_lag_minutes", "alert_repeat_hours"] as const;
+export const SETTING_KEYS = ["source_stale_hours", "backup_max_age_hours", "budget_warn_pct", "budget_critical_pct", "mirror_lag_minutes", "alert_repeat_hours", "job_failed_observations"] as const;

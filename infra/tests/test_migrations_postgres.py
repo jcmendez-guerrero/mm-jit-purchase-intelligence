@@ -206,3 +206,27 @@ def test_mmi002_append_only_tables_and_constraints(pg_port):
     dataset("superseded", 2)
     with pytest.raises(sa.exc.IntegrityError):          # a second active dataset is refused by the database
         dataset("active", 3)
+
+
+def test_feature_010_admin_tables_are_owned_by_the_bff_and_keep_one_live_alert_per_condition(pg_port):
+    """T070: migration 0002 creates the BFF-owned alert, observation, snapshot and settings tables; the partial unique index allows one live alert per key."""
+    import sqlalchemy as sa
+
+    alembic("api-bff", "bff_svc", pg_port, "upgrade", "head")
+    alembic("procurement-service", "procurement_svc", pg_port, "upgrade", "head")
+
+    ins = ("insert into alerts (condition_key, subject, severity, state, opened_at, last_seen_at, reason_code) "
+           "values ('mirror_lag', 'role_mirror', 'warning', :s, now(), now(), 'mirror_lag')")
+    sql(pg_port, "bff_svc", ins, {"s": "open"})
+    with pytest.raises(sa.exc.IntegrityError):                    # a second live alert for the same condition and subject
+        sql(pg_port, "bff_svc", ins, {"s": "acknowledged"})
+    sql(pg_port, "bff_svc", "update alerts set state = 'closed', closed_at = now()")
+    sql(pg_port, "bff_svc", ins, {"s": "open"})                   # once closed, the condition can open again
+
+    sql(pg_port, "bff_svc", "insert into alert_observations (condition_key, subject, count, last_seen_at) values ('job_failed', 'import:j1', 1, now())")
+    sql(pg_port, "bff_svc", "insert into ops_snapshots (kind, captured_at, captured_at_original, payload, status) values ('backup', now(), 'x', '{}', 'ok')")
+    sql(pg_port, "bff_svc", "insert into ops_settings (key, value, updated_by, updated_at) values ('source_stale_hours', 48, 'admin-1', now())")
+
+    for table in ("alerts", "alert_observations", "ops_snapshots", "ops_settings"):
+        with pytest.raises(sa.exc.DBAPIError):                    # another service's role cannot read the BFF schema
+            sql(pg_port, "procurement_svc", f"select * from bff.{table}")  # noqa: S608 - fixed table names above

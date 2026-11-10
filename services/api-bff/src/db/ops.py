@@ -6,16 +6,16 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from audit import append as append_audit
-from sqlalchemy import func, insert, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 
-from .tables import alerts, ops_settings, ops_snapshots
+from .tables import alert_observations, alerts, ops_settings, ops_snapshots
 
 DEFAULTS: dict[str, int] = {"source_stale_hours": 36, "backup_max_age_hours": 26, "budget_warn_pct": 80, "budget_critical_pct": 100,
-                            "mirror_lag_minutes": 15, "alert_repeat_hours": 24}
+                            "mirror_lag_minutes": 15, "alert_repeat_hours": 24, "job_failed_observations": 2}
 RANGES: dict[str, tuple[int, int]] = {"source_stale_hours": (1, 720), "backup_max_age_hours": (1, 720), "budget_warn_pct": (1, 500),
-                                      "budget_critical_pct": (1, 500), "mirror_lag_minutes": (1, 1440), "alert_repeat_hours": (1, 720)}
+                                      "budget_critical_pct": (1, 500), "mirror_lag_minutes": (1, 1440), "alert_repeat_hours": (1, 720), "job_failed_observations": (1, 20)}
 
 
 class OpsError(Exception):
@@ -84,16 +84,32 @@ class OpsStore:
                 "payload": r.payload, "status": r.status}
 
     # ---- alerts ----
-    def apply_signals(self, signals: list[Any], evaluated: set[str], now: datetime, repeat_hours: int) -> list[Any]:
-        """Opens, refreshes and closes alerts. Returns the signals whose opening should be announced (one marker each)."""
+    def apply_signals(self, signals: list[Any], evaluated: set[str], now: datetime, repeat_hours: int,
+                      repeat_after: dict[str, int] | None = None) -> list[Any]:
+        """Opens, refreshes and closes alerts. Returns the signals whose opening should be announced (one marker each).
+
+        ``repeat_after`` maps a condition to the number of consecutive evaluations that must see it before an alert opens
+        ("fails repeatedly"); a condition that disappears resets its count.
+        """
         notify: list[Any] = []
+        repeat_after = repeat_after or {}
         wanted = {(s.condition_key, s.subject): s for s in signals}
         with self.engine.begin() as conn:
             live = {(r.condition_key, r.subject): r for r in conn.execute(select(alerts).where(alerts.c.state != "closed")).all()}
+            seen = {(r.condition_key, r.subject): r for r in conn.execute(select(alert_observations)).all()}
             for key, sig in wanted.items():
                 if key in live:
                     conn.execute(update(alerts).where(alerts.c.id == live[key].id).values(last_seen_at=now, severity=sig.severity))
                     continue
+                need = repeat_after.get(key[0], 1)
+                if need > 1:
+                    count = (seen[key].count + 1) if key in seen else 1
+                    if key in seen:
+                        conn.execute(update(alert_observations).where(alert_observations.c.condition_key == key[0], alert_observations.c.subject == key[1]).values(count=count, last_seen_at=now))
+                    else:
+                        conn.execute(insert(alert_observations).values(condition_key=key[0], subject=key[1], count=count, last_seen_at=now))
+                    if count < need:
+                        continue
                 last_open = conn.execute(select(func.max(alerts.c.opened_at)).where(alerts.c.condition_key == key[0], alerts.c.subject == key[1])).scalar()
                 try:
                     with conn.begin_nested():
@@ -106,6 +122,9 @@ class OpsStore:
             for key, row in live.items():
                 if key not in wanted and key[0] in evaluated:
                     conn.execute(update(alerts).where(alerts.c.id == row.id).values(state="closed", closed_at=now))
+            for key in seen:
+                if key not in wanted and key[0] in evaluated:
+                    conn.execute(delete(alert_observations).where(alert_observations.c.condition_key == key[0], alert_observations.c.subject == key[1]))
         return notify
 
     def list_alerts(self, closed_limit: int = 20) -> list[dict[str, Any]]:

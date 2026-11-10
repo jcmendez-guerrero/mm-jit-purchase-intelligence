@@ -79,3 +79,10 @@ Verificar la capacidad de recuperación ante desastres (DR) y el cumplimiento de
 ## Registro en la consola (feature 010)
 
 Tras cada copia correcta y cada simulacro, la plataforma entrega una cifra de operaciones (`kind: backup`, con `last_success_at` y `last_restore_drill_at`) en `ops-inputs/*.json`; el trabajo programado la valida y la guarda. La consola muestra la última copia correcta, el último simulacro y marca la copia como antigua pasadas 26 horas (umbral configurable). Una cifra inválida se rechaza (`snapshot_invalid` en el registro) y nunca se guarda.
+
+### Cómo se entrega la cifra
+
+- Un paso del pipeline o la persona operadora guarda el JSON (esquema `ops_snapshot.v1`) y ejecuta `python -m worker snapshot <fichero>`. Código de salida 0: guardada (o ya estaba guardada); 1: rechazada (línea `SNAPSHOT_REJECTED`, solo códigos).
+- Alternativa: dejar los ficheros en `ops-inputs/` (carpeta ignorada por git); el trabajo programado los lee en cada pasada y repetir la lectura es inofensivo.
+- Nunca se suben cifras reales al repositorio; las de prueba están en `packages/testing/fixtures/ops/`.
+

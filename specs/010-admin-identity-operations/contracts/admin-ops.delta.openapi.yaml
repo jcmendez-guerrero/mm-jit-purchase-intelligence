@@ -130,7 +130,7 @@ paths:
           content: {application/json: {schema: {$ref: "#/components/schemas/OpsSummary"}}}
   /admin/ops/settings:
     get: {summary: Read thresholds, responses: {"200": {description: Settings}}}
-    put: {summary: Change thresholds (audited), x-fresh-mfa: true, responses: {"200": {description: Saved}, "422": {description: ops_settings_invalid}}}
+    put: {summary: "Change thresholds (audited); keys include job_failed_observations (1-20)", x-fresh-mfa: true, responses: {"200": {description: Saved}, "422": {description: ops_settings_invalid}}}
 components:
   schemas:
     AuditEntry:

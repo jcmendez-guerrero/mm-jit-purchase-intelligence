@@ -37,7 +37,7 @@ async function backend(page: Page) {
     { id: 7, condition_key: "backup_old", subject: "backup", severity: "warning", state: acknowledged ? "acknowledged" : "open", opened_at: now, last_seen_at: now, acknowledged_by: acknowledged ? "admin-1" : null, acknowledged_at: null, reason_code: "backup_old" },
   ] })));
   await page.route("**/api/admin/alerts/*/acknowledge", (r) => { acknowledged = true; calls.ack.push(r.request().url()); return r.fulfill(json({})); });
-  await page.route("**/api/admin/ops/settings", (r) => r.fulfill(json({ source_stale_hours: 36, backup_max_age_hours: 26, budget_warn_pct: 80, budget_critical_pct: 100, mirror_lag_minutes: 15, alert_repeat_hours: 24 })));
+  await page.route("**/api/admin/ops/settings", (r) => r.fulfill(json({ source_stale_hours: 36, backup_max_age_hours: 26, budget_warn_pct: 80, budget_critical_pct: 100, mirror_lag_minutes: 15, alert_repeat_hours: 24, job_failed_observations: 2 })));
   await page.route("**/api/admin/audit/verify", (r) => r.fulfill(json({ ok: true, checked: 12, first_broken_id: null })));
   await page.route("**/api/admin/audit?*", (r) => {
     calls.auditUrls.push(r.request().url());

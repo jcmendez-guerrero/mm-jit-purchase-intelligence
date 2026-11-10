@@ -68,8 +68,7 @@ def _downstream_items(jobs: dict[str, Any], runs: dict[str, Any]) -> list[dict[s
     return out
 
 
-async def _queue(session: SessionData, fc: ForecastClient, ops: OpsStore, now: datetime) -> tuple[list[dict[str, Any]], bool]:
-    who = {"user_id": session.user_id, "roles": session.roles}
+async def _queue(who: dict[str, Any], fc: ForecastClient, ops: OpsStore, now: datetime) -> tuple[list[dict[str, Any]], bool]:
     jobs, runs = await _card(fc.forward("GET", "/imports/jobs", **who)), await _card(fc.forward("GET", "/runs", params={"limit": 10}, **who))
     down = _downstream_items(jobs, runs)
     items = _mirror_items(now) + _message_items(ops, now, ops.settings()["backup_max_age_hours"]) + (down or [])
@@ -82,11 +81,18 @@ def _freshness(card: dict[str, Any]) -> dict[str, datetime | None] | None:
     d = card["data"]
 
     def ts(v: str | None) -> datetime | None:
+        """A missing or malformed value is treated as never synced: the source is flagged, never dropped or allowed to fail the page."""
         if not v:
             return None
-        return utc(datetime.fromisoformat(v + "T00:00:00" if len(v) == 10 else v.replace("Z", "+00:00")))
+        try:
+            return utc(datetime.fromisoformat(v + "T00:00:00" if len(v) == 10 else v.replace("Z", "+00:00")))
+        except (ValueError, TypeError):
+            return None
 
-    return {"snapshots": ts(d["stock_snapshots"]["latest_day"]), "movements": ts(d["movements"]["latest_at"]), "aggregates": ts(d["aggregates"]["refreshed_at"])}
+    try:
+        return {"snapshots": ts(d["stock_snapshots"]["latest_day"]), "movements": ts(d["movements"]["latest_at"]), "aggregates": ts(d["aggregates"]["refreshed_at"])}
+    except (KeyError, TypeError):
+        return None                                                    # an unexpected shape is unknown, not healthy
 
 
 def refresh_alerts(ops: OpsStore, now: datetime, source_last: dict[str, datetime | None] | None = None,
@@ -97,13 +103,13 @@ def refresh_alerts(ops: OpsStore, now: datetime, source_last: dict[str, datetime
     facts = Facts(now=now, settings=settings, source_last=source_last, queue_items=queue_items, mirror_oldest_pending_seconds=mirror["oldest_pending_seconds"],
                   backup=ops.latest_snapshot("backup"), cost=ops.latest_snapshot("cost"), delivery_configured=delivery_configured())
     signals, evaluated = evaluate(facts)
-    sync(ops, signals, evaluated, now, settings["alert_repeat_hours"])
+    sync(ops, signals, evaluated, now, settings["alert_repeat_hours"], {"job_failed": settings["job_failed_observations"]})
 
 
 # ---- queue ----
 @router.get("/ops/queue")
 async def queue(session: SessionData = Depends(require_roles("admin")), fc: ForecastClient = Depends(get_forecast_client)) -> dict[str, Any]:
-    items, _ = await _queue(session, fc, get_ops(), datetime.now(UTC))
+    items, _ = await _queue({"user_id": session.user_id, "roles": session.roles}, fc, get_ops(), datetime.now(UTC))
     return {"items": items}
 
 
@@ -128,14 +134,19 @@ async def retry(kind: str, item_id: str, background: BackgroundTasks, session: S
     return out
 
 
+async def refresh_all(ops: OpsStore, inv: InventoryClient, fc: ForecastClient, who: dict[str, Any], now: datetime) -> None:
+    """The complete evaluation: downstream freshness and jobs plus local facts. Used by the console and by the scheduled worker."""
+    items, known = await _queue(who, fc, ops, now)
+    freshness = _freshness(await _card(inv.forward("GET", "/status/sources", **who)))
+    refresh_alerts(ops, now, freshness, items if known else None)
+
+
 # ---- alerts and thresholds ----
 @router.get("/alerts")
 async def list_alerts(session: SessionData = Depends(require_roles("admin")), fc: ForecastClient = Depends(get_forecast_client),
                       inv: InventoryClient = Depends(get_inventory_client)) -> dict[str, Any]:
-    ops, now = get_ops(), datetime.now(UTC)
-    items, known = await _queue(session, fc, ops, now)
-    freshness = _freshness(await _card(inv.forward("GET", "/status/sources", user_id=session.user_id, roles=session.roles)))
-    refresh_alerts(ops, now, freshness, items if known else None)
+    ops = get_ops()
+    await refresh_all(ops, inv, fc, {"user_id": session.user_id, "roles": session.roles}, datetime.now(UTC))
     return {"items": ops.list_alerts(), "delivery_configured": delivery_configured()}
 
 
@@ -155,6 +166,7 @@ class SettingsUpdate(BaseModel):
     budget_critical_pct: StrictInt | None = None
     mirror_lag_minutes: StrictInt | None = None
     alert_repeat_hours: StrictInt | None = None
+    job_failed_observations: StrictInt | None = None
 
 
 @router.get("/ops/settings")

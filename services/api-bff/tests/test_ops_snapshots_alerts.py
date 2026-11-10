@@ -151,6 +151,7 @@ def downstream():
 
 def test_alerts_list_acknowledge_and_close_flow():
     fc, inv = downstream()
+    api("GET", "/api/admin/alerts", admin_headers(), fc=fc, inv=inv)              # first sighting of a failed job: not yet "repeatedly"
     res = api("GET", "/api/admin/alerts", admin_headers(), fc=fc, inv=inv).json()
     keys = {(a["condition_key"], a["subject"]) for a in res["items"]}
     assert ("job_failed", "import:j1") in keys and ("delivery_unconfigured", "email") in keys and res["delivery_configured"] is False
@@ -169,6 +170,7 @@ def test_alerts_list_acknowledge_and_close_flow():
 
 def test_an_unreachable_downstream_leaves_job_alerts_untouched():
     fc, inv = downstream()
+    api("GET", "/api/admin/alerts", admin_headers(), fc=fc, inv=inv)
     api("GET", "/api/admin/alerts", admin_headers(), fc=fc, inv=inv)
     res = api("GET", "/api/admin/alerts", admin_headers(), fc=forward_by_path({}), inv=forward_by_path({})).json()
     assert [a["state"] for a in res["items"] if a["condition_key"] == "job_failed"] == ["open"]
@@ -309,3 +311,83 @@ def test_the_synthetic_fixtures_load_and_the_float_money_one_is_rejected():
     fixtures = Path(__file__).resolve().parents[3] / "packages/testing/fixtures/ops"
     stats = ingest_snapshots(ops(), fixtures, NOW)
     assert stats["rejected"] == 1 and stats["stored"] >= 1                   # invalid_float_money.json; same-kind same-time files de-duplicate
+
+
+# ---- convergence: T065 worker evaluation, T066 snapshot command, T067 bad timestamps, T068 repeated failures ----
+def test_the_worker_pass_alone_opens_stale_source_and_failed_job_alerts_after_repeated_sightings(caplog):
+    import asyncio
+
+    from routes.admin_ops import refresh_all
+
+    caplog.set_level(logging.WARNING, logger="mmi.api_bff.alerts")
+    fc, inv = downstream()
+    who = {"user_id": "svc-api-bff", "roles": ["viewer"]}
+    inv = forward_by_path({"/status/sources": {"stock_snapshots": {"latest_day": "2020-01-01", "rows": 5}, "movements": {"rows": 9, "quarantined": 0, "latest_at": datetime.now(UTC).isoformat()},
+                                               "aggregates": {"refreshed_at": datetime.now(UTC).isoformat()}}})
+    asyncio.run(refresh_all(ops(), inv, fc, who, NOW))
+    live = {(a["condition_key"], a["subject"]) for a in ops().list_alerts()}
+    assert ("source_stale", "snapshots") in live and ("job_failed", "import:j1") not in live          # the job failed once only
+    asyncio.run(refresh_all(ops(), inv, fc, who, NOW + timedelta(minutes=10)))
+    live = {(a["condition_key"], a["subject"]) for a in ops().list_alerts()}
+    assert ("job_failed", "import:j1") in live
+    assert caplog.text.count("ADMIN_ALERT_OPENED condition=job_failed subject=import:j1") == 1
+    assert caplog.text.count("ADMIN_ALERT_OPENED condition=source_stale subject=snapshots") == 1
+
+
+def test_the_worker_asks_for_the_viewer_role_only():
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    from routes.admin_ops import refresh_all
+
+    inv, fc = AsyncMock(), AsyncMock()
+    inv.forward.return_value = {}
+    fc.forward.return_value = {}
+    asyncio.run(refresh_all(ops(), inv, fc, {"user_id": "svc-api-bff", "roles": ["viewer"]}, NOW))
+    for call in (*inv.forward.call_args_list, *fc.forward.call_args_list):
+        assert call.kwargs["roles"] == ["viewer"] and call.args[0] == "GET"
+
+
+def test_a_failure_must_be_seen_repeatedly_and_a_recovery_resets_the_count():
+    failed = [{"kind": "import", "id": "j9", "state": "failed"}]
+    ok = [{"kind": "import", "id": "j9", "state": "succeeded"}]
+    ops().set_settings({"job_failed_observations": 3}, "admin-1")
+
+    def step(items, minutes):
+        f = Facts(now=NOW + timedelta(minutes=minutes), settings=ops().settings(), queue_items=items)
+        sigs, ev = evaluate(f)
+        sync(ops(), sigs, ev, f.now, 24, {"job_failed": f.settings["job_failed_observations"]})
+        return [a for a in ops().list_alerts() if a["condition_key"] == "job_failed" and a["state"] != "closed"]
+
+    assert step(failed, 0) == [] and step(failed, 1) == []
+    assert step(ok, 2) == []                                       # recovered: the count starts again
+    assert step(failed, 3) == [] and step(failed, 4) == []
+    assert len(step(failed, 5)) == 1                               # third consecutive sighting
+    step(ok, 6)
+    assert [a["state"] for a in ops().list_alerts() if a["condition_key"] == "job_failed"] == ["closed"]
+
+
+def test_a_malformed_source_timestamp_is_flagged_not_a_server_error():
+    fc, _ = downstream()
+    inv = forward_by_path({"/status/sources": {"stock_snapshots": {"latest_day": "garbage", "rows": 5}, "movements": {"rows": 9, "quarantined": 0, "latest_at": "2026-13-45T99:00:00"},
+                                               "aggregates": {"refreshed_at": datetime.now(UTC).isoformat()}}})
+    res = api("GET", "/api/admin/alerts", admin_headers(), fc=fc, inv=inv)
+    assert res.status_code == 200
+    stale = {a["subject"] for a in res.json()["items"] if a["condition_key"] == "source_stale"}
+    assert {"snapshots", "movements"} <= stale and "aggregates" not in stale
+    odd = forward_by_path({"/status/sources": {"unexpected": True}})
+    assert api("GET", "/api/admin/alerts", admin_headers(), fc=fc, inv=odd).status_code == 200
+
+
+def test_the_snapshot_command_stores_one_valid_file_and_refuses_an_invalid_one(tmp_path, caplog):
+    from worker import store_snapshot_file
+
+    good, bad = tmp_path / "good.json", tmp_path / "bad.json"
+    good.write_text(json.dumps(backup_snap()))
+    bad.write_text(json.dumps({**cost_snap(projected=85.5)}))
+    assert store_snapshot_file(ops(), good, NOW) == 0 and store_snapshot_file(ops(), good, NOW) == 0     # twice: stored once
+    assert ops().latest_snapshot("backup")["payload"]["last_success_at"]
+    caplog.set_level(logging.ERROR)
+    assert store_snapshot_file(ops(), bad, NOW) == 1 and "SNAPSHOT_REJECTED" in caplog.text
+    assert ops().latest_snapshot("cost") is None
+    assert store_snapshot_file(ops(), tmp_path / "missing.json", NOW) == 1

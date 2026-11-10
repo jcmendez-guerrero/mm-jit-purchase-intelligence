@@ -78,3 +78,10 @@ ops_settings = Table(
     Column("updated_by", String(120), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
 )
+alert_observations = Table(
+    "alert_observations", metadata,
+    Column("condition_key", String(40), primary_key=True),
+    Column("subject", String(80), primary_key=True),
+    Column("count", Integer, nullable=False, default=1),                 # consecutive evaluations that saw the condition (repeat rule)
+    Column("last_seen_at", DateTime(timezone=True), nullable=False),
+)

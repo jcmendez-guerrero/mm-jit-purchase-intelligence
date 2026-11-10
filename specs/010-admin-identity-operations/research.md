@@ -58,5 +58,15 @@ Rationale: scale-to-zero budget (EUR 120). The worker already runs `python -m wo
 ## 3. Open questions (not blocking)
 
 - **OQ-1**: Should procurement's audit chain appear in the same console? Raise with Agent 00 (shared contract).
-- **OQ-2**: Where does the platform export the cost/backup snapshot (pipeline artifact vs. blob)? Default: operator command plus scheduled job input file under a gitignored path.
+- **OQ-2**: Resolved by D10 and D14 (operator command or input folder).
 - **OQ-3**: The required minimum number of eligible approvers is read from the approval rules; confirm the value when the FR-006 tests are written.
+
+## 4. Convergence decisions (2026-11-11)
+
+- **D11 (T071, FR-016).** Automatic bounded exponential retry applies to the role-mirror outbox only (30 s base, 1 h cap, 8 attempts, then dead-lettered). Import and forecast failures are not retried automatically: they are manual, idempotent re-runs by an administrator (the owning service refuses a job that is not re-runnable, `import_job_not_rerunnable`). FR-016 is read that way; adding automatic retries to those jobs would be a change in forecast-service, outside this feature's owned area.
+- **D12 (T072, FR-023).** Audit entries get their time from the service clock and store it as UTC (`audit_events.ts`, asserted by `test_audit_times_are_stored_in_utc`). There is no source string to preserve, so no `ts_original` column is added. The original string is kept where one exists: `ops_snapshots.captured_at_original`.
+- **D13 (T069, FR-022).** `ops_snapshot.v1.schema.json` stays in this feature's `contracts/` as the documented shape. The BFF validates snapshots with its own Pydantic model (`services/api-bff/src/ops/snapshots.py`), the only consumer; the producer is a platform script that can validate against the same JSON schema. Promotion to `packages/contracts/dto/` (with generated types and the baseline) is left to Agent 00 if a second consumer appears.
+- **D14 (T066, OQ-2).** Snapshots reach the BFF in one of two ways: `python -m worker snapshot <file>` (validates and stores one file; exit 1 on refusal) or the scheduled pass reading `ops-inputs/*.json`. The platform (pipeline or operator) produces the JSON; the repository never holds real figures.
+- **D15 (T068, FR-017).** "Fails repeatedly" means a failed job must be seen on `job_failed_observations` consecutive evaluations (default 2, setting range 1 to 20) before an alert opens; a recovery resets the count (`alert_observations`).
+- **D16 (T065, US4).** The scheduled worker now performs the complete evaluation with the BFF service identity restricted to the `viewer` role (read-only), so stale-source and failed-job alerts and their log marker no longer depend on the console being open.
+

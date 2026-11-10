@@ -17,4 +17,3 @@ export function freshness(iso: string | null, now: Date, limitHours: number = ST
 /** Only a failed job can be re-run; the service enforces it again. */
 export const canRerunJob = (state: string): boolean => state === "failed";
 
-export const spendShare = (estimate: number, budget: number): number => (budget > 0 ? Math.min(1, Math.max(0, estimate / budget)) : 0);

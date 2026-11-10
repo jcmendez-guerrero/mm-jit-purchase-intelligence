@@ -22,7 +22,7 @@ async function backend(page: Page, roles: string[], runsDown = false) {
   await page.route("**/api/admin/ops/summary", (r) => r.fulfill(json({ backup: { ok: false, error: "snapshot_unavailable" }, cost: { ok: false, error: "snapshot_unavailable" } })));
   await page.route("**/api/admin/ops/queue", (r) => r.fulfill(json({ items: [] })));
   await page.route("**/api/admin/alerts", (r) => r.fulfill(json({ items: [], delivery_configured: true })));
-  await page.route("**/api/admin/ops/settings", (r) => r.fulfill(json({ source_stale_hours: 36, backup_max_age_hours: 26, budget_warn_pct: 80, budget_critical_pct: 100, mirror_lag_minutes: 15, alert_repeat_hours: 24 })));
+  await page.route("**/api/admin/ops/settings", (r) => r.fulfill(json({ source_stale_hours: 36, backup_max_age_hours: 26, budget_warn_pct: 80, budget_critical_pct: 100, mirror_lag_minutes: 15, alert_repeat_hours: 24, job_failed_observations: 2 })));
   await page.route("**/api/admin/audit?*", (r) => r.fulfill(json({ items: [], next_cursor: null })));
   await page.route("**/api/admin/rerun/import/*", (r) => { state.reruns.push(r.request().url()); return r.fulfill(json({ job_id: "j2", state: "queued", reused: false }, 202)); });
   await page.route("**/api/admin/rerun/forecast", (r) => { state.forecastReruns += 1; return r.fulfill(json({ run_id: "r1", reused: true, eligible: 3 }, 202)); });

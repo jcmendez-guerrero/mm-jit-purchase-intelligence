@@ -364,6 +364,7 @@ export interface OpsThresholds {
   budget_critical_pct: number;
   mirror_lag_minutes: number;
   alert_repeat_hours: number;
+  job_failed_observations: number;
 }
 export type QueueKind = "mirror" | "import" | "forecast" | "message";
 export interface QueueItem {

@@ -91,9 +91,10 @@ def evaluate(f: Facts) -> tuple[list[Signal], set[str]]:
     return out, evaluated
 
 
-def sync(store: Any, signals: list[Signal], evaluated: set[str], now: datetime, repeat_hours: int) -> list[Signal]:
+def sync(store: Any, signals: list[Signal], evaluated: set[str], now: datetime, repeat_hours: int,
+         repeat_after: dict[str, int] | None = None) -> list[Signal]:
     """Applies signals to the alert table and returns the alerts that were newly opened (one marker each)."""
-    opened = store.apply_signals(signals, evaluated, now, repeat_hours)
+    opened = store.apply_signals(signals, evaluated, now, repeat_hours, repeat_after)
     for s in opened:
         log.warning("ADMIN_ALERT_OPENED condition=%s subject=%s", s.condition_key, s.subject)
     return opened

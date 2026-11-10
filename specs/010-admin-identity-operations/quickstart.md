@@ -55,9 +55,9 @@ Run before the PR, since contracts and error codes change.
 
 | Check | Result |
 |---|---|
-| `services/api-bff` pytest | 295 passed (225 before this feature plus the new admin, audit, MFA, queue, alert, snapshot tests) |
+| `services/api-bff` pytest | 300 passed (225 before this feature plus the new admin, audit, MFA, queue, alert, snapshot tests) |
 | `packages/contracts` pytest (without the Azurite test, which needs a running emulator) | 237 passed |
-| `infra/tests` | 65 passed, 17 skipped (Docker-only) |
+| `infra/tests` | 66 passed, 17 skipped (Docker-only) |
 | `apps/web` Vitest | 552 passed |
 | Playwright, whole suite | 215 passed, 6 skipped, 1 failed: `a11y-all-routes.spec.ts` theme switch on `/panel` (a different route failed on a rerun: `/importaciones`); no admin route fails. Not reproduced on a clean main, so unverified there. |
 | Playwright `admin-ops`, `admin-status`, `roles` | 13 passed |
@@ -65,4 +65,5 @@ Run before the PR, since contracts and error codes change.
 | Gate `e2e` | fail (same a11y theme flake) |
 | Gate `integration` | not run (no PR list) |
 | Section 2 (restart survival and approval) | restart survival is covered by the existing `services/api-bff/tests/test_roles_persistence.py` (new process, same database); approver-not-creator by `services/procurement-service/tests/test_approval.py`. The end-to-end flow across all services on the compose stack was not run. |
-| Compose stack, real PostgreSQL migration `0002` | not run here (SQLite stand-in only); run `infra/tests/test_migrations_postgres.py` with Docker before merging |
+| Real PostgreSQL migration `0002` | `RUN_PG_MIGRATIONS=1` with Docker: 10 passed (model matches migration, reversible, new admin-tables and one-live-alert test) |
+| Compose stack end to end | not run |
