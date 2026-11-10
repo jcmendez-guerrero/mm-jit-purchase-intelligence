@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Any
 
 from audit.chain import append as audit
-from db.tables import budget_caps, policy_sets
+from db.tables import budget_caps, policy_sets, product_refs
 from sqlalchemy import func, insert, select
 from sqlalchemy.engine import Connection, Row
 
@@ -96,6 +96,10 @@ def save_policy(conn: Connection, scope: str, key: str, values: PolicyValues, ac
     current = _current_revision(conn, scope, key)
     if expected_revision is not None and expected_revision != current:
         raise PolicyConflict(current)
+    latest = conn.execute(select(func.max(policy_sets.c.valid_from)).where(policy_sets.c.scope == scope, policy_sets.c.key == key)).scalar()
+    if latest is not None and start < latest:
+        # an earlier date than a scheduled revision would be silently overridden when that revision takes effect
+        raise PolicyError("a revision is already scheduled after this date", "policy_overlap")
     rev = current + 1
     pid = str(uuid.uuid4())
     conn.execute(insert(policy_sets).values(id=pid, scope=scope, key=key, service_level=values.service_level, safety_stock_units=values.safety_stock_units,
@@ -137,6 +141,47 @@ def resolve_policy(conn: Connection, variant_id: int, segments: tuple[str, ...],
     return EffectivePolicy(PolicyValues(**out), sources, revisions)
 
 
+def effective_view(conn: Connection, variant_id: int, segments: tuple[str, ...], as_of: date) -> dict[str, dict[str, Any]]:
+    """Per rule: the value in force, where it comes from (product, segment, global or default) and its revision. Nothing in force means the computed default applies."""
+    chain = [("product", str(variant_id)), *[("segment", s) for s in segments], ("global", "*")]
+    out: dict[str, dict[str, Any]] = {f: {"value": None, "source": "default", "key": None, "revision": None, "valid_from": None} for f in FIELDS}
+    for scope, key in chain:
+        row = policy_row(conn, scope, key, as_of)
+        if row is None:
+            continue
+        for f in FIELDS:
+            val = getattr(row, f)
+            if val is not None and out[f]["source"] == "default":
+                out[f] = {"value": str(val), "source": scope, "key": key, "revision": int(row.revision), "valid_from": row.valid_from.isoformat()}
+    return out
+
+
+def _sku_key(sku: str | None) -> str:
+    return (sku or "").strip().lower()
+
+
+def variant_for_sku(conn: Connection, sku: str) -> int:
+    """People use SKUs; the variant id is internal. A SKU that matches no product, or more than one (also by case or spacing), is refused."""
+    key = _sku_key(sku)
+    if not key:
+        raise PolicyError("sku required", "sku_unknown")
+    ids = sorted({int(r.variant_id) for r in conn.execute(select(product_refs.c.variant_id).where(func.lower(func.trim(product_refs.c.sku)) == key)).all()})
+    if not ids:
+        raise PolicyError("sku unknown", "sku_unknown")
+    if len(ids) > 1:
+        raise PolicyError("sku matches more than one product", "sku_ambiguous")
+    return ids[0]
+
+
+def variant_known(conn: Connection, variant_id: int) -> bool:
+    return conn.execute(select(product_refs.c.variant_id).where(product_refs.c.variant_id == variant_id)).first() is not None
+
+
+def sku_for_variant(conn: Connection, variant_id: int) -> str | None:
+    r = conn.execute(select(product_refs.c.sku).where(product_refs.c.variant_id == variant_id)).first()
+    return None if r is None or r.sku is None else str(r.sku).strip()
+
+
 def history(conn: Connection, scope: str, key: str) -> list[dict[str, Any]]:
     rows = conn.execute(select(policy_sets).where(policy_sets.c.scope == scope, policy_sets.c.key == key).order_by(policy_sets.c.revision)).all()
     return [{"revision": r.revision, "valid_from": r.valid_from.isoformat(), "changed_by": r.changed_by,
@@ -160,8 +205,17 @@ CAP_PERIODS = ("week", "month")
 CAP_SCOPES = ("global", "supplier", "category")
 
 
+def _cap_filter(period: str, scope: str, scope_key: str | None) -> Any:
+    return (budget_caps.c.period == period, budget_caps.c.scope == scope,
+            budget_caps.c.scope_key.is_(None) if scope_key is None else budget_caps.c.scope_key == scope_key)
+
+
+def budget_cap_revision(conn: Connection, period: str, scope: str, scope_key: str | None) -> int:
+    return int(conn.execute(select(func.max(budget_caps.c.revision)).where(*_cap_filter(period, scope, scope_key))).scalar() or 0)
+
+
 def save_budget_cap(conn: Connection, period: str, scope: str, scope_key: str | None, amount: Decimal, actor: str, *, valid_from: date | None = None,
-                    today: date | None = None) -> str:
+                    today: date | None = None, expected_revision: int | None = None) -> str:
     if isinstance(amount, float):
         raise TypeError("floats are not allowed for money")
     if period not in CAP_PERIODS or scope not in CAP_SCOPES or amount < 0 or amount > Decimal("100000000"):
@@ -172,11 +226,16 @@ def save_budget_cap(conn: Connection, period: str, scope: str, scope_key: str | 
     start = valid_from or today
     if start < today:
         raise PolicyError("a budget cap cannot start in the past")
-    prev = conn.execute(select(func.max(budget_caps.c.revision)).where(budget_caps.c.period == period, budget_caps.c.scope == scope,
-                                                                        budget_caps.c.scope_key.is_(None) if scope_key is None else budget_caps.c.scope_key == scope_key)).scalar() or 0
+    prev = budget_cap_revision(conn, period, scope, scope_key)
+    if expected_revision is not None and expected_revision != prev:
+        raise PolicyConflict(prev)
+    latest = conn.execute(select(func.max(budget_caps.c.valid_from)).where(*_cap_filter(period, scope, scope_key))).scalar()
+    if latest is not None and start < latest:
+        raise PolicyError("a budget cap is already scheduled after this date", "policy_overlap")
     cid = str(uuid.uuid4())
-    conn.execute(insert(budget_caps).values(id=cid, period=period, scope=scope, scope_key=scope_key, amount=amount, valid_from=start, revision=int(prev) + 1, changed_by=actor))
-    audit(conn, actor, "budget_cap.saved", "budget_cap", cid, after={"period": period, "scope": scope, "scope_key": scope_key, "amount": str(amount), "valid_from": start.isoformat()})
+    conn.execute(insert(budget_caps).values(id=cid, period=period, scope=scope, scope_key=scope_key, amount=amount, valid_from=start, revision=prev + 1, changed_by=actor))
+    audit(conn, actor, "budget_cap.saved", "budget_cap", cid, after={"period": period, "scope": scope, "scope_key": scope_key, "amount": str(amount), "valid_from": start.isoformat(),
+                                                                       "revision": prev + 1})
     return cid
 
 

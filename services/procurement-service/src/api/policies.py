@@ -7,7 +7,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
-from db.tables import policy_sets
+from db.tables import audit_events, policy_sets
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
@@ -24,20 +24,26 @@ from policies.overrides import (
 from policies.preview import preview_policy
 from policies.service import (
     FIELDS,
+    SEGMENTS,
     PolicyConflict,
     PolicyError,
     PolicyValues,
+    budget_cap_revision,
+    effective_view,
     effective_weekly_budget,
     history,
     listing,
     policy_row,
     save_budget_cap,
     save_policy,
+    sku_for_variant,
     validate_key,
+    variant_for_sku,
+    variant_known,
 )
 from policies.stocking import get_stocking, save_stocking
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.engine import Connection
 
 from api.costs import get_engine
@@ -104,21 +110,62 @@ def build_router(app: FastAPI) -> APIRouter:
         return {"valid_from": r.valid_from.isoformat(), "revision": r.revision, "changed_by": r.changed_by,
                 **{f: (None if getattr(r, f) is None else str(getattr(r, f))) for f in FIELDS}}
 
+    def internal_key(conn: Connection, scope: str, key: str) -> str:
+        """People type the SKU for product scope; the variant id stays inside the platform. Unknown or ambiguous SKUs are refused."""
+        if scope != "product":
+            return key
+        try:
+            return str(variant_for_sku(conn, key))
+        except PolicyError as exc:
+            raise HTTPException(422, error_code(exc)) from exc
+
     @router.get("/policies")
     def list_policies(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         d = today()
         w = effective_weekly_budget(conn, d)
-        return {"as_of": d.isoformat(), "policies": listing(conn, d), "weekly_budget": None if w is None else str(w.quantize(Decimal("0.01")))}
+        rows = listing(conn, d)
+        orphaned = []
+        for r in rows:
+            if r["scope"] == "product":
+                vid = int(r["key"])
+                sku = sku_for_variant(conn, vid)
+                r["variant_id"] = vid                                  # internal; the gateway removes it before it reaches the browser
+                r["key"] = sku or r["key"]
+                if not variant_known(conn, vid):
+                    r["orphaned"] = True
+                    orphaned.append(r["key"])
+        return {"as_of": d.isoformat(), "policies": rows, "weekly_budget": None if w is None else str(w.quantize(Decimal("0.01"))), "orphaned": orphaned,
+                "weekly_budget_revision": budget_cap_revision(conn, "week", "global", None)}
+
+    @router.get("/products/{sku}/effective-policy")
+    def effective_policy(sku: str, segments: str = Query(default="", max_length=60), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        try:
+            vid = variant_for_sku(conn, sku)
+        except PolicyError as exc:
+            raise HTTPException(422, error_code(exc)) from exc
+        segs = tuple(s for s in segments.split(",") if s)
+        if any(s not in SEGMENTS for s in segs):
+            raise HTTPException(422, "policy_out_of_range")
+        return {"sku": sku.strip(), "as_of": today().isoformat(), "rules": effective_view(conn, vid, segs, today())}
+
+    @router.get("/policy-audit")
+    def policy_audit(limit: int = Query(default=100, ge=1, le=500), conn: Connection = Depends(conn_dep), _p: Any = Depends(require("admin"))) -> dict[str, Any]:
+        rows = conn.execute(select(audit_events).where(or_(audit_events.c.action.like("policy.%"), audit_events.c.action.like("budget_cap.%"),
+                                                           audit_events.c.action.like("stocking.%"), audit_events.c.action.like("policy_override.%")))
+                            .order_by(audit_events.c.id.desc()).limit(limit)).all()
+        return {"items": [{"at": r.ts.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": r.entity_id, "before": r.before, "after": r.after,
+                           "outcome": "refused" if r.action.endswith(".refused") else "accepted"} for r in rows]}
 
     @router.get("/policies/{scope}/{key}")
     def get_policy(scope: str, key: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         try:
-            validate_key(scope, key)
+            validate_key(scope, key if scope != "product" else "1")
         except PolicyError as exc:
             raise HTTPException(422, error_code(exc)) from exc
-        cur = policy_row(conn, scope, key, today())
-        rev = int(conn.execute(select(func.max(policy_sets.c.revision)).where(policy_sets.c.scope == scope, policy_sets.c.key == key)).scalar() or 0)
-        return {"scope": scope, "key": key, "revision": rev, "current": None if cur is None else pol_json(cur), "history": history(conn, scope, key)}
+        ikey = internal_key(conn, scope, key)
+        cur = policy_row(conn, scope, ikey, today())
+        rev = int(conn.execute(select(func.max(policy_sets.c.revision)).where(policy_sets.c.scope == scope, policy_sets.c.key == ikey)).scalar() or 0)
+        return {"scope": scope, "key": key, "revision": rev, "current": None if cur is None else pol_json(cur), "history": history(conn, scope, ikey)}
 
     def _expected(header: str | None, conn: Connection, scope: str, key: str) -> int | None:
         exp = parse_if_match(header)
@@ -131,7 +178,8 @@ def build_router(app: FastAPI) -> APIRouter:
     def put_policy(scope: str, key: str, body: PolicyBody, if_match: str | None = Header(default=None), conn: Connection = Depends(conn_dep),
                    principal: Any = Depends(require("buyer"))) -> Any:
         try:
-            validate_key(scope, key)
+            validate_key(scope, key if scope != "product" else "1")
+            key = internal_key(conn, scope, key)
             expected = _expected(if_match, conn, scope, key)
             rev = save_policy(conn, scope, key, body.values(), principal.subject, valid_from=body.valid_from, expected_revision=expected)
         except PolicyConflict as exc:
@@ -146,8 +194,11 @@ def build_router(app: FastAPI) -> APIRouter:
         if provider is None:
             raise HTTPException(503, "not_configured")
         try:
-            validate_key(scope, key)
-            return preview_policy(conn, provider, scope, key, body.values(), principal.subject, today(), body.valid_from)
+            validate_key(scope, key if scope != "product" else "1")
+            result = preview_policy(conn, provider, scope, internal_key(conn, scope, key), body.values(), principal.subject, today(), body.valid_from)
+            for row in result.get("affected", []):
+                row["sku"] = sku_for_variant(conn, int(row["variant_id"]))          # people see the SKU; the gateway drops variant_id
+            return result
         except PolicyError as exc:
             raise HTTPException(422, error_code(exc)) from exc
         except Exception as exc:
@@ -158,13 +209,20 @@ def build_router(app: FastAPI) -> APIRouter:
             raise
 
     @router.put("/budget-caps")
-    def put_budget(body: BudgetBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
+    def put_budget(body: BudgetBody, if_match: str | None = Header(default=None), conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> Any:
+        exp = parse_if_match(if_match)
+        if exp is None and budget_cap_revision(conn, body.period, body.scope, body.scope_key) > 0:
+            raise HTTPException(428, "revision_required")
         try:
-            cid = save_budget_cap(conn, body.period, body.scope, body.scope_key, body.amount, principal.subject, valid_from=body.valid_from)
+            cid = save_budget_cap(conn, body.period, body.scope, body.scope_key, body.amount, principal.subject, valid_from=body.valid_from,
+                                  expected_revision=exp if exp is not None else 0)
+        except PolicyConflict as exc:
+            return JSONResponse({"detail": exc.code, "current_version": exc.current_revision}, status_code=412)
         except PolicyError as exc:
             raise HTTPException(422, error_code(exc)) from exc
         w = effective_weekly_budget(conn, today())
-        return {"id": cid, "weekly_budget": None if w is None else str(w.quantize(Decimal("0.01")))}
+        return {"id": cid, "revision": budget_cap_revision(conn, body.period, body.scope, body.scope_key),
+                "weekly_budget": None if w is None else str(w.quantize(Decimal("0.01")))}
 
     @router.get("/stocking/{variant_id}")
     def read_stocking(variant_id: int, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

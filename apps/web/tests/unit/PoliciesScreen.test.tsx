@@ -10,8 +10,8 @@ const consoleData = (over: Partial<PolicyConsole> = {}): PolicyConsole => ({
   demand: {
     ok: true,
     data: {
-      exclusions: [{ id: 7, variant_id: null, from_day: "2026-10-03", to_day: "2026-10-05", reason: "cierre por obras", active: true, revision: 1 }],
-      rules: [{ rule: "min_zero_stock_days", value: 1, min: 1, max: 30, default: 1 }],
+      exclusions: [{ id: 7, sku: null, from_day: "2026-10-03", to_day: "2026-10-05", reason_code: "closure", active: true, revision: 1 }],
+      rules: [{ rule: "min_zero_stock_days", value: 1, min: 1, max: 30, default: 1, revision: 0 }],
     },
   },
   forecast: { ok: true, data: { as_of: "2026-11-09", parameters: [{ key: "lead_time", value: "7", default: "7", min: "1", max: "60", kind: "int", revision: 0, in_force_revision: null }] } },
@@ -51,14 +51,15 @@ describe("purchasing section", () => {
   });
 
   it("previews the effect without saving and then saves with the revision it read", async () => {
-    const preview = vi.spyOn(api, "previewPolicy").mockResolvedValue({ as_of: "2026-11-09", affected_count: 1, affected: [{ variant_id: 5, qty_before: 4, qty_after: 9 }], spend_before: "100.00", spend_after: "190.00", spend_delta: "90.00", saved: false });
+    const preview = vi.spyOn(api, "previewPolicy").mockResolvedValue({ as_of: "2026-11-09", affected_count: 1, affected: [{ sku: "SYN-0005", qty_before: 4, qty_after: 9 }], spend_before: "100.00", spend_after: "190.00", spend_delta: "90.00", saved: false });
     const put = vi.spyOn(api, "putPolicy").mockResolvedValue({ revision: 3 });
     render(<PoliciesScreen userRoles={["buyer"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Cargar política" }));
     fireEvent.change(await screen.findByLabelText("Nivel de servicio (%)"), { target: { value: "99" } });
     fireEvent.click(screen.getByRole("button", { name: "Previsualizar efecto" }));
     expect(await screen.findByText(/Productos afectados: 1/)).toBeTruthy();
-    expect(screen.getByText(/Variante 5: 4 → 9 unidades/)).toBeTruthy();
+    expect(screen.getByText(/SKU SYN-0005: 4 → 9 unidades/)).toBeTruthy();
+    expect(screen.queryByText(/Variante 5/)).toBeNull();                      // the ERP id is never shown
     expect(preview).toHaveBeenCalledWith("global", "*", { service_level_pct: "99", min_units: 1 });
     expect(put).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Guardar nueva versión" }));
@@ -101,6 +102,84 @@ describe("purchasing section", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("no está disponible");
     tab(/Compras/);
     expect(screen.getByText(/Presupuesto semanal vigente/)).toBeTruthy();
+  });
+});
+
+describe("feature 011: revisions, sources and audit", () => {
+  const budgetConsole = (revision: number) => consoleData({
+    purchasing: { ok: true, data: { as_of: "2026-11-09", weekly_budget: "400.00", weekly_budget_revision: revision, policies: [] } },
+  });
+
+  it("saves a budget cap with the revision it read and shows a conflict in Spanish", async () => {
+    vi.spyOn(api, "getPolicyConsole").mockResolvedValue(budgetConsole(3));
+    const put = vi.spyOn(api, "putBudgetCap").mockRejectedValueOnce(new ApiError(412, "revision_conflict", 4)).mockResolvedValue({ weekly_budget: "500.00", revision: 4 });
+    render(<PoliciesScreen userRoles={["buyer"]} />);
+    await screen.findByText(/Presupuesto semanal vigente/);
+    fireEvent.change(screen.getByLabelText("Importe semanal (€)"), { target: { value: "500" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar presupuesto" }));
+    await waitFor(() => expect(put).toHaveBeenCalledWith({ period: "week", scope: "global", amount: "500" }, 3));
+    expect((await screen.findAllByRole("alert")).map((a) => a.textContent).join(" ")).toContain("versión 4");
+  });
+
+  it("explains a stale second factor on the budget save", async () => {
+    vi.spyOn(api, "getPolicyConsole").mockResolvedValue(budgetConsole(0));
+    vi.spyOn(api, "putBudgetCap").mockRejectedValue(new ApiError(403, "auth_mfa_stale"));
+    render(<PoliciesScreen userRoles={["buyer"]} />);
+    await screen.findByText(/Presupuesto semanal vigente/);
+    fireEvent.change(screen.getByLabelText("Importe semanal (€)"), { target: { value: "500" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar presupuesto" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("segundo factor");
+  });
+
+  it("shows where each value of a product comes from, with defaults named as such", async () => {
+    vi.spyOn(api, "getPolicy").mockResolvedValue({ ...detail, scope: "product", key: "SYN-0005" });
+    vi.spyOn(api, "getEffectivePolicy").mockResolvedValue({
+      sku: "SYN-0005", as_of: "2026-11-09",
+      rules: {
+        service_level: { value: "0.9700", source: "segment", key: "A", revision: 2, valid_from: "2026-11-01" },
+        safety_stock_units: { value: null, source: "default", key: null, revision: null, valid_from: null },
+        min_units: { value: "4", source: "product", key: "5", revision: 1, valid_from: "2026-11-01" },
+        max_units: { value: null, source: "default", key: null, revision: null, valid_from: null },
+        replenishment_cadence_days: { value: "7", source: "global", key: "*", revision: 1, valid_from: "2026-11-01" },
+      },
+    });
+    render(<PoliciesScreen userRoles={["viewer"]} />);
+    await screen.findByText(/Presupuesto semanal vigente/);
+    fireEvent.change(screen.getByLabelText("Ámbito"), { target: { value: "product" } });
+    fireEvent.change(screen.getByLabelText("Categoría o SKU"), { target: { value: "SYN-0005" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cargar política" }));
+    const table = await screen.findByRole("table", { name: "Valores en vigor y su origen" });
+    expect(within(table).getAllByText("valor por defecto")).toHaveLength(2);
+    expect(within(table).getByText("segmento")).toBeTruthy();
+    expect(within(table).getByText("producto")).toBeTruthy();
+    expect(within(table).getByText("global")).toBeTruthy();
+  });
+
+  it("lists policies whose SKU left the catalogue", async () => {
+    vi.spyOn(api, "getPolicyConsole").mockResolvedValue(consoleData({
+      purchasing: { ok: true, data: { as_of: "2026-11-09", weekly_budget: null, policies: [{ scope: "product", key: "SYN-0009", revision: 1, in_force: null, orphaned: true }], orphaned: ["SYN-0009"] } },
+    }));
+    render(<PoliciesScreen userRoles={["viewer"]} />);
+    expect(await screen.findByText(/ya no están en el catálogo y se ignoran en los cálculos: SYN-0009/)).toBeTruthy();
+  });
+
+  it("shows the audit tab to admins only", async () => {
+    vi.spyOn(api, "getPolicyAudit").mockResolvedValue({
+      items: [{ at: "2026-11-09T10:00:00+00:00", actor: "buyer-1", action: "policy.saved", entity_id: "abc", outcome: "accepted" },
+              { at: "2026-11-09T11:00:00+00:00", actor: "viewer-1", action: "access.refused", entity_id: "PUT /api/policies/global/*", outcome: "refused", reason_code: "forbidden_missing_role" }],
+      unavailable: ["inventory"],
+    });
+    render(<PoliciesScreen userRoles={["viewer", "buyer"]} />);
+    await screen.findByText(/Presupuesto semanal vigente/);
+    expect(screen.queryByRole("tab", { name: /Auditoría de reglas/ })).toBeNull();
+    cleanup();
+    render(<PoliciesScreen userRoles={["viewer", "buyer", "approver", "admin"]} />);
+    await screen.findByText(/Presupuesto semanal vigente/);
+    tab(/Auditoría de reglas/);
+    const table = await screen.findByRole("table", { name: "Auditoría de reglas de negocio" });
+    expect(within(table).getByText("Política guardada")).toBeTruthy();
+    expect(within(table).getByText(/denegado \(forbidden_missing_role\)/)).toBeTruthy();
+    expect(screen.getByText(/No se pudo leer la auditoría de: inventario/)).toBeTruthy();
   });
 });
 
@@ -174,28 +253,31 @@ describe("demand and forecast sections", () => {
     render(<PoliciesScreen userRoles={["buyer"]} />);
     await screen.findByText(/Presupuesto semanal vigente/);
     tab(/Demanda y criticidad/);
-    expect(await screen.findByText(/cierre por obras/)).toBeTruthy();
+    expect(await screen.findByText(/todos los productos · cierre del negocio/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Desactivar" }));
-    await waitFor(() => expect(toggle).toHaveBeenCalledWith(7, false));
+    await waitFor(() => expect(toggle).toHaveBeenCalledWith(7, false, 1));          // the revision the editor read
     fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-11-20" } });
     fireEvent.change(screen.getByLabelText("Hasta"), { target: { value: "2026-11-22" } });
-    fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "promoción" } });
     fireEvent.click(screen.getByRole("button", { name: "Añadir exclusión" }));
-    await waitFor(() => expect(add).toHaveBeenCalledWith({ variant_id: null, from_day: "2026-11-20", to_day: "2026-11-22", reason: "promoción" }));
+    expect((await screen.findAllByRole("alert")).map((a) => a.textContent).join(" ")).toContain("Elija un motivo de la lista");     // free text is no longer accepted
+    expect(add).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "promotion" } });
+    fireEvent.click(screen.getByRole("button", { name: "Añadir exclusión" }));
+    await waitFor(() => expect(add).toHaveBeenCalledWith({ sku: null, from_day: "2026-11-20", to_day: "2026-11-22", reason_code: "promotion" }));
     fireEvent.change(screen.getByLabelText(/Días seguidos sin stock/), { target: { value: "3" } });
     fireEvent.click(screen.getByRole("button", { name: "Guardar regla" }));
-    await waitFor(() => expect(rule).toHaveBeenCalledWith("min_zero_stock_days", 3));
+    await waitFor(() => expect(rule).toHaveBeenCalledWith("min_zero_stock_days", 3, 0));
   });
 
   it("changes clinical criticality only through an explicit toggle", async () => {
-    vi.spyOn(api, "getCriticality").mockResolvedValue({ products: [{ product_id: 5, name: "Producto Sintético", clinical_critical: false, variants: 1 }] });
+    vi.spyOn(api, "getCriticality").mockResolvedValue({ products: [{ sku: "SYN-0005", name: "Producto Sintético", clinical_critical: false, variants: 1 }] });
     const set = vi.spyOn(api, "setCriticality").mockResolvedValue({});
     render(<PoliciesScreen userRoles={["buyer"]} />);
     await screen.findByText(/Presupuesto semanal vigente/);
     tab(/Demanda y criticidad/);
     fireEvent.click(await screen.findByRole("button", { name: "Cargar política" }));
     fireEvent.click(await screen.findByLabelText(/Crítico: Producto Sintético/));
-    await waitFor(() => expect(set).toHaveBeenCalledWith(5, true));
+    await waitFor(() => expect(set).toHaveBeenCalledWith("SYN-0005", true));
   });
 
   it("edits a forecast parameter with its revision and refuses a non-number", async () => {

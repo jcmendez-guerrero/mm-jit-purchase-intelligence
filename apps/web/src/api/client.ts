@@ -119,6 +119,34 @@ export interface PolicySummary {
   key: string;
   revision: number;
   in_force: (PolicyFields & { valid_from: string }) | null;
+  orphaned?: boolean;
+}
+
+/** One rule of a product's effective policy: where the value in force comes from (feature 011). */
+export interface EffectiveRule {
+  value: string | null;
+  source: "default" | "global" | "segment" | "product";
+  key: string | null;
+  revision: number | null;
+  valid_from: string | null;
+}
+
+export interface EffectivePolicy {
+  sku: string;
+  as_of: string;
+  rules: Record<"service_level" | "safety_stock_units" | "min_units" | "max_units" | "replenishment_cadence_days", EffectiveRule>;
+}
+
+export interface PolicyAuditItem {
+  at: string;
+  actor: string;
+  action: string;
+  entity?: string;
+  entity_id?: string;
+  before?: unknown;
+  after?: unknown;
+  outcome: "accepted" | "refused";
+  reason_code?: string;
 }
 
 export interface PolicyDetail {
@@ -132,19 +160,22 @@ export interface PolicyDetail {
 export interface PolicyPreview {
   as_of: string;
   affected_count: number;
-  affected: Array<{ variant_id: number; qty_before: number; qty_after: number }>;
+  affected: Array<{ sku: string | null; qty_before: number; qty_after: number }>;
   spend_before: string;
   spend_after: string;
   spend_delta: string;
   saved: false;
 }
 
+export const EXCLUSION_REASONS = ["promotion", "closure", "supplier_outage", "bulk_sale", "other"] as const;
+
 export interface DemandExclusion {
   id: number;
-  variant_id: number | null;
+  sku: string | null;
   from_day: string;
   to_day: string;
-  reason: string;
+  reason_code: string;
+  detail?: string | null;
   active: boolean;
   revision: number;
 }
@@ -155,6 +186,7 @@ export interface CensoringRule {
   min: number;
   max: number;
   default: number;
+  revision: number;
 }
 
 export interface ForecastParameter {
@@ -175,7 +207,7 @@ export interface Section<T> {
 }
 
 export interface PolicyConsole {
-  purchasing: Section<{ as_of: string; policies: PolicySummary[]; weekly_budget: string | null }>;
+  purchasing: Section<{ as_of: string; policies: PolicySummary[]; weekly_budget: string | null; weekly_budget_revision?: number; orphaned?: string[] }>;
   demand: Section<{ exclusions: DemandExclusion[]; rules: CensoringRule[] }>;
   forecast: Section<{ as_of: string; parameters: ForecastParameter[] }>;
 }
@@ -214,7 +246,7 @@ export interface Recommendation {
 }
 
 export interface CriticalProduct {
-  product_id: number;
+  sku: string | null;
   name: string;
   clinical_critical: boolean;
   variants: number;
@@ -1098,8 +1130,20 @@ export class ApiClient {
     return this.request<PolicyPreview>(`/policies/${scope}/${encodeURIComponent(key)}/preview`, { method: "POST", body: JSON.stringify(body) });
   }
 
-  async putBudgetCap(body: Record<string, unknown>): Promise<{ weekly_budget: string | null }> {
-    return this.request<{ weekly_budget: string | null }>("/budget-caps", { method: "PUT", body: JSON.stringify(body) });
+  async putBudgetCap(body: Record<string, unknown>, version: number): Promise<{ weekly_budget: string | null; revision: number }> {
+    return this.request<{ weekly_budget: string | null; revision: number }>("/budget-caps", {
+      method: "PUT",
+      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      body: JSON.stringify(body),
+    });
+  }
+
+  async getEffectivePolicy(sku: string): Promise<EffectivePolicy> {
+    return this.request<EffectivePolicy>(`/products/${encodeURIComponent(sku)}/effective-policy`);
+  }
+
+  async getPolicyAudit(): Promise<{ items: PolicyAuditItem[]; unavailable: string[] }> {
+    return this.request<{ items: PolicyAuditItem[]; unavailable: string[] }>("/policy-audit");
   }
 
   async getStocking(variantId: number): Promise<StockingSetting> {
@@ -1134,20 +1178,20 @@ export class ApiClient {
     return this.request<{ products: CriticalProduct[] }>("/criticality");
   }
 
-  async setCriticality(productId: number, critical: boolean): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/products/${productId}/criticality`, { method: "PUT", body: JSON.stringify({ critical }) });
+  async setCriticality(sku: string, critical: boolean): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/products/${encodeURIComponent(sku)}/criticality`, { method: "PUT", body: JSON.stringify({ critical }) });
   }
 
-  async addExclusion(body: { variant_id: number | null; from_day: string; to_day: string; reason: string }): Promise<{ id: number }> {
+  async addExclusion(body: { sku: string | null; from_day: string; to_day: string; reason_code: string; detail?: string }): Promise<{ id: number }> {
     return this.request<{ id: number }>("/demand-rules/exclusions", { method: "POST", body: JSON.stringify(body) });
   }
 
-  async toggleExclusion(id: number, active: boolean): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/demand-rules/exclusions/${id}`, { method: "PUT", body: JSON.stringify({ active }) });
+  async toggleExclusion(id: number, active: boolean, version: number): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/demand-rules/exclusions/${id}`, { method: "PUT", headers: { "If-Match": `"${version}"` }, body: JSON.stringify({ active }) });
   }
 
-  async putCensoringRule(rule: string, value: number): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/demand-rules/rules/${rule}`, { method: "PUT", body: JSON.stringify({ value }) });
+  async putCensoringRule(rule: string, value: number, version: number): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/demand-rules/rules/${rule}`, { method: "PUT", headers: version > 0 ? { "If-Match": `"${version}"` } : {}, body: JSON.stringify({ value }) });
   }
 
   async getSegmentHistory(variantId: number): Promise<{ variant_id: number; history: SegmentHistoryRow[] }> {

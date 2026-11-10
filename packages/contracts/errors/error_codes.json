@@ -675,6 +675,26 @@
       "http": 422,
       "kind": "request",
       "meaning": "The reason is not in the list, or its detail is longer than 100 characters"
+    },
+    "sku_unknown": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The SKU matches no product in the loaded catalogue"
+    },
+    "sku_ambiguous": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The SKU matches more than one product (also by case or spacing), so none is chosen"
+    },
+    "policy_overlap": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "A revision of this policy or budget cap is already scheduled after the chosen date"
+    },
+    "exclusion_reason_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The exclusion reason is not in the list, or its detail is too long"
     }
   }
 }

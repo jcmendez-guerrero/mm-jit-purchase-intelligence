@@ -86,7 +86,8 @@ def build_router(app: FastAPI) -> APIRouter:
     def runs(limit: int = 20, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         rows = conn.execute(select(forecast_runs).order_by(forecast_runs.c.started_at.desc()).limit(max(1, min(limit, 100)))).all()
         return {"runs": [{"id": r.id, "started_at": r.started_at.isoformat(), "status": r.status, "through_day": r.through_day, "total": r.total_count, "eligible": r.eligible_count,
-                          "dataset_version_id": r.dataset_version_id, "parameter_version_ids": r.parameter_version_ids} for r in rows]}
+                          "dataset_version_id": r.dataset_version_id, "parameter_version_ids": r.parameter_version_ids,
+                          "rule_version_ids": r.rule_version_ids} for r in rows]}
 
     @router.get("/parameters")
     def read_parameters(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

@@ -16,13 +16,28 @@ from auth.session import SessionData
 from clients.forecast import ForecastClient
 from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from routes.api import get_inventory_client, get_procurement_client
-from routes.rbac import require_roles
+from routes.rbac import log_refusal, require_roles
 
 router = APIRouter()
 _forecast = ForecastClient()
 ANY = ("viewer", "buyer", "approver", "admin")
+POLICY_PATHS = ("/api/policies", "/api/budget-caps", "/api/stocking", "/api/policy-overrides", "/api/demand-rules", "/api/parameters", "/api/products/")
+
+
+def _need_fresh_mfa(request: Request, session: SessionData) -> None:
+    """Budget caps and global-scope values move money or stock rules for the whole business: they need a second factor from the last 5 minutes (feature 011 FR-012)."""
+    if not session.is_mfa_fresh(max_age_seconds=300):
+        log_refusal(request, session.user_id, session.roles, [], "forbidden_mfa_stale")
+        raise HTTPException(status_code=403, detail="auth_mfa_stale")
+
+
+def _without_variant_ids(rows: Any) -> Any:
+    """People see SKUs; the ERP variant id stays inside the platform."""
+    if isinstance(rows, list):
+        return [{k: v for k, v in r.items() if k != "variant_id"} if isinstance(r, dict) else r for r in rows]
+    return rows
 
 
 def get_forecast_client() -> ForecastClient:
@@ -47,8 +62,11 @@ async def policy_console(
     fc: ForecastClient = Depends(get_forecast_client),
 ) -> dict[str, Any]:
     r, u = session.roles, session.user_id
+    purchasing = await _section(proc.forward("GET", "/policies", user_id=u, roles=r))
+    if purchasing.get("ok") and isinstance(purchasing["data"], dict):
+        purchasing["data"]["policies"] = _without_variant_ids(purchasing["data"].get("policies", []))
     return {
-        "purchasing": await _section(proc.forward("GET", "/policies", user_id=u, roles=r)),
+        "purchasing": purchasing,
         "demand": await _section(inv.forward("GET", "/demand-rules", user_id=u, roles=r)),
         "forecast": await _section(fc.forward("GET", "/parameters", user_id=u, roles=r)),
     }
@@ -62,20 +80,56 @@ async def get_policy(scope: str, key: str, session: SessionData = Depends(requir
 
 
 @router.put("/policies/{scope}/{key}")
-async def put_policy(scope: str, key: str, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
-                     proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
+async def put_policy(request: Request, scope: str, key: str, body: dict[str, Any], if_match: str | None = Header(default=None),
+                     session: SessionData = Depends(require_roles("buyer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
+    if scope == "global":
+        _need_fresh_mfa(request, session)                       # the role is checked first, like the cost operations
     return await proc.forward("PUT", f"/policies/{scope}/{key}", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.post("/policies/{scope}/{key}/preview")
 async def preview_policy(scope: str, key: str, body: dict[str, Any], session: SessionData = Depends(require_roles("buyer")),
                          proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("POST", f"/policies/{scope}/{key}/preview", json=body, user_id=session.user_id, roles=session.roles)
+    out = await proc.forward("POST", f"/policies/{scope}/{key}/preview", json=body, user_id=session.user_id, roles=session.roles)
+    if isinstance(out, dict) and "affected" in out:
+        out["affected"] = _without_variant_ids(out["affected"])
+    return out
 
 
 @router.put("/budget-caps")
-async def put_budget(body: dict[str, Any], session: SessionData = Depends(require_roles("buyer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("PUT", "/budget-caps", json=body, user_id=session.user_id, roles=session.roles)
+async def put_budget(request: Request, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
+                     proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
+    _need_fresh_mfa(request, session)
+    return await proc.forward("PUT", "/budget-caps", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
+
+
+@router.get("/products/{sku}/effective-policy")
+async def effective_policy(sku: str, session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client),
+                           inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+    """Each rule with the value in force and where it comes from; the product's segments come from inventory, the values from procurement."""
+    seg = await inv.forward("GET", f"/products/{sku}/segments", user_id=session.user_id, roles=session.roles)
+    return await proc.forward("GET", f"/products/{sku}/effective-policy", params={"segments": ",".join(seg.get("segments", []))}, user_id=session.user_id, roles=session.roles)
+
+
+@router.get("/policy-audit")
+async def policy_audit(session: SessionData = Depends(require_roles("admin")), proc: ProcurementClient = Depends(get_procurement_client),
+                       inv: InventoryClient = Depends(get_inventory_client)) -> dict[str, Any]:
+    """Who changed which rule, and who was refused: accepted changes from the services that own the rules, refusals from the gateway's own audit."""
+    from routes.admin_roles import get_store
+
+    items: list[dict[str, Any]] = []
+    unavailable: list[str] = []
+    for name, client in (("procurement", proc), ("inventory", inv)):
+        try:
+            items += (await client.forward("GET", "/policy-audit", user_id=session.user_id, roles=session.roles)).get("items", [])
+        except (httpx.HTTPError, RuntimeError):
+            unavailable.append(name)
+    for e in get_store().audit_view():
+        if e["action"] == "access.refused" and any(f" {p}" in f" {e['target_user']}" for p in POLICY_PATHS):
+            items.append({"at": e["timestamp"], "actor": e["actor"], "action": "access.refused", "entity": "access", "entity_id": e["target_user"], "outcome": "refused",
+                          "reason_code": e["refusal_reason"]})
+    items.sort(key=lambda i: i["at"], reverse=True)
+    return {"items": items[:200], "unavailable": unavailable}
 
 
 @router.get("/stocking/{variant_id}")
@@ -126,9 +180,9 @@ async def criticality(session: SessionData = Depends(require_roles("viewer")), i
     return await inv.forward("GET", "/criticality", user_id=session.user_id, roles=session.roles)
 
 
-@router.put("/products/{product_id}/criticality")
-async def set_criticality(product_id: int, body: dict[str, Any], session: SessionData = Depends(require_roles("buyer")), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
-    return await inv.forward("PUT", f"/products/{product_id}/criticality", json=body, user_id=session.user_id, roles=session.roles)
+@router.put("/products/{sku}/criticality")
+async def set_criticality(sku: str, body: dict[str, Any], session: SessionData = Depends(require_roles("buyer")), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+    return await inv.forward("PUT", f"/products/{sku}/criticality", json=body, user_id=session.user_id, roles=session.roles)
 
 
 @router.post("/demand-rules/exclusions", status_code=201)
@@ -137,13 +191,15 @@ async def add_exclusion(body: dict[str, Any], session: SessionData = Depends(req
 
 
 @router.put("/demand-rules/exclusions/{xid}")
-async def toggle_exclusion(xid: int, body: dict[str, Any], session: SessionData = Depends(require_roles("buyer")), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
-    return await inv.forward("PUT", f"/demand-rules/exclusions/{xid}", json=body, user_id=session.user_id, roles=session.roles)
+async def toggle_exclusion(xid: int, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
+                           inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+    return await inv.forward("PUT", f"/demand-rules/exclusions/{xid}", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.put("/demand-rules/rules/{rule}")
-async def put_rule(rule: str, body: dict[str, Any], session: SessionData = Depends(require_roles("buyer")), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
-    return await inv.forward("PUT", f"/demand-rules/rules/{rule}", json=body, user_id=session.user_id, roles=session.roles)
+async def put_rule(rule: str, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
+                   inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+    return await inv.forward("PUT", f"/demand-rules/rules/{rule}", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.get("/segments/{variant_id}/history")

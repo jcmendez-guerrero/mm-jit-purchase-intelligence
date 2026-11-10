@@ -970,6 +970,26 @@
       "status": "draft"
     },
     {
+      "name": "GET /api/policy-audit",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/products/{sku}/effective-policy",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "GET /api/policy-console",
       "kind": "endpoint",
       "version": 1,
@@ -1060,7 +1080,7 @@
       "status": "draft"
     },
     {
-      "name": "PUT /api/products/{product_id}/criticality",
+      "name": "PUT /api/products/{sku}/criticality",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",

@@ -206,7 +206,8 @@ demand_exclusions = Table(
     Column("variant_id", Integer),                                       # NULL = all products
     Column("from_day", Date, nullable=False),
     Column("to_day", Date, nullable=False),
-    Column("reason", String(500), nullable=False),
+    Column("reason", String(500), nullable=False),                       # a pick-list code (older rows may hold free text); never copied into the audit
+    Column("reason_detail", String(100)),                                # short optional detail, shown to admins only (feature 011)
     Column("active", Boolean, nullable=False, default=True),             # reversible: deactivate, never delete
     Column("revision", Integer, nullable=False, default=1),
     Column("changed_by", String(120), nullable=False),
