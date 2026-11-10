@@ -482,3 +482,21 @@ export_costs = Table(
     Column("loaded_at", DateTime(timezone=True), nullable=False),
     Column("load_run_id", String(36)),
 )
+# MMI-6 / feature 007 (migration 0012)
+terms_idempotency = Table(
+    "terms_idempotency", metadata,
+    Column("scope", String(40), primary_key=True),          # supplier_terms / product_supplier_terms
+    Column("key", String(120), primary_key=True),
+    Column("request_hash", String(64), nullable=False),
+    Column("result_version", Integer, nullable=False),
+    Column("actor", String(120), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False, index=True),
+)
+fx_rates = Table(
+    "fx_rates", metadata,
+    Column("currency", String(3), primary_key=True),
+    Column("published_on", Date, primary_key=True),
+    Column("eur_per_unit", Numeric(20, 12), nullable=False),  # exact decimal; EUR per one unit of the currency
+    Column("fetched_at", DateTime(timezone=True), nullable=False),
+    Column("provider", String(20), nullable=False, server_default="ecb"),
+)

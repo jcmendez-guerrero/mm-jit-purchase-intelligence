@@ -39,7 +39,7 @@ def test_every_line_carries_a_structured_explanation():
     e = ln.explanation
     assert {"policy", "service_level", "horizon_days", "order_up_to", "reorder_point", "position", "need", "supplier", "cost", "constraints"} <= set(e)
     assert e["supplier"]["chosen"] == ln.supplier_id and {a["supplier_id"] for a in e["supplier"]["alternatives"]} == {"A", "B"}
-    assert e["supplier"]["reason"] in {"lowest_cost", "lower_total_with_supplier_terms", "free_delivery_threshold_reached", "only_option", "buyer_override"}
+    assert e["supplier"]["reason"] in {"lowest_cost", "lower_total_with_supplier_terms", "lower_lead_time_risk", "free_delivery_threshold_reached", "only_option", "buyer_override"}
     assert ln.risk in ("low", "medium", "high") and ln.confidence in ("low", "medium", "high")
     assert e["cost"]["source"] and e["position"]["total"] == e["position"]["usable"] + e["position"]["inbound"]
 

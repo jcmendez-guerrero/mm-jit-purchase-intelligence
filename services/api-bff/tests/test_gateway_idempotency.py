@@ -12,7 +12,13 @@ from fastapi.testclient import TestClient
 from routes.api import get_procurement_client
 from tests_support import headers_for
 
-KEYED = {("/api/scenarios", "POST")}
+KEYED = {
+    ("/api/scenarios", "POST"),
+    # MMI-6 (spec 007, FR-014): a retry of a lost-response terms save must not look like a stale revision. The procurement service stores the key
+    # with the request hash and the version it created; the gateway only forwards it (tests/test_terms_idempotency_forwarding.py).
+    ("/api/suppliers/{supplier_id}/terms", "PUT"),
+    ("/api/product-suppliers/{variant_id}/{supplier_id}/terms", "PUT"),
+}
 KEY = "abcdefgh-retry-1"
 
 
@@ -23,7 +29,7 @@ def keyed_routes() -> set[tuple[str, str]]:
             if any(p.get("in") == "header" and p["name"].lower() == "idempotency-key" for p in op.get("parameters", []))}
 
 
-def test_only_scenario_creation_declares_an_idempotency_key():
+def test_only_the_recorded_routes_declare_an_idempotency_key():
     assert keyed_routes() == KEYED
 
 

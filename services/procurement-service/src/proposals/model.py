@@ -92,6 +92,10 @@ class SupplierTermsIn:
     preferred: bool = False
     disabled: bool = False
     version: int | None = None
+    # MMI-6: the first day an order is accepted (order days and cutoff already applied, local time) and the days the supplier delivers on.
+    # None / () means no rule: the group date is today plus the lead time. Part of the inputs hash, so a changed schedule is a new proposal.
+    next_order_date: date | None = None
+    delivery_weekdays: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)

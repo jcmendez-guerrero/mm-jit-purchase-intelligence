@@ -20,6 +20,16 @@ export interface ProposalLine {
    * Structured explanation; es-ES text is rendered from it
    */
   explanation: {
+    /**
+     * Supplier terms versions and values that produced this line
+     */
+    terms?: {
+      /**
+       * Expected delivery date derived from the terms in force (order days, cutoff, lead time, delivery weekdays); optional
+       */
+      expected_delivery_date?: string;
+      [k: string]: unknown;
+    };
     [k: string]: unknown;
   };
 }

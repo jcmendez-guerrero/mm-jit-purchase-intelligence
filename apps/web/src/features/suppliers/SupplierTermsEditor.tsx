@@ -4,7 +4,7 @@ import { api, ApiError, errorMessage, SupplierTermsView } from "../../api/client
 import { formatDate } from "../../i18n/formatters";
 import { focusFirstInvalid, FormField } from "../../ui/FormField";
 import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
-import { MAX_DISCOUNT_TIERS, TermsForm, WEEKDAYS, emptyForm, toForm, toPayload, toggleDay, validateTerms } from "./termsModel";
+import { MAX_DISCOUNT_TIERS, TermsForm, WEEKDAYS, emptyForm, saveKeys, toForm, toPayload, toggleDay, validateTerms } from "./termsModel";
 import { useActionNotice } from "../../ui/NoticeProvider";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { Card } from "../../ui/Card";
@@ -29,6 +29,7 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useActionNotice();
   const [conflictVersion, setConflictVersion] = useState<number | null>(null);
+  const keyFor = useRef(saveKeys()).current;               // a retry of the same save reuses its key; any change gets a new one
 
   const load = useCallback(async () => {
     try {
@@ -52,6 +53,9 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
 
   const set = <K extends keyof TermsForm>(key: K, value: TermsForm[K]) => setForm((f) => ({ ...f, [key]: value }));
   const readOnly = !canEdit;
+  // the terms in force stop on a date and nothing is scheduled after them: warn before the day arrives
+  const inForce = view?.history.find((h) => h.status === "in_force");
+  const endingNotice = inForce?.valid_to && !view?.history.some((h) => h.status === "planned") ? formatDate(new Date(inForce.valid_to)) : null;
 
   const dirty = canEdit && JSON.stringify(form) !== JSON.stringify(baseline);
   const errorText = (id: string) => (fieldErrors[id] ? t(fieldErrors[id]) : undefined);
@@ -77,7 +81,7 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
       return;
     }
     try {
-      const r = await api.putSupplierTerms(supplierId, toPayload(form), view.version);
+      const r = await api.putSupplierTerms(supplierId, toPayload(form), view.version, keyFor(JSON.stringify([form, view.version])));
       setNotice(t("suppliers.saved", { version: r.version }));
       await load();
       onSaved?.();
@@ -111,6 +115,7 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
+      {endingNotice && <p className="mmi-muted">{t("suppliers.ending_warning", { date: endingNotice })}</p>}
       {conflictVersion !== null && (
         <div role="alert">
           <p>{t("suppliers.conflict", { version: conflictVersion })}</p>
@@ -216,6 +221,7 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
             columns={[
               { id: "version", header: t("suppliers.history.version"), cell: (h) => h.version, sortValue: (h) => h.version, align: "end" },
               { id: "from", header: t("suppliers.history.from"), cell: (h) => formatDate(new Date(h.valid_from)), sortValue: (h) => h.valid_from },
+              { id: "status", header: t("suppliers.history.status"), cell: (h) => (h.status ? <StatusBadge domain="tag" code={`status_${h.status}`} label={t(`suppliers.history.status.${h.status}`)} /> : ""), sortValue: (h) => h.status ?? "" },
               { id: "source", header: t("suppliers.history.source"), cell: (h) => <StatusBadge domain="tag" code={`source_${h.source}`} label={t(`suppliers.source.${h.source}`)} />, sortValue: (h) => h.source },
               { id: "by", header: t("suppliers.history.by"), cell: (h) => h.changed_by, sortValue: (h) => h.changed_by },
               { id: "reason", header: t("suppliers.history.reason"), cell: (h) => h.reason ?? "" },

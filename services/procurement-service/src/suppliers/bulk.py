@@ -105,7 +105,9 @@ def preview_batch(conn: Connection, supplier_id: str, criteria: dict[str, Any], 
 
 
 def apply_batch(conn: Connection, batch_id: str, actor: str, rules: CostRules, table: RecargoTable, *, now: datetime | None = None,
-                skip_conflicts: bool = False, refresh: Callable[[], None] | None = None) -> dict[str, int]:
+                skip_conflicts: bool = False, refresh: Callable[[], None] | None = None) -> dict[str, Any]:
+    """Applies a previewed batch. Besides the totals the result lists what happened to each matched product (FR-018): linked, already_linked,
+    conflict_skipped or no_cost, in SKU order."""
     now = now or datetime.now(UTC)
     batch = conn.execute(select(link_assignment_batches).where(link_assignment_batches.c.id == batch_id)).first()
     if batch is None:
@@ -115,25 +117,30 @@ def apply_batch(conn: Connection, batch_id: str, actor: str, rules: CostRules, t
     if batch.status != "previewed" or now - _aware(batch.created_at) > PREVIEW_TTL or newest != batch.id:
         raise BulkError("bulk_preview_stale")
     refs, _ = _match(conn, dict(batch.criteria))
-    _, new, conflicts = _classify(conn, batch.supplier_id, refs, now)
+    existing, new, conflicts = _classify(conn, batch.supplier_id, refs, now)
     if conflicts and not skip_conflicts:
         raise BulkError("bulk_conflicts_unresolved")
     skip = {r.product_id for r in conflicts}
     changed = no_cost = 0
+    outcome: dict[str, str] = {r.sku: "already_linked" for r in existing}
     for r in new:
         if r.product_id in skip:
+            outcome[r.sku] = "conflict_skipped"
             continue
         try:
             put_link(conn, batch.supplier_id, r.sku, LinkInput(source="inventory_export"), actor, rules, table, now=now, refresh=refresh)
         except LinkError as exc:
             if exc.code in ("link_cost_invalid", "vat_unknown"):
                 no_cost += 1
+                outcome[r.sku] = "no_cost"
                 continue
             raise
         changed += 1
+        outcome[r.sku] = "linked"
         audit(conn, actor, "supplier.link_bulk", "supplier_link", f"{batch.supplier_id}:{r.sku}"[:60], after={"batch": batch.id}, now=now)
     conn.execute(update(link_assignment_batches).where(link_assignment_batches.c.id == batch.id).values(status="applied", applied_at=now, products_changed=changed))
-    return {"changed": changed, "skipped_conflicts": len(skip) if conflicts else 0, "no_cost": no_cost}
+    return {"changed": changed, "skipped_conflicts": len(skip) if conflicts else 0, "no_cost": no_cost,
+            "rows": [{"sku": sku, "outcome": outcome[sku]} for sku in sorted(outcome)]}
 
 
 def _decode(data: bytes) -> str:
