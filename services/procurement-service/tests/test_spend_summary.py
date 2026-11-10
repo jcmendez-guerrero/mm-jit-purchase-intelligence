@@ -22,7 +22,7 @@ class V:
     def validate(self, token, required_roles=()):
         if token != "viewer":  # noqa: S105 - test token name
             raise AuthError("forbidden", 403)
-        return Principal("u", frozenset({"viewer"}), None)
+        return Principal("u", frozenset({"buyer"}), None)
 
 
 def api(engine):

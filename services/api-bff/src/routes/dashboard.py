@@ -58,12 +58,12 @@ def budget_indicator(spend: dict[str, Any], can_see_costs: bool) -> dict[str, An
     r = (spend.get("data") or {}).get("range") if spend.get("ok") else None
     if r is None:
         return _indicator("purchasing_budget", "error")
-    spend_part = {"key": "spend", "label_key": "dashboard.part.spend", "value": r["spend"]}
+    spend_parts = [{"key": "proposed", "label_key": "dashboard.part.proposed", "value": r["proposed"]}, {"key": "spend", "label_key": "dashboard.part.spend", "value": r["spend"]}]   # never one figure: proposed is before an order is confirmed
     caps = [{"key": "cap_week", "label_key": "dashboard.part.cap_week", "value": w["cap"],
              "period": {"from": w["week_start"], "to": (date.fromisoformat(w["week_start"]) + timedelta(days=6)).isoformat()}} for w in r["weeks"] if w["cap"] is not None]
     if r["budget"] is None:
-        return {**_indicator("purchasing_budget", "no_data"), "basis": "dashboard.basis.no_budget", "parts": [spend_part]}
-    return {**_indicator("purchasing_budget", "ok", r["budget"]), "parts": [*caps, spend_part]}
+        return {**_indicator("purchasing_budget", "no_data"), "basis": "dashboard.basis.no_budget", "parts": spend_parts}
+    return {**_indicator("purchasing_budget", "ok", r["budget"]), "parts": [*caps, *spend_parts]}
 
 
 def accuracy_indicators(acc: dict[str, Any], unsupported: list[str]) -> list[dict[str, Any]]:

@@ -25,6 +25,11 @@ The buyer web app already has a dashboard screen with some charts and drill-down
 - Q: Who can approve moving the new indicators schema into the shared contracts folder? → A: The owner, now; only a new version is added, the existing one is not touched, it is recorded in the audit file and Agent 00 is informed (option B).
 - Q: Which period should the purchasing budget indicator compare against? → A: The budgets in force within the date range chosen in the filters (weekly and monthly caps), against the proposed and confirmed spend in that same range (option B).
 
+### Session 2026-11-10
+
+- Q: When a warehouse, category or family filter is active, should the capital tied up card filter the open supplier orders too, or show no total? → A: Filter the orders where the data allows it (category, family); for a warehouse filter show no total (`no_data`), list both parts and name the limit (option B).
+- Q: Should the purchasing budget card call the figure "gasto" while it counts draft proposals? → A: No. "Propuesto" is the spend of proposals before an order is confirmed, and "gasto" is only the spend of confirmed supplier orders; the card shows the two separately, each under its own name (owner's answer, replaces the single "proposed and confirmed" figure).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Read the business at a glance (Priority: P1)
@@ -189,8 +194,8 @@ Every figure shows when its data was last refreshed and where it came from (ERP 
 - **FR-022**: Timestamps MUST be stored in UTC with the original value preserved, and shown in the local time zone.
 - **FR-023**: Analytics MUST NOT require always-on services beyond the existing platform and MUST stay within the shared monthly cost budget.
 - **FR-024**: The feature MUST include a written audit of the current dashboard (complete, partial, broken, missing, unverified, with file and line evidence), and working parts MUST be reused.
-- **FR-025**: The capital tied up indicator MUST equal the stock valued at lot acquisition cost plus the amount of confirmed supplier orders not yet received, with the two parts shown separately in its definition and in its drill-down, and its total MUST equal the sum of the two parts for the same filters.
-- **FR-026**: The purchasing budget indicator MUST compare the budget caps in force within the selected date range (weekly and monthly) with the proposed and confirmed spend in that same range, MUST list each cap used with the period it covers so the figure can be explained, and MUST show "sin presupuesto" when no cap is in force in the range while still showing the spend.
+- **FR-025**: The capital tied up indicator MUST equal the stock valued at lot acquisition cost plus the amount of confirmed supplier orders not yet received, with the two parts shown separately in its definition and in its drill-down, and its total MUST equal the sum of the two parts for the same filters. Open orders follow the supplier filter; where a filter cannot apply to them (the warehouse, and today the category and family, because procurement holds no product data and no cross-service queries are allowed), the indicator MUST show no total (`no_data`), list both parts and name the unsupported filter, never a total that adds a filtered part to an unfiltered one.
+- **FR-026**: The purchasing budget indicator MUST compare the budget caps in force within the selected date range (weekly and monthly) with the spend in that same range shown as two separately named parts, the proposed spend (proposals whose order is not yet confirmed, drafts included) and the spend (supplier orders already confirmed, not cancelled), each part never named after the other, MUST list each cap used with the period it covers so the figure can be explained, and MUST show "sin presupuesto" when no cap is in force in the range while still showing the spend.
 
 ### Key Entities
 

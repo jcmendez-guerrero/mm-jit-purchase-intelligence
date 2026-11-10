@@ -45,7 +45,10 @@ def indicators(engine, **filters):
 def test_each_filter_and_combination_gives_the_expected_subset(seeded, filters, stock, expiring, demand):
     i = indicators(seeded, **filters)
     assert i["stock_value"]["value"] == stock and i["expiry_exposure"]["value"] == expiring
-    assert i["capital_tied_up"]["value"] == stock                                      # no open orders: capital is the stock at cost
+    if {"warehouse_id", "category", "family"} & filters.keys():                           # T099: the open orders cannot follow these, so there is no total
+        assert i["capital_tied_up"]["value"] is None and i["capital_tied_up"]["state"] == "no_data"
+    else:
+        assert i["capital_tied_up"]["value"] == stock                                  # no open orders: capital is the stock at cost
     assert i["demand"]["value"] == demand and (i["demand"]["state"] == "ok") == (demand is not None)
 
 

@@ -115,8 +115,10 @@ def test_the_route_refuses_a_bad_range_and_unknown_category(client, seeded):
 def test_capital_is_the_exact_sum_and_names_the_filters_open_orders_cannot_follow(seeded):
     sup = by_key(build(seeded, open_orders=Decimal("29.95"), supplier_id="sup-a"))["capital_tied_up"]
     assert sup["value"] == "71.95" and "filters_unsupported" not in sup                    # 42.00 of that supplier's stock + 29.95
-    other = by_key(build(seeded, open_orders=Decimal("29.95"), warehouse_id=2, category="A"))["capital_tied_up"]
-    assert other["filters_unsupported"] == ["warehouse", "category"]
+    for f in ({"warehouse_id": 2, "category": "A"}, {"category": "A"}, {"family": "x"}):        # T099: the orders cannot follow these, so no total is better than a mixed one
+        other = by_key(build(seeded, open_orders=Decimal("29.95"), **f))["capital_tied_up"]
+        assert other["value"] is None and other["state"] == "no_data" and other["filters_unsupported"] == [k.removesuffix("_id") for k in f]
+        assert [x["key"] for x in other["parts"]] == ["stock_at_cost", "open_orders"] and other["parts"][1]["value"] == "29.95"
 
 
 def test_without_the_open_orders_the_capital_is_an_error_with_no_partial_total(seeded):

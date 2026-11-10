@@ -17,8 +17,8 @@ Synthetic data only. Never point these steps at a real Siweb host or load real e
 
 ### Capital and budget checks (FR-025, FR-026)
 
-1. Open the capital tied up card: its value equals stock at cost plus confirmed unreceived orders, and the two parts are listed.
-2. Choose a range spanning a week with a weekly cap, a week covered only by a monthly cap and a week with none: the budget card lists each cap used with its period and compares it with the spend of those weeks; a range with no cap shows "sin presupuesto" and still shows the spend.
+1. Open the capital tied up card with no warehouse, category or family filter: its value equals stock at cost plus confirmed unreceived orders, and the two parts are listed. Then choose a warehouse, a category or a family: the card shows no total, still lists both parts and names the filter it cannot apply (the open orders are company-wide), instead of adding a filtered stock to unfiltered orders.
+2. Choose a range spanning a week with a weekly cap, a week covered only by a monthly cap and a week with none: the budget card lists each cap used with its period, and next to them two separate parts, "Gasto propuesto (pedido sin confirmar)" (proposals whose order is not confirmed yet, drafts included) and "Gasto (pedidos confirmados)"; a range with no cap shows "sin presupuesto" and still shows both parts. Confirming an order moves its supplier's amount from the first part to the second; cancelling it moves it back.
 
 ## Scenario 2 - Filters (US2, SC-003)
 

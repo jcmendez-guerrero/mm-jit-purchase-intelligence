@@ -43,7 +43,7 @@ export const IndicatorCard: React.FC<Props> = ({ indicator: i, period, onDrill }
           </p>
         </>
       )}
-      {hasFigure && i.parts && i.parts.length > 0 && (
+      {!hidden && i.state !== "error" && i.parts && i.parts.length > 0 && (       // also without a total: the parts are what explains why there is none
         <ul aria-label={t("dashboard.ind.parts")}>
           {i.parts.map((p, n) => (
             <li key={`${p.key}-${n}`}>

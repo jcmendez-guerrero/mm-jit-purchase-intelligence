@@ -46,7 +46,8 @@ def _capital(stock: str | None, open_orders: Decimal | None, snap: dict[str, obj
     if stock is None or open_orders is None:
         return _indicator("capital_tied_up", None, "EUR", "error" if open_orders is None and snap["state"] != "no_data" else "ok", snap, unsupported=unsupported)
     parts = [{"key": "stock_at_cost", "label_key": "dashboard.part.stock_at_cost", "value": stock}, {"key": "open_orders", "label_key": "dashboard.part.open_orders", "value": str(open_orders.quantize(Decimal("0.01")))}]
-    return {**_indicator("capital_tied_up", (Decimal(stock) + open_orders).quantize(Decimal("0.01")), "EUR", "ok", snap, unvalued, unsupported), "parts": parts}
+    total = None if unsupported else (Decimal(stock) + open_orders).quantize(Decimal("0.01"))             # T099: open orders are company-wide, never add them to a filtered stock
+    return {**_indicator("capital_tied_up", total, "EUR", "no_data" if unsupported else "ok", snap, unvalued, unsupported), "parts": parts}
 
 
 def build_indicators(conn: Connection, today: date, fs: FilterSet, forecast: ForecastMeans | None, roles: Iterable[str], open_orders: Decimal | None = None) -> dict[str, Any]:

@@ -28,8 +28,8 @@ def stock_payload(value="100.00", state="ok"):
 
 SCHEMA = Path(__file__).resolve().parents[3] / "packages" / "contracts" / "dto" / "dashboard_indicators.v2.schema.json"
 KEYS = ["stock_value", "coverage_days", "demand", "forecast", "stockout_risk", "expiry_exposure", "capital_tied_up", "purchasing_budget", "wape", "bias"]
-RANGE = {"date_from": "2026-10-26", "date_to": "2026-11-09", "budget": "961.90", "spend": "140.50", "open_orders": "30.00",
-         "weeks": [{"week_start": "2026-10-26", "cap": "500.00", "spend": "100.00"}, {"week_start": "2026-11-02", "cap": "230.95", "spend": "40.50"}, {"week_start": "2026-11-09", "cap": "230.95", "spend": "0.00"}]}
+RANGE = {"date_from": "2026-10-26", "date_to": "2026-11-09", "budget": "961.90", "spend": "90.00", "proposed": "50.50", "open_orders": "30.00",
+         "weeks": [{"week_start": "2026-10-26", "cap": "500.00", "proposed": "10.50", "spend": "90.00"}, {"week_start": "2026-11-02", "cap": "230.95", "proposed": "40.00", "spend": "0.00"}, {"week_start": "2026-11-09", "cap": "230.95", "proposed": "0.00", "spend": "0.00"}]}
 
 
 def ok(data):
@@ -39,13 +39,13 @@ def ok(data):
 def test_the_budget_is_the_sum_of_the_weekly_caps_with_a_part_per_week_and_the_spend(role_store):
     b = budget_indicator(ok({"open_orders": "30.00", "range": RANGE}), True)
     assert b["key"] == "purchasing_budget" and b["value"] == "961.90" and b["state"] == "ok" and b["unit"] == "EUR"
-    assert [(p["key"], p["value"]) for p in b["parts"]] == [("cap_week", "500.00"), ("cap_week", "230.95"), ("cap_week", "230.95"), ("spend", "140.50")]
+    assert [(p["key"], p["value"]) for p in b["parts"]] == [("cap_week", "500.00"), ("cap_week", "230.95"), ("cap_week", "230.95"), ("proposed", "50.50"), ("spend", "90.00")]
     assert b["parts"][0]["period"] == {"from": "2026-10-26", "to": "2026-11-01"}
 
 
 def test_without_any_cap_the_budget_says_so_and_still_shows_the_spend(role_store):
     b = budget_indicator(ok({"range": {**RANGE, "budget": None, "weeks": [{**w, "cap": None} for w in RANGE["weeks"]]}}), True)
-    assert b["state"] == "no_data" and b["value"] is None and b["basis"] == "dashboard.basis.no_budget" and [p["key"] for p in b["parts"]] == ["spend"] and b["parts"][0]["value"] == "140.50"
+    assert b["state"] == "no_data" and b["value"] is None and b["basis"] == "dashboard.basis.no_budget" and [(p["key"], p["value"]) for p in b["parts"]] == [("proposed", "50.50"), ("spend", "90.00")]
 
 
 def test_the_budget_is_hidden_without_cost_access_and_an_error_when_procurement_failed_or_sent_no_range(role_store):

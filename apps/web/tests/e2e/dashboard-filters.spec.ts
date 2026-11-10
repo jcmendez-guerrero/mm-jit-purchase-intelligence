@@ -59,4 +59,25 @@ test.describe("Dashboard filters", () => {
     await expect(page.getByText(/Se han ignorado filtros no válidos/)).toBeVisible();
     await expect(chips(page)).toHaveCount(0);
   });
+
+  /** T103 (FR-025, FR-026): the capital card without a total still lists both parts, and the budget card lists the proposed spend and the spend as separate parts. */
+  test("the capital card shows no total but both parts under a filter, and the budget lists proposed spend and spend apart", async ({ page }) => {
+    const part = (key: string, value: string) => ({ key, label_key: `dashboard.part.${key}`, value });
+    const base = overview().indicators as Array<Record<string, unknown>>;
+    const withParts = base.map((i) =>
+      i.key === "capital_tied_up"
+        ? { ...i, value: null, state: "no_data", filters_unsupported: ["category"], parts: [part("stock_at_cost", "40.00"), part("open_orders", "30.00")] }
+        : i.key === "purchasing_budget"
+          ? { ...i, parts: [part("proposed", "50.50"), part("spend", "90.00")] }
+          : i);
+    await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview(1, { indicators: withParts }))));
+    await page.goto("/panel?categoria=A");
+    const capital = page.getByRole("article").filter({ hasText: "Capital inmovilizado" });
+    await expect(capital.getByText("Sin datos")).toBeVisible();
+    await expect(capital.getByRole("list", { name: "Composición" }).getByRole("listitem")).toHaveCount(2);
+    await expect(capital.getByText(/No aplica a: Categoría/)).toBeVisible();
+    const budget = page.getByRole("article").filter({ hasText: "Presupuesto de compras" }).getByRole("list", { name: "Composición" });
+    await expect(budget.getByText(/Gasto propuesto \(pedido sin confirmar\): 50,50/)).toBeVisible();
+    await expect(budget.getByText(/Gasto \(pedidos confirmados\): 90,00/)).toBeVisible();
+  });
 });
