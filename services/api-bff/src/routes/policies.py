@@ -87,6 +87,15 @@ async def put_policy(request: Request, scope: str, key: str, body: dict[str, Any
     return await proc.forward("PUT", f"/policies/{scope}/{key}", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
+@router.delete("/policies/{scope}/{key}")
+async def clear_policy(request: Request, scope: str, key: str, if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
+                       proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
+    """Removes an override (a new revision with every field empty); global scope needs the same fresh second factor as saving it."""
+    if scope == "global":
+        _need_fresh_mfa(request, session)
+    return await proc.forward("DELETE", f"/policies/{scope}/{key}", user_id=session.user_id, roles=session.roles, if_match=if_match)
+
+
 @router.post("/policies/{scope}/{key}/preview")
 async def preview_policy(scope: str, key: str, body: dict[str, Any], session: SessionData = Depends(require_roles("buyer")),
                          proc: ProcurementClient = Depends(get_procurement_client)) -> Any:

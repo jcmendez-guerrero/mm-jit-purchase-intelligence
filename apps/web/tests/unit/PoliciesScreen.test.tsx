@@ -157,10 +157,27 @@ describe("feature 011: revisions, sources and audit", () => {
 
   it("lists policies whose SKU left the catalogue", async () => {
     vi.spyOn(api, "getPolicyConsole").mockResolvedValue(consoleData({
-      purchasing: { ok: true, data: { as_of: "2026-11-09", weekly_budget: null, policies: [{ scope: "product", key: "SYN-0009", revision: 1, in_force: null, orphaned: true }], orphaned: ["SYN-0009"] } },
+      purchasing: { ok: true, data: { as_of: "2026-11-09", weekly_budget: null, policies: [{ scope: "product", key: null, revision: 1, in_force: null, orphaned: true }], orphaned: 1 } },
     }));
     render(<PoliciesScreen userRoles={["viewer"]} />);
-    expect(await screen.findByText(/ya no están en el catálogo y se ignoran en los cálculos: SYN-0009/)).toBeTruthy();
+    expect(await screen.findByText(/Hay 1 política\(s\) de producto cuyo SKU ya no está en el catálogo/)).toBeTruthy();
+    expect(screen.getByText(/SKU desconocido/)).toBeTruthy();                 // no ERP id stands in for the missing SKU
+  });
+
+  it("removes an override with the revision it read and confirms in Spanish", async () => {
+    const clear = vi.spyOn(api, "clearPolicy").mockResolvedValue({ revision: 3 });
+    render(<PoliciesScreen userRoles={["viewer", "buyer"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Cargar política" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Quitar política/ }));
+    await waitFor(() => expect(clear).toHaveBeenCalledWith("global", "*", 2));
+    expect((await screen.findByRole("status")).textContent).toContain("Política retirada (versión 3)");
+  });
+
+  it("offers no way to remove an override to a viewer", async () => {
+    render(<PoliciesScreen userRoles={["viewer"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Cargar política" }));
+    await screen.findByLabelText("Nivel de servicio (%)");
+    expect(screen.queryByRole("button", { name: /Quitar política/ })).toBeNull();
   });
 
   it("shows the audit tab to admins only", async () => {

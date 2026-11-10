@@ -110,6 +110,25 @@ def save_policy(conn: Connection, scope: str, key: str, values: PolicyValues, ac
     return rev
 
 
+def clear_policy(conn: Connection, scope: str, key: str, actor: str, *, expected_revision: int | None = None, today: date | None = None) -> int:
+    """Removes an override by writing a new revision with every field empty: the lower scope or the default applies again and no past revision is touched."""
+    validate_key(scope, key)
+    today = today or datetime.now(UTC).date()
+    current = _current_revision(conn, scope, key)
+    if current == 0:
+        raise PolicyError("nothing to clear", "policy_out_of_range")
+    if expected_revision is not None and expected_revision != current:
+        raise PolicyConflict(current)
+    latest = conn.execute(select(func.max(policy_sets.c.valid_from)).where(policy_sets.c.scope == scope, policy_sets.c.key == key)).scalar()
+    if latest is not None and today < latest:
+        raise PolicyError("a revision is already scheduled after this date", "policy_overlap")
+    rev, pid = current + 1, str(uuid.uuid4())
+    conn.execute(insert(policy_sets).values(id=pid, scope=scope, key=key, service_level=None, safety_stock_units=None, min_units=None, max_units=None,
+                                            replenishment_cadence_days=None, valid_from=today, revision=rev, changed_by=actor))
+    audit(conn, actor, "policy.cleared", "policy_set", pid, after={"scope": scope, "key": key, "revision": rev, "valid_from": today.isoformat()})
+    return rev
+
+
 def policy_row(conn: Connection, scope: str, key: str, as_of: date) -> Row[Any] | None:
     return conn.execute(select(policy_sets).where(policy_sets.c.scope == scope, policy_sets.c.key == key, policy_sets.c.valid_from <= as_of)
                         .order_by(policy_sets.c.valid_from.desc(), policy_sets.c.revision.desc()).limit(1)).first()
@@ -237,6 +256,17 @@ def save_budget_cap(conn: Connection, period: str, scope: str, scope_key: str | 
     audit(conn, actor, "budget_cap.saved", "budget_cap", cid, after={"period": period, "scope": scope, "scope_key": scope_key, "amount": str(amount), "valid_from": start.isoformat(),
                                                                        "revision": prev + 1})
     return cid
+
+
+def budget_versions(conn: Connection, as_of: date) -> dict[str, int]:
+    """The global weekly and monthly caps in force and their revisions, recorded next to the policy revisions a proposal used (SC-006)."""
+    out: dict[str, int] = {}
+    for period in CAP_PERIODS:
+        row = conn.execute(select(budget_caps).where(budget_caps.c.period == period, budget_caps.c.scope == "global", budget_caps.c.valid_from <= as_of)
+                           .order_by(budget_caps.c.valid_from.desc(), budget_caps.c.revision.desc()).limit(1)).first()
+        if row is not None:
+            out[f"budget:{period}:global:*"] = int(row.revision)
+    return out
 
 
 def effective_weekly_budget(conn: Connection, as_of: date) -> Decimal | None:

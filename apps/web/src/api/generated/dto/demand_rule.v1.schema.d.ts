@@ -14,7 +14,22 @@ export interface DemandRule {
   variant_id?: number | null;
   from_day?: string | null;
   to_day?: string | null;
+  /**
+   * Superseded by reason_code (feature 011): older rows may hold free text, which is never copied to the audit
+   */
   reason?: string;
+  /**
+   * What people see and type for an exclusion (null = every product); the ERP variant id stays inside the platform
+   */
+  sku?: string | null;
+  /**
+   * Pick-list reason; the only reason text the audit trail carries
+   */
+  reason_code?: "promotion" | "closure" | "supplier_outage" | "bulk_sale" | "other";
+  /**
+   * Short optional detail, shown to admins only and never written to the audit trail
+   */
+  detail?: string | null;
   rule?: string | null;
   value?: number | null;
   /**

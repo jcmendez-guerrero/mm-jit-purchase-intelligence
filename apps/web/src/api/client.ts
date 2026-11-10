@@ -116,7 +116,7 @@ export interface PolicyFields {
 
 export interface PolicySummary {
   scope: string;
-  key: string;
+  key: string | null;                 // null for a product policy whose SKU left the catalogue
   revision: number;
   in_force: (PolicyFields & { valid_from: string }) | null;
   orphaned?: boolean;
@@ -207,7 +207,7 @@ export interface Section<T> {
 }
 
 export interface PolicyConsole {
-  purchasing: Section<{ as_of: string; policies: PolicySummary[]; weekly_budget: string | null; weekly_budget_revision?: number; orphaned?: string[] }>;
+  purchasing: Section<{ as_of: string; policies: PolicySummary[]; weekly_budget: string | null; weekly_budget_revision?: number; orphaned?: number }>;
   demand: Section<{ exclusions: DemandExclusion[]; rules: CensoringRule[] }>;
   forecast: Section<{ as_of: string; parameters: ForecastParameter[] }>;
 }
@@ -1124,6 +1124,11 @@ export class ApiClient {
       headers: version > 0 ? { "If-Match": `"${version}"` } : {},
       body: JSON.stringify(body),
     });
+  }
+
+  /** Removes an override: a new revision with every field empty, so the inherited or default value applies again. */
+  async clearPolicy(scope: string, key: string, version: number): Promise<{ revision: number }> {
+    return this.request<{ revision: number }>(`/policies/${scope}/${encodeURIComponent(key)}`, { method: "DELETE", headers: { "If-Match": `"${version}"` } });
   }
 
   async previewPolicy(scope: string, key: string, body: Record<string, unknown>): Promise<PolicyPreview> {

@@ -970,6 +970,16 @@
       "status": "draft"
     },
     {
+      "name": "DELETE /api/policies/{scope}/{key}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "GET /api/policy-audit",
       "kind": "endpoint",
       "version": 1,

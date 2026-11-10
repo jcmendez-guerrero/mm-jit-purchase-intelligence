@@ -48,7 +48,36 @@
     },
     "reason": {
       "type": "string",
-      "maxLength": 500
+      "maxLength": 500,
+      "description": "Superseded by reason_code (feature 011): older rows may hold free text, which is never copied to the audit"
+    },
+    "sku": {
+      "oneOf": [
+        {
+          "type": "string",
+          "maxLength": 60
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "What people see and type for an exclusion (null = every product); the ERP variant id stays inside the platform"
+    },
+    "reason_code": {
+      "enum": ["promotion", "closure", "supplier_outage", "bulk_sale", "other"],
+      "description": "Pick-list reason; the only reason text the audit trail carries"
+    },
+    "detail": {
+      "oneOf": [
+        {
+          "type": "string",
+          "maxLength": 100
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Short optional detail, shown to admins only and never written to the audit trail"
     },
     "rule": {
       "oneOf": [

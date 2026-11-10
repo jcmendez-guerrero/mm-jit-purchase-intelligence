@@ -33,6 +33,16 @@ def test_segment_and_product_writes_need_only_the_normal_session(role_store, pat
     assert call("PUT", path, headers_for("buyer-1", BUYER, mfa_age_seconds=3600), proc, json={"min_units": 1}).status_code == 200
 
 
+def test_removing_an_override_is_a_buyer_action_with_the_revision_and_global_needs_a_fresh_factor(role_store):
+    proc = fwd({"revision": 2})
+    assert call("DELETE", "/api/policies/product/SYN-0001", {**headers_for("v", ["viewer"]), "If-Match": '"1"'}, proc).status_code == 403
+    proc.forward.assert_not_called()
+    ok = call("DELETE", "/api/policies/product/SYN-0001", {**headers_for("buyer-1", BUYER, mfa_age_seconds=3600), "If-Match": '"1"'}, proc)
+    assert ok.status_code == 200 and proc.forward.call_args.kwargs["if_match"] == '"1"' and proc.forward.call_args.args[:2] == ("DELETE", "/policies/product/SYN-0001")
+    stale = call("DELETE", "/api/policies/global/*", {**headers_for("buyer-1", BUYER, mfa_age_seconds=301), "If-Match": '"1"'}, fwd({}))
+    assert stale.status_code == 403 and stale.json() == {"detail": "auth_mfa_stale"}
+
+
 def test_a_budget_save_forwards_the_revision_read(role_store):
     proc = fwd({"revision": 2})
     res = call("PUT", "/api/budget-caps", {**headers_for("buyer-1", BUYER), "If-Match": '"1"'}, proc, json={"period": "week", "amount": "9"})

@@ -29,6 +29,7 @@ from policies.service import (
     PolicyError,
     PolicyValues,
     budget_cap_revision,
+    clear_policy,
     effective_view,
     effective_weekly_budget,
     history,
@@ -124,16 +125,17 @@ def build_router(app: FastAPI) -> APIRouter:
         d = today()
         w = effective_weekly_budget(conn, d)
         rows = listing(conn, d)
-        orphaned = []
+        orphaned = 0
         for r in rows:
             if r["scope"] == "product":
                 vid = int(r["key"])
-                sku = sku_for_variant(conn, vid)
                 r["variant_id"] = vid                                  # internal; the gateway removes it before it reaches the browser
-                r["key"] = sku or r["key"]
-                if not variant_known(conn, vid):
+                if variant_known(conn, vid):
+                    r["key"] = sku_for_variant(conn, vid) or r["key"]
+                else:                                                  # kept and flagged, never dropped; the ERP id is not shown as a key
+                    r["key"] = None
                     r["orphaned"] = True
-                    orphaned.append(r["key"])
+                    orphaned += 1
         return {"as_of": d.isoformat(), "policies": rows, "weekly_budget": None if w is None else str(w.quantize(Decimal("0.01"))), "orphaned": orphaned,
                 "weekly_budget_revision": budget_cap_revision(conn, "week", "global", None)}
 
@@ -187,6 +189,21 @@ def build_router(app: FastAPI) -> APIRouter:
         except PolicyError as exc:
             raise HTTPException(422, error_code(exc)) from exc
         return {"revision": rev}
+
+    @router.delete("/policies/{scope}/{key}")
+    def clear(scope: str, key: str, if_match: str | None = Header(default=None), conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> Any:
+        """Removes an override: a new revision with every field empty, so the lower scope or the default applies again."""
+        try:
+            validate_key(scope, key if scope != "product" else "1")
+            ikey = internal_key(conn, scope, key)
+            expected = parse_if_match(if_match)
+            if expected is None:
+                raise HTTPException(428, "revision_required")
+            return {"revision": clear_policy(conn, scope, ikey, principal.subject, expected_revision=expected)}
+        except PolicyConflict as exc:
+            return JSONResponse({"detail": exc.code, "current_version": exc.current_revision}, status_code=412)
+        except PolicyError as exc:
+            raise HTTPException(422, error_code(exc)) from exc
 
     @router.post("/policies/{scope}/{key}/preview")
     def preview(scope: str, key: str, body: PolicyBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:

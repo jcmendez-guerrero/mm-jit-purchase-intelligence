@@ -16,13 +16,13 @@ interface Props {
   policies: PolicySummary[];
   weeklyBudget: string | null;
   weeklyBudgetRevision?: number | undefined;
-  orphaned?: string[] | undefined;
+  orphaned?: number | undefined;
   onChanged: () => void;
 }
 
 const RULES = ["service_level", "safety_stock_units", "min_units", "max_units", "replenishment_cadence_days"] as const;
 
-export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudget, weeklyBudgetRevision = 0, orphaned = [], onChanged }) => {
+export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudget, weeklyBudgetRevision = 0, orphaned = 0, onChanged }) => {
   const { t } = useTranslation();
   const [scope, setScope] = useState<Scope>("global");
   const [key, setKey] = useState("*");
@@ -106,6 +106,20 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
     }
   };
 
+  const clear = async () => {
+    reset();
+    try {
+      const r = await api.clearPolicy(scope, key, detail?.revision ?? 0);
+      setConflict(null);
+      await load();
+      setNotice(t("policies.cleared", { revision: r.revision }));
+      onChanged();
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "revision_conflict") setConflict(err.currentVersion ?? detail?.revision ?? 0);
+      else fail(err);
+    }
+  };
+
   const saveBudget = async () => {
     reset();
     const amount = budget.trim().replace(",", ".");
@@ -137,14 +151,14 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
       ) : (
         <ul>
           {policies.map((p) => (
-            <li key={`${p.scope}:${p.key}`}>
-              {t(`policies.scope.${p.scope}`)} {p.key !== "*" ? `· ${p.key}` : ""} — {t("policies.history.revision")} {p.revision}
+            <li key={`${p.scope}:${p.key ?? "orphan"}:${p.revision}`}>
+              {t(`policies.scope.${p.scope}`)} {p.key !== "*" ? `· ${p.key ?? t("policies.orphaned_unknown")}` : ""} — {t("policies.history.revision")} {p.revision}
               {p.orphaned && ` (${t("policies.orphaned")})`}
             </li>
           ))}
         </ul>
       )}
-      {orphaned.length > 0 && <p role="status">{t("policies.orphaned_note", { skus: orphaned.join(", ") })}</p>}
+      {orphaned > 0 && <p role="status">{t("policies.orphaned_note", { count: orphaned })}</p>}
 
       <div className="mmi-cluster">
         <div className="mmi-stack">
@@ -186,6 +200,11 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
               <Button onClick={() => void save()}>
                 {t("policies.save")}
               </Button>
+              {detail.revision > 0 && (
+                <Button variant="secondary" onClick={() => void clear()}>
+                  {t("policies.clear")}
+                </Button>
+              )}
             </PageActions>
           )}
 
