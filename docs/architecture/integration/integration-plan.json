@@ -1,0 +1,55 @@
+{
+  "base": "main",
+  "steps": [
+    {
+      "pr": 16,
+      "agent": "agent-00",
+      "owned_paths": [
+        "scripts/gates/",
+        "scripts/tests/gates/",
+        "docs/architecture/integration/",
+        "specs/005-architecture-contracts-integration/",
+        ".github/workflows/integration-gates.yml"
+      ],
+      "depends_on": [],
+      "verification": ["contracts", "isolation", "security", "cost"],
+      "state": "integrated"
+    },
+    {
+      "pr": 18,
+      "agent": "agent-05",
+      "owned_paths": [
+        "services/forecast-service/",
+        "specs/008-mmi-7-predictive-seed-import/",
+        "apps/web/src/features/imports/"
+      ],
+      "depends_on": [16],
+      "verification": ["contracts", "isolation", "security", "cost"],
+      "state": "integrated"
+    },
+    {
+      "pr": 17,
+      "agent": "agent-04",
+      "owned_paths": [
+        "services/procurement-service/",
+        "specs/007-supplier-commercial-management/",
+        "apps/web/src/features/suppliers/"
+      ],
+      "depends_on": [16],
+      "verification": ["contracts", "isolation", "security", "cost"],
+      "state": "integrated"
+    },
+    {
+      "pr": 19,
+      "agent": "agent-01",
+      "owned_paths": [
+        "services/inventory-service/",
+        "specs/006-executive-dashboard-analytics/",
+        "apps/web/src/features/dashboard/"
+      ],
+      "depends_on": [16],
+      "verification": ["contracts", "isolation", "security", "cost"],
+      "state": "integrated"
+    }
+  ]
+}
