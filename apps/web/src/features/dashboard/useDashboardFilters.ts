@@ -3,12 +3,12 @@ import { useSearchParams } from "react-router-dom";
 
 /** The dashboard filters as the address carries them (research R11): a link reproduces the view. Invalid values are ignored and reported, never guessed. */
 export interface DashboardFilters {
-  warehouse?: number;
-  supplier?: string;
-  category?: "A" | "B" | "C" | "critical";
-  family?: string;
-  from?: string; // ISO date
-  to?: string; // ISO date
+  warehouse?: number | undefined;
+  supplier?: string | undefined;
+  category?: "A" | "B" | "C" | "critical" | undefined;
+  family?: string | undefined;
+  from?: string | undefined; // ISO date
+  to?: string | undefined; // ISO date
 }
 
 export const PARAM = { warehouse: "almacen", supplier: "proveedor", category: "categoria", family: "familia", from: "desde", to: "hasta" } as const;

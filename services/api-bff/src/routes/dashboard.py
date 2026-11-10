@@ -99,6 +99,8 @@ async def overview(
     category: str | None = Query(default=None, pattern="^(A|B|C|critical)$"),
     family: str | None = Query(default=None, min_length=1, max_length=120),
     days: int = Query(default=60, ge=7, le=365),
+    date_from: date | None = None,
+    date_to: date | None = None,
     session: SessionData = Depends(require_roles(*READ)),
     inv: InventoryClient = Depends(get_inventory_client),
     proc: ProcurementClient = Depends(get_procurement_client),
@@ -108,10 +110,12 @@ async def overview(
     who = {"user_id": session.user_id, "roles": session.roles}
     f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id)) if v is not None}
     today = datetime.now(UTC).date()
-    window = {"date_from": (today - timedelta(days=days - 1)).isoformat(), "date_to": today.isoformat()}
+    end = date_to or today                                              # the range rules (order, span) are the domain's; only the missing end is filled here
+    window = {"date_from": (date_from or end - timedelta(days=days - 1)).isoformat(), "date_to": end.isoformat()}
+    trend_range = window if (date_from or date_to) else {"days": days}
     summary, trend, abc, risks, options, accuracy, (spend, indicators), suppliers = await asyncio.gather(
         _card(inv.forward("GET", "/dashboard/summary", params=f, **who)),
-        _card(inv.forward("GET", "/dashboard/demand-trend", params={**f, "days": days}, **who)),
+        _card(inv.forward("GET", "/dashboard/demand-trend", params={**f, **trend_range}, **who)),
         _card(inv.forward("GET", "/dashboard/abc-xyz", **who)),
         _card(inv.forward("GET", "/risk", params={"warehouse_id": warehouse_id} if warehouse_id is not None else None, **who)),
         _card(inv.forward("GET", "/dashboard/filters/options", **who)),

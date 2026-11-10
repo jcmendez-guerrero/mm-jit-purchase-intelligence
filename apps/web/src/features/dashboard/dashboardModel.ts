@@ -1,6 +1,6 @@
 import type { DashTrend } from "../../api/client";
 
-export const PERIODS = [30, 60, 90, 180] as const;
+export const DEFAULT_DAYS = 60;
 
 /** Whole days between the figures' day and today (UTC date strings); never negative. */
 export function ageInDays(day: string, today: Date = new Date()): number {
@@ -85,9 +85,9 @@ export function severitySplitIsReliable(counts: Record<StockoutSeverity, number>
   return summaryStockoutRisk !== undefined && sum === summaryStockoutRisk;
 }
 
-/** The date range a "last N days" choice covers, ending today (UTC), as ISO dates. */
-export function periodFor(days: number, today: Date = new Date()): { from: string; to: string } {
-  const to = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-  const from = new Date(to.getTime() - (days - 1) * 86_400_000);
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
+/** The range the dashboard shows: the chosen dates, with a missing end filled by today (UTC) and a missing start by the default span before the end. */
+export function periodFor(from?: string, to?: string, today: Date = new Date()): { from: string; to: string } {
+  const end = to ?? new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())).toISOString().slice(0, 10);
+  const start = from ?? new Date(new Date(`${end}T00:00:00Z`).getTime() - (DEFAULT_DAYS - 1) * 86_400_000).toISOString().slice(0, 10);
+  return { from: start, to: end };
 }

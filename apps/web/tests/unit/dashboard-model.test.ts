@@ -9,9 +9,11 @@ describe("dashboard model", () => {
     expect(ageInDays("2026-11-06", today)).toBe(3);
     expect(ageInDays("2026-11-20", today)).toBe(0);
   });
-  it("gives the date range of a last-N-days choice, ending today", () => {
-    expect(periodFor(60, today)).toEqual({ from: "2026-09-11", to: "2026-11-09" });
-    expect(periodFor(1, today)).toEqual({ from: "2026-11-09", to: "2026-11-09" });
+  it("gives the range shown: the chosen dates, a missing end is today and a missing start is the default span before the end", () => {
+    expect(periodFor(undefined, undefined, today)).toEqual({ from: "2026-09-11", to: "2026-11-09" });
+    expect(periodFor("2026-10-01", undefined, today)).toEqual({ from: "2026-10-01", to: "2026-11-09" });
+    expect(periodFor(undefined, "2026-10-19", today)).toEqual({ from: "2026-08-21", to: "2026-10-19" });
+    expect(periodFor("2026-10-10", "2026-10-19", today)).toEqual({ from: "2026-10-10", to: "2026-10-19" });
   });
   it("summarises a trend: total, peak day and span", () => {
     const series = [

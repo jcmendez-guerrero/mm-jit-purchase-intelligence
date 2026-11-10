@@ -217,9 +217,13 @@ def refresh_aggregates(conn: Connection, today: date | None = None, forecast: Fo
     return len(rows) + len(dist)
 
 
-def abc_xyz_distribution(conn: Connection) -> list[dict[str, Any]]:
+def abc_xyz_distribution(conn: Connection, f: Filters | None = None) -> list[dict[str, Any]]:
+    """Segments follow category, family and supplier; the segmentation is company-wide, so a warehouse or date range cannot apply (the route names them)."""
+    scope = None if f is None or (f.category, f.family, f.supplier_id) == (None, None, None) else variant_scope(conn, f)
     out: dict[tuple[str, str], list[Any]] = {}
     for r in conn.execute(select(product_segments)).all():
+        if scope is not None and r.variant_id not in scope:
+            continue
         c = out.setdefault((r.abc, r.xyz), [0, ZERO])
         c[0] += 1
         c[1] += Decimal(str((r.metrics or {}).get("value", 0)))
@@ -312,4 +316,7 @@ def filter_options(conn: Connection) -> dict[str, Any]:
     if conn.execute(select(func.count()).select_from(products).where(products.c.clinical_critical)).scalar():
         cats.append({"id": "critical", "kind": "clinical_critical"})
     fams = [r.family for r in conn.execute(select(products.c.family).where(products.c.family.is_not(None)).distinct().order_by(products.c.family)).all()]
-    return {"warehouses": whs, "categories": cats, "families": [{"id": f} for f in fams], "family_available": bool(fams)}
+    sups = sorted({r.supplier_id for r in conn.execute(select(lot_cost_projection.c.supplier_id).distinct()).all() if r.supplier_id})
+    first, last = conn.execute(select(func.min(demand_observations.c.day), func.max(demand_observations.c.day))).one()
+    return {"warehouses": whs, "categories": cats, "families": [{"id": f} for f in fams], "family_available": bool(fams), "suppliers": [{"id": x} for x in sups],
+            "data_range": None if first is None else {"from": first.isoformat(), "to": last.isoformat()}}

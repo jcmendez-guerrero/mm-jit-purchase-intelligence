@@ -65,11 +65,20 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
 
     @router.get("/demand-trend")
     def trend(days: int = Query(default=60, ge=7, le=365), warehouse_id: int | None = None, category: str | None = None, family: str | None = None, supplier_id: str | None = None,
-              conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+              date_from: date | None = None, date_to: date | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """The last ``days`` days, or the range ``date_from``..``date_to`` when given (same rules as every filter). The forecast describes the days after today, so a range that ends before today has none."""
         today = datetime.now(UTC).date()
         f = filters(warehouse_id, category, family, supplier_id)
-        fc = forecast_series(conn, today, f, means())
-        return {"from": (today - timedelta(days=days)).isoformat(), "to": date.isoformat(today), "series": demand_trend(conn, today, days, f),
+        if date_from is None and date_to is None:
+            start, end, span = today - timedelta(days=days), today, days
+        else:
+            try:
+                fs = FilterSet.parse(today, date_from, date_to)
+            except FilterError as exc:
+                raise HTTPException(422, "request_invalid") from exc
+            start, end, span = fs.date_from, fs.date_to, (fs.date_to - fs.date_from).days + 1
+        fc = forecast_series(conn, today, f, means()) if end == today else {"points": [], "variants": 0, "seed_assisted": 0, "reason": "range_in_past"}
+        return {"from": start.isoformat(), "to": end.isoformat(), "series": demand_trend(conn, end, span, f),
                 "estimated": fc["points"], "estimated_basis": {"variants": fc["variants"], "seed_assisted": fc["seed_assisted"], "reason": fc["reason"], "upper_level": "0.95"}}
 
     @router.get("/drilldown")
@@ -85,7 +94,14 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
             raise HTTPException(422, exc.code) from exc
 
     @router.get("/abc-xyz")
-    def abc_xyz(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
-        return {"cells": hide_cell_values([{**d, "value": str(d["value"].quantize(Decimal("0.01")))} for d in abc_xyz_distribution(conn)], _p.roles)}
+    def abc_xyz(date_from: date | None = None, date_to: date | None = None, warehouse_id: int | None = None, category: str | None = None, family: str | None = None,
+                supplier_id: str | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        f = filters(warehouse_id, category, family, supplier_id)
+        try:
+            FilterSet.parse(datetime.now(UTC).date(), date_from, date_to)
+        except FilterError as exc:
+            raise HTTPException(422, "request_invalid") from exc
+        unsupported = [n for n, given in (("warehouse", warehouse_id is not None), ("date_range", date_from is not None or date_to is not None)) if given]
+        return {"cells": hide_cell_values([{**d, "value": str(d["value"].quantize(Decimal("0.01")))} for d in abc_xyz_distribution(conn, f)], _p.roles), "filters_unsupported": unsupported}
 
     return router

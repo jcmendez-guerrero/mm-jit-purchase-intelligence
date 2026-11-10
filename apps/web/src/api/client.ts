@@ -703,6 +703,8 @@ export interface DashFilters {
   family?: string | undefined;
   days?: number | undefined;
   supplier_id?: string | undefined;
+  date_from?: string | undefined;
+  date_to?: string | undefined;
 }
 
 export interface VariantDetail {
@@ -956,6 +958,8 @@ export class ApiClient {
     if (f.family) q.set("family", f.family);
     if (f.days) q.set("days", String(f.days));
     if (f.supplier_id) q.set("supplier_id", f.supplier_id);
+    if (f.date_from) q.set("date_from", f.date_from);
+    if (f.date_to) q.set("date_to", f.date_to);
     const qs = q.toString();
     return this.request<DashOverview>(`/dashboard/overview${qs ? `?${qs}` : ""}`);
   }

@@ -93,13 +93,13 @@ Inventory service: `services/inventory-service/{src,tests,migrations}`. BFF: `se
 
 - [ ] T028 [P] [US2] Integration tests: each filter and combinations change every indicator to the expected subset; supplier filter uses the lot cost supplier, in `services/inventory-service/tests/test_dashboard_filter_matrix.py`
 - [ ] T078 [P] [US2] Date-boundary tests for the two Madrid daylight-saving transition days (period filter, snapshot day, trend buckets) in `services/inventory-service/tests/test_dashboard_dst.py`
-- [ ] T029 [P] [US2] Security-abuse tests for filters (oversized range, bad dates, SQL-like strings, unknown ids) in `services/api-bff/tests/test_dashboard_filter_abuse.py`
+- [X] T029 [P] [US2] Security-abuse tests for filters (oversized range, bad dates, SQL-like strings, unknown ids) in `services/api-bff/tests/test_dashboard_filter_abuse.py` (done: `test_dashboard_filter_abuse.py`, 16 cases; bad dates, SQL-like text, oversized ids and unknown categories are refused before any service is called; the range rules stay in inventory)
 - [ ] T030 [P] [US2] Playwright mocked spec for chips, clear, empty-result state and link restore in `apps/web/tests/e2e/dashboard-filters.spec.ts`
-- [ ] T031 [US2] Apply the FilterSet (including supplier and date range) in `kpis.py`, `abc_xyz_distribution`, risk and accuracy sources; where a source cannot honour a filter return `filters_unsupported` (research R2)
-- [ ] T032 [US2] Update `filter_options` in `kpis.py` and `api/dashboard.py` (warehouses, suppliers, categories, families, data range)
-- [ ] T033 [US2] Replace the "last N days" selector with date-range inputs and bind all filters to the address via `useDashboardFilters` in `DashboardScreen.tsx`; remove the "informational" warehouse note
+- [ ] T031 [US2] Apply the FilterSet (including supplier and date range) in `kpis.py`, `abc_xyz_distribution`, risk and accuracy sources; where a source cannot honour a filter return `filters_unsupported` (research R2) (partly done: the BFF forwards `date_from`/`date_to` to the indicators, the spend and the trend, and inventory `demand-trend` takes the range, 3 tests in `test_dashboard_trend_range.py`, the forecast is left out when the range ends before today; `/dashboard/abc-xyz` follows category, family and supplier and names `warehouse` and `date_range` in `filters_unsupported`, 7 tests in `test_dashboard_distribution_options.py`; the accuracy indicators already name the filters they cannot follow; still to do: the risk list drill-down declares that the date range does not apply)
+- [X] T032 [US2] Update `filter_options` in `kpis.py` and `api/dashboard.py` (warehouses, suppliers, categories, families, data range) (suppliers come from the lot cost projection, `data_range` from the demand observations)
+- [X] T033 [US2] Replace the "last N days" selector with date-range inputs and bind all filters to the address via `useDashboardFilters` in `DashboardScreen.tsx`; remove the "informational" warehouse note (done: "Desde" and "Hasta" date inputs replace the days selector; supplier, category, family and the range are read from and written to the address (`desde`, `hasta`, `proveedor`, `categoria`, `familia`) and shown as chips; the warehouse stays in `App.tsx`; the warehouse note is kept because the proposed-spend card is still company-wide, the obsolete supplier note is gone)
 - [ ] T034 [P] [US2] Show text notes for unsupported filters and the empty-result state with a clear action in `IndicatorCard.tsx` and `DashboardScreen.tsx`
-- [ ] T035 [P] [US2] Add filter strings to `apps/web/src/i18n/es-ES.json`
+- [X] T035 [P] [US2] Add filter strings to `apps/web/src/i18n/es-ES.json` (done: `dashboard.filter.from` and `dashboard.filter.to`)
 
 **Checkpoint**: audit item A14 closed.
 

@@ -11,9 +11,10 @@ import { StatusBadge } from "../../ui/StatusBadge";
 import { statusInfo } from "../../ui/statusVocabulary";
 import { useChartColors } from "../../ui/useChartColors";
 import { ChartWithTable } from "./ChartWithTable";
-import { ageInDays, forecastStats, mergeTrend, PERIODS, periodFor, severitySplitIsReliable, stockoutSeverityCounts, trendStats } from "./dashboardModel";
+import { ageInDays, DEFAULT_DAYS, forecastStats, mergeTrend, periodFor, severitySplitIsReliable, stockoutSeverityCounts, trendStats } from "./dashboardModel";
 import { DrillDownPanel } from "./DrillDownPanel";
 import { IndicatorCard } from "./IndicatorCard";
+import { useDashboardFilters } from "./useDashboardFilters";
 import { ProductDetail } from "./ProductDetail";
 import { SupplierPanel } from "./SupplierPanel";
 import { Button } from "../../ui/Button";
@@ -43,12 +44,15 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const [error, setError] = useState<string | null>(null);
   const [warehouse, setWarehouse] = useState<number | undefined>(selectedWarehouse);
   useEffect(() => setWarehouse(selectedWarehouse), [selectedWarehouse]); // the address (?almacen=) is the source of truth
-  const [category, setCategory] = useState<string>("");
-  const [family, setFamily] = useState<string>("");
+  const { filters, set: setFilters, clear: clearAddressFilters } = useDashboardFilters();            // the address carries every filter but the warehouse (App owns that one)
+  const category = filters.category ?? "";
+  const family = filters.family ?? "";
+  const supplier = filters.supplier ?? "";
+  const setCategory = (v: string) => setFilters({ category: (v || undefined) as typeof filters.category });
+  const setFamily = (v: string) => setFilters({ family: v || undefined });
+  const setSupplier = (v: string) => setFilters({ supplier: v || undefined });
   const [drill, setDrill] = useState<{ request: DrillRequest; title: string } | null>(null);
   const [supplierOpen, setSupplierOpen] = useState<string | null>(null);
-  const [days, setDays] = useState<number>(60);
-  const [supplier, setSupplier] = useState<string>("");
   const [detail, setDetail] = useState<number | null>(null);
   const [severity, setSeverity] = useState<Severity | null>(null);
   const colors = useChartColors();
@@ -72,13 +76,13 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
     try {
       setLoading(true);
       setError(null);
-      setData(await api.getDashboardOverview({ warehouse_id: warehouse, category: category || undefined, family: family || undefined, days, supplier_id: supplier || undefined }));
+      setData(await api.getDashboardOverview({ warehouse_id: warehouse, category: category || undefined, family: family || undefined, supplier_id: supplier || undefined, ...(filters.from || filters.to ? { date_from: filters.from, date_to: filters.to } : { days: DEFAULT_DAYS }) }));
     } catch (err) {
       setError(errorMessage(err, t("common.error")));
     } finally {
       setLoading(false);
     }
-  }, [warehouse, category, family, days, supplier, t]);
+  }, [warehouse, category, family, filters.from, filters.to, supplier, t]);
 
   useEffect(() => {
     void load();
@@ -99,7 +103,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const risks = data?.risks.ok ? (data.risks.data ?? []) : [];
   const cells = data?.abc_xyz.ok ? (data.abc_xyz.data?.cells ?? []) : [];
   const indicators = data?.indicators ?? [];
-  const period = periodFor(days);
+  const period = periodFor(filters.from, filters.to);
   const hasStale = indicators.some((i) => i.freshness.state === "stale");
   const severityCounts = stockoutSeverityCounts(risks);
   const splitReliable = severitySplitIsReliable(severityCounts, s?.stockout_risk);
@@ -111,11 +115,11 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   if (category) chips.push({ key: "category", name: t("dashboard.filter.category"), label: nameOf("dashboard.filter.category", t(`dashboard.category.${category}`)), onRemove: () => setCategory("") });
   if (family) chips.push({ key: "family", name: t("dashboard.filter.family"), label: nameOf("dashboard.filter.family", family), onRemove: () => setFamily("") });
   if (supplier) chips.push({ key: "supplier", name: t("dashboard.filter.supplier"), label: nameOf("dashboard.filter.supplier", (data?.suppliers.ok ? data.suppliers.data?.find((x) => x.id === supplier)?.name : undefined) ?? supplier), onRemove: () => setSupplier("") });
+  if (filters.from) chips.push({ key: "from", name: t("dashboard.filter.from"), label: nameOf("dashboard.filter.from", formatDate(`${filters.from}T12:00:00`)), onRemove: () => setFilters({ from: undefined }) });
+  if (filters.to) chips.push({ key: "to", name: t("dashboard.filter.to"), label: nameOf("dashboard.filter.to", formatDate(`${filters.to}T12:00:00`)), onRemove: () => setFilters({ to: undefined }) });
   const clearFilters = () => {
     pickWarehouse("all");
-    setCategory("");
-    setFamily("");
-    setSupplier("");
+    clearAddressFilters();
   };
 
   const riskColumns: Column<RiskItem>[] = [
@@ -194,17 +198,14 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           </Button>
         )}
         <div className="mmi-filterbar__field">
-          <label htmlFor="f-days">{t("dashboard.filter.days")}</label>
-          <select id="f-days" value={days} onChange={(e) => setDays(parseInt(e.target.value, 10))}>
-            {PERIODS.map((p) => (
-              <option key={p} value={p}>
-                {t("dashboard.days", { n: p })}
-              </option>
-            ))}
-          </select>
+          <label htmlFor="f-from">{t("dashboard.filter.from")}</label>
+          <input id="f-from" type="date" value={period.from} max={period.to} onChange={(e) => setFilters({ from: e.target.value || undefined })} />
+        </div>
+        <div className="mmi-filterbar__field">
+          <label htmlFor="f-to">{t("dashboard.filter.to")}</label>
+          <input id="f-to" type="date" value={period.to} min={period.from} onChange={(e) => setFilters({ to: e.target.value || undefined })} />
         </div>
       </FilterBar>
-      <p className="mmi-muted">{t("dashboard.filter.supplier_note")}</p>
       {warehouse !== undefined && <p role="note">{t("dashboard.warehouse_informational")}</p>}
       {opts && !opts.family_available && <p className="mmi-muted">{t("dashboard.family_pending")}</p>}
       {s && (
