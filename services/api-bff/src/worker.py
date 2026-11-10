@@ -8,12 +8,17 @@ only retries what failed. Procurement applies a change only if its revision is n
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 import sys
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, Protocol
 
+from db.ops import OpsStore
 from db.roles import RoleStore
+from ops.snapshots import SnapshotError, parse_snapshot
 
 log = logging.getLogger("api_bff.worker")
 MAX_ATTEMPTS = 8
@@ -44,6 +49,24 @@ def drain_once(store: RoleStore, client: RoleMirror, now: datetime | None = None
     return {"considered": len(due), "sent": sent, "failed_attempts": failed}
 
 
+SNAPSHOT_DIR = "ops-inputs"                 # gitignored; written by an operator command or a scheduled pipeline step (D10)
+
+
+def ingest_snapshots(ops: OpsStore, directory: Path, now: datetime | None = None) -> dict[str, int]:
+    """Reads *.json snapshots; a file that fails validation is refused and logged by code only, never stored. Re-reading is harmless."""
+    stored = rejected = 0
+    for path in sorted(directory.glob("*.json")) if directory.is_dir() else []:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            snap = parse_snapshot(raw, now)
+            if ops.add_snapshot(snap.kind, snap.captured_at, str(raw["captured_at"]), snap.payload(), snap.status):
+                stored += 1
+        except (SnapshotError, ValueError, OSError, KeyError, TypeError) as exc:
+            log.warning("SNAPSHOT_REJECTED file=%s code=snapshot_invalid reason=%s", path.name[:60], type(exc).__name__)
+            rejected += 1
+    return {"stored": stored, "rejected": rejected}
+
+
 def main() -> int:
     from clients.procurement import RoleMirrorClient
     from db.engine import make_engine
@@ -55,8 +78,16 @@ def main() -> int:
     client = RoleMirrorClient()
 
     def once() -> int:
+        from routes import admin_roles
+        from routes.admin_ops import get_ops, refresh_alerts
+
         stats = drain_once(store, client)
         log.info("role mirror pass %s", stats)
+        admin_roles.set_store(store)
+        ops = get_ops()
+        log.info("snapshot pass %s", ingest_snapshots(ops, Path(os.environ.get("MMI_OPS_INPUT_DIR", SNAPSHOT_DIR))))
+        # Local facts only (mirror lag, backup, cost, snapshot dead letters); source freshness and job states are evaluated when the console reads.
+        refresh_alerts(ops, datetime.now(UTC), None, None)
         return 0 if stats["failed_attempts"] == 0 else 1
 
     return run(once)

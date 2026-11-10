@@ -12,6 +12,10 @@ describe("admin status model", () => {
     expect(freshness(null, now)).toBe("none");
     expect(freshness("garbage", now)).toBe("none");
   });
+  it("uses the configured limit when given", () => {
+    expect(freshness("2026-11-10T00:00:00Z", now, 6)).toBe("stale");
+    expect(freshness("2026-11-08T00:00:00Z", now, 72)).toBe("fresh");
+  });
   it("re-runs only failed jobs", () => {
     expect(canRerunJob("failed")).toBe(true);
     for (const s of ["queued", "running", "done"]) expect(canRerunJob(s)).toBe(false);

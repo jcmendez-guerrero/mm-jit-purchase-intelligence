@@ -1,4 +1,4 @@
-export const STALE_AFTER_HOURS = 36;                 // same threshold as the sync-stale alert
+export const STALE_AFTER_HOURS = 36;                 // default only; the console reads the configured limit (admin thresholds)
 
 export function ageHours(iso: string | null, now: Date): number | null {
   if (!iso) return null;
@@ -8,10 +8,10 @@ export function ageHours(iso: string | null, now: Date): number | null {
 
 export type Freshness = "fresh" | "stale" | "none";
 
-export function freshness(iso: string | null, now: Date): Freshness {
+export function freshness(iso: string | null, now: Date, limitHours: number = STALE_AFTER_HOURS): Freshness {
   const h = ageHours(iso, now);
   if (h === null) return "none";
-  return h > STALE_AFTER_HOURS ? "stale" : "fresh";
+  return h > limitHours ? "stale" : "fresh";
 }
 
 /** Only a failed job can be re-run; the service enforces it again. */

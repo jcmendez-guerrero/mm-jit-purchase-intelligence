@@ -73,13 +73,16 @@ class RoleStore:
             return _holders(conn, "approver")
 
     # ---- writes ----
-    def set_roles(self, user_id: str, roles: list[str], actor: str, active: bool = True, now: datetime | None = None) -> RoleRecord:
+    def set_roles(self, user_id: str, roles: list[str], actor: str, active: bool = True, now: datetime | None = None,
+                  expected_revision: int | None = None) -> RoleRecord:
         if any(r not in ROLES for r in roles):
             raise RoleError("roles_invalid")
         new_roles = sorted(set(roles))
         now = now or datetime.now(UTC)
         with self.engine.begin() as conn:
             before = conn.execute(select(user_roles).where(user_roles.c.user_id == user_id)).first()
+            if expected_revision is not None and expected_revision != (before.revision if before else 0):
+                raise RoleError("roles_conflict")
             for role, code in (("approver", "approval_fewer_than_two_approvers"), ("admin", "roles_last_admin")):
                 current, others = _holders(conn, role), _holders(conn, role, exclude=user_id)
                 projected = others + (1 if (role in new_roles and active) else 0)
@@ -151,6 +154,32 @@ class RoleStore:
             })
         return out[-limit:] if limit else out
 
+    def audit_page(self, actor: str | None = None, action: str | None = None, outcome: str | None = None, ts_from: datetime | None = None,
+                   ts_to: datetime | None = None, cursor: int | None = None, limit: int = 50) -> tuple[list[dict[str, Any]], int | None]:
+        """Newest first. Only identifiers, codes and times are returned; the before/after bodies never leave the database."""
+        q = select(audit_events).order_by(audit_events.c.id.desc())
+        if actor:
+            q = q.where(audit_events.c.actor == actor)
+        if action:
+            q = q.where(audit_events.c.action == action)
+        if outcome == "refused":
+            q = q.where(audit_events.c.action.like("%.refused"))
+        elif outcome == "allowed":
+            q = q.where(~audit_events.c.action.like("%.refused"))
+        if ts_from:
+            q = q.where(audit_events.c.ts >= ts_from)
+        if ts_to:
+            q = q.where(audit_events.c.ts <= ts_to)
+        if cursor:
+            q = q.where(audit_events.c.id < cursor)
+        with self.engine.connect() as conn:
+            rows = conn.execute(q.limit(limit + 1)).all()
+        page = rows[:limit]
+        items = [{"id": r.id, "ts": _aware(r.ts).isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": r.entity_id,
+                  "outcome": "refused" if r.action.endswith(".refused") else "allowed",
+                  "reason_code": (r.after or {}).get("reason") if r.action.endswith(".refused") else None} for r in page]
+        return items, (page[-1].id if len(rows) > limit and page else None)
+
     def verify_audit(self) -> ChainCheck:
         with self.engine.connect() as conn:
             return verify_chain(conn)
@@ -173,10 +202,13 @@ class RoleStore:
                 attempts=attempts, last_error_key=error_key, status="failed" if attempts >= max_attempts else "pending",
                 next_attempt_at=now + timedelta(seconds=delay)))
 
-    def requeue_failed(self, now: datetime | None = None) -> int:
+    def requeue_failed(self, now: datetime | None = None, item_id: int | None = None) -> int:
         now = now or datetime.now(UTC)
         with self.engine.begin() as conn:
-            res = conn.execute(update(role_mirror_outbox).where(role_mirror_outbox.c.status == "failed").values(status="pending", attempts=0, next_attempt_at=now))
+            cond = role_mirror_outbox.c.status == "failed"
+            if item_id is not None:
+                cond = cond & (role_mirror_outbox.c.id == item_id)
+            res = conn.execute(update(role_mirror_outbox).where(cond).values(status="pending", attempts=0, next_attempt_at=now))
             return int(res.rowcount)
 
     def mirror_status(self, now: datetime | None = None, item_limit: int = 20) -> dict[str, Any]:

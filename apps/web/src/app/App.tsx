@@ -2,6 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
 import { api, ApiError, onUnauthorized, UserSession } from "../api/client";
 import { AdminStatusScreen } from "../features/admin/AdminStatusScreen";
+import { AlertsPanel } from "../features/admin/AlertsPanel";
+import { AuditScreen } from "../features/admin/AuditScreen";
+import { OpsCards } from "../features/admin/OpsCards";
+import { QueuePanel } from "../features/admin/QueuePanel";
 import { RolesScreen } from "../features/admin/RolesScreen";
 import { CostsScreen } from "../features/costs/CostsScreen";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
@@ -129,7 +133,11 @@ export const App: React.FC = () => {
             userRoles.includes("admin") ? (
               <>
                 <AdminStatusScreen />
+                <OpsCards />
+                <QueuePanel />
+                <AlertsPanel />
                 <RolesScreen />
+                <AuditScreen />
               </>
             ) : (
               <NoAccess />

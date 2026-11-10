@@ -39,7 +39,7 @@ describe("RolesScreen (Spanish)", () => {
     render(<RolesScreen />);
     fireEvent.click(await screen.findByLabelText("buyer-1 Aprobador"));
     confirmAction();
-    await waitFor(() => expect(update).toHaveBeenCalledWith("buyer-1", ["approver", "buyer", "viewer"], true));
+    await waitFor(() => expect(update).toHaveBeenCalledWith("buyer-1", ["approver", "buyer", "viewer"], true, 1));
     await waitFor(() => expect(api.getRoles).toHaveBeenCalledTimes(2));
   });
 

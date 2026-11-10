@@ -1,0 +1,1 @@
+Synthetic operations snapshots (feature 010). Copy one or more into the gitignored `ops-inputs/` folder and run `python -m worker` to try the console. `invalid_float_money.json` must be rejected (`snapshot_invalid`). All figures are invented.

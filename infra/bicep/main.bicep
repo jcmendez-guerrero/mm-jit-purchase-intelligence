@@ -222,6 +222,7 @@ var procurementEnv = concat(commonEnv, dbEnv, [
   { name: 'MMI_FORECAST_URL', value: forecastUrl }
 ])
 var bffEnv = concat(commonEnv, dbEnv, [
+  { name: 'MMI_ALERT_EMAIL_CONFIGURED', value: empty(alertEmail) ? '0' : '1' }
   { name: 'MMI_SESSION_SECRET', secretRef: 'session-secret' }
   { name: 'MMI_COOKIE_SECURE', value: 'true' }
   { name: 'MMI_ENTRA_TENANT_ID', value: entraTenantId }

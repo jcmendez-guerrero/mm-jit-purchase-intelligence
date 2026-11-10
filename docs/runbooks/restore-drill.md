@@ -75,3 +75,7 @@ Verificar la capacidad de recuperación ante desastres (DR) y el cumplimiento de
 | Fecha | Hora inicio | Hora fin | Tiempo total (RTO) | Punto restaurado (RPO) | ¿Éxito? | Observaciones |
 |---|---|---|---|---|---|---|
 | YYYY-MM-DD | HH:MM | HH:MM | X min | YYYY-MM-DD HH:MM | Sí | Restauración verificada OK |
+
+## Registro en la consola (feature 010)
+
+Tras cada copia correcta y cada simulacro, la plataforma entrega una cifra de operaciones (`kind: backup`, con `last_success_at` y `last_restore_drill_at`) en `ops-inputs/*.json`; el trabajo programado la valida y la guarda. La consola muestra la última copia correcta, el último simulacro y marca la copia como antigua pasadas 26 horas (umbral configurable). Una cifra inválida se rechaza (`snapshot_invalid` en el registro) y nunca se guarda.

@@ -61,3 +61,10 @@ Verificar en el entorno de preproducción/pruebas que las alertas se disparan an
 |---|---|---|---|---|---|---|
 | YYYY-MM-DD | SYNC_FAILED | HH:MM | HH:MM | MM min | Sí | Comprador / Admin |
 | YYYY-MM-DD | POISON_MESSAGE | HH:MM | HH:MM | MM min | Sí | Comprador / Admin |
+
+## Alertas de la consola (feature 010)
+
+1. Colocar una cifra sintética de copia antigua en `ops-inputs/` y ejecutar `python -m worker` una vez.
+2. Comprobar en Administración → «Alertas» que existe **una** alerta abierta, aunque se repita el paso 1 varias veces.
+3. Comprobar que el registro contiene una sola línea `ADMIN_ALERT_OPENED` y que llega el correo (regla `admin-alert-opened`, hasta 15 minutos). Sin canal de correo, la consola lo indica.
+4. Reconocer la alerta (segundo factor reciente) y corregir la cifra: la alerta se cierra sola en la siguiente evaluación.
