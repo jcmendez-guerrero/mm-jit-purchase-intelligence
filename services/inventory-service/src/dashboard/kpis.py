@@ -53,6 +53,7 @@ class Filters:
     warehouse_id: int | None = None
     category: str | None = None          # A / B / C / critical
     family: str | None = None            # ERP product family name, exactly as synchronised
+    supplier_id: str | None = None       # supplier of the lot cost the stock is valued with (lot_cost_projection)
 
 
 @dataclass
@@ -83,6 +84,8 @@ def variant_scope(conn: Connection, f: Filters) -> set[int]:
         in_family = {r.external_id for r in conn.execute(select(variants.c.external_id).join(products, products.c.external_id == variants.c.product_id)
                                                          .where(products.c.family == f.family)).all()}
         ids &= in_family
+    if f.supplier_id is not None:
+        ids &= _supplier_variants(conn, f.supplier_id)
     if f.category is None:
         return ids
     if f.category == "critical":
@@ -91,17 +94,28 @@ def variant_scope(conn: Connection, f: Filters) -> set[int]:
     return {r.variant_id for r in conn.execute(select(product_segments.c.variant_id).where(product_segments.c.abc == f.category)).all()} & ids
 
 
-def _costs(conn: Connection) -> tuple[dict[tuple[int, str], Decimal], dict[int, Decimal]]:
-    """(variant, lot) -> latest cost, and variant -> latest cost of any lot (the labelled fallback)."""
-    by_lot: dict[tuple[int, str], tuple[datetime, Decimal]] = {}
-    by_variant: dict[int, tuple[datetime, Decimal]] = {}
+def _supplier_variants(conn: Connection, supplier_id: str) -> set[int]:
+    """Variants with stock in a lot whose cost (own or the labelled fallback) comes from this supplier: the same rule ``valued_lots`` applies, so every figure agrees."""
+    by_lot, by_variant = _costs(conn)
+    out: set[int] = set()
+    for lot in conn.execute(select(stock_lots.c.variant_id, stock_lots.c.batch_number).where(stock_lots.c.quantity > 0)).all():
+        found = by_lot.get((lot.variant_id, lot.batch_number or "")) or by_variant.get(lot.variant_id)
+        if found is not None and found[1] == supplier_id:
+            out.add(lot.variant_id)
+    return out
+
+
+def _costs(conn: Connection) -> tuple[dict[tuple[int, str], tuple[Decimal, str]], dict[int, tuple[Decimal, str]]]:
+    """(variant, lot) -> (latest cost, its supplier), and variant -> (latest cost of any lot, its supplier) (the labelled fallback)."""
+    by_lot: dict[tuple[int, str], tuple[datetime, Decimal, str]] = {}
+    by_variant: dict[int, tuple[datetime, Decimal, str]] = {}
     for r in conn.execute(select(lot_cost_projection)).all():
         at, cost = r.updated_at, Decimal(str(r.unit_cost))
         if (r.variant_id, r.lot) not in by_lot or by_lot[(r.variant_id, r.lot)][0] <= at:
-            by_lot[(r.variant_id, r.lot)] = (at, cost)
+            by_lot[(r.variant_id, r.lot)] = (at, cost, r.supplier_id)
         if r.variant_id not in by_variant or by_variant[r.variant_id][0] <= at:
-            by_variant[r.variant_id] = (at, cost)
-    return {k: v[1] for k, v in by_lot.items()}, {k: v[1] for k, v in by_variant.items()}
+            by_variant[r.variant_id] = (at, cost, r.supplier_id)
+    return {k: (v[1], v[2]) for k, v in by_lot.items()}, {k: (v[1], v[2]) for k, v in by_variant.items()}
 
 
 def valued_lots(conn: Connection, today: date, f: Filters, scope: set[int], summary: Summary | None = None) -> Iterator[tuple[int, Decimal, bool, bool]]:
@@ -115,13 +129,16 @@ def valued_lots(conn: Connection, today: date, f: Filters, scope: set[int], summ
     for lot in conn.execute(q).all():
         if lot.variant_id not in scope:
             continue
-        cost = by_lot.get((lot.variant_id, lot.batch_number or ""))
+        found = by_lot.get((lot.variant_id, lot.batch_number or ""))
         estimated = False
-        if cost is None:
-            cost, estimated = by_variant.get(lot.variant_id), True
-        if cost is None:
-            if summary is not None:
+        if found is None:
+            found, estimated = by_variant.get(lot.variant_id), True
+        if found is None:
+            if summary is not None and f.supplier_id is None:    # a lot with no cost has no supplier: only the unfiltered view counts it
                 summary.unvalued_lots += 1
+            continue
+        cost, supplier = found
+        if f.supplier_id is not None and supplier != f.supplier_id:
             continue
         yield lot.variant_id, cost * lot.quantity, estimated, lot.expiry_date is not None and lot.expiry_date <= horizon
 
@@ -200,9 +217,13 @@ def refresh_aggregates(conn: Connection, today: date | None = None, forecast: Fo
     return len(rows) + len(dist)
 
 
-def abc_xyz_distribution(conn: Connection) -> list[dict[str, Any]]:
+def abc_xyz_distribution(conn: Connection, f: Filters | None = None) -> list[dict[str, Any]]:
+    """Segments follow category, family and supplier; the segmentation is company-wide, so a warehouse or date range cannot apply (the route names them)."""
+    scope = None if f is None or (f.category, f.family, f.supplier_id) == (None, None, None) else variant_scope(conn, f)
     out: dict[tuple[str, str], list[Any]] = {}
     for r in conn.execute(select(product_segments)).all():
+        if scope is not None and r.variant_id not in scope:
+            continue
         c = out.setdefault((r.abc, r.xyz), [0, ZERO])
         c[0] += 1
         c[1] += Decimal(str((r.metrics or {}).get("value", 0)))
@@ -252,6 +273,42 @@ def forecast_series(conn: Connection, today: date, f: Filters, forecast: Forecas
     return {"points": pts, "variants": len(use), "seed_assisted": sum(1 for b in use.values() if b[2]), "reason": None}
 
 
+def demand_summary(conn: Connection, today: date, days: int, f: Filters) -> dict[str, Any]:
+    """Units sold in the last ``days`` days (today included): real ERP sales only. Censored rows (days when the product was out of stock, so demand was not
+    observed) are left out and counted. Nothing to count gives ``no_data``, never zero."""
+    scope = variant_scope(conn, f)
+    q = select(demand_observations.c.variant_id, demand_observations.c.demand_qty, demand_observations.c.censored).where(
+        demand_observations.c.day > today - timedelta(days=days), demand_observations.c.day <= today)
+    if f.warehouse_id is not None:
+        q = q.where(demand_observations.c.warehouse_id == f.warehouse_id)
+    units, censored, sellers = 0, 0, set()
+    for r in conn.execute(q).all():
+        if r.variant_id not in scope:
+            continue
+        if r.censored:
+            censored += 1
+            continue
+        units += r.demand_qty
+        sellers.add(r.variant_id)
+    if not sellers:
+        return {"state": "no_data", "units": None, "daily_average": None, "censored_rows": censored, "variants_with_demand": 0, "days": days}
+    return {"state": "ok", "units": units, "daily_average": str((Decimal(units) / Decimal(days)).quantize(Decimal("0.01"))), "censored_rows": censored,
+            "variants_with_demand": len(sellers), "days": days}
+
+
+def forecast_summary(conn: Connection, today: date, f: Filters, forecast: ForecastMeans | None, days: int = FORECAST_DAYS) -> dict[str, Any]:
+    """Forecast units for the next ``days`` days: the sum of the same daily points the trend chart draws, so the card and the chart agree. Variants in scope that
+    have no forecast are counted in ``incomplete``, never valued at zero. Without a forecast, or with a warehouse filter (the forecast is company-wide),
+    the state is ``no_data`` and ``reason`` says why."""
+    fs = forecast_series(conn, today, f, forecast, days)
+    if fs["reason"] is not None:
+        return {"state": "no_data", "units": None, "upper": None, "variants": 0, "incomplete": None, "seed_assisted": 0, "days": days, "reason": fs["reason"]}
+    units = sum((Decimal(p["mean"]) for p in fs["points"]), ZERO)
+    upper = sum((Decimal(p["upper"]) for p in fs["points"]), ZERO)
+    return {"state": "ok", "units": str(units.quantize(Decimal("0.01"))), "upper": str(upper.quantize(Decimal("0.01"))), "variants": fs["variants"],
+            "incomplete": len(variant_scope(conn, f)) - fs["variants"], "seed_assisted": fs["seed_assisted"], "days": days, "reason": None}
+
+
 def filter_options(conn: Connection) -> dict[str, Any]:
     whs = [{"id": r.external_id, "name": r.name} for r in conn.execute(select(warehouses).where(warehouses.c.is_unassigned.is_(False)).order_by(warehouses.c.name)).all()]
     present = {r.abc for r in conn.execute(select(product_segments.c.abc).distinct()).all()}
@@ -259,4 +316,7 @@ def filter_options(conn: Connection) -> dict[str, Any]:
     if conn.execute(select(func.count()).select_from(products).where(products.c.clinical_critical)).scalar():
         cats.append({"id": "critical", "kind": "clinical_critical"})
     fams = [r.family for r in conn.execute(select(products.c.family).where(products.c.family.is_not(None)).distinct().order_by(products.c.family)).all()]
-    return {"warehouses": whs, "categories": cats, "families": [{"id": f} for f in fams], "family_available": bool(fams)}
+    sups = sorted({r.supplier_id for r in conn.execute(select(lot_cost_projection.c.supplier_id).distinct()).all() if r.supplier_id})
+    first, last = conn.execute(select(func.min(demand_observations.c.day), func.max(demand_observations.c.day))).one()
+    return {"warehouses": whs, "categories": cats, "families": [{"id": f} for f in fams], "family_available": bool(fams), "suppliers": [{"id": x} for x in sups],
+            "data_range": None if first is None else {"from": first.isoformat(), "to": last.isoformat()}}

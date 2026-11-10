@@ -78,7 +78,7 @@ test("dashboard drill-down and supplier panels", async ({ page }) => {
   await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: true, total: 80, rows: [{ variant_id: 100, sku: "SYN-100", name: "Variante sintética", figure: "40.00" }] })));
   await page.route("**/api/suppliers/s1/terms", (r) => r.fulfill(json({ supplier_id: "s1", version: 1, history: [], current: null })));
   await page.goto("/");
-  await page.getByLabel("Valor del inventario").getByRole("button", { name: "Ver productos" }).click();
+  await page.getByLabel("Valor del stock").getByRole("button", { name: "Ver productos" }).click();
   await page.getByRole("complementary", { name: "Productos que forman el valor del inventario" }).waitFor();
   await page.getByRole("button", { name: "Ver proveedor Proveedor Sintético A" }).click();
   await page.getByRole("complementary", { name: "Proveedor: Proveedor Sintético A" }).waitFor();

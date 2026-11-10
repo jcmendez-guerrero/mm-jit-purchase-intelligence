@@ -37,7 +37,7 @@ const SCREENS: Screen[] = [
       await answer(page, "**/api/dashboard/overview**", mode, overview(2), overview(0, { risks: { ok: true, data: [] } }));
     },
     empty: /No se detectaron riesgos de inventario hoy/,
-    ready: (page) => page.getByText("Valor del inventario").first(),
+    ready: (page) => page.getByText("Valor del stock").first(),
   },
   {
     name: "quality",

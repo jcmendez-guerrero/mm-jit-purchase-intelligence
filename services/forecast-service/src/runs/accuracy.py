@@ -75,11 +75,25 @@ def evaluate_previous(conn: Connection, export: dict[str, Any]) -> str | None:
     return str(prev.id)
 
 
-def latest_accuracy(conn: Connection) -> dict[str, Any]:
+def _history(conn: Connection, limit: int) -> list[dict[str, Any]]:
+    """Overall WAPE and bias of each scored run, newest first (feature 006: accuracy over time)."""
+    rows = conn.execute(select(forecast_accuracy.c.run_id, forecast_accuracy.c.metric, forecast_accuracy.c.value, forecast_runs.c.through_day, forecast_runs.c.finished_at)
+                        .join(forecast_runs, forecast_runs.c.id == forecast_accuracy.c.run_id)
+                        .where(forecast_accuracy.c.segment == "all", forecast_accuracy.c.metric.in_(("wape", "bias"))).order_by(forecast_runs.c.finished_at.desc())).all()
+    out: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        if r.run_id not in out and len(out) >= limit:
+            continue
+        out.setdefault(r.run_id, {"run_id": r.run_id, "through_day": r.through_day, "metrics": {}})["metrics"][r.metric] = str(Decimal(str(r.value)).quantize(Decimal("0.0001")))
+    return list(out.values())
+
+
+def latest_accuracy(conn: Connection, history: int = 0) -> dict[str, Any]:
     run = conn.execute(select(forecast_accuracy.c.run_id).join(forecast_runs, forecast_runs.c.id == forecast_accuracy.c.run_id).order_by(forecast_runs.c.finished_at.desc()).limit(1)).first()
     if run is None:
-        return {"run_id": None, "window_days": WINDOW, "metrics": {}}
+        return {"run_id": None, "window_days": WINDOW, "metrics": {}, "percent": {}, "history": []}
     out: dict[str, dict[str, str]] = {}
     for r in conn.execute(select(forecast_accuracy).where(forecast_accuracy.c.run_id == run.run_id).order_by(forecast_accuracy.c.segment, forecast_accuracy.c.metric)).all():
         out.setdefault(r.segment, {})[r.metric] = str(Decimal(str(r.value)).quantize(Decimal("0.0001")))
-    return {"run_id": run.run_id, "window_days": WINDOW, "metrics": out}
+    percent = {seg: {k: str((Decimal(v) * 100).quantize(Decimal("0.01"))) for k, v in m.items() if k in ("wape", "bias")} for seg, m in out.items()}      # for the dashboard: the gateway does no arithmetic
+    return {"run_id": run.run_id, "window_days": WINDOW, "metrics": out, "percent": {s: p for s, p in percent.items() if p}, "history": _history(conn, history) if history > 0 else []}

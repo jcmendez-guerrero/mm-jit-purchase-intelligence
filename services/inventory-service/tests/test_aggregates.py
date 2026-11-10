@@ -138,7 +138,7 @@ def test_the_api_serves_summary_trend_distribution_and_options_to_signed_in_user
     c = seeded_client
     for path in ("/dashboard/summary", "/dashboard/demand-trend", "/dashboard/abc-xyz", "/dashboard/filters/options"):
         assert c.get(path).status_code == 401
-    s = c.get("/dashboard/summary?category=A", headers=auth()).json()
+    s = c.get("/dashboard/summary?category=A", headers=auth("buyer")).json()      # money is for cost roles only (FR-017)
     assert s["inventory_value"] is not None and s["value_basis"] == "lot_acquisition_cost" and s["forecast_available"] is False
     assert c.get("/dashboard/summary?category=Z", headers=auth()).status_code == 422
     assert {(x["abc"], x["xyz"]) for x in c.get("/dashboard/abc-xyz", headers=auth()).json()["cells"]} == {("A", "X"), ("B", "Y")}

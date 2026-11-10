@@ -39,7 +39,7 @@ def test_all_cards_are_combined_and_filters_are_forwarded_unchanged(role_store):
                        "/risk": [], "/dashboard/filters/options": {"warehouses": [], "categories": []}})
     res = call("/api/dashboard/overview?warehouse_id=2&category=A&days=30", headers_for("v", ["viewer"]), inv)
     body = res.json()
-    assert res.status_code == 200 and set(body) == {"summary", "trend", "abc_xyz", "risks", "options", "accuracy", "spend", "suppliers"} and body["summary"] == {"ok": True, "data": {"inventory_value": "52.00"}}
+    assert res.status_code == 200 and set(body) == {"summary", "trend", "abc_xyz", "risks", "options", "accuracy", "spend", "suppliers", "indicators"} and body["summary"] == {"ok": True, "data": {"inventory_value": "52.00"}}
     calls = {c.args[1]: c.kwargs for c in inv.forward.call_args_list}
     assert calls["/dashboard/summary"]["params"] == {"warehouse_id": 2, "category": "A"} and calls["/dashboard/demand-trend"]["params"] == {"warehouse_id": 2, "category": "A", "days": 30}
     assert calls["/risk"]["params"] == {"warehouse_id": 2} and calls["/dashboard/summary"]["user_id"] == "v"
@@ -68,10 +68,10 @@ def test_spend_and_accuracy_come_from_their_own_services_and_fail_alone(role_sto
     proc.forward.side_effect = lambda m, path, **kw: [{"id": "s1", "name": "Proveedor A", "terms": None}] if path == "/suppliers" else {"total": "95.00", "by_supplier": []}
     fc = AsyncMock()
     fc.forward.side_effect = httpx.ConnectError("down")
-    body = call("/api/dashboard/overview?supplier_id=s1", headers_for("v", ["viewer"]), inv, proc, fc).json()
+    body = call("/api/dashboard/overview?supplier_id=s1", headers_for("v", ["buyer"]), inv, proc, fc).json()      # spend is money: cost roles only
     assert body["spend"] == {"ok": True, "data": {"total": "95.00", "by_supplier": []}} and body["accuracy"] == {"ok": False, "error": "downstream_unavailable"}
     spend_call = next(c for c in proc.forward.call_args_list if c.args[1] == "/summary/spend")
-    assert spend_call.kwargs["params"] == {"supplier_id": "s1"}
+    assert spend_call.kwargs["params"]["supplier_id"] == "s1" and set(spend_call.kwargs["params"]) == {"supplier_id", "date_from", "date_to"}
     assert body["suppliers"] == {"ok": True, "data": [{"id": "s1", "name": "Proveedor A"}]}
 
 
@@ -123,3 +123,54 @@ def test_the_forecast_basis_of_a_product_is_forwarded_as_the_signed_in_user():
         assert client.get("/api/dashboard/variants/9001/forecast-basis").status_code == 401
     finally:
         app.dependency_overrides.clear()
+
+
+def test_the_supplier_filter_reaches_stock_figures_and_the_spend_card_and_a_bad_one_is_refused(role_store):
+    inv = inventory(**{"/dashboard/summary": {"inventory_value": "42.00"}, "/dashboard/demand-trend": {"series": []}, "/dashboard/abc-xyz": {"cells": []},
+                       "/risk": [], "/dashboard/filters/options": {"warehouses": [], "categories": []}, "/dashboard/drilldown": {"rows": [], "total": 0}})
+    proc = AsyncMock(forward=AsyncMock(return_value=[]))
+    res = call("/api/dashboard/overview?supplier_id=sup-a", headers_for("v", ["buyer"]), inv, proc)
+    calls = {c.args[1]: c.kwargs for c in inv.forward.call_args_list}
+    assert res.status_code == 200 and calls["/dashboard/summary"]["params"] == {"supplier_id": "sup-a"} and calls["/dashboard/demand-trend"]["params"] == {"supplier_id": "sup-a", "days": 60}
+    assert any((c.kwargs.get("params") or {}).get("supplier_id") == "sup-a" for c in proc.forward.call_args_list)
+    assert call("/api/dashboard/overview?supplier_id=a%20b", headers_for("v", ["viewer"]), inventory()).status_code == 422
+    drill = call("/api/dashboard/drilldown?kind=inventory_value&supplier_id=sup-a", headers_for("v", ["viewer"]), inv)
+    assert drill.status_code == 200 and inv.forward.call_args.kwargs["params"] == {"kind": "inventory_value", "supplier_id": "sup-a"}
+    assert call("/api/dashboard/drilldown?kind=inventory_value&supplier_id=a%20b", headers_for("v", ["viewer"]), inventory()).status_code == 422
+
+
+def test_the_drilldown_page_is_forwarded_and_a_bad_page_is_refused(role_store):
+    inv = inventory(**{"/dashboard/drilldown": {"rows": [], "total": 0}})
+    res = call("/api/dashboard/drilldown?kind=inventory_value&limit=20&offset=40", headers_for("v", ["viewer"]), inv)
+    assert res.status_code == 200 and inv.forward.call_args.kwargs["params"] == {"kind": "inventory_value", "limit": 20, "offset": 40}
+    for bad in ("limit=0", "limit=500", "offset=-1"):
+        assert call(f"/api/dashboard/drilldown?kind=inventory_value&{bad}", headers_for("v", ["viewer"]), inventory()).status_code == 422
+
+
+def test_the_drilldown_sort_is_forwarded_and_a_bad_one_is_refused(role_store):
+    inv = inventory(**{"/dashboard/drilldown": {"rows": [], "total": 0}})
+    res = call("/api/dashboard/drilldown?kind=inventory_value&sort=sku&order=desc", headers_for("v", ["viewer"]), inv)
+    assert res.status_code == 200 and inv.forward.call_args.kwargs["params"] == {"kind": "inventory_value", "sort": "sku", "order": "desc"}
+    for bad in ("sort=variant_id", "order=sideways"):
+        assert call(f"/api/dashboard/drilldown?kind=inventory_value&{bad}", headers_for("v", ["viewer"]), inventory()).status_code == 422
+
+
+def test_the_spend_card_is_hidden_from_roles_without_cost_access_and_not_even_requested(role_store):
+    inv = inventory(**{"/dashboard/summary": {}, "/dashboard/demand-trend": {"series": []}, "/dashboard/abc-xyz": {"cells": []}, "/risk": [], "/dashboard/filters/options": {}})
+    proc = AsyncMock()
+    proc.forward.side_effect = lambda m, path, **kw: [] if path == "/suppliers" else {"proposal_id": "p1", "total": "300.00"}
+    viewer = call("/api/dashboard/overview", headers_for("v", ["viewer"]), inv, proc).json()
+    assert viewer["spend"] == {"ok": False, "error": "hidden_by_role"}
+    assert all(c.args[1] != "/summary/spend" for c in proc.forward.call_args_list)
+    buyer = call("/api/dashboard/overview", headers_for("b", ["buyer"]), inv, proc).json()
+    assert buyer["spend"] == {"ok": True, "data": {"proposal_id": "p1", "total": "300.00"}}
+
+
+def test_the_abc_xyz_cells_get_the_filters_and_the_range_only_when_the_user_gave_them(role_store):
+    inv = inventory(**{"/dashboard/abc-xyz": {"cells": []}})
+    call("/api/dashboard/overview?category=A&supplier_id=s1&warehouse_id=2", headers_for("v", ["buyer"]), inv)
+    p = next(c for c in inv.forward.call_args_list if c.args[1] == "/dashboard/abc-xyz").kwargs["params"]
+    assert p == {"category": "A", "supplier_id": "s1", "warehouse_id": 2}                         # no default window: it would always be named unsupported
+    call("/api/dashboard/overview?date_from=2026-10-01&date_to=2026-10-10", headers_for("v", ["buyer"]), inv)
+    p = [c for c in inv.forward.call_args_list if c.args[1] == "/dashboard/abc-xyz"][-1].kwargs["params"]
+    assert p == {"date_from": "2026-10-01", "date_to": "2026-10-10"}

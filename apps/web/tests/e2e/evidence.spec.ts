@@ -32,7 +32,7 @@ test("dashboard", async ({ page }) => {
   await signIn(page);
   await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview())));
   await page.goto("/");
-  await page.getByLabel("Valor del inventario").waitFor();
+  await page.getByLabel("Valor del stock").waitFor();
   await shot(page, "panel");
 });
 

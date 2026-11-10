@@ -619,11 +619,12 @@ export interface DashCard<T> {
 
 export interface DashSummary {
   day: string;
-  inventory_value: string | null;
+  inventory_value?: string | null;
+  hidden_by_role?: string[];
   valued_with_estimate: number;
   unvalued_lots: number;
   value_basis: string;
-  expiring_value: string | null;
+  expiring_value?: string | null;
   stockout_risk: number;
   expiry_risk: number;
   coverage_days_avg: string | null;
@@ -641,10 +642,44 @@ export interface DashTrend {
   estimated_basis?: { variants: number; seed_assisted: number; reason: "no_forecast" | "company_wide_only" | null; upper_level: string };
 }
 
+export type IndicatorKey = "stock_value" | "coverage_days" | "demand" | "forecast" | "stockout_risk" | "expiry_exposure" | "capital_tied_up" | "purchasing_budget" | "wape" | "bias";
+export type IndicatorState = "ok" | "no_data" | "stale" | "error" | "hidden_by_role";
+
+export interface IndicatorPart {
+  key: string;
+  label_key: string;
+  value: string | null;
+  period?: { from: string; to: string } | undefined;
+}
+
+export interface IndicatorFreshness {
+  source: "inventory_snapshot" | "movements" | "forecast" | "accuracy" | "budget_spend";
+  refreshed_at: string | null;
+  refreshed_at_original?: string | null | undefined;
+  origin: "erp_sync" | "local_load" | "forecast" | "proposal";
+  state: "ok" | "no_data" | "stale" | "error";
+  stale_after_hours?: number | undefined;
+}
+
+/** One dashboard indicator in the v2 contract shape (packages/contracts/dto/dashboard_indicators.v2.schema.json). */
+export interface Indicator {
+  key: IndicatorKey;
+  value: string | null;
+  unit: "EUR" | "days" | "units" | "count" | "percent";
+  state: IndicatorState;
+  basis: string;
+  definition_key: string;
+  freshness: IndicatorFreshness;
+  incomplete_count?: number | undefined;
+  filters_unsupported?: Array<"date" | "warehouse" | "supplier" | "category" | "family"> | undefined;
+  parts?: IndicatorPart[] | undefined;
+}
+
 export interface DashOverview {
+  indicators?: Indicator[];
   summary: DashCard<DashSummary>;
   trend: DashCard<DashTrend>;
-  abc_xyz: DashCard<{ cells: Array<{ abc: string; xyz: string; variant_count: number; value: string }> }>;
+  abc_xyz: DashCard<{ cells: Array<{ abc: string; xyz: string; variant_count: number; value?: string }> }>;
   risks: DashCard<RiskItem[]>;
   options: DashCard<{ warehouses: Array<{ id: number; name: string }>; categories: Array<{ id: string; kind: string }>; families?: Array<{ id: string }>; family_available: boolean }>;
   accuracy: DashCard<{ run_id: string | null; window_days: number; metrics: Record<string, Record<string, string>> }>;
@@ -672,12 +707,19 @@ export interface DrillRequest {
   warehouse_id?: number | undefined;
   category?: string | undefined;
   family?: string | undefined;
+  supplier_id?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+  sort?: "sku" | "name" | "figure" | undefined;
+  order?: "asc" | "desc" | undefined;
 }
 
 export interface DrillResponse {
   kind: DrillKind;
   truncated: boolean;
   total: number;
+  offset?: number;
+  sum?: string | null;
   rows: Array<{ variant_id: number; sku: string | null; name: string | null; figure: string | null }>;
 }
 
@@ -687,6 +729,8 @@ export interface DashFilters {
   family?: string | undefined;
   days?: number | undefined;
   supplier_id?: string | undefined;
+  date_from?: string | undefined;
+  date_to?: string | undefined;
 }
 
 export interface VariantDetail {
@@ -929,6 +973,11 @@ export class ApiClient {
     if (r.warehouse_id !== undefined) q.set("warehouse_id", String(r.warehouse_id));
     if (r.category) q.set("category", r.category);
     if (r.family) q.set("family", r.family);
+    if (r.supplier_id) q.set("supplier_id", r.supplier_id);
+    if (r.limit !== undefined) q.set("limit", String(r.limit));
+    if (r.offset) q.set("offset", String(r.offset));
+    if (r.sort) q.set("sort", r.sort);
+    if (r.sort && r.order) q.set("order", r.order);
     return this.request<DrillResponse>(`/dashboard/drilldown?${q.toString()}`);
   }
 
@@ -939,6 +988,8 @@ export class ApiClient {
     if (f.family) q.set("family", f.family);
     if (f.days) q.set("days", String(f.days));
     if (f.supplier_id) q.set("supplier_id", f.supplier_id);
+    if (f.date_from) q.set("date_from", f.date_from);
+    if (f.date_to) q.set("date_to", f.date_to);
     const qs = q.toString();
     return this.request<DashOverview>(`/dashboard/overview${qs ? `?${qs}` : ""}`);
   }

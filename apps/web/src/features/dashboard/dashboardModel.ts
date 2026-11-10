@@ -1,7 +1,6 @@
-import type { DashSummary, DashTrend } from "../../api/client";
+import type { DashTrend } from "../../api/client";
 
-export const STALE_AFTER_DAYS = 2;
-export const PERIODS = [30, 60, 90, 180] as const;
+export const DEFAULT_DAYS = 60;
 
 /** Whole days between the figures' day and today (UTC date strings); never negative. */
 export function ageInDays(day: string, today: Date = new Date()): number {
@@ -9,8 +8,6 @@ export function ageInDays(day: string, today: Date = new Date()): number {
   const t = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
   return Math.max(0, Math.round((t - d.getTime()) / 86_400_000));
 }
-
-export const isStale = (s: Pick<DashSummary, "day">, today?: Date): boolean => ageInDays(s.day, today) > STALE_AFTER_DAYS;
 
 export interface TrendStats {
   total: number;
@@ -29,8 +26,6 @@ export function trendStats(series: DashTrend["series"]): TrendStats | null {
   }
   return { total, max: best.actual, maxDay: best.day, days: series.length };
 }
-
-export const coverageDays = (s: DashSummary): number | null => (s.coverage_days_avg === null ? null : Math.round(parseFloat(s.coverage_days_avg) * 10) / 10);
 
 /** Column heading for the figure shown next to each product in a drill-down. */
 export const figureColumnKey = (kind: string): string =>
@@ -88,4 +83,11 @@ export function stockoutSeverityCounts(risks: Array<{ risk_type: string; explana
 export function severitySplitIsReliable(counts: Record<StockoutSeverity, number>, summaryStockoutRisk: number | undefined): boolean {
   const sum = counts.out_of_stock + counts.imminent + counts.below_reorder_point;
   return summaryStockoutRisk !== undefined && sum === summaryStockoutRisk;
+}
+
+/** The range the dashboard shows: the chosen dates, with a missing end filled by today (UTC) and a missing start by the default span before the end. */
+export function periodFor(from?: string, to?: string, today: Date = new Date()): { from: string; to: string } {
+  const end = to ?? new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())).toISOString().slice(0, 10);
+  const start = from ?? new Date(new Date(`${end}T00:00:00Z`).getTime() - (DEFAULT_DAYS - 1) * 86_400_000).toISOString().slice(0, 10);
+  return { from: start, to: end };
 }

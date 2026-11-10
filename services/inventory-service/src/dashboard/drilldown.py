@@ -23,6 +23,7 @@ from dashboard.kpis import (
 
 KINDS = ("inventory_value", "coverage", "stockout_risk", "expiry_risk", "abc_xyz", "trend_day")
 DEFAULT_LIMIT = 50
+SORTS = ("sku", "name", "figure")      # the only columns a caller may sort by; ties always fall back to SKU ascending
 MAX_LIMIT = 200
 
 
@@ -37,8 +38,9 @@ def _fmt(v: Decimal, places: str = "0.01") -> str:
 
 
 def drilldown(conn: Connection, kind: str, today: date, f: Filters, forecast: ForecastMeans | None = None, abc: str | None = None, xyz: str | None = None,
-              day: str | None = None, limit: int = DEFAULT_LIMIT) -> dict[str, Any]:
-    if kind not in KINDS or not 0 < limit <= MAX_LIMIT:
+              day: str | None = None, limit: int = DEFAULT_LIMIT, offset: int = 0, sort: str | None = None, order: str | None = None) -> dict[str, Any]:
+    if (kind not in KINDS or not 0 < limit <= MAX_LIMIT or offset < 0 or sort not in (None, *SORTS) or order not in (None, "asc", "desc")
+            or (order is not None and sort is None)):
         raise DrillError()
     scope = variant_scope(conn, f)
     figures: list[tuple[int, Decimal | None, str]]            # (variant, sort key, shown figure); sorted by key, descending unless noted
@@ -81,9 +83,22 @@ def drilldown(conn: Connection, kind: str, today: date, f: Filters, forecast: Fo
             if r.variant_id in scope:
                 units[r.variant_id] = units.get(r.variant_id, 0) + r.demand_qty
         figures = [(v, Decimal(u), str(u)) for v, u in units.items() if u > 0]
-    figures.sort(key=lambda t: (-(t[1] or 0) if descending else (t[1] or 0), t[0]))
-    shown = figures[:limit]
-    info = {r.external_id: r for r in conn.execute(select(variants.c.external_id, variants.c.sku, variants.c.name).where(variants.c.external_id.in_([v for v, _k, _s in shown]))).all()}
-    return {"kind": kind, "truncated": len(figures) > limit, "total": len(figures),
+    info = {r.external_id: r for r in conn.execute(select(variants.c.external_id, variants.c.sku, variants.c.name)).all()}
+    sku_of = lambda v: getattr(info.get(v), "sku", None) or ""                      # noqa: E731 - ties are broken by SKU, then id, so pages never shuffle
+    if sort is None:
+        figures.sort(key=lambda t: (-(t[1] or 0) if descending else (t[1] or 0), sku_of(t[0]), t[0]))
+    elif sort == "figure":
+        flip = order == "desc"
+        figures.sort(key=lambda t: (-(t[1] or 0) if flip else (t[1] or 0), sku_of(t[0]), t[0]))      # a descending figure keeps ties in SKU ascending order
+    else:
+        text = sku_of if sort == "sku" else (lambda v: (getattr(info.get(v), "name", None) or "").lower())
+        figures.sort(key=lambda t: (text(t[0]), sku_of(t[0]), t[0]), reverse=order == "desc")
+    shown = figures[offset:offset + limit]
+    total_sum = None                                                       # the rows add up to the figure: the sum covers every row, not only this page
+    if kind in ("inventory_value", "abc_xyz"):
+        total_sum = _fmt(sum((k or Decimal(0) for _v, k, _s in figures), Decimal(0)))
+    elif kind == "trend_day":
+        total_sum = str(int(sum((k or Decimal(0) for _v, k, _s in figures), Decimal(0))))
+    return {"kind": kind, "truncated": offset + limit < len(figures), "total": len(figures), "offset": offset, "sum": total_sum,
             "rows": [{"variant_id": v, "sku": getattr(info.get(v), "sku", None), "name": getattr(info.get(v), "name", None), "figure": s or None} for v, _k, s in shown]}
 

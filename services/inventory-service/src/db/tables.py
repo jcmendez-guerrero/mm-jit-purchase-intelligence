@@ -233,6 +233,11 @@ agg_daily_kpis = Table(
     Column("stockout_risk_count", Integer, nullable=False, default=0),
     Column("expiring_value", Numeric(18, 4), nullable=False, default=0),
     Column("refreshed_at", DateTime(timezone=True), nullable=False),
+    # MMI 006 (migration 0007): executive dashboard figures stored with the daily history
+    Column("capital_tied_up", Numeric(18, 4)),
+    Column("demand_units", Integer),
+    Column("forecast_units", Numeric(18, 2)),
+    Column("origin", String(20), nullable=False, default="erp_sync", server_default="erp_sync"),
 )
 agg_demand_trend = Table(
     "agg_demand_trend", metadata,

@@ -8,7 +8,7 @@ from test_aggregates import NOW, seed
 
 def test_options_reflect_the_data_and_nothing_else(client, engine):
     r = client.get("/dashboard/filters/options", headers=auth()).json()
-    assert r == {"warehouses": [], "categories": [], "families": [], "family_available": False}                # an empty database offers nothing
+    assert r == {"warehouses": [], "categories": [], "families": [], "family_available": False, "suppliers": [], "data_range": None}                # an empty database offers nothing
     seed(engine)
     r = client.get("/dashboard/filters/options", headers=auth()).json()
     assert [w["name"] for w in r["warehouses"]] == ["Almacén sintético A", "Almacén sintético B"]

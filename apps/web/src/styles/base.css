@@ -54,7 +54,8 @@ h3 {
   :root .mmi-chip,
   :root .mmi-chip button,
   :root .mmi-table__sort,
-  :root .mmi-link-button {
+  :root .mmi-link-button,
+  :root .mmi-figure summary {
     min-height: var(--mmi-target-touch);
   }
 
