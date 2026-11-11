@@ -199,7 +199,7 @@ class InputsProvider:
             policy_versions.update(pol.revisions)
             bought = last_bought.get(vid)
             monthly = mode == "always_stocked" and (bought is None or (today - bought).days >= MONTHLY_CHECK_DAYS)
-            info = tuple(sorted(pol.sources.items())) + ((("stocking", mode),) if mode != "standard" else ())
+            info = tuple(sorted((f, {"source": s, "revision": pol.revisions[s]}) for f, s in pol.sources.items())) + ((("stocking", mode),) if mode != "standard" else ())      # FR-004: scope, key and revision
             level = pol.values.service_level if pol.values.service_level is not None else Decimal(str(v["service_level"]))
             out.append(VariantInput(vid, int(pid), int(v.get("on_hand", 0)), forecast, level, tuple(offers),
                                     tuple(inbound.get(vid, ())), expiring, bool(v.get("clinical_critical")), soon,

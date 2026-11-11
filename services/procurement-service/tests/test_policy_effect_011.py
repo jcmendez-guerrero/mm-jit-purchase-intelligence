@@ -42,6 +42,21 @@ def test_product_scope_wins_over_global_for_each_rule_independently(conn):
     assert v.service_level == D("0.90") and v.min_units == 20                         # level from global, minimum from the product
 
 
+def test_each_line_explanation_names_the_scope_and_the_revision_that_supplied_every_rule(conn):
+    """T060, FR-004: not only where a value came from, but which version of it."""
+    sa = add_supplier(conn, 1, "A")
+    cost(conn, sa, 10, "1.00")
+    save_policy(conn, "global", "*", PolicyValues(service_level=D("0.90"), min_units=1), "b", today=TODAY)
+    save_policy(conn, "global", "*", PolicyValues(service_level=D("0.91"), min_units=1), "b", expected_revision=1, today=TODAY)          # global is at revision 2
+    save_policy(conn, "segment", "B", PolicyValues(service_level=D("0.97")), "b", today=TODAY)                                          # the product's class
+    save_policy(conn, "product", "1", PolicyValues(max_units=500), "b", today=TODAY)
+    applied = generate(provider().build(conn, TODAY), 5).lines[0].explanation["policy_applied"]
+    assert applied["service_level"] == {"source": "segment:B", "revision": 1}
+    assert applied["min_units"] == {"source": "global:*", "revision": 2}
+    assert applied["max_units"] == {"source": "product:1", "revision": 1}
+    assert "safety_stock_units" not in applied                                                    # nothing set: the computed default applies, nothing to cite
+
+
 def test_a_budget_cap_binds_the_next_proposal(conn):
     sa = add_supplier(conn, 1, "A")
     cost(conn, sa, 10, "1.00")

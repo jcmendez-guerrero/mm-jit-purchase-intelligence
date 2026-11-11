@@ -267,6 +267,8 @@
   "proposals.why.position": "Posición de inventario: {{total}} (en almacén {{on_hand}}, caducan {{expiring}}, en camino {{inbound}}). Necesidad: {{need}}.",
   "proposals.why.fallback": "Sin previsión fiable: se aplica la política de reposición mínima.",
   "proposals.why.critical": "Producto clínicamente crítico.",
+  "proposals.why.policy_title": "Reglas aplicadas (de dónde sale cada valor y en qué versión):",
+  "proposals.why.policy_row": "{{field}}: {{where}} (versión {{revision}})",
   "proposals.why.supplier": "Proveedor elegido: {{reason}}",
   "proposals.why.supplier_reason.only_option": "es la única opción disponible",
   "proposals.why.supplier_reason.buyer_override": "lo fijó el comprador",

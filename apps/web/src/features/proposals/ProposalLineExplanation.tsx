@@ -10,6 +10,13 @@ export const ProposalLineExplanation: React.FC<{ line: ProposalLine }> = ({ line
   const terms = e.terms;
   const known = (prefix: string, key: string) => (t(`${prefix}.${key}`, { defaultValue: "" }) as string) || key;
   const none = t("proposals.why.terms_none");
+  /** "Nivel de servicio: segmento clase A (versión 2)": the scope and the version that supplied each rule. A product key is the ERP id, so it is never shown. */
+  const policyRows = Object.entries(e.policy_applied ?? {}).flatMap(([field, applied]) => {
+    if (typeof applied === "string" || !t(`policies.effective.rule.${field}`, { defaultValue: "" })) return [];      // the stocking mode and older records carry no revision
+    const [scope = "", key = ""] = applied.source.split(":");
+    const where = scope === "segment" ? `${t("policies.effective.source.segment")} ${t(`demand.segment.${key}`, { defaultValue: key })}` : t(`policies.effective.source.${scope}`, { defaultValue: scope });
+    return [{ field, text: t("proposals.why.policy_row", { field: t(`policies.effective.rule.${field}`), where, revision: applied.revision }) }];
+  });
   return (
     <div className="mmi-explanation" aria-label={t("proposals.why.title")}>
       <h4>{t("proposals.why.title")}</h4>
@@ -24,6 +31,16 @@ export const ProposalLineExplanation: React.FC<{ line: ProposalLine }> = ({ line
       {!e.forecast_eligible && <p>{t("proposals.why.fallback")}</p>}
       {e.forecast_basis === "imported_estimates" && <p role="note">{t("proposals.why.estimate")}</p>}
       {e.clinical_critical && <p>{t("proposals.why.critical")}</p>}
+      {policyRows.length > 0 && (
+        <>
+          <p>{t("proposals.why.policy_title")}</p>
+          <ul aria-label={t("proposals.why.policy_title")}>
+            {policyRows.map((r) => (
+              <li key={r.field}>{r.text}</li>
+            ))}
+          </ul>
+        </>
+      )}
       <p>{t("proposals.why.supplier", { reason: known("proposals.why.supplier_reason", e.supplier.reason) })}</p>
       {terms && (
         <>

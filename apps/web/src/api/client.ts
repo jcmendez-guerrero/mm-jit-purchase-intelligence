@@ -821,6 +821,8 @@ export interface ProposalExplanation {
   };
   cost: { unit: string; source: string; status: string };
   constraints: string[];
+  /** Which saved policy supplied each rule and in which version (feature 011): older proposals hold only the source, or nothing. */
+  policy_applied?: Record<string, { source: string; revision: number } | string>;
   terms?: {
     supplier_version: number | null;
     override_version: number | null;

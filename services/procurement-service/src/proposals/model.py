@@ -78,7 +78,7 @@ class VariantInput:
     max_units: int | None = None                  # policy cap on the order-up-to level
     floor_units: int = 0                          # always-stocked floor
     monthly_check: bool = False                   # always-stocked and nothing bought for 30 days: at least one unit
-    policy_info: tuple[tuple[str, Any], ...] = () # which policy fields and revisions applied (for the explanation)
+    policy_info: tuple[tuple[str, Any], ...] = () # which policy fields applied, each {"source": "scope:key", "revision": n} (for the explanation), plus the stocking mode
 
 
 @dataclass(frozen=True)
