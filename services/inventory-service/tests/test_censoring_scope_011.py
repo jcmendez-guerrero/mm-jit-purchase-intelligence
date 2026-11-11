@@ -65,6 +65,30 @@ def test_migration_0009_adds_scope_and_key_and_old_rows_stay_global():
     assert (mig.revision, mig.down_revision) == ("0009", "0008")
 
 
+def test_the_series_the_forecast_reads_changes_with_the_censoring_rule_and_with_an_exclusion(client, engine):
+    """T036, T061: what a person saves in the console reaches the export the forecast consumes, and the export says which versions it reflects."""
+    catalogue(engine)
+
+    def exported():
+        body = client.get("/export/series", headers=auth()).json()
+        series = next(s for s in body["series"] if s["variant_id"] == 1)
+        return sum(1 for x in series["censored"] if x), body["rule_versions"]
+
+    base, v0 = exported()
+    assert base > 0                                                                       # the default rule treats the stock-out as hidden demand
+    assert put(client, 5).status_code == 200
+    relaxed, v1 = exported()
+    assert relaxed < base and v1 != v0                                                    # a longer minimum run: the short stock-out counts as zero demand again
+    added = client.post("/demand-rules/exclusions", json={"sku": "SYN-1", "from_day": "2026-10-02", "to_day": "2026-10-04", "reason_code": "promotion"}, headers=auth("buyer"))
+    assert added.status_code == 201
+    excluded, v2 = exported()
+    assert excluded > relaxed and v2 != v1                                                # the excluded days are not observable demand
+    off = client.put(f"/demand-rules/exclusions/{added.json()['id']}", json={"active": False}, headers={**auth("buyer"), "If-Match": '"1"'})
+    assert off.status_code == 200
+    back, v3 = exported()
+    assert back == relaxed and v3 != v2                                                   # reversing it restores the days, with a version of its own
+
+
 def test_the_default_hides_a_short_stock_out_for_everyone(client, engine):
     catalogue(engine)
     assert censored(engine, 1) and censored(engine, 2)

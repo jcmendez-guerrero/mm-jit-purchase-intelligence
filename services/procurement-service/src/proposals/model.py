@@ -79,6 +79,7 @@ class VariantInput:
     floor_units: int = 0                          # always-stocked floor
     monthly_check: bool = False                   # always-stocked and nothing bought for 30 days: at least one unit
     policy_info: tuple[tuple[str, Any], ...] = () # which policy fields applied, each {"source": "scope:key", "revision": n} (for the explanation), plus the stocking mode
+    review_days: int | None = None                # the replenishment cadence policy (days between purchase reviews); None keeps the weekly default (feature 011)
 
 
 @dataclass(frozen=True)

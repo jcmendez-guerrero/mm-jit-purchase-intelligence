@@ -57,6 +57,67 @@ def test_each_line_explanation_names_the_scope_and_the_revision_that_supplied_ev
     assert "safety_stock_units" not in applied                                                    # nothing set: the computed default applies, nothing to cite
 
 
+def build_draft(conn, *variants):
+    """A proposal for the given stock variants (all with the same cost, forecast and zero stock)."""
+    sa = add_supplier(conn, 1, "A")
+    for v in variants:
+        cost(conn, sa, v["product_id"], "1.00")
+    provider = InputsProvider(Src(stock(*variants)), Src(fc(**{f"v{v['variant_id']}": ELIGIBLE for v in variants})))
+    return provider
+
+
+def qty_of(draft, variant_id=1):
+    return {ln.variant_id: ln.qty for ln in draft.lines}.get(variant_id, 0)
+
+
+def test_a_saved_safety_stock_changes_the_next_quantity_and_is_the_safety_stock_explained(conn):
+    """T061: one saved rule per test, each proven to move the next calculation, and each cited with its revision."""
+    provider = build_draft(conn, sv(1, 10, on_hand=0))
+    before = generate(provider.build(conn, TODAY), 5)
+    save_policy(conn, "global", "*", PolicyValues(safety_stock_units=60), "b", today=TODAY)
+    after = generate(provider.build(conn, TODAY), 5)
+    assert qty_of(after) > qty_of(before)
+    assert after.lines[0].safety_stock == 60 and after.lines[0].explanation["policy_applied"]["safety_stock_units"] == {"source": "global:*", "revision": 1}
+
+
+def test_a_saved_maximum_caps_the_next_quantity(conn):
+    provider = build_draft(conn, sv(1, 10, on_hand=0))
+    before = qty_of(generate(provider.build(conn, TODAY), 5))
+    save_policy(conn, "global", "*", PolicyValues(max_units=5), "b", today=TODAY)
+    after = generate(provider.build(conn, TODAY), 5)
+    assert 0 < qty_of(after) <= 5 < before
+    assert after.lines[0].explanation["policy_applied"]["max_units"] == {"source": "global:*", "revision": 1}
+
+
+def test_a_saved_replenishment_cadence_changes_the_protection_horizon_and_the_quantity(conn):
+    """T061: the cadence is the review period; it was stored and shown but nothing read it."""
+    provider = build_draft(conn, sv(1, 10, on_hand=0))
+    before = generate(provider.build(conn, TODAY), 5)
+    save_policy(conn, "global", "*", PolicyValues(replenishment_cadence_days=21), "b", today=TODAY)
+    after = generate(provider.build(conn, TODAY), 5)
+    assert after.lines[0].explanation["horizon_days"] == before.lines[0].explanation["horizon_days"] + 14          # 21-day review period instead of the default 7
+    assert qty_of(after) > qty_of(before)
+    assert after.lines[0].explanation["policy_applied"]["replenishment_cadence_days"] == {"source": "global:*", "revision": 1}
+
+
+def test_a_shorter_cadence_shortens_the_horizon_and_a_product_cadence_beats_the_global_one(conn):
+    provider = build_draft(conn, sv(1, 10, on_hand=0), sv(2, 11, on_hand=0))
+    save_policy(conn, "global", "*", PolicyValues(replenishment_cadence_days=3), "b", today=TODAY)
+    save_policy(conn, "product", "2", PolicyValues(replenishment_cadence_days=28), "b", today=TODAY)
+    horizons = {ln.variant_id: ln.explanation["horizon_days"] for ln in generate(provider.build(conn, TODAY), 5).lines}
+    assert horizons[2] - horizons[1] == 25                                                           # 28 days for the product, 3 for everything else
+
+
+def test_clinical_criticality_selects_the_critical_segment_policy_for_that_product_only(conn):
+    """T061 (US3/AC2): marking a product critical changes which policy applies to it."""
+    provider = build_draft(conn, sv(1, 10, on_hand=0, critical=True), sv(2, 11, on_hand=0))
+    plain = generate(provider.build(conn, TODAY), 5)
+    save_policy(conn, "segment", "critical", PolicyValues(min_units=80, service_level=D("0.99")), "b", today=TODAY)
+    after = generate(provider.build(conn, TODAY), 5)
+    assert qty_of(after, 1) >= 80 > qty_of(plain, 1) and qty_of(after, 2) == qty_of(plain, 2)       # only the critical product follows the critical policy
+    assert after.lines[0].explanation["policy_applied"]["min_units"] == {"source": "segment:critical", "revision": 1}
+
+
 def test_a_budget_cap_binds_the_next_proposal(conn):
     sa = add_supplier(conn, 1, "A")
     cost(conn, sa, 10, "1.00")

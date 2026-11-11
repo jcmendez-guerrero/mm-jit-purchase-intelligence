@@ -204,7 +204,8 @@ class InputsProvider:
             out.append(VariantInput(vid, int(pid), int(v.get("on_hand", 0)), forecast, level, tuple(offers),
                                     tuple(inbound.get(vid, ())), expiring, bool(v.get("clinical_critical")), soon,
                                     overrides.get((vid, "safety_stock")), overrides.get((vid, "min"), pol.values.min_units),
-                                    overrides.get((vid, "max"), pol.values.max_units), floor if mode == "always_stocked" else 0, monthly, info))
+                                    overrides.get((vid, "max"), pol.values.max_units), floor if mode == "always_stocked" else 0, monthly, info,
+                                    review_days=pol.values.replenishment_cadence_days))
             if pol.values.safety_stock_units is not None and (vid, "safety_stock") not in overrides:
                 out[-1] = replace(out[-1], safety_override=pol.values.safety_stock_units)
         terms: dict[str, SupplierTermsIn] = {}

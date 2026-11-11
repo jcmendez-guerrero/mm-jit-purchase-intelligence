@@ -72,7 +72,7 @@ def _reorder_at(fc: Forecast, horizon: float, lead: float, level: Decimal) -> fl
 
 
 def compute_target(v: VariantInput, lead_time_days: int) -> Target:
-    horizon = REVIEW_DAYS + lead_time_days
+    horizon = (v.review_days or REVIEW_DAYS) + lead_time_days       # the cadence policy is the review period; without one, the weekly default
     fc = v.forecast
     up_to = math.ceil(_quantile_at(fc, horizon, v.service_level) - 1e-9)
     reorder = min(math.ceil(_reorder_at(fc, horizon, lead_time_days, v.service_level) - 1e-9), up_to)
