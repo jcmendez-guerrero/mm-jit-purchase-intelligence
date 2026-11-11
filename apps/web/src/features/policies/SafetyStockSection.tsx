@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { api, ApiError, EffectiveValue, errorMessage, OverrideRequest, SegmentHistoryRow, StockingSetting } from "../../api/client";
 import { FormField } from "../../ui/FormField";
 import { CategoryHistory } from "./CategoryHistory";
-import { canDecideOverrides, canEditPolicies, parseId } from "./policiesModel";
+import { canDecideOverrides, canEditPolicies } from "./policiesModel";
 import { useActionNotice } from "../../ui/NoticeProvider";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { Button } from "../../ui/Button";
@@ -17,7 +17,7 @@ interface Props {
 export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
   const { t } = useTranslation();
   const [variantText, setVariantText] = useState("");
-  const [variant, setVariant] = useState<number | null>(null);
+  const [variant, setVariant] = useState<string | null>(null);              // the SKU of the product being looked at
   const [recommended, setRecommended] = useState<number | null | undefined>(undefined);
   const [effective, setEffective] = useState<Record<string, EffectiveValue> | null>(null);
   const [stocking, setStocking] = useState<StockingSetting | null>(null);
@@ -49,11 +49,11 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
   const lookup = async () => {
     setError(null);
     setNotice(null);
-    const id = parseId(variantText);
-    if (id === null) return setError(t("policies.variant_invalid"));
+    const id = variantText.trim();
+    if (id === "" || id.length > 60) return setError(t("policies.variant_invalid"));
     try {
-      const [rec, st, hist] = await Promise.all([api.getRecommendation(id), api.getStocking(id), api.getSegmentHistory(id)]);
-      setVariant(id);
+      const [rec, st, hist] = await Promise.all([api.getRecommendation(id), api.getStocking(id), api.getSegmentHistoryBySku(id)]);
+      setVariant(st.sku ?? id);
       setRecommended(rec.safety_stock);
       setEffective(rec.effective ?? null);
       setStocking(st);
@@ -78,7 +78,7 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
     }
     fe.clear();
     try {
-      await api.createOverride({ variant_id: variant, field, requested_value: requested, reason });
+      await api.createOverride({ sku: variant, field, requested_value: requested, reason });
       setNotice(t("safety.requested_ok"));
       setValue("");
       setReason("");
@@ -136,7 +136,7 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
         <ul>
           {queue.map((q) => (
             <li key={q.id}>
-              {t("safety.queue_row", { variant: q.variant_id, field: t(`safety.field.${q.field}`), recommended: q.recommended_value, requested: q.requested_value, by: q.requested_by })} — {q.reason}
+              {t("safety.queue_row", { sku: q.sku ?? "—", field: t(`safety.field.${q.field}`), recommended: q.recommended_value, requested: q.requested_value, by: q.requested_by })} — {q.reason}
               {q.recommendation_changed && (
                 <span role="note">
                   {" "}
@@ -160,7 +160,7 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
       )}
 
       <div className="mmi-cluster">
-        <FormField id="safety-variant" label={t("policies.variant")} value={variantText} onChange={(v) => { setVariantText(v); fe.clear("safety-variant"); }} error={fe.errors["safety-variant"]} inputMode="numeric" />
+        <FormField id="safety-variant" label={t("policies.variant")} value={variantText} onChange={(v) => { setVariantText(v); fe.clear("safety-variant"); }} error={fe.errors["safety-variant"]} />
         <Button variant="secondary" onClick={() => void lookup()}>
           {t("policies.lookup")}
         </Button>

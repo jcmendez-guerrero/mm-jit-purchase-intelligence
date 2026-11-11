@@ -27,7 +27,7 @@ const detail: PolicyDetail = {
   ],
 };
 
-const pending: OverrideRequest = { id: "r1", variant_id: 5, field: "safety_stock", recommended_value: 2, requested_value: 6, reason: "proveedor poco fiable", status: "pending", requested_by: "buyer-1", decided_by: null, recommendation_changed: false };
+const pending: OverrideRequest = { id: "r1", sku: "SYN-0005", field: "safety_stock", recommended_value: 2, requested_value: 6, reason: "proveedor poco fiable", status: "pending", requested_by: "buyer-1", decided_by: null, recommendation_changed: false };
 
 beforeEach(() => {
   vi.spyOn(api, "getPolicyConsole").mockResolvedValue(consoleData());
@@ -202,16 +202,16 @@ describe("feature 011: revisions, sources and audit", () => {
 
 describe("safety stock section", () => {
   beforeEach(() => {
-    vi.spyOn(api, "getRecommendation").mockResolvedValue({ variant_id: 5, safety_stock: 2 });
-    vi.spyOn(api, "getStocking").mockResolvedValue({ variant_id: 5, stocking_mode: "standard", min_floor_units: 0, revision: 0 });
-    vi.spyOn(api, "getSegmentHistory").mockResolvedValue({ variant_id: 5, history: [{ changed_at: "2026-11-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] });
+    vi.spyOn(api, "getRecommendation").mockResolvedValue({ sku: "SYN-0005", safety_stock: 2 });
+    vi.spyOn(api, "getStocking").mockResolvedValue({ sku: "SYN-0005", stocking_mode: "standard", min_floor_units: 0, revision: 0 });
+    vi.spyOn(api, "getSegmentHistoryBySku").mockResolvedValue({ sku: "SYN-0005", history: [{ changed_at: "2026-11-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] });
   });
 
   const lookup = async () => {
     render(<PoliciesScreen userRoles={["buyer"]} />);
     await screen.findByText(/Presupuesto semanal vigente/);
     tab(/Stock de seguridad/);
-    fireEvent.change(await screen.findByLabelText("Variante"), { target: { value: "5" } });
+    fireEvent.change(await screen.findByLabelText("SKU"), { target: { value: "SYN-0005" } });
     fireEvent.click(screen.getByRole("button", { name: "Consultar" }));
   };
 
@@ -223,7 +223,7 @@ describe("safety stock section", () => {
     fireEvent.change(screen.getByLabelText("Valor solicitado"), { target: { value: "6" } });
     fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "proveedor poco fiable" } });
     fireEvent.click(screen.getByRole("button", { name: "Solicitar cambio" }));
-    await waitFor(() => expect(create).toHaveBeenCalledWith({ variant_id: 5, field: "safety_stock", requested_value: 6, reason: "proveedor poco fiable" }));
+    await waitFor(() => expect(create).toHaveBeenCalledWith({ sku: "SYN-0005", field: "safety_stock", requested_value: 6, reason: "proveedor poco fiable" }));
     expect((await screen.findByRole("status")).textContent).toContain("no se aplica hasta que otra persona");
   });
 
@@ -233,7 +233,7 @@ describe("safety stock section", () => {
     fireEvent.change(await screen.findByLabelText("Modo de stock"), { target: { value: "always_stocked" } });
     fireEvent.change(screen.getByLabelText("Unidades mínimas siempre disponibles"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Guardar modo de stock" }));
-    await waitFor(() => expect(put).toHaveBeenCalledWith(5, { stocking_mode: "always_stocked", min_floor_units: 1 }, 0));
+    await waitFor(() => expect(put).toHaveBeenCalledWith("SYN-0005", { stocking_mode: "always_stocked", min_floor_units: 1 }, 0));
   });
 
   it("an approver sees the queue with approve and reject; a buyer sees the queue without them", async () => {

@@ -109,6 +109,30 @@ def test_the_audit_view_includes_forecast_parameter_changes_and_names_a_source_t
     assert res2.status_code == 200 and res2.json()["unavailable"] == ["forecast"]
 
 
+def test_stocking_overrides_and_recommendation_are_addressed_by_sku_and_show_no_variant_id(role_store):
+    """T054."""
+    proc = fwd({"variant_id": 5, "sku": "SYN-0005", "stocking_mode": "standard", "min_floor_units": 0, "revision": 0})
+    res = call("GET", "/api/stocking/SYN-0005", headers_for("v", ["viewer"]), proc)
+    assert res.json() == {"sku": "SYN-0005", "stocking_mode": "standard", "min_floor_units": 0, "revision": 0}
+    assert proc.forward.call_args.args[:2] == ("GET", "/stocking/SYN-0005")
+    proc2 = fwd([{"id": "r1", "variant_id": 5, "sku": "SYN-0005", "field": "min", "status": "pending"}])
+    assert call("GET", "/api/policy-overrides", headers_for("v", ["viewer"]), proc2).json() == [{"id": "r1", "sku": "SYN-0005", "field": "min", "status": "pending"}]
+    proc3 = fwd({"variant_id": 5, "sku": "SYN-0005", "safety_stock": 4})
+    assert call("GET", "/api/policy-overrides/recommendation/SYN-0005", headers_for("v", ["viewer"]), proc3).json() == {"sku": "SYN-0005", "safety_stock": 4}
+    proc4 = fwd({"id": "r1", "variant_id": 5, "sku": "SYN-0005", "status": "approved"})
+    for path in ("/api/policy-overrides/r1/approve", "/api/policy-overrides/r1/reject"):
+        assert "variant_id" not in call("POST", path, headers_for("a", ["viewer", "approver"]), proc4).json()
+    created = call("POST", "/api/policy-overrides", headers_for("b", BUYER), proc4, json={"sku": "SYN-0005", "field": "min", "requested_value": 3, "reason": "x"})
+    assert created.status_code == 201 and "variant_id" not in created.json()
+
+
+def test_the_category_history_has_a_sku_route(role_store):
+    inv = fwd({"sku": "SYN-0005", "history": [{"reason_key": "first_classification"}]})
+    res = call("GET", "/api/products/SYN-0005/segment-history", headers_for("v", ["viewer"]), inv=inv)
+    assert res.status_code == 200 and res.json()["sku"] == "SYN-0005"
+    assert inv.forward.call_args.args[:2] == ("GET", "/products/SYN-0005/segment-history")
+
+
 def test_the_effective_policy_view_forwards_the_segments_of_the_product(role_store):
     proc = fwd({"sku": "SYN-0005", "rules": {}})
     inv = fwd({"segments": ["critical", "A"]})

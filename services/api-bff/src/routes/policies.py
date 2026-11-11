@@ -37,6 +37,8 @@ def _without_variant_ids(rows: Any) -> Any:
     """People see SKUs; the ERP variant id stays inside the platform."""
     if isinstance(rows, list):
         return [{k: v for k, v in r.items() if k != "variant_id"} if isinstance(r, dict) else r for r in rows]
+    if isinstance(rows, dict):
+        return {k: v for k, v in rows.items() if k != "variant_id"}
     return rows
 
 
@@ -141,45 +143,47 @@ async def policy_audit(session: SessionData = Depends(require_roles("admin")), p
     return {"items": items[:200], "unavailable": unavailable}
 
 
-@router.get("/stocking/{variant_id}")
-async def get_stocking(variant_id: int, session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("GET", f"/stocking/{variant_id}", user_id=session.user_id, roles=session.roles)
+# Stocking, override and recommendation routes take the SKU (feature 011, FR-018): the ERP variant id is resolved inside procurement and never shown.
+
+@router.get("/stocking/{sku}")
+async def get_stocking(sku: str, session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
+    return _without_variant_ids(await proc.forward("GET", f"/stocking/{sku}", user_id=session.user_id, roles=session.roles))
 
 
-@router.put("/stocking/{variant_id}")
-async def put_stocking(variant_id: int, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
+@router.put("/stocking/{sku}")
+async def put_stocking(sku: str, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
                        proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("PUT", f"/stocking/{variant_id}", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
+    return await proc.forward("PUT", f"/stocking/{sku}", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
 @router.get("/policy-overrides")
 async def list_overrides(status: str = "pending", session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("GET", "/policy-overrides", params={"status": status}, user_id=session.user_id, roles=session.roles)
+    return _without_variant_ids(await proc.forward("GET", "/policy-overrides", params={"status": status}, user_id=session.user_id, roles=session.roles))
 
 
-@router.get("/policy-overrides/recommendation/{variant_id}")
-async def recommendation(variant_id: int, session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("GET", f"/policy-overrides/recommendation/{variant_id}", user_id=session.user_id, roles=session.roles)
+@router.get("/policy-overrides/recommendation/{sku}")
+async def recommendation(sku: str, session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
+    return _without_variant_ids(await proc.forward("GET", f"/policy-overrides/recommendation/{sku}", user_id=session.user_id, roles=session.roles))
 
 
 @router.post("/policy-overrides", status_code=201)
 async def create_override(body: dict[str, Any], session: SessionData = Depends(require_roles("buyer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("POST", "/policy-overrides", json=body, user_id=session.user_id, roles=session.roles)
+    return _without_variant_ids(await proc.forward("POST", "/policy-overrides", json=body, user_id=session.user_id, roles=session.roles))
 
 
 @router.post("/policy-overrides/{rid}/approve")
 async def approve_override(rid: str, session: SessionData = Depends(require_roles("approver")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("POST", f"/policy-overrides/{rid}/approve", json={}, user_id=session.user_id, roles=session.roles)
+    return _without_variant_ids(await proc.forward("POST", f"/policy-overrides/{rid}/approve", json={}, user_id=session.user_id, roles=session.roles))
 
 
 @router.post("/policy-overrides/{rid}/reject")
 async def reject_override(rid: str, session: SessionData = Depends(require_roles("approver")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("POST", f"/policy-overrides/{rid}/reject", json={}, user_id=session.user_id, roles=session.roles)
+    return _without_variant_ids(await proc.forward("POST", f"/policy-overrides/{rid}/reject", json={}, user_id=session.user_id, roles=session.roles))
 
 
 @router.post("/policy-overrides/{rid}/revert")
 async def revert_override(rid: str, session: SessionData = Depends(require_roles("buyer", "approver")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("POST", f"/policy-overrides/{rid}/revert", json={}, user_id=session.user_id, roles=session.roles)
+    return _without_variant_ids(await proc.forward("POST", f"/policy-overrides/{rid}/revert", json={}, user_id=session.user_id, roles=session.roles))
 
 
 # ---- demand rules, criticality, category history (inventory) --------------------------------------------------------------------
@@ -210,6 +214,11 @@ async def put_rule(request: Request, rule: str, body: dict[str, Any], if_match: 
                    inv: InventoryClient = Depends(get_inventory_client)) -> Any:
     _need_fresh_mfa(request, session)                          # a censoring rule changes the forecast inputs of many products (owner decision, T063)
     return await inv.forward("PUT", f"/demand-rules/rules/{rule}", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
+
+
+@router.get("/products/{sku}/segment-history")
+async def segment_history_by_sku(sku: str, session: SessionData = Depends(require_roles("viewer")), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+    return await inv.forward("GET", f"/products/{sku}/segment-history", user_id=session.user_id, roles=session.roles)
 
 
 @router.get("/segments/{variant_id}/history")

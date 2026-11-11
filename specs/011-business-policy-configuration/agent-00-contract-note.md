@@ -10,6 +10,8 @@ Shared interfaces touched by this feature. Everything is additive unless stated;
 | New | `GET /api/products/{sku}/effective-policy` (value, source and revision per rule) |
 | New | `DELETE /api/policies/{scope}/{key}` (removes an override as a new revision; `If-Match`; fresh MFA for global scope) |
 | **Renamed (breaking for callers of the old path)** | `PUT /api/products/{product_id}/criticality` is now `PUT /api/products/{sku}/criticality`; the only consumer is the web app, changed in the same PR |
+| **Renamed (breaking for callers of the old path)** | `GET /api/stocking/{variant_id}`, `PUT /api/stocking/{variant_id}` and `GET /api/policy-overrides/recommendation/{variant_id}` are now `.../{sku}`; `POST /api/policy-overrides` takes `sku` instead of `variant_id`; responses (stocking, overrides, recommendation) no longer carry `variant_id`. Only the web app consumes them and changed in the same PR |
+| New | `GET /api/products/{sku}/segment-history` (category history by SKU, used by the safety-stock screen); `GET /api/segments/{variant_id}/history` stays for the dashboard, which only uses ids in API calls |
 | Behaviour | `PUT /api/budget-caps` now requires `If-Match` once a cap exists (428 / 412) and a fresh second factor; `PUT /api/policies/global/*` needs a fresh second factor |
 | Behaviour | Product-scope policy keys, preview rows, exclusions and criticality use the SKU; responses no longer carry `variant_id` |
 | Behaviour | `PUT /api/demand-rules/rules/{rule}` takes optional `scope` (`global` default, `segment`, `product`) and `key` (a segment code or, for a product, the SKU); each scope and key has its own revision for `If-Match`; `GET /api/policy-console` rules carry `scope`, `key` and `revision` per entry |
@@ -33,4 +35,4 @@ procurement `0013` (unique index on budget-cap revisions; fails on a database th
 
 ## Open
 
-The safety-stock override and always-stocked routes still take a variant id (`/stocking/{variant_id}`, `/policy-overrides`); moving them to SKU is a further contract change not made here.
+The dashboard still calls `GET /api/segments/{variant_id}/history` with an id taken from its own rows; it never shows the id. Moving it to the SKU route is a possible follow-up.

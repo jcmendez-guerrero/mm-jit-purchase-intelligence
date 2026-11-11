@@ -217,7 +217,7 @@ export interface PolicyConsole {
 }
 
 export interface StockingSetting {
-  variant_id: number;
+  sku: string | null;
   stocking_mode: "standard" | "always_stocked" | "on_request";
   min_floor_units: number;
   revision: number;
@@ -225,7 +225,7 @@ export interface StockingSetting {
 
 export interface OverrideRequest {
   id: string;
-  variant_id: number;
+  sku: string | null;
   field: "safety_stock" | "min" | "max";
   recommended_value: number;
   requested_value: number;
@@ -244,7 +244,7 @@ export interface EffectiveValue {
 }
 
 export interface Recommendation {
-  variant_id: number;
+  sku: string | null;
   safety_stock: number | null;
   effective?: { safety_stock: EffectiveValue; min: EffectiveValue; max: EffectiveValue };
 }
@@ -1155,12 +1155,12 @@ export class ApiClient {
     return this.request<{ items: PolicyAuditItem[]; unavailable: string[] }>("/policy-audit");
   }
 
-  async getStocking(variantId: number): Promise<StockingSetting> {
-    return this.request<StockingSetting>(`/stocking/${variantId}`);
+  async getStocking(sku: string): Promise<StockingSetting> {
+    return this.request<StockingSetting>(`/stocking/${encodeURIComponent(sku)}`);
   }
 
-  async putStocking(variantId: number, body: { stocking_mode: string; min_floor_units: number }, version: number): Promise<{ revision: number }> {
-    return this.request<{ revision: number }>(`/stocking/${variantId}`, {
+  async putStocking(sku: string, body: { stocking_mode: string; min_floor_units: number }, version: number): Promise<{ revision: number }> {
+    return this.request<{ revision: number }>(`/stocking/${encodeURIComponent(sku)}`, {
       method: "PUT",
       headers: version > 0 ? { "If-Match": `"${version}"` } : {},
       body: JSON.stringify(body),
@@ -1171,11 +1171,11 @@ export class ApiClient {
     return this.request<OverrideRequest[]>(`/policy-overrides?status=${status}`);
   }
 
-  async getRecommendation(variantId: number): Promise<Recommendation> {
-    return this.request<Recommendation>(`/policy-overrides/recommendation/${variantId}`);
+  async getRecommendation(sku: string): Promise<Recommendation> {
+    return this.request<Recommendation>(`/policy-overrides/recommendation/${encodeURIComponent(sku)}`);
   }
 
-  async createOverride(body: { variant_id: number; field: string; requested_value: number; reason: string }): Promise<OverrideRequest> {
+  async createOverride(body: { sku: string; field: string; requested_value: number; reason: string }): Promise<OverrideRequest> {
     return this.request<OverrideRequest>("/policy-overrides", { method: "POST", body: JSON.stringify(body) });
   }
 
@@ -1206,6 +1206,11 @@ export class ApiClient {
       headers: version > 0 ? { "If-Match": `"${version}"` } : {},
       body: JSON.stringify(target ? { value, scope: target.scope, key: target.key } : { value }),
     });
+  }
+
+  /** The category history of a product addressed by SKU (the safety-stock screen); the dashboard keeps its own id-based call. */
+  async getSegmentHistoryBySku(sku: string): Promise<{ sku: string; history: SegmentHistoryRow[] }> {
+    return this.request<{ sku: string; history: SegmentHistoryRow[] }>(`/products/${encodeURIComponent(sku)}/segment-history`);
   }
 
   async getSegmentHistory(variantId: number): Promise<{ variant_id: number; history: SegmentHistoryRow[] }> {

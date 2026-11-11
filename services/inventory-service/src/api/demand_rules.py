@@ -147,6 +147,15 @@ def build_rules_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> API
     def segment_history(variant_id: int, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         return {"variant_id": variant_id, "history": history_for(conn, variant_id)}
 
+    @router.get("/products/{sku}/segment-history")
+    def segment_history_by_sku(sku: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """The category history of a product, addressed by SKU; the variant id stays inside."""
+        try:
+            vid, _pid, shown = resolve_sku(conn, sku)
+        except SkuError as exc:
+            raise HTTPException(422, exc.code) from exc
+        return {"sku": shown, "history": history_for(conn, vid)}
+
     @router.get("/criticality")
     def criticality_view(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         """Products with their manual clinical-criticality flag (edited with PUT /products/{sku}/criticality). Never inferred."""

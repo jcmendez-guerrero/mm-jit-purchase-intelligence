@@ -78,7 +78,7 @@ class StockingBody(BaseModel):
 
 
 class OverrideBody(BaseModel):
-    variant_id: int = Field(ge=1)
+    sku: str = Field(min_length=1, max_length=60)
     field: str
     requested_value: int = Field(ge=0, le=1_000_000)
     reason: str = Field(min_length=1, max_length=500)
@@ -93,7 +93,7 @@ def _json_override(r: Any) -> dict[str, Any]:
 def override_json(conn: Connection, r: Any) -> dict[str, Any]:
     """The request as the API shows it: for a pending safety-stock request, whether the recommendation has moved since and what it is now."""
     changed, current = drift(conn, r, lambda c, v: recommended_safety_stock(c, v))
-    return {**_json_override(r), "recommendation_changed": changed, "current_recommended": current}
+    return {**_json_override(r), "sku": sku_for_variant(conn, int(r.variant_id)), "recommendation_changed": changed, "current_recommended": current}
 
 
 def build_router(app: FastAPI) -> APIRouter:
@@ -241,13 +241,22 @@ def build_router(app: FastAPI) -> APIRouter:
         return {"id": cid, "revision": budget_cap_revision(conn, body.period, body.scope, body.scope_key),
                 "weekly_budget": None if w is None else str(w.quantize(Decimal("0.01")))}
 
-    @router.get("/stocking/{variant_id}")
-    def read_stocking(variant_id: int, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
-        return get_stocking(conn, variant_id)
+    def variant_of(conn: Connection, sku: str) -> int:
+        """People type the SKU; the variant id stays inside the platform. Unknown or ambiguous SKUs are refused."""
+        try:
+            return variant_for_sku(conn, sku)
+        except PolicyError as exc:
+            raise HTTPException(422, error_code(exc)) from exc
 
-    @router.put("/stocking/{variant_id}")
-    def put_stocking(variant_id: int, body: StockingBody, if_match: str | None = Header(default=None), conn: Connection = Depends(conn_dep),
+    @router.get("/stocking/{sku}")
+    def read_stocking(sku: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        variant_id = variant_of(conn, sku)
+        return {**get_stocking(conn, variant_id), "sku": sku_for_variant(conn, variant_id)}
+
+    @router.put("/stocking/{sku}")
+    def put_stocking(sku: str, body: StockingBody, if_match: str | None = Header(default=None), conn: Connection = Depends(conn_dep),
                      principal: Any = Depends(require("buyer"))) -> Any:
+        variant_id = variant_of(conn, sku)
         cur = get_stocking(conn, variant_id)["revision"]
         exp = parse_if_match(if_match)
         if exp is None and cur > 0:
@@ -265,18 +274,20 @@ def build_router(app: FastAPI) -> APIRouter:
                        _p: Any = Depends(require())) -> list[dict[str, Any]]:
         return [override_json(conn, r) for r in queue(conn, None if status == "all" else status)]
 
-    @router.get("/policy-overrides/recommendation/{variant_id}")
-    def recommendation(variant_id: int, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+    @router.get("/policy-overrides/recommendation/{sku}")
+    def recommendation(sku: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        variant_id = variant_of(conn, sku)
         rec = recommended_safety_stock(conn, variant_id)
-        return {"variant_id": variant_id, "safety_stock": rec, "effective": effective_for_variant(conn, variant_id, rec)}
+        return {"variant_id": variant_id, "sku": sku_for_variant(conn, variant_id), "safety_stock": rec, "effective": effective_for_variant(conn, variant_id, rec)}
 
     @router.post("/policy-overrides", status_code=201)
     def create_override(body: OverrideBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
+        variant_id = variant_of(conn, body.sku)
         try:
-            r = request_override(conn, body.variant_id, body.field, body.requested_value, body.reason, principal.subject, recommended_safety_stock(conn, body.variant_id) if body.field == "safety_stock" else None)
+            r = request_override(conn, variant_id, body.field, body.requested_value, body.reason, principal.subject, recommended_safety_stock(conn, variant_id) if body.field == "safety_stock" else None)
         except OverrideRequestError as exc:
             raise HTTPException(409 if exc.code == "policy_override_pending" else 422, error_code(exc)) from exc
-        return _json_override(r)
+        return {**_json_override(r), "sku": sku_for_variant(conn, variant_id)}
 
     def _decide(rid: str, approve: bool, conn: Connection, principal: Any) -> dict[str, Any]:
         from db.tables import policy_override_requests

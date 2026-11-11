@@ -89,6 +89,20 @@ def test_an_older_audit_event_with_free_text_never_reaches_the_audit_view(client
     assert "campaña" not in str(items) and "variant_id" not in str(items)
 
 
+def test_the_category_history_is_read_by_sku_and_shows_no_variant_id(client, engine):
+    """T054: the same history as /segments/{variant_id}/history, addressed the way people address products."""
+    from db.tables import segment_history
+
+    seed(engine)
+    with engine.begin() as c:
+        c.execute(insert(segment_history).values(variant_id=1, changed_at=datetime(2026, 11, 1, tzinfo=UTC), abc="B", xyz="X", pattern="smooth", critical=False,
+                                                 reason_key="first_classification", run_id="r1"))
+    body = client.get("/products/syn-1/segment-history", headers=auth()).json()
+    assert body["sku"] == "SYN-1" and [h["reason_key"] for h in body["history"]] == ["first_classification"] and "variant_id" not in str(body)
+    assert client.get("/products/NOPE/segment-history", headers=auth()).json()["detail"] == "sku_unknown"
+    assert client.get("/products/SYN-1/segment-history").status_code == 401
+
+
 def test_the_series_export_carries_the_rule_versions(client, engine):
     seed(engine)
     assert client.get("/export/series", headers=auth()).json()["rule_versions"] == {"exclusions": 0, "censoring.min_zero_stock_days": 0}
