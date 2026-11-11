@@ -1451,6 +1451,7 @@
   "errors.sku_unknown": "El SKU no existe en el catálogo cargado.",
   "errors.sku_ambiguous": "El SKU corresponde a más de un producto; no se ha elegido ninguno. Revise el catálogo.",
   "errors.policy_overlap": "Ya hay una versión programada para una fecha posterior. Elija una fecha igual o posterior a ella.",
+  "errors.budget_scope_unsupported": "Los presupuestos por categoría todavía no se aplican: use el presupuesto global o el de un proveedor.",
   "errors.exclusion_reason_invalid": "El motivo de la exclusión no es válido o el detalle es demasiado largo.",
   "imports.reason.rollback_label": "Motivo de la reversión",
   "imports.reason.activate_label": "Motivo de la autoactivación (solo administradores que activan un archivo que subieron o validaron)",

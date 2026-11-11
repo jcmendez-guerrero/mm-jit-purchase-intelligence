@@ -691,6 +691,11 @@
       "kind": "request",
       "meaning": "A revision of this policy or budget cap is already scheduled after the chosen date"
     },
+    "budget_scope_unsupported": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "Budget caps by product category are not applied yet; use the global cap or a supplier cap"
+    },
     "exclusion_reason_invalid": {
       "http": 422,
       "kind": "request",

@@ -20,6 +20,8 @@ Shared interfaces touched by this feature. Everything is additive unless stated;
 
 - `GET /api/proposals/{id}` `flags` now carries `deferred` (needed lines left out because a cap binds: `sku`, `product_name`, `needed_qty`, `estimated_cost`, `reason`, `bound_by`) and `notes` entries `budget_bound:<cap>` and `critical_over_budget`; `policy_version_ids` already carries the budget cap revisions. Supplier weekly budget caps now take effect.
 
+- `PUT /api/budget-caps` with `scope: "category"` is now refused (422 `budget_scope_unsupported`); `global` and `supplier` are the supported scopes. The `budget_cap.v1` schema still lists `category` in its `scope` enum because removing a value is a breaking change for you to decide.
+
 ## Schemas
 
 - `packages/contracts/dto/demand_rule.v1.schema.json`: added optional `sku`, `reason_code` (pick list), `detail`; `reason` kept and marked superseded. Generated Python and TypeScript types regenerated; no other generated file changed. A v2 that removes `variant_id` and `reason` is a decision for you.

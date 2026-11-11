@@ -246,7 +246,7 @@ def listing(conn: Connection, as_of: date) -> list[dict[str, Any]]:
 # ---- budget caps -------------------------------------------------------------------------------------------------------------------
 
 CAP_PERIODS = ("week", "month")
-CAP_SCOPES = ("global", "supplier", "category")
+CAP_SCOPES = ("global", "supplier")          # category caps are refused: proposals carry no product category, so one would look set and change nothing (owner decision)
 
 
 def _cap_filter(period: str, scope: str, scope_key: str | None) -> Any:
@@ -262,6 +262,8 @@ def save_budget_cap(conn: Connection, period: str, scope: str, scope_key: str | 
                     today: date | None = None, expected_revision: int | None = None) -> str:
     if isinstance(amount, float):
         raise TypeError("floats are not allowed for money")
+    if scope == "category":
+        raise PolicyError("category budget caps are not applied yet", "budget_scope_unsupported")
     if period not in CAP_PERIODS or scope not in CAP_SCOPES or amount < 0 or amount > Decimal("100000000"):
         raise PolicyError("budget cap out of range")
     if (scope == "global") != (scope_key is None):

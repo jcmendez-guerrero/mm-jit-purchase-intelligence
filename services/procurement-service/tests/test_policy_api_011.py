@@ -40,6 +40,13 @@ def api(engine):
 CAP = {"period": "week", "scope": "global", "amount": "500.00"}
 
 
+def test_a_category_cap_is_422_budget_scope_unsupported_and_nothing_is_stored(api):
+    r = api.put("/budget-caps", json={"period": "week", "scope": "category", "scope_key": "antiparasitarios", "amount": "100"}, headers=h("buyer"))
+    assert r.status_code == 422 and r.json()["detail"] == "budget_scope_unsupported"
+    assert api.get("/policies", headers=h("viewer")).json()["weekly_budget_revision"] == 0
+    assert api.put("/budget-caps", json={"period": "week", "scope": "supplier", "scope_key": "sup-1", "amount": "100"}, headers=h("buyer")).status_code == 200
+
+
 def test_the_first_budget_cap_needs_no_revision_and_returns_one(api):
     assert api.get("/policies", headers=h("viewer")).json()["weekly_budget_revision"] == 0
     r = api.put("/budget-caps", json=CAP, headers=h("buyer"))

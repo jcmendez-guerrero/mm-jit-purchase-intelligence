@@ -16,7 +16,7 @@ from policies.service import (
     sku_for_variant,
     variant_for_sku,
 )
-from sqlalchemy import insert
+from sqlalchemy import insert, select
 
 D = Decimal
 TODAY = date(2026, 11, 9)
@@ -67,6 +67,18 @@ def test_a_budget_cap_dated_before_a_scheduled_one_is_refused(conn):
     with pytest.raises(PolicyError) as e:
         cap(conn, "200", expected=1, valid_from=TODAY)
     assert e.value.code == "policy_overlap"
+
+
+def test_a_category_cap_is_refused_because_nothing_would_apply_it(conn):
+    """T066 (owner decision): proposals carry no product category, so a stored category cap would look set and change nothing."""
+    from db.tables import budget_caps
+    from sqlalchemy import func
+
+    with pytest.raises(PolicyError) as e:
+        cap(conn, "100", expected=0, scope="category", scope_key="antiparasitarios")
+    assert e.value.code == "budget_scope_unsupported"
+    assert conn.execute(select(func.count()).select_from(budget_caps)).scalar() == 0
+    assert cap(conn, "100", expected=0, scope="supplier", scope_key="sup-1")                        # the supported scopes still save
 
 
 def add_ref(conn, variant_id, sku):
