@@ -23,7 +23,7 @@ from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
 from terms.schedule import delivery_date
 
-from proposals.model import RULES_VERSION, Offer, ProposalInputs, SupplierTermsIn, inputs_hash, money
+from proposals.model import RULES_VERSION, Offer, ProposalInputs, SupplierTermsIn, inputs_hash, money, ticks
 from proposals.targets import Target
 
 RULE_VERSIONS = {"targets": RULES_VERSION, "allocation": RULES_VERSION, "explanation": RULES_VERSION, "solver": "cp-sat"}
@@ -81,6 +81,19 @@ class Draft:
     policy_versions: dict[str, Any] = field(default_factory=dict)
     forecast_run_id: str | None = None
     dataset_version_id: str | None = None
+    deferred: tuple[dict[str, Any], ...] = ()      # needed lines left out because a cap binds: {variant_id, product_id, needed_qty, estimated_cost, reason, bound_by}
+
+
+def _binding_caps(inputs: ProposalInputs, greedy: Allocation) -> list[str]:
+    """The caps that bind: those the cap-free plan (the greedy one ignores budgets) would exceed. A tighter supplier cap and a looser global cap name only the supplier."""
+    bound: list[str] = []
+    if inputs.budget is not None and greedy.total_ticks > ticks(inputs.budget):
+        bound.append(inputs.budget_source or "global_week")
+    for g in greedy.groups:
+        cap = inputs.supplier_budgets.get(g.supplier_id)
+        if cap is not None and g.total_ticks > ticks(cap):
+            bound.append(f"supplier:{g.supplier_id}")
+    return bound
 
 
 def _risk(t: Target, shortfall: bool) -> str:
@@ -157,6 +170,8 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
             constraints.append("supplier_minimum_shortfall")
         if alloc.over_budget_ticks:
             constraints.append("over_budget")
+        if c.supplier_id in alloc.supplier_over:
+            constraints.append("over_supplier_cap")
         if cand.lead > 7:
             constraints.append("lead_time")
         alternatives = tuple(
@@ -184,8 +199,15 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
     out_groups = tuple(DraftGroup(
         g.supplier_id, money(g.subtotal_ticks), money(g.delivery_charge_ticks), money(g.total_ticks), _expected_delivery(inputs, g.supplier_id, max_lead[g.supplier_id]),
         g.minimum_status, g.free_delivery, tuple(opts_by_supplier.get(g.supplier_id, ())), money(g.discount_ticks)) for g in alloc.groups)
+    bound = _binding_caps(inputs, greedy)
+    notes = list(alloc.notes) + [f"budget_bound:{b}" for b in bound]
+    if (alloc.over_budget_ticks or alloc.supplier_over) and any(by_variant[c.variant_id].clinical_critical for c in alloc.chosen):
+        notes.append("critical_over_budget")          # a critical product is never dropped for a cap: the excess is shown so a person decides
+    deferred = tuple({"variant_id": vid, "product_id": by_variant[vid].product_id, "needed_qty": min(x.qty for x in spec[vid].cands),
+                      "estimated_cost": str(money(min(x.line_ticks for x in spec[vid].cands))), "reason": "budget_cap", "bound_by": list(bound)} for vid in alloc.deferred)
     return Draft(tuple(out_lines), out_groups, tuple(targets), alloc.solver_status, inputs_hash(inputs, RULE_VERSIONS), dict(RULE_VERSIONS),
-                 money(greedy.total_ticks), money(alloc.total_ticks), money(alloc.over_budget_ticks), tuple(alloc.notes), dict(inputs.terms_versions), dict(inputs.policy_versions), inputs.forecast_run_id, inputs.dataset_version_id)
+                 money(greedy.total_ticks), money(alloc.total_ticks), money(alloc.over_budget_ticks), tuple(notes), dict(inputs.terms_versions), dict(inputs.policy_versions),
+                 inputs.forecast_run_id, inputs.dataset_version_id, deferred)
 
 
 def _expected_delivery(inputs: ProposalInputs, supplier_id: str, lead_days: int) -> date:
@@ -216,7 +238,8 @@ def store(conn: Connection, draft: Draft, created_by: str, week: str, budget: De
         rule_versions=draft.rule_versions, solver_status=draft.solver_status, budget=budget, created_at=now, updated_at=now,
         terms_version_ids=draft.terms_versions or None, policy_version_ids=draft.policy_versions or None,
         dataset_version_id=draft.dataset_version_id, forecast_run_id=draft.forecast_run_id,
-        flags={"greedy_total": str(draft.greedy_total), "optimized_total": str(draft.optimized_total), "over_budget": str(draft.over_budget), "notes": list(draft.notes)}))
+        flags={"greedy_total": str(draft.greedy_total), "optimized_total": str(draft.optimized_total), "over_budget": str(draft.over_budget), "notes": list(draft.notes),
+               "deferred": list(draft.deferred)}))
     for ln in draft.lines:
         conn.execute(insert(proposal_lines).values(
             id=str(uuid.uuid5(NAMESPACE, f"{pid}:{ln.variant_id}")), proposal_id=pid, variant_id=ln.variant_id, product_id=ln.product_id, supplier_id=ln.supplier_id,

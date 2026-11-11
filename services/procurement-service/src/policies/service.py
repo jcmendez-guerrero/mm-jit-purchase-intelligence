@@ -297,15 +297,41 @@ def budget_versions(conn: Connection, as_of: date) -> dict[str, int]:
     return out
 
 
+WEEKS_PER_MONTH = Decimal("4.33")
+
+
+def _weekly_equivalents(conn: Connection, as_of: date, scope: str, scope_key: str | None) -> list[tuple[Decimal, str]]:
+    """The weekly and monthly caps in force for one scope as weekly amounts (a monthly cap is split over 4.33 weeks), each with the period that supplied it."""
+    out: list[tuple[Decimal, str]] = []
+    for period in CAP_PERIODS:
+        row = conn.execute(select(budget_caps).where(*_cap_filter(period, scope, scope_key), budget_caps.c.valid_from <= as_of)
+                           .order_by(budget_caps.c.valid_from.desc(), budget_caps.c.revision.desc()).limit(1)).first()
+        if row is not None:
+            amount = Decimal(str(row.amount))
+            out.append((amount if period == "week" else (amount / WEEKS_PER_MONTH).quantize(Decimal("0.01")), period))
+    return out
+
+
+def effective_weekly_budget_with_source(conn: Connection, as_of: date) -> tuple[Decimal | None, str | None]:
+    """The tighter of the global weekly and monthly caps, and which one it is ("global_week" or "global_month")."""
+    caps = _weekly_equivalents(conn, as_of, "global", None)
+    if not caps:
+        return None, None
+    amount, period = min(caps)
+    return amount, f"global_{period}"
+
+
 def effective_weekly_budget(conn: Connection, as_of: date) -> Decimal | None:
     """The global weekly cap in force (a monthly cap is split over 4.33 weeks); None when none is set."""
-    def latest(period: str) -> Row[Any] | None:
-        return conn.execute(select(budget_caps).where(budget_caps.c.period == period, budget_caps.c.scope == "global", budget_caps.c.valid_from <= as_of)
-                            .order_by(budget_caps.c.valid_from.desc(), budget_caps.c.revision.desc()).limit(1)).first()
-    w, m = latest("week"), latest("month")
-    caps = []
-    if w is not None:
-        caps.append(Decimal(str(w.amount)))
-    if m is not None:
-        caps.append((Decimal(str(m.amount)) / Decimal("4.33")).quantize(Decimal("0.01")))
-    return min(caps) if caps else None
+    return effective_weekly_budget_with_source(conn, as_of)[0]
+
+
+def supplier_weekly_budgets(conn: Connection, as_of: date) -> dict[str, Decimal]:
+    """supplier_id -> the tighter of that supplier's weekly and monthly caps in force; suppliers without a cap are absent."""
+    keys = [r.scope_key for r in conn.execute(select(budget_caps.c.scope_key).where(budget_caps.c.scope == "supplier").distinct()).all() if r.scope_key]
+    out: dict[str, Decimal] = {}
+    for key in keys:
+        caps = _weekly_equivalents(conn, as_of, "supplier", key)
+        if caps:
+            out[str(key)] = min(caps)[0]
+    return out

@@ -886,6 +886,23 @@ export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
   forecast_run_id?: string | null;
   approval: { approver: string; decision: string; version: number; valid: boolean } | null;
   warnings?: string[];
+  flags?: ProposalFlags | null;
+}
+
+/** What a binding budget did to the proposal (feature 011): the lines left out, the caps that bound, and the excess a person must decide on. */
+export interface DeferredLine {
+  sku: string | null;
+  product_name: string | null;
+  needed_qty: number | null;
+  estimated_cost: string | null;
+  reason: string | null;
+  bound_by: Array<{ kind: string; supplier_name?: string | null }>;
+}
+
+export interface ProposalFlags {
+  over_budget?: string;
+  notes?: string[];
+  deferred?: DeferredLine[];
 }
 
 /** Local export loader (MMI 004): present only in the local environment. */

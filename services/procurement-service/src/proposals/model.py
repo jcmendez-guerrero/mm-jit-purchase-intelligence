@@ -119,6 +119,10 @@ class ProposalInputs:
     # Where the forecast came from (FR-026). Recorded, never hashed: the same numbers from another run or dataset must give the same result.
     forecast_run_id: str | None = field(default=None, metadata={"hash": False})
     dataset_version_id: str | None = field(default=None, metadata={"hash": False})
+    # Caps (feature 011), last so existing positional construction keeps working.
+    budget_source: str | None = None                                   # which global cap supplies `budget`: "global_week" or "global_month"
+    supplier_budgets: dict[str, Decimal] = field(default_factory=dict)  # supplier_id -> weekly cap in force; the tighter of it and the global cap binds
+    defer_for_cap: bool = False                                        # the weekly proposal may leave non-critical needed lines out when a cap binds; scenarios report instead
 
 
 def canonical(obj: Any) -> str:

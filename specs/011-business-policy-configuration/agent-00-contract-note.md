@@ -18,6 +18,8 @@ Shared interfaces touched by this feature. Everything is additive unless stated;
 | Behaviour | `PUT /api/demand-rules/rules/{rule}` and `PUT /api/parameters/{key}` now need a fresh second factor (owner decision) |
 | Behaviour | `PUT /api/demand-rules/exclusions/{id}` and `PUT /api/demand-rules/rules/{rule}` require `If-Match`; `POST /api/demand-rules/exclusions` takes `sku`, `reason_code`, optional `detail` instead of `variant_id` and free-text `reason` |
 
+- `GET /api/proposals/{id}` `flags` now carries `deferred` (needed lines left out because a cap binds: `sku`, `product_name`, `needed_qty`, `estimated_cost`, `reason`, `bound_by`) and `notes` entries `budget_bound:<cap>` and `critical_over_budget`; `policy_version_ids` already carries the budget cap revisions. Supplier weekly budget caps now take effect.
+
 ## Schemas
 
 - `packages/contracts/dto/demand_rule.v1.schema.json`: added optional `sku`, `reason_code` (pick list), `detail`; `reason` kept and marked superseded. Generated Python and TypeScript types regenerated; no other generated file changed. A v2 that removes `variant_id` and `reason` is a decision for you.

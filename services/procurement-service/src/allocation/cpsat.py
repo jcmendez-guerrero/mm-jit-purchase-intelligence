@@ -26,6 +26,7 @@ from allocation.greedy import allocate_greedy
 
 BIG = 1_000_000       # penalty per tick of violated minimum / budget: dwarfs any real saving, and stays far inside int64
 MAX_TICKS = 10**10    # 1,000,000 EUR: upper bound for money variables
+DEFER_STEP = 10       # ticks: how much more it costs to defer a more urgent line (order of deferral only; never enough to defer without a cap)
 
 
 def _discount_expr(m: cp_model.CpModel, t: SupplierTermsIn, sid: str, y: cp_model.IntVar, subtotal: cp_model.IntVar, qty: object) -> cp_model.IntVar | None:
@@ -67,6 +68,9 @@ def allocate_cpsat(inputs: ProposalInputs, lines: list[LineSpec], time_limit_s: 
     sel: dict[tuple[int, str], cp_model.IntVar] = {}
     by_supplier: dict[str, list[tuple[object, cp_model.IntVar]]] = {}
     cost_terms: list[object] = []
+    penalties: list[object] = []
+    defer_vars: dict[int, cp_model.IntVar] = {}
+    capped = inputs.defer_for_cap and (inputs.budget is not None or bool(inputs.supplier_budgets))
     for ln in lines:
         vars_for_line = []
         for c in ln.cands:
@@ -77,11 +81,17 @@ def allocate_cpsat(inputs: ProposalInputs, lines: list[LineSpec], time_limit_s: 
             cost_terms.append((c.line_ticks + c.risk_ticks) * b)
             if ln.fixed_supplier is not None and c.supplier_id != ln.fixed_supplier and any(x.supplier_id == ln.fixed_supplier for x in ln.cands):
                 m.Add(b == 0)
-        if ln.mandatory:
+        if ln.mandatory and capped and not ln.critical and ln.fixed_supplier is None and ln.fixed_qty is None:
+            # A needed line may be deferred only when a cap forces it: leaving it out costs more than the line itself, so without budget
+            # pressure it is always bought, and under pressure the least urgent lines (urgency 1) go first. Critical and buyer-fixed lines never do.
+            d = m.NewBoolVar(f"defer_{ln.variant_id}")
+            defer_vars[ln.variant_id] = d
+            m.Add(sum(vars_for_line) + d == 1)
+            penalties.append((max(c.line_ticks + c.risk_ticks for c in ln.cands) + DEFER_STEP * ln.urgency) * d)
+        elif ln.mandatory:
             m.Add(sum(vars_for_line) == 1)
         else:
             m.Add(sum(vars_for_line) <= 1)
-    penalties: list[object] = []
     total_terms: list[object] = []
     y_by_supplier: dict[str, cp_model.IntVar] = {}
     for sid, items in sorted(by_supplier.items()):
@@ -124,6 +134,12 @@ def allocate_cpsat(inputs: ProposalInputs, lines: list[LineSpec], time_limit_s: 
         if charge_expr is not None:
             cost_terms.append(charge_expr)
             total_terms.append(charge_expr)
+        cap = inputs.supplier_budgets.get(sid)
+        if cap is not None:                                  # this supplier's own weekly cap: soft like the global one, so a critical line can still be bought
+            over_s = m.NewIntVar(0, MAX_TICKS, f"over_{sid}")
+            own = [subtotal] + ([-discount] if discount is not None else []) + ([charge_expr] if charge_expr is not None else [])
+            m.Add(over_s >= sum(own) - ticks(cap))
+            penalties.append(BIG * over_s)
     if inputs.budget is not None:
         over = m.NewIntVar(0, MAX_TICKS, "over_budget")
         m.Add(over >= sum(total_terms) - ticks(inputs.budget))
@@ -145,4 +161,8 @@ def allocate_cpsat(inputs: ProposalInputs, lines: list[LineSpec], time_limit_s: 
             if solver.Value(sel[(c.variant_id, c.supplier_id)]):
                 chosen.append(Chosen(c.variant_id, c.supplier_id, c.qty, c.unit_ticks, c.line_ticks, c.lead, not ln.mandatory))
     groups = summarise(chosen, inputs.suppliers)
-    return Allocation(chosen, groups, "optimal" if status == cp_model.OPTIMAL else "feasible", sum(g.total_ticks for g in groups), budget_excess(groups, inputs.budget))
+    deferred = sorted(vid for vid, d in defer_vars.items() if solver.Value(d))
+    supplier_over = {g.supplier_id: g.total_ticks - ticks(inputs.supplier_budgets[g.supplier_id]) for g in groups
+                     if g.supplier_id in inputs.supplier_budgets and g.total_ticks > ticks(inputs.supplier_budgets[g.supplier_id])}
+    return Allocation(chosen, groups, "optimal" if status == cp_model.OPTIMAL else "feasible", sum(g.total_ticks for g in groups), budget_excess(groups, inputs.budget),
+                      deferred=deferred, supplier_over=supplier_over)

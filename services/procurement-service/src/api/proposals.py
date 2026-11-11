@@ -97,6 +97,23 @@ def _version(if_match: str | None, current: int) -> int:
         raise HTTPException(400, "invalid_if_match") from exc
 
 
+def _flags_view(flags: Any, names: dict[int, tuple[Any, Any]], supplier_names: dict[str, Any]) -> Any:
+    """The proposal flags as people see them: a deferred line by SKU and product name (never the ERP ids), and the caps that bound by what they are, a supplier by name."""
+    if not isinstance(flags, dict) or not flags.get("deferred"):
+        return flags
+
+    def cap(raw: str) -> dict[str, Any]:
+        if raw.startswith("supplier:"):
+            return {"kind": "supplier", "supplier_name": supplier_names.get(raw.removeprefix("supplier:"))}
+        return {"kind": raw}
+
+    deferred = [{"sku": names.get(int(d["variant_id"]), (None, None))[0], "product_name": names.get(int(d["variant_id"]), (None, None))[1],
+                 "needed_qty": d.get("needed_qty"), "estimated_cost": d.get("estimated_cost"), "reason": d.get("reason"), "bound_by": [cap(b) for b in d.get("bound_by", [])]}
+                for d in flags["deferred"]]
+    notes = [n if not n.startswith("budget_bound:supplier:") else f"budget_bound:supplier:{supplier_names.get(n.removeprefix('budget_bound:supplier:'), '')}" for n in flags.get("notes", [])]
+    return {**flags, "deferred": deferred, "notes": notes}
+
+
 def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
     lines = conn.execute(select(proposal_lines).where(proposal_lines.c.proposal_id == p.id).order_by(proposal_lines.c.variant_id)).all()
     groups = conn.execute(select(supplier_order_groups).where(supplier_order_groups.c.proposal_id == p.id).order_by(supplier_order_groups.c.supplier_id)).all()
@@ -106,7 +123,7 @@ def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
     supplier_names = {r.id: r.name for r in conn.execute(select(suppliers.c.id, suppliers.c.name)).all()}
     return {
         "id": p.id, "week": p.week, "status": p.status, "version": p.version, "created_by": p.created_by, "last_edited_by": p.last_edited_by,
-        "inputs_hash": p.inputs_hash, "rule_versions": p.rule_versions, "solver_status": p.solver_status, "flags": p.flags,
+        "inputs_hash": p.inputs_hash, "rule_versions": p.rule_versions, "solver_status": p.solver_status, "flags": _flags_view(p.flags, names, supplier_names),
         "approval": None if last is None else {"approver": last.approver_id, "decision": last.decision, "version": last.proposal_version, "valid": is_approval_valid(conn, p.id)},
         "lines": [{"id": r.id, "variant_id": r.variant_id, "product_id": r.product_id, "supplier_id": r.supplier_id, "qty": r.qty,
                    "sku": names.get(r.variant_id, (None, None))[0], "product_name": names.get(r.variant_id, (None, None))[1],
