@@ -50,7 +50,6 @@ from sqlalchemy.engine import Connection
 from api.costs import get_engine
 from api.terms import parse_if_match
 
-
 # What the admin audit view may show of a stored event: rule values and bookkeeping only, never a typed reason or an ERP id.
 AUDIT_VIEW_KEYS = ("scope", "key", "revision", "valid_from", *FIELDS, "period", "scope_key", "amount", "mode", "floor", "field", "recommended", "requested", "status",
                    "recommendation_changed", "current_recommended")

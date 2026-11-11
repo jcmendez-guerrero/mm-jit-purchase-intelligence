@@ -9,16 +9,15 @@ The BFF checks roles and forwards the signed-in user with the revision the edito
 
 from __future__ import annotations
 
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 from auth.session import SessionData
 from clients.forecast import ForecastClient
 from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from datetime import date, datetime, time, timedelta, timezone
-from zoneinfo import ZoneInfo
-
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from routes.api import get_inventory_client, get_procurement_client
 from routes.rbac import log_refusal, require_roles
@@ -39,11 +38,11 @@ AUDIT_SCOPES = {"policy": ("policy.",), "budget": ("budget_cap.",), "safety_stoc
 def _madrid_day(at: str) -> date:
     """The calendar day a stored UTC instant falls on for the people reading the audit (es-ES, rule 8)."""
     d = datetime.fromisoformat(at)
-    return (d if d.tzinfo else d.replace(tzinfo=timezone.utc)).astimezone(MADRID).date()
+    return (d if d.tzinfo else d.replace(tzinfo=UTC)).astimezone(MADRID).date()
 
 
 def _day_start_utc(day: date) -> str:
-    return datetime.combine(day, time.min, MADRID).astimezone(timezone.utc).isoformat()
+    return datetime.combine(day, time.min, MADRID).astimezone(UTC).isoformat()
 
 
 def _need_fresh_mfa(request: Request, session: SessionData) -> None:

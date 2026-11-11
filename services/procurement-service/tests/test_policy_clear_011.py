@@ -9,7 +9,15 @@ from db.tables import audit_events, policy_sets, product_refs
 from fastapi.testclient import TestClient
 from mmi_common.auth import AuthError, Principal
 from mmi_common.service import create_service_app
-from policies.service import PolicyConflict, PolicyError, PolicyValues, clear_policy, effective_view, history, save_policy
+from policies.service import (
+    PolicyConflict,
+    PolicyError,
+    PolicyValues,
+    clear_policy,
+    effective_view,
+    history,
+    save_policy,
+)
 from sqlalchemy import delete, insert, select
 
 D = Decimal

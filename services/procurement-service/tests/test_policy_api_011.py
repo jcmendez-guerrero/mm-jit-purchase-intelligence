@@ -140,9 +140,8 @@ def test_the_audit_view_shows_skus_and_never_an_erp_id_or_typed_text(api):
 
 
 def test_the_preview_rows_carry_the_sku(api):
-    from test_inputs import ELIGIBLE, Src, fc, stock, sv
-
     from proposals.inputs import InputsProvider
+    from test_inputs import ELIGIBLE, Src, fc, stock, sv
     api.app.state.inputs_provider = InputsProvider(Src(stock(sv(5, 10, on_hand=0))), Src(fc(v5=ELIGIBLE)))
     r = api.post("/policies/global/*/preview", json={"min_units": 40}, headers=h("buyer"))
     assert r.status_code == 200, r.text

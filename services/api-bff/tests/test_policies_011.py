@@ -100,7 +100,7 @@ def test_the_audit_view_merges_services_and_refusals_newest_first(role_store):
 def test_the_audit_view_filters_by_scope_outcome_and_dates_and_pages(role_store):
     """T070 (plan D9): scope, from, to, outcome, and 50 rows a page."""
     many = [{"at": f"2026-11-{d:02d}T10:00:00+00:00", "actor": "buyer-1", "action": "policy.saved", "outcome": "accepted"} for d in range(1, 29)]
-    proc = fwd({"items": many + [{"at": "2026-11-09T09:00:00+00:00", "actor": "buyer-1", "action": "budget_cap.saved", "outcome": "accepted"}]})
+    proc = fwd({"items": [*many, {"at": "2026-11-09T09:00:00+00:00", "actor": "buyer-1", "action": "budget_cap.saved", "outcome": "accepted"}]})
     inv = fwd({"items": [{"at": "2026-11-09T11:00:00+00:00", "actor": "buyer-2", "action": "demand_exclusion.added", "outcome": "accepted"}]})
     fc = fwd({"items": [{"at": "2026-11-09T12:00:00+00:00", "actor": "buyer-3", "action": "parameter.saved", "outcome": "accepted"}]})
     call("PUT", "/api/policies/global/*", headers_for("viewer-1", ["viewer"]), AsyncMock(), json={"min_units": 1})                # one refusal recorded by the gateway

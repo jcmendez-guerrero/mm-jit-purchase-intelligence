@@ -22,7 +22,12 @@ from db.tables import product_refs, supplier_costs, supplier_review_items, suppl
 from fx.rates import convert, latest_rate, rate_state
 from orders.confirm import open_inbound
 from policies.overrides import effective_overrides
-from policies.service import budget_versions, effective_weekly_budget_with_source, resolve_policy, supplier_weekly_budgets
+from policies.service import (
+    budget_versions,
+    effective_weekly_budget_with_source,
+    resolve_policy,
+    supplier_weekly_budgets,
+)
 from policies.stocking import MONTHLY_CHECK_DAYS, last_order_dates, stocking_map
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection

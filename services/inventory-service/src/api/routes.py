@@ -8,8 +8,6 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from classification.criticality import CriticalityError, set_critical
-from projections.rules import rule_versions
-from skus import SkuError, resolve_sku
 from classification.run import load_series
 from classification.service_levels import effective_target, history
 from db.tables import (
@@ -27,9 +25,11 @@ from db.tables import (
 from demand.rebuild import rebuild
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from mmi_common.errors import error_code
+from projections.rules import rule_versions
 from pydantic import BaseModel, Field
 from quality.review import ReviewError, decide, list_open
 from risk.daily import evaluate_risks
+from skus import SkuError, resolve_sku
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.engine import Connection, Engine
 

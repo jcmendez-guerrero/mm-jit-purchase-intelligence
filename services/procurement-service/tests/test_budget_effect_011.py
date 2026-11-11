@@ -32,7 +32,7 @@ def kept(draft):
 
 
 def test_a_cap_that_binds_defers_non_critical_lines_lists_them_with_the_reason_and_stays_within_it(conn):
-    sa, provider, line, total = setup(conn)
+    _sa, provider, line, _total = setup(conn)
     save_budget_cap(conn, "week", "global", None, line[1] + line[2] + D("0.5"), "b", today=TODAY)          # room for two of the three lines
     draft = generate(provider.build(conn, TODAY), 5)
     assert 1 in kept(draft) and len(kept(draft)) == 2                                                    # the critical product stays
@@ -43,7 +43,7 @@ def test_a_cap_that_binds_defers_non_critical_lines_lists_them_with_the_reason_a
 
 
 def test_a_critical_product_is_never_dropped_and_the_excess_is_shown_for_decision(conn):
-    sa, provider, line, total = setup(conn)
+    _sa, provider, line, _total = setup(conn)
     save_budget_cap(conn, "week", "global", None, line[1] / 4, "b", today=TODAY)                          # below the cost of the critical line alone
     draft = generate(provider.build(conn, TODAY), 5)
     assert kept(draft) == {1}                                                                           # both non-critical lines are deferred, the critical one stays
@@ -53,14 +53,14 @@ def test_a_critical_product_is_never_dropped_and_the_excess_is_shown_for_decisio
 
 
 def test_nothing_is_deferred_when_no_cap_binds(conn):
-    sa, provider, line, total = setup(conn)
+    _sa, provider, _line, total = setup(conn)
     save_budget_cap(conn, "week", "global", None, total * 2, "b", today=TODAY)
     draft = generate(provider.build(conn, TODAY), 5)
     assert kept(draft) == {1, 2, 3} and draft.deferred == () and not [n for n in draft.notes if n.startswith("budget_bound")]
 
 
 def test_the_cap_that_bound_is_named_weekly_or_monthly(conn):
-    sa, provider, line, total = setup(conn)
+    _sa, provider, line, total = setup(conn)
     save_budget_cap(conn, "week", "global", None, total * 2, "b", today=TODAY)                           # a loose weekly cap
     save_budget_cap(conn, "month", "global", None, (line[1] + line[2]) * D("4.33"), "b", today=TODAY)     # a tighter monthly cap, about two lines a week
     draft = generate(provider.build(conn, TODAY), 5)
@@ -106,7 +106,7 @@ def test_the_stored_proposal_lists_deferred_lines_by_sku_and_names_the_caps_with
 def test_a_scenario_built_on_live_inputs_still_reports_an_unaffordable_budget_instead_of_cutting_lines(conn):
     from scenarios.engine import ScenarioParams, apply_params
 
-    sa, provider, line, total = setup(conn)
+    _sa, provider, line, _total = setup(conn)
     base = provider.build(conn, TODAY)
     assert base.defer_for_cap                                                                           # the weekly proposal may defer
     scenario = apply_params(base, ScenarioParams(budget=line[1] / 4))
@@ -116,7 +116,7 @@ def test_a_scenario_built_on_live_inputs_still_reports_an_unaffordable_budget_in
 
 
 def test_a_line_the_buyer_fixed_is_not_deferred_by_the_cap(conn):
-    sa, provider, line, total = setup(conn)
+    _sa, provider, line, _total = setup(conn)
     save_budget_cap(conn, "week", "global", None, line[1] / 4, "b", today=TODAY)
     inputs = replace(provider.build(conn, TODAY), overrides=Overrides(fixed_qty={2: 5}))                # the buyer asked for 5 units of variant 2
     draft = generate(inputs, 5)
