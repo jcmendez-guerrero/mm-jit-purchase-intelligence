@@ -22,6 +22,10 @@ Shared interfaces touched by this feature. Everything is additive unless stated;
 
 - `PUT /api/budget-caps` with `scope: "category"` is now refused (422 `budget_scope_unsupported`); `global` and `supplier` are the supported scopes. The `budget_cap.v1` schema still lists `category` in its `scope` enum because removing a value is a breaking change for you to decide.
 
+- **Behaviour change** (not a route change): `replenishment_cadence_days` now sets the product's review period in the proposal's protection horizon (it was stored but unused), product over segment over global; the line explanation holds `policy_applied.<rule> = {source, revision}`.
+- `GET /api/policy-audit` takes `scope` (policy, budget, safety_stock, demand, forecast, access), `outcome`, `from`, `to` and `page`, and answers `{items, total, page, page_size, unavailable}` (50 per page); stored payloads are whitelisted and show SKUs.
+- `POST /api/policies/{scope}/{key}/preview` also answers `forecast_run_id` (the last finished run it used).
+
 ## Schemas
 
 - `packages/contracts/dto/demand_rule.v1.schema.json`: added optional `sku`, `reason_code` (pick list), `detail`; `reason` kept and marked superseded. Generated Python and TypeScript types regenerated; no other generated file changed. A v2 that removes `variant_id` and `reason` is a decision for you.

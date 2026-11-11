@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, EffectivePolicy, errorMessage, PolicyDetail, PolicyPreview, PolicySummary } from "../../api/client";
-import { formatCurrencyEUR } from "../../i18n/formatters";
+import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
 import { FormField } from "../../ui/FormField";
 import { canEditPolicies, emptyForm, PolicyForm, scopeKeyValid, Scope, toForm, toPayload } from "./policiesModel";
 import { useActionNotice } from "../../ui/NoticeProvider";
@@ -228,6 +228,7 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
           {preview && (
             <div role="region" aria-label={t("policies.preview.title")}>
               <h4>{t("policies.preview.title")}</h4>
+              <p className="mmi-muted">{t("policies.preview.basis", { run: (preview.forecast_run_id ?? "—").slice(0, 8), date: formatDate(preview.as_of) })}</p>
               <p>{t("policies.preview.affected", { count: preview.affected_count })}</p>
               <p>
                 {t("policies.preview.spend", {

@@ -91,7 +91,8 @@ def list_exclusions(conn: Connection, only_active: bool = False, with_detail: bo
         q = q.where(demand_exclusions.c.active)
     out = []
     for r in conn.execute(q).all():
-        row = {"id": r.id, "sku": None if r.sku is None else str(r.sku).strip(), "from_day": r.from_day.isoformat(), "to_day": r.to_day.isoformat(), "reason_code": r.reason,
+        row = {"id": r.id, "sku": None if r.sku is None else str(r.sku).strip(), "from_day": r.from_day.isoformat(), "to_day": r.to_day.isoformat(),
+               "reason_code": r.reason if (r.reason in REASONS or with_detail) else "other",          # older rows hold typed text: only an admin sees it
                "active": bool(r.active), "revision": r.revision, "changed_by": r.changed_by}
         if with_detail:
             row["detail"] = r.reason_detail

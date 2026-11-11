@@ -51,7 +51,7 @@ describe("purchasing section", () => {
   });
 
   it("previews the effect without saving and then saves with the revision it read", async () => {
-    const preview = vi.spyOn(api, "previewPolicy").mockResolvedValue({ as_of: "2026-11-09", affected_count: 1, affected: [{ sku: "SYN-0005", qty_before: 4, qty_after: 9 }], spend_before: "100.00", spend_after: "190.00", spend_delta: "90.00", saved: false });
+    const preview = vi.spyOn(api, "previewPolicy").mockResolvedValue({ as_of: "2026-11-09", affected_count: 1, affected: [{ sku: "SYN-0005", qty_before: 4, qty_after: 9 }], spend_before: "100.00", spend_after: "190.00", spend_delta: "90.00", saved: false, forecast_run_id: "run-1234-abcd" });
     const put = vi.spyOn(api, "putPolicy").mockResolvedValue({ revision: 3 });
     render(<PoliciesScreen userRoles={["buyer"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Cargar política" }));
@@ -60,6 +60,7 @@ describe("purchasing section", () => {
     expect(await screen.findByText(/Productos afectados: 1/)).toBeTruthy();
     expect(screen.getByText(/SKU SYN-0005: 4 → 9 unidades/)).toBeTruthy();
     expect(screen.queryByText(/Variante 5/)).toBeNull();                      // the ERP id is never shown
+    expect(screen.getByText(/Calculado con la última previsión terminada \(ejecución run-1234\) para el 09\/11\/2026/)).toBeTruthy();      // T071: the basis of the preview
     expect(preview).toHaveBeenCalledWith("global", "*", { service_level_pct: "99", min_units: 1 });
     expect(put).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Guardar nueva versión" }));
@@ -180,11 +181,29 @@ describe("feature 011: revisions, sources and audit", () => {
     expect(screen.queryByRole("button", { name: /Quitar política/ })).toBeNull();
   });
 
+  it("filters the audit by what changed, the outcome and the dates, and pages through it", async () => {
+    const audit = vi.spyOn(api, "getPolicyAudit").mockResolvedValue({ items: [], unavailable: [], total: 120, page: 1, page_size: 50 });
+    render(<PoliciesScreen userRoles={["viewer", "buyer", "approver", "admin"]} />);
+    await screen.findByText(/Presupuesto semanal vigente/);
+    tab(/Auditoría de reglas/);
+    expect(await screen.findByText("Página 1 de 3 · 120 registros")).toBeTruthy();
+    expect(audit).toHaveBeenLastCalledWith({ page: 1 });
+    fireEvent.change(screen.getByLabelText("Qué cambió"), { target: { value: "budget" } });
+    fireEvent.change(screen.getByLabelText("Resultado", { selector: "#audit-outcome" }), { target: { value: "refused" } });
+    fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-11-01" } });
+    fireEvent.change(screen.getByLabelText("Hasta"), { target: { value: "2026-11-09" } });
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
+    await waitFor(() => expect(audit).toHaveBeenLastCalledWith({ scope: "budget", outcome: "refused", from: "2026-11-01", to: "2026-11-09", page: 1 }));
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    await waitFor(() => expect(audit).toHaveBeenLastCalledWith({ scope: "budget", outcome: "refused", from: "2026-11-01", to: "2026-11-09", page: 2 }));
+    expect((screen.getByRole("button", { name: "Anterior" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("shows the audit tab to admins only", async () => {
     vi.spyOn(api, "getPolicyAudit").mockResolvedValue({
       items: [{ at: "2026-11-09T10:00:00+00:00", actor: "buyer-1", action: "policy.saved", entity_id: "abc", outcome: "accepted" },
               { at: "2026-11-09T11:00:00+00:00", actor: "viewer-1", action: "access.refused", entity_id: "PUT /api/policies/global/*", outcome: "refused", reason_code: "forbidden_missing_role" }],
-      unavailable: ["inventory"],
+      unavailable: ["inventory"], total: 2, page: 1, page_size: 50,
     });
     render(<PoliciesScreen userRoles={["viewer", "buyer"]} />);
     await screen.findByText(/Presupuesto semanal vigente/);

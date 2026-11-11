@@ -103,6 +103,24 @@ def test_the_category_history_is_read_by_sku_and_shows_no_variant_id(client, eng
     assert client.get("/products/SYN-1/segment-history").status_code == 401
 
 
+def test_an_older_free_text_exclusion_reason_is_shown_as_other_except_to_admins(client, engine):
+    """T069: rows saved before the pick list hold typed text; only an admin sees it."""
+    from datetime import date
+
+    from db.tables import demand_exclusions
+
+    seed(engine)
+    with engine.begin() as c:
+        c.execute(insert(demand_exclusions).values(variant_id=1, from_day=date(2026, 10, 3), to_day=date(2026, 10, 3), reason="promoción de otoño de la tienda", active=True,
+                                                   revision=1, changed_by="legacy"))
+    client.post("/demand-rules/exclusions", json={**BODY, "from_day": "2026-10-04", "to_day": "2026-10-04"}, headers=auth("buyer"))
+    for role in ("viewer", "buyer"):
+        rows = client.get("/demand-rules", headers=auth(role)).json()["exclusions"]
+        assert sorted(r["reason_code"] for r in rows) == ["other", "promotion"] and "otoño" not in str(rows)
+    admin = client.get("/demand-rules", headers=auth("admin")).json()["exclusions"]
+    assert "promoción de otoño de la tienda" in {r["reason_code"] for r in admin}
+
+
 def test_the_series_export_carries_the_rule_versions(client, engine):
     seed(engine)
     assert client.get("/export/series", headers=auth()).json()["rule_versions"] == {"exclusions": 0, "censoring.min_zero_stock_days": 0}

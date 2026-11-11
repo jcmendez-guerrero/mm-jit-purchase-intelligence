@@ -97,6 +97,38 @@ def test_the_audit_view_merges_services_and_refusals_newest_first(role_store):
     assert ats == sorted(ats, reverse=True)
 
 
+def test_the_audit_view_filters_by_scope_outcome_and_dates_and_pages(role_store):
+    """T070 (plan D9): scope, from, to, outcome, and 50 rows a page."""
+    many = [{"at": f"2026-11-{d:02d}T10:00:00+00:00", "actor": "buyer-1", "action": "policy.saved", "outcome": "accepted"} for d in range(1, 29)]
+    proc = fwd({"items": many + [{"at": "2026-11-09T09:00:00+00:00", "actor": "buyer-1", "action": "budget_cap.saved", "outcome": "accepted"}]})
+    inv = fwd({"items": [{"at": "2026-11-09T11:00:00+00:00", "actor": "buyer-2", "action": "demand_exclusion.added", "outcome": "accepted"}]})
+    fc = fwd({"items": [{"at": "2026-11-09T12:00:00+00:00", "actor": "buyer-3", "action": "parameter.saved", "outcome": "accepted"}]})
+    call("PUT", "/api/policies/global/*", headers_for("viewer-1", ["viewer"]), AsyncMock(), json={"min_units": 1})                # one refusal recorded by the gateway
+    get = lambda qs="": call("GET", f"/api/policy-audit{qs}", headers_for("admin-1", ADMIN), proc, inv, fc).json()          # noqa: E731
+
+    everything = get()
+    assert everything["total"] == 28 + 1 + 1 + 1 + 1 and len(everything["items"]) == 32 and everything["page"] == 1
+    assert {i["action"] for i in get("?scope=budget")["items"]} == {"budget_cap.saved"}
+    assert {i["action"] for i in get("?scope=demand")["items"]} == {"demand_exclusion.added"}
+    assert {i["action"] for i in get("?scope=forecast")["items"]} == {"parameter.saved"}
+    assert get("?scope=policy")["total"] == 28
+    refused = get("?outcome=refused")
+    assert refused["total"] == 1 and refused["items"][0]["actor"] == "viewer-1"
+    day = get("?from=2026-11-09&to=2026-11-09")
+    assert all(i["at"].startswith("2026-11-09") for i in day["items"]) and {"budget_cap.saved", "demand_exclusion.added", "parameter.saved", "policy.saved"} <= {i["action"] for i in day["items"]}
+    assert call("GET", "/api/policy-audit?scope=nope", headers_for("admin-1", ADMIN), proc, inv, fc).status_code == 422
+    assert call("GET", "/api/policy-audit?from=not-a-date", headers_for("admin-1", ADMIN), proc, inv, fc).status_code == 422
+
+
+def test_the_audit_view_pages_fifty_rows_at_a_time(role_store):
+    rows = [{"at": f"2026-10-{d:02d}T{h:02d}:00:00+00:00", "actor": "buyer-1", "action": "policy.saved", "outcome": "accepted"} for d in range(1, 29) for h in (8, 9, 10)]
+    proc, empty = fwd({"items": rows}), fwd({"items": []})
+    first = call("GET", "/api/policy-audit", headers_for("admin-1", ADMIN), proc, empty, empty).json()
+    second = call("GET", "/api/policy-audit?page=2", headers_for("admin-1", ADMIN), proc, empty, empty).json()
+    assert first["total"] == 84 and len(first["items"]) == 50 and len(second["items"]) == 34 and second["page"] == 2
+    assert first["items"][0]["at"] > second["items"][0]["at"]                                              # newest first across pages
+
+
 def test_the_audit_view_includes_forecast_parameter_changes_and_names_a_source_that_is_down(role_store):
     import httpx
 

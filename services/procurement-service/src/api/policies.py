@@ -51,6 +51,11 @@ from api.costs import get_engine
 from api.terms import parse_if_match
 
 
+# What the admin audit view may show of a stored event: rule values and bookkeeping only, never a typed reason or an ERP id.
+AUDIT_VIEW_KEYS = ("scope", "key", "revision", "valid_from", *FIELDS, "period", "scope_key", "amount", "mode", "floor", "field", "recommended", "requested", "status",
+                   "recommendation_changed", "current_recommended")
+
+
 class PolicyBody(BaseModel):
     service_level_pct: Decimal | None = Field(default=None, ge=0, le=100)
     safety_stock_units: int | None = Field(default=None, ge=0, le=1_000_000)
@@ -155,8 +160,31 @@ def build_router(app: FastAPI) -> APIRouter:
         rows = conn.execute(select(audit_events).where(or_(audit_events.c.action.like("policy.%"), audit_events.c.action.like("budget_cap.%"),
                                                            audit_events.c.action.like("stocking.%"), audit_events.c.action.like("policy_override.%")))
                             .order_by(audit_events.c.id.desc()).limit(limit)).all()
-        return {"items": [{"at": r.ts.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": r.entity_id, "before": r.before, "after": r.after,
-                           "outcome": "refused" if r.action.endswith(".refused") else "accepted"} for r in rows]}
+        from db.tables import policy_override_requests
+
+        override_variant = {r.id: int(r.variant_id) for r in conn.execute(select(policy_override_requests.c.id, policy_override_requests.c.variant_id)).all()}
+
+        def shown(payload: Any, product_scope: bool) -> dict[str, Any] | None:
+            """Only whitelisted keys, and the SKU where the stored key is a variant id: no ERP id and no typed text reaches the admin view (FR-013, FR-018)."""
+            if not isinstance(payload, dict):
+                return None
+            out = {k: payload[k] for k in AUDIT_VIEW_KEYS if k in payload}
+            if product_scope and str(out.get("key", "")).isdigit():
+                out["key"] = sku_for_variant(conn, int(out["key"])) or None
+            return out
+
+        items = []
+        for r in rows:
+            entity_id = r.entity_id
+            if r.action.startswith("stocking."):
+                entity_id = sku_for_variant(conn, int(r.entity_id)) or ""
+            elif r.action.startswith("policy_override."):
+                vid = override_variant.get(r.entity_id)
+                entity_id = (sku_for_variant(conn, vid) or "") if vid is not None else ""
+            product = bool(isinstance(r.after, dict) and r.after.get("scope") == "product")
+            items.append({"at": r.ts.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": entity_id, "before": shown(r.before, product),
+                          "after": shown(r.after, product), "outcome": "refused" if r.action.endswith(".refused") else "accepted"})
+        return {"items": items}
 
     @router.get("/policies/{scope}/{key}")
     def get_policy(scope: str, key: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

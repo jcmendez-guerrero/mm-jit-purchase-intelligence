@@ -16,7 +16,9 @@ from auth.session import SessionData
 from clients.forecast import ForecastClient
 from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from datetime import date
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from routes.api import get_inventory_client, get_procurement_client
 from routes.rbac import log_refusal, require_roles
 
@@ -24,6 +26,11 @@ router = APIRouter()
 _forecast = ForecastClient()
 ANY = ("viewer", "buyer", "approver", "admin")
 POLICY_PATHS = ("/api/policies", "/api/budget-caps", "/api/stocking", "/api/policy-overrides", "/api/demand-rules", "/api/parameters", "/api/products/")
+
+
+AUDIT_PAGE = 50
+AUDIT_SCOPES = {"policy": ("policy.",), "budget": ("budget_cap.",), "safety_stock": ("stocking.", "policy_override."),
+                "demand": ("demand_exclusion.", "censoring_rule.", "criticality."), "forecast": ("parameter.",), "access": ("access.",)}
 
 
 def _need_fresh_mfa(request: Request, session: SessionData) -> None:
@@ -123,24 +130,37 @@ async def effective_policy(sku: str, session: SessionData = Depends(require_role
 
 
 @router.get("/policy-audit")
-async def policy_audit(session: SessionData = Depends(require_roles("admin")), proc: ProcurementClient = Depends(get_procurement_client),
-                       inv: InventoryClient = Depends(get_inventory_client), fc: ForecastClient = Depends(get_forecast_client)) -> dict[str, Any]:
-    """Who changed which rule, and who was refused: accepted changes from the services that own the rules, refusals from the gateway's own audit."""
+async def policy_audit(
+    session: SessionData = Depends(require_roles("admin")), proc: ProcurementClient = Depends(get_procurement_client),
+    inv: InventoryClient = Depends(get_inventory_client), fc: ForecastClient = Depends(get_forecast_client),
+    scope: str | None = Query(default=None, pattern="^(policy|budget|safety_stock|demand|forecast|access)$"),
+    outcome: str | None = Query(default=None, pattern="^(accepted|refused)$"),
+    from_day: date | None = Query(default=None, alias="from"), to_day: date | None = Query(default=None, alias="to"), page: int = Query(default=1, ge=1, le=1000),
+) -> dict[str, Any]:
+    """Who changed which rule, and who was refused: accepted changes from the services that own the rules, refusals from the gateway's own audit.
+
+    Filtered by what was changed (scope), the outcome and a date range, newest first, 50 rows a page.
+    """
     from routes.admin_roles import get_store
 
     items: list[dict[str, Any]] = []
     unavailable: list[str] = []
     for name, client in (("procurement", proc), ("inventory", inv), ("forecast", fc)):
         try:
-            items += (await client.forward("GET", "/policy-audit", user_id=session.user_id, roles=session.roles)).get("items", [])
+            items += (await client.forward("GET", "/policy-audit", params={"limit": 500}, user_id=session.user_id, roles=session.roles)).get("items", [])
         except (httpx.HTTPError, RuntimeError):
             unavailable.append(name)
     for e in get_store().audit_view():
         if e["action"] == "access.refused" and any(f" {p}" in f" {e['target_user']}" for p in POLICY_PATHS):
             items.append({"at": e["timestamp"], "actor": e["actor"], "action": "access.refused", "entity": "access", "entity_id": e["target_user"], "outcome": "refused",
                           "reason_code": e["refusal_reason"]})
+    prefixes = AUDIT_SCOPES.get(scope or "", ())
+    items = [i for i in items
+             if (not prefixes or i["action"].startswith(prefixes)) and (outcome is None or i.get("outcome") == outcome)
+             and (from_day is None or i["at"][:10] >= from_day.isoformat()) and (to_day is None or i["at"][:10] <= to_day.isoformat())]
     items.sort(key=lambda i: i["at"], reverse=True)
-    return {"items": items[:200], "unavailable": unavailable}
+    start = (page - 1) * AUDIT_PAGE
+    return {"items": items[start:start + AUDIT_PAGE], "total": len(items), "page": page, "page_size": AUDIT_PAGE, "unavailable": unavailable}
 
 
 # Stocking, override and recommendation routes take the SKU (feature 011, FR-018): the ERP variant id is resolved inside procurement and never shown.

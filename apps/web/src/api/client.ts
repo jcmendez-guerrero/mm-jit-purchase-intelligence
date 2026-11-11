@@ -137,6 +137,24 @@ export interface EffectivePolicy {
   rules: Record<"service_level" | "safety_stock_units" | "min_units" | "max_units" | "replenishment_cadence_days", EffectiveRule>;
 }
 
+export const AUDIT_SCOPES = ["policy", "budget", "safety_stock", "demand", "forecast", "access"] as const;
+
+export interface PolicyAuditQuery {
+  scope?: string;
+  outcome?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+}
+
+export interface PolicyAuditPage {
+  items: PolicyAuditItem[];
+  unavailable: string[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export interface PolicyAuditItem {
   at: string;
   actor: string;
@@ -165,6 +183,8 @@ export interface PolicyPreview {
   spend_after: string;
   spend_delta: string;
   saved: false;
+  /** The last finished forecast run the preview was computed with; a run in progress never changes it. */
+  forecast_run_id?: string | null;
 }
 
 export const EXCLUSION_REASONS = ["promotion", "closure", "supplier_outage", "bulk_sale", "other"] as const;
@@ -1170,8 +1190,13 @@ export class ApiClient {
     return this.request<EffectivePolicy>(`/products/${encodeURIComponent(sku)}/effective-policy`);
   }
 
-  async getPolicyAudit(): Promise<{ items: PolicyAuditItem[]; unavailable: string[] }> {
-    return this.request<{ items: PolicyAuditItem[]; unavailable: string[] }>("/policy-audit");
+  async getPolicyAudit(q: PolicyAuditQuery = {}): Promise<PolicyAuditPage> {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries({ scope: q.scope, outcome: q.outcome, from: q.from, to: q.to, page: q.page && q.page > 1 ? String(q.page) : undefined })) {
+      if (value) params.set(key, value);
+    }
+    const qs = params.toString();
+    return this.request<PolicyAuditPage>(`/policy-audit${qs ? `?${qs}` : ""}`);
   }
 
   async getStocking(sku: string): Promise<StockingSetting> {

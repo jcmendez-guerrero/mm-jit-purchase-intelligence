@@ -122,6 +122,23 @@ def test_audit_events_carry_the_previous_value_and_the_revision(api):
     assert Decimal(cap["before"]["amount"]) == Decimal("500") and cap["before"]["revision"] == 1 and cap["after"]["amount"] == "700"
 
 
+def test_the_audit_view_shows_skus_and_never_an_erp_id_or_typed_text(api):
+    """T067 (FR-018, FR-013): product policies, stocking and override requests are audited by variant id inside; the view shows the SKU and no typed reason."""
+    api.put("/policies/product/SYN-0005", json={"min_units": 3}, headers=h("buyer"))
+    api.put("/stocking/SYN-0005", json={"stocking_mode": "always_stocked", "min_floor_units": 2}, headers=h("buyer"))
+    rid = api.post("/policy-overrides", json={"sku": "SYN-0005", "field": "min", "requested_value": 9, "reason": "proveedor poco fiable este mes"}, headers=h("buyer")).json()["id"]
+    assert api.post(f"/policy-overrides/{rid}/approve", headers=h("admin")).status_code == 200
+    items = api.get("/policy-audit", headers=h("admin")).json()["items"]
+    text = str(items)
+    assert "variant_id" not in text and "proveedor poco fiable" not in text                             # no ERP id, no typed reason
+    by_action = {i["action"]: i for i in items}
+    assert by_action["policy.saved"]["after"]["key"] == "SYN-0005" and by_action["policy.saved"]["after"]["scope"] == "product"
+    assert by_action["stocking.saved"]["entity_id"] == "SYN-0005" and by_action["stocking.saved"]["after"] == {"mode": "always_stocked", "floor": 2, "revision": 1}
+    assert by_action["policy_override.requested"]["entity_id"] == "SYN-0005" and by_action["policy_override.requested"]["after"]["requested"] == 9
+    assert by_action["policy_override.approved"]["entity_id"] == "SYN-0005"
+    assert all(i["entity_id"] != "5" for i in items)
+
+
 def test_the_preview_rows_carry_the_sku(api):
     from test_inputs import ELIGIBLE, Src, fc, stock, sv
 
@@ -130,3 +147,4 @@ def test_the_preview_rows_carry_the_sku(api):
     r = api.post("/policies/global/*/preview", json={"min_units": 40}, headers=h("buyer"))
     assert r.status_code == 200, r.text
     assert all(row["sku"] == "SYN-0005" for row in r.json()["affected"])
+    assert r.json()["forecast_run_id"] == "run-1"                                                    # T071: the preview says which forecast run it was computed with
