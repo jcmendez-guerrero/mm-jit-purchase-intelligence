@@ -11,7 +11,7 @@ Completion and verification of the policy console from feature 002. A first audi
 - **People see SKUs, never ERP ids**: product policies, exclusions, criticality, stocking, overrides, previews and the audit view.
 - **Budgets that bind**: when a cap binds, the weekly proposal defers the least urgent non-critical needed lines, lists them with the cap that bound, never defers a critical product or a line the buyer fixed, and shows the excess for a person to decide. Supplier weekly caps now apply. Category caps are refused (`budget_scope_unsupported`) because proposals carry no category.
 - **Censoring rules by scope** (global, segment, product), most specific first; **removal of an override** as a new revision.
-- **Audit**: admin view with who, what, before and after, scope and outcome, refusals included, filtered by what changed, outcome and dates, 50 rows a page; no ERP ids, no typed text.
+- **Audit**: admin view with who, what, before and after, scope and outcome, refusals included, filtered by what changed, outcome and dates (Madrid days, applied in each service before its row limit; a notice shows when a source hit its limit), 50 rows a page; no ERP ids, no typed text.
 - **Explanations** cite the scope and revision behind every rule; the proposal screen shows the budget effect and the rules applied; previews say which forecast run they used.
 - Also fixed: exclusion reasons were written to the audit as typed text (now a pick list code); older typed reasons are shown as "other" to non-admins.
 
@@ -27,14 +27,14 @@ Completion and verification of the policy console from feature 002. A first audi
 
 | Suite | Result |
 |-------|--------|
-| procurement | 896 passed |
-| gateway | 243 passed |
-| forecast | 222 passed, 3 skipped |
+| procurement | 897 passed |
+| gateway | 246 passed |
+| forecast | 223 passed, 3 skipped |
 | contracts | 237 passed, 5 skipped |
-| inventory | 274 passed, 10 failed: `test_dashboard_filter_matrix` and `test_dashboard_indicators`, which compare against today's date and fail the same way without this branch's changes |
+| inventory | 261 passed, 1 skipped, with `test_dashboard_filter_matrix` and `test_dashboard_indicators` deselected: they compare against today's date and fail the same way without this branch's changes |
 | web (policies, proposals, i18n) | 196 passed; `tsc` and eslint clean on the changed files |
 | Playwright (policies, safety stock, proposals export, roles) | 16 passed |
-| `python -m gates run` | contracts, isolation, security, cost pass |
+| `python -m gates run` | contracts, isolation, security, cost passed before the last audit change; not rerun after it (the e2e gate hangs without Docker) |
 
 ## Known limitations
 
