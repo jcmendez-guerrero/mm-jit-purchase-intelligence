@@ -33,7 +33,11 @@ paths:
   /admin/rerun/forecast:
     post: {summary: "Re-run forecast (CHANGED - fresh MFA)", x-fresh-mfa: true, responses: {"202": {description: "Accepted, idempotent"}}}
   /admin/rerun/import/{job_id}:
-    post: {summary: "Re-run an import job (CHANGED - fresh MFA)", x-fresh-mfa: true, responses: {"202": {description: "Accepted, idempotent"}}}
+    post:
+      summary: Re-run an import job (CHANGED - fresh MFA)
+      x-fresh-mfa: true
+      parameters: [{name: job_id, in: path, required: true, schema: {type: string, pattern: "^[0-9a-fA-F-]{8,40}$"}}]
+      responses: {"202": {description: "Accepted, idempotent"}}
   /admin/rerun/mirror:
     post: {summary: "Requeue mirror (CHANGED - fresh MFA)", x-fresh-mfa: true, responses: {"202": {description: Accepted}}}
   /admin/audit:

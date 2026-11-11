@@ -69,4 +69,3 @@ Rationale: scale-to-zero budget (EUR 120). The worker already runs `python -m wo
 - **D14 (T066, OQ-2).** Snapshots reach the BFF in one of two ways: `python -m worker snapshot <file>` (validates and stores one file; exit 1 on refusal) or the scheduled pass reading `ops-inputs/*.json`. The platform (pipeline or operator) produces the JSON; the repository never holds real figures.
 - **D15 (T068, FR-017).** "Fails repeatedly" means a failed job must be seen on `job_failed_observations` consecutive evaluations (default 2, setting range 1 to 20) before an alert opens; a recovery resets the count (`alert_observations`).
 - **D16 (T065, US4).** The scheduled worker now performs the complete evaluation with the BFF service identity restricted to the `viewer` role (read-only), so stale-source and failed-job alerts and their log marker no longer depend on the console being open.
-

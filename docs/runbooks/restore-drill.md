@@ -85,4 +85,3 @@ Tras cada copia correcta y cada simulacro, la plataforma entrega una cifra de op
 - Un paso del pipeline o la persona operadora guarda el JSON (esquema `ops_snapshot.v1`) y ejecuta `python -m worker snapshot <fichero>`. Código de salida 0: guardada (o ya estaba guardada); 1: rechazada (línea `SNAPSHOT_REJECTED`, solo códigos).
 - Alternativa: dejar los ficheros en `ops-inputs/` (carpeta ignorada por git); el trabajo programado los lee en cada pasada y repetir la lectura es inofensivo.
 - Nunca se suben cifras reales al repositorio; las de prueba están en `packages/testing/fixtures/ops/`.
-

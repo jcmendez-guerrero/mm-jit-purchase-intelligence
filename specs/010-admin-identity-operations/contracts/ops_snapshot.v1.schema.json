@@ -7,34 +7,52 @@
   "required": ["kind", "captured_at", "status"],
   "additionalProperties": false,
   "properties": {
-    "kind": {"enum": ["backup", "cost", "queues"]},
-    "captured_at": {"type": "string", "format": "date-time"},
-    "status": {"enum": ["ok", "unavailable"]},
+    "kind": { "enum": ["backup", "cost", "queues"] },
+    "captured_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["ok", "unavailable"] },
     "backup": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "last_success_at": {"type": ["string", "null"], "format": "date-time"},
-        "last_restore_drill_at": {"type": ["string", "null"], "format": "date-time"}
+        "last_success_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "last_restore_drill_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
       }
     },
     "cost": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["currency", "budget", "month_to_date", "projected", "partial_month"],
+      "required": [
+        "currency",
+        "budget",
+        "month_to_date",
+        "projected",
+        "partial_month"
+      ],
       "properties": {
-        "currency": {"const": "EUR"},
-        "budget": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]{1,2})?$"},
-        "month_to_date": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]{1,2})?$"},
-        "projected": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]{1,2})?$"},
-        "partial_month": {"type": "boolean"},
+        "currency": { "const": "EUR" },
+        "budget": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]{1,2})?$" },
+        "month_to_date": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]{1,2})?$"
+        },
+        "projected": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]{1,2})?$"
+        },
+        "partial_month": { "type": "boolean" },
         "limits": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "min_replicas": {"type": "integer", "minimum": 0},
-            "max_replicas": {"type": "integer", "minimum": 1},
-            "job_parallelism": {"type": "integer", "minimum": 1}
+            "min_replicas": { "type": "integer", "minimum": 0 },
+            "max_replicas": { "type": "integer", "minimum": 1 },
+            "job_parallelism": { "type": "integer", "minimum": 1 }
           }
         }
       }
@@ -43,7 +61,22 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "dead_lettered": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["queue", "count"], "properties": {"queue": {"type": "string", "pattern": "^[a-z0-9._-]{1,64}$"}, "count": {"type": "integer", "minimum": 0}, "reason_code": {"type": "string", "pattern": "^[a-z0-9_]{1,64}$"}}}}
+        "dead_lettered": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["queue", "count"],
+            "properties": {
+              "queue": { "type": "string", "pattern": "^[a-z0-9._-]{1,64}$" },
+              "count": { "type": "integer", "minimum": 0 },
+              "reason_code": {
+                "type": "string",
+                "pattern": "^[a-z0-9_]{1,64}$"
+              }
+            }
+          }
+        }
       }
     }
   }
