@@ -85,7 +85,7 @@ def test_the_censoring_rule_replaces_a_fixed_constant(client, engine):
 
     rule = "/demand-rules/rules/min_zero_stock_days"
     assert censored_days() != []
-    assert client.get("/demand-rules", headers=auth()).json()["rules"][0] == {"rule": "min_zero_stock_days", "value": 1, "min": 1, "max": 30, "default": 1, "revision": 0}
+    assert client.get("/demand-rules", headers=auth()).json()["rules"][0] == {"rule": "min_zero_stock_days", "scope": "global", "key": "*", "value": 1, "min": 1, "max": 30, "default": 1, "revision": 0}
     assert client.put(rule, json={"value": 5}, headers=auth("buyer")).json()["revision"] == 1
     assert censored_days() == []
     assert client.put(rule, json={"value": 0}, headers={**auth("buyer"), "If-Match": '"1"'}).status_code == 422

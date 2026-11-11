@@ -206,8 +206,9 @@ async def toggle_exclusion(xid: int, body: dict[str, Any], if_match: str | None 
 
 
 @router.put("/demand-rules/rules/{rule}")
-async def put_rule(rule: str, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
+async def put_rule(request: Request, rule: str, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
                    inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+    _need_fresh_mfa(request, session)                          # a censoring rule changes the forecast inputs of many products (owner decision, T063)
     return await inv.forward("PUT", f"/demand-rules/rules/{rule}", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 
@@ -219,8 +220,9 @@ async def segment_history(variant_id: int, session: SessionData = Depends(requir
 # ---- forecast parameters ---------------------------------------------------------------------------------------------------------
 
 @router.put("/parameters/{key}")
-async def put_parameter(key: str, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
+async def put_parameter(request: Request, key: str, body: dict[str, Any], if_match: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
                         fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+    _need_fresh_mfa(request, session)                          # forecast parameters change every forecast (owner decision, T063)
     return await fc.forward("PUT", f"/parameters/{key}", json=body, user_id=session.user_id, roles=session.roles, if_match=if_match)
 
 

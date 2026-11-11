@@ -12,6 +12,8 @@ Shared interfaces touched by this feature. Everything is additive unless stated;
 | **Renamed (breaking for callers of the old path)** | `PUT /api/products/{product_id}/criticality` is now `PUT /api/products/{sku}/criticality`; the only consumer is the web app, changed in the same PR |
 | Behaviour | `PUT /api/budget-caps` now requires `If-Match` once a cap exists (428 / 412) and a fresh second factor; `PUT /api/policies/global/*` needs a fresh second factor |
 | Behaviour | Product-scope policy keys, preview rows, exclusions and criticality use the SKU; responses no longer carry `variant_id` |
+| Behaviour | `PUT /api/demand-rules/rules/{rule}` takes optional `scope` (`global` default, `segment`, `product`) and `key` (a segment code or, for a product, the SKU); each scope and key has its own revision for `If-Match`; `GET /api/policy-console` rules carry `scope`, `key` and `revision` per entry |
+| Behaviour | `PUT /api/demand-rules/rules/{rule}` and `PUT /api/parameters/{key}` now need a fresh second factor (owner decision) |
 | Behaviour | `PUT /api/demand-rules/exclusions/{id}` and `PUT /api/demand-rules/rules/{rule}` require `If-Match`; `POST /api/demand-rules/exclusions` takes `sku`, `reason_code`, optional `detail` instead of `variant_id` and free-text `reason` |
 
 ## Schemas
@@ -27,7 +29,7 @@ Shared interfaces touched by this feature. Everything is additive unless stated;
 
 ## Migrations
 
-procurement `0013` (unique index on budget-cap revisions; fails on a database that already holds duplicates), inventory `0008` (`demand_exclusions.reason_detail`), forecast `0006` (`forecast_runs.rule_version_ids`). All additive and reversible.
+procurement `0013` (unique index on budget-cap revisions; fails on a database that already holds duplicates), inventory `0008` (`demand_exclusions.reason_detail`), inventory `0009` (`censoring_rules.scope` and `key`, defaults keep existing rows global), forecast `0006` (`forecast_runs.rule_version_ids`). All additive and reversible.
 
 ## Open
 

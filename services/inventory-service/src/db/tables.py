@@ -216,6 +216,8 @@ censoring_rules = Table(
     "censoring_rules", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("rule", String(40), nullable=False),
+    Column("scope", String(10), nullable=False, server_default="global"),   # global / segment / product (feature 011)
+    Column("key", String(40), nullable=False, server_default="*"),           # '*', a segment (critical, A, B, C, sparse) or a variant id (never shown)
     Column("value", Integer, nullable=False),
     Column("valid_from", Date, nullable=False),
     Column("revision", Integer, nullable=False, default=1),

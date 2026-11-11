@@ -11,7 +11,7 @@ const consoleData = (over: Partial<PolicyConsole> = {}): PolicyConsole => ({
     ok: true,
     data: {
       exclusions: [{ id: 7, sku: null, from_day: "2026-10-03", to_day: "2026-10-05", reason_code: "closure", active: true, revision: 1 }],
-      rules: [{ rule: "min_zero_stock_days", value: 1, min: 1, max: 30, default: 1, revision: 0 }],
+      rules: [{ rule: "min_zero_stock_days", scope: "global", key: "*", value: 1, min: 1, max: 30, default: 1, revision: 0 }],
     },
   },
   forecast: { ok: true, data: { as_of: "2026-11-09", parameters: [{ key: "lead_time", value: "7", default: "7", min: "1", max: "60", kind: "int", revision: 0, in_force_revision: null }] } },
@@ -284,6 +284,39 @@ describe("demand and forecast sections", () => {
     fireEvent.change(screen.getByLabelText(/Días seguidos sin stock/), { target: { value: "3" } });
     fireEvent.click(screen.getByRole("button", { name: "Guardar regla" }));
     await waitFor(() => expect(rule).toHaveBeenCalledWith("min_zero_stock_days", 3, 0));
+  });
+
+  it("sets the censoring rule for a segment and for a product by SKU, and lists the saved scopes", async () => {
+    vi.spyOn(api, "getPolicyConsole").mockResolvedValue(consoleData({
+      demand: { ok: true, data: { exclusions: [], rules: [
+        { rule: "min_zero_stock_days", scope: "global", key: "*", value: 1, min: 1, max: 30, default: 1, revision: 2 },
+        { rule: "min_zero_stock_days", scope: "segment", key: "A", value: 3, min: 1, max: 30, default: 1, revision: 1 },
+      ] } },
+    }));
+    const rule = vi.spyOn(api, "putCensoringRule").mockResolvedValue({});
+    render(<PoliciesScreen userRoles={["buyer"]} />);
+    await screen.findByText(/Presupuesto semanal vigente/);
+    tab(/Demanda y criticidad/);
+    expect(await screen.findByLabelText(/Días seguidos sin stock.*\(clase A\)/)).toHaveProperty("value", "3");
+    fireEvent.change(screen.getByLabelText(/Días seguidos sin stock.*\(clase A\)/), { target: { value: "4" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Guardar regla" })[1]!);
+    await waitFor(() => expect(rule).toHaveBeenCalledWith("min_zero_stock_days", 4, 1, { scope: "segment", key: "A" }));       // its own revision, not the global one
+    fireEvent.change(screen.getByLabelText("Ámbito de la regla"), { target: { value: "product" } });
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: "SYN-0005" } });
+    fireEvent.change(screen.getByLabelText("Valor de la regla (días)"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar regla para este ámbito" }));
+    await waitFor(() => expect(rule).toHaveBeenLastCalledWith("min_zero_stock_days", 2, 0, { scope: "product", key: "SYN-0005" }));
+  });
+
+  it("asks for the segment or SKU before saving a scoped rule", async () => {
+    const rule = vi.spyOn(api, "putCensoringRule").mockResolvedValue({});
+    render(<PoliciesScreen userRoles={["buyer"]} />);
+    await screen.findByText(/Presupuesto semanal vigente/);
+    tab(/Demanda y criticidad/);
+    fireEvent.change(await screen.findByLabelText("Valor de la regla (días)"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar regla para este ámbito" }));
+    expect((await screen.findAllByRole("alert")).map((a) => a.textContent).join(" ")).toContain("segmento o el SKU");
+    expect(rule).not.toHaveBeenCalled();
   });
 
   it("changes clinical criticality only through an explicit toggle", async () => {

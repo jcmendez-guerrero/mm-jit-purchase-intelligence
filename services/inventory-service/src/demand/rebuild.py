@@ -23,7 +23,7 @@ from db.tables import (
     stock_snapshots,
 )
 from mmi_common.time import utc_now
-from projections.rules import Exclusions, censoring_value
+from projections.rules import Exclusions, censoring_resolver
 from quality.metrics import metrics
 from sqlalchemy import Table, delete, func, insert, select
 from sqlalchemy.engine import Connection
@@ -92,7 +92,7 @@ def rebuild(conn: Connection, provider: DemandProvider | None = None, through_da
                 earlier[r.variant_id][r.snapshot_date - timedelta(days=1)] = r.on_hand
 
     excluded = Exclusions(conn)
-    history = reconstruct(movements, current, through_day, earlier, censoring_value(conn, "min_zero_stock_days")) if through_day else []
+    history = reconstruct(movements, current, through_day, earlier, censoring_resolver(conn, "min_zero_stock_days")) if through_day else []
     if excluded:                                               # excluded days are not observable demand, whatever the stock was
         history = [replace(h, censored=True) if excluded(h.variant_id, h.day) else h for h in history]
     censored = {(h.variant_id, h.day): h.censored for h in history}

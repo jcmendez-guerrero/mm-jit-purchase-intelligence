@@ -187,7 +187,11 @@ export interface CensoringRule {
   max: number;
   default: number;
   revision: number;
+  scope: "global" | "segment" | "product";
+  key: string | null;               // "*" for global, a segment, or the SKU of a product
 }
+
+export const CENSORING_SEGMENTS = ["critical", "A", "B", "C", "sparse"] as const;
 
 export interface ForecastParameter {
   key: string;
@@ -1195,8 +1199,13 @@ export class ApiClient {
     return this.request<JsonRecord>(`/demand-rules/exclusions/${id}`, { method: "PUT", headers: { "If-Match": `"${version}"` }, body: JSON.stringify({ active }) });
   }
 
-  async putCensoringRule(rule: string, value: number, version: number): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/demand-rules/rules/${rule}`, { method: "PUT", headers: version > 0 ? { "If-Match": `"${version}"` } : {}, body: JSON.stringify({ value }) });
+  /** The global rule when `target` is omitted; otherwise the rule for a segment or, by SKU, a product. */
+  async putCensoringRule(rule: string, value: number, version: number, target?: { scope: "segment" | "product"; key: string }): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/demand-rules/rules/${rule}`, {
+      method: "PUT",
+      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      body: JSON.stringify(target ? { value, scope: target.scope, key: target.key } : { value }),
+    });
   }
 
   async getSegmentHistory(variantId: number): Promise<{ variant_id: number; history: SegmentHistoryRow[] }> {

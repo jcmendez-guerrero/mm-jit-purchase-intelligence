@@ -26,6 +26,7 @@ from projections.rules import (
     exclusion_revision,
     list_exclusions,
     list_rules,
+    scope_key,
     set_censoring_rule,
     set_exclusion_active,
 )
@@ -49,9 +50,11 @@ class ActiveBody(BaseModel):
 
 class RuleBody(BaseModel):
     value: int
+    scope: str = Field(default="global", max_length=10)
+    key: str | None = Field(default=None, max_length=60)          # a segment (critical, A, B, C, sparse) or, for a product, its SKU
 
 
-AUDIT_VIEW_KEYS = ("sku", "from", "to", "reason_code", "active", "value", "revision", "clinical_critical")
+AUDIT_VIEW_KEYS = ("sku", "from", "to", "reason_code", "active", "value", "revision", "clinical_critical", "scope", "key")
 
 
 def _safe(payload: Any) -> dict[str, Any] | None:
@@ -122,16 +125,23 @@ def build_rules_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> API
     def put_rule(rule: str, body: RuleBody, if_match: str | None = Header(default=None), conn: Connection = Depends(conn_dep),
                  principal: Any = Depends(require("buyer"))) -> Any:
         expected = parse_revision(if_match)
-        if expected is None and censoring_revision(conn, rule) > 0:
-            raise HTTPException(428, "revision_required")
         try:
-            rev = set_censoring_rule(conn, rule, body.value, principal.subject, expected_revision=expected if expected is not None else 0)
+            key, shown = body.key, body.key
+            if body.scope == "product":                           # people use the SKU; the variant id stays inside
+                vid, _pid, shown = resolve_sku(conn, body.key or "")
+                key = str(vid)
+            scope, ikey = scope_key(body.scope, key)
+            if expected is None and censoring_revision(conn, rule, scope, ikey) > 0:
+                raise HTTPException(428, "revision_required")
+            rev = set_censoring_rule(conn, rule, body.value, principal.subject, expected_revision=expected if expected is not None else 0, scope=scope, key=ikey, shown_key=shown)
+        except SkuError as exc:
+            raise HTTPException(422, exc.code) from exc
         except RuleConflict as exc:
             return conflict(exc)
         except RuleError as exc:
             raise HTTPException(422, error_code(exc)) from exc
         refresh(conn)
-        return {"rule": rule, "value": body.value, "revision": rev}
+        return {"rule": rule, "scope": scope, "key": shown if scope != "global" else "*", "value": body.value, "revision": rev}
 
     @router.get("/segments/{variant_id}/history")
     def segment_history(variant_id: int, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

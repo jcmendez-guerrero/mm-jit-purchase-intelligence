@@ -33,6 +33,25 @@ def test_segment_and_product_writes_need_only_the_normal_session(role_store, pat
     assert call("PUT", path, headers_for("buyer-1", BUYER, mfa_age_seconds=3600), proc, json={"min_units": 1}).status_code == 200
 
 
+@pytest.mark.parametrize(("path", "body", "mock"), [("/api/parameters/lead_time", {"value": "9"}, "fc"), ("/api/demand-rules/rules/min_zero_stock_days", {"value": 3}, "inv")])
+def test_forecast_parameters_and_censoring_rules_need_a_fresh_second_factor(role_store, path, body, mock):
+    """T063 (owner decision): they change forecasts for every product, so they get the same check as budget caps."""
+    target = fwd({"revision": 1})
+    kw = {mock: target}
+    stale = call("PUT", path, headers_for("buyer-1", BUYER, mfa_age_seconds=301), **kw, json=body)
+    assert stale.status_code == 403 and stale.json() == {"detail": "auth_mfa_stale"}
+    target.forward.assert_not_called()
+    assert call("PUT", path, headers_for("buyer-1", BUYER, mfa_age_seconds=10), **kw, json=body).status_code == 200
+    target.forward.assert_called_once()
+    assert call("PUT", path, headers_for("v", ["viewer"], mfa_age_seconds=10), **kw, json=body).status_code == 403          # the role is checked first
+
+
+def test_exclusions_keep_the_normal_session(role_store):
+    inv = fwd({"id": 1})
+    body = {"sku": None, "from_day": "2026-10-03", "to_day": "2026-10-03", "reason_code": "promotion"}
+    assert call("POST", "/api/demand-rules/exclusions", headers_for("buyer-1", BUYER, mfa_age_seconds=3600), inv=inv, json=body).status_code == 201
+
+
 def test_removing_an_override_is_a_buyer_action_with_the_revision_and_global_needs_a_fresh_factor(role_store):
     proc = fwd({"revision": 2})
     assert call("DELETE", "/api/policies/product/SYN-0001", {**headers_for("v", ["viewer"]), "If-Match": '"1"'}, proc).status_code == 403
