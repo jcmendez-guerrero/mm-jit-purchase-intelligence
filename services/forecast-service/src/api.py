@@ -8,7 +8,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from audit import append
-from db.tables import forecast_runs, forecast_values
+from db.tables import audit_events, forecast_runs, forecast_values
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Path, Query
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
@@ -115,6 +115,15 @@ def build_router(app: FastAPI) -> APIRouter:
         except ParameterError as exc:
             raise HTTPException(422, error_code(exc)) from exc
         return {"key": key, "revision": rev}
+
+    @router.get("/policy-audit")
+    def policy_audit(limit: int = Query(default=100, ge=1, le=500), conn: Connection = Depends(conn_dep), _p: Any = Depends(require("admin"))) -> dict[str, Any]:
+        """Parameter changes for the admin audit view: who, from which value to which, when. Nothing else is read from the audit trail."""
+        rows = conn.execute(select(audit_events).where(audit_events.c.action.like("parameter.%")).order_by(audit_events.c.id.desc()).limit(limit)).all()
+        keep = ("value", "revision", "valid_from")
+        pick = lambda p: None if not isinstance(p, dict) else {k: p[k] for k in keep if k in p}          # noqa: E731
+        return {"items": [{"at": r.ts.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": r.entity_id,
+                           "before": pick(r.before), "after": pick(r.after), "outcome": "accepted"} for r in rows]}
 
     @router.post("/runs", status_code=202)
     def request_run(engine: Engine = Depends(get_engine), principal: Any = Depends(require())) -> dict[str, Any]:

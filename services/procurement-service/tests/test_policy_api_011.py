@@ -1,6 +1,7 @@
 """Feature 011 over HTTP (T019, T021 service side, T023, T013, T016): budget revisions, SKU keys, effective-policy view and the audit read."""
 
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 from api import costs, policies
@@ -96,6 +97,22 @@ def test_the_audit_read_is_admin_only_and_lists_changes(api):
     items = api.get("/policy-audit", headers=h("admin")).json()["items"]
     assert {i["action"] for i in items} >= {"policy.saved", "budget_cap.saved"}
     assert all(i["actor"] and i["at"] for i in items) and all(i["outcome"] == "accepted" for i in items)
+
+
+def test_audit_events_carry_the_previous_value_and_the_revision(api):
+    """T056: who changed what from which value to which."""
+    api.put("/policies/global/*", json={"min_units": 1}, headers=h("buyer"))
+    api.put("/policies/global/*", json={"min_units": 4}, headers={**h("buyer"), "If-Match": '"1"'})
+    api.delete("/policies/global/*", headers={**h("buyer"), "If-Match": '"2"'})
+    api.put("/budget-caps", json=CAP, headers=h("buyer"))
+    api.put("/budget-caps", json={**CAP, "amount": "700"}, headers={**h("buyer"), "If-Match": '"1"'})
+    items = {(i["action"], (i["after"] or {}).get("revision")): i for i in api.get("/policy-audit", headers=h("admin")).json()["items"]}
+    first, second, cleared = items[("policy.saved", 1)], items[("policy.saved", 2)], items[("policy.cleared", 3)]
+    assert first["before"] is None
+    assert second["before"]["min_units"] == "1" and second["before"]["revision"] == 1 and second["after"]["min_units"] == "4"
+    assert cleared["before"]["min_units"] == "4" and cleared["before"]["revision"] == 2
+    cap = items[("budget_cap.saved", 2)]
+    assert Decimal(cap["before"]["amount"]) == Decimal("500") and cap["before"]["revision"] == 1 and cap["after"]["amount"] == "700"
 
 
 def test_the_preview_rows_carry_the_sku(api):

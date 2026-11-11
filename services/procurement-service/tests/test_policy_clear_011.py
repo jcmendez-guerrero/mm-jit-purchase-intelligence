@@ -81,6 +81,21 @@ def test_the_clear_route_needs_a_buyer_and_the_revision(api):
     assert api.get("/products/SYN-0005/effective-policy", headers=h("viewer")).json()["rules"]["min_units"]["source"] == "default"
 
 
+def test_a_product_policy_for_a_variant_that_is_not_in_the_catalogue_is_ignored_by_calculations(conn):
+    """T065: kept in the table, but it changes no proposal input and is not recorded as a version used."""
+    from conftest import add_supplier
+    from proposals.inputs import InputsProvider
+    from test_inputs import ELIGIBLE, Src, cost, fc, stock, sv
+
+    sa = add_supplier(conn, 1, "A")
+    cost(conn, sa, 10, "1.00")
+    save_policy(conn, "product", "999", PolicyValues(min_units=500), "buyer-1", today=TODAY)          # variant 999 is not in stock or in the forecast
+    inputs = InputsProvider(Src(stock(sv(1, 10, on_hand=0))), Src(fc(v1=ELIGIBLE))).build(conn, TODAY)
+    assert [v.variant_id for v in inputs.variants] == [1] and inputs.variants[0].min_units is None
+    assert "product:999" not in inputs.policy_versions
+    assert conn.execute(select(policy_sets)).all().__len__() == 1                                       # never deleted
+
+
 def test_a_policy_whose_sku_left_the_catalogue_is_kept_flagged_and_listed(api, engine):
     api.put("/policies/product/SYN-0005", json={"min_units": 3}, headers=h("buyer"))
     with engine.begin() as c:

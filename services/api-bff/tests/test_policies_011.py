@@ -68,7 +68,7 @@ def test_the_audit_view_merges_services_and_refusals_newest_first(role_store):
     proc = fwd({"items": [{"at": "2026-11-09T10:00:00+00:00", "actor": "buyer-1", "action": "policy.saved", "outcome": "accepted"}]})
     inv = fwd({"items": [{"at": "2026-11-09T11:00:00+00:00", "actor": "buyer-2", "action": "demand_exclusion.added", "outcome": "accepted"}]})
     call("PUT", "/api/policies/global/*", headers_for("viewer-1", ["viewer"]), AsyncMock(), json={"min_units": 1})        # a refused edit: recorded by the gateway
-    res = call("GET", "/api/policy-audit", headers_for("admin-1", ADMIN), proc, inv)
+    res = call("GET", "/api/policy-audit", headers_for("admin-1", ADMIN), proc, inv, fwd({"items": []}))
     assert res.status_code == 200
     actions = [i["action"] for i in res.json()["items"]]
     assert {"policy.saved", "demand_exclusion.added"} <= set(actions)
@@ -76,6 +76,18 @@ def test_the_audit_view_merges_services_and_refusals_newest_first(role_store):
     assert refusals and refusals[0]["actor"] == "viewer-1"
     ats = [i["at"] for i in res.json()["items"]]
     assert ats == sorted(ats, reverse=True)
+
+
+def test_the_audit_view_includes_forecast_parameter_changes_and_names_a_source_that_is_down(role_store):
+    import httpx
+
+    fc = fwd({"items": [{"at": "2026-11-09T12:00:00+00:00", "actor": "buyer-3", "action": "parameter.saved", "outcome": "accepted"}]})
+    res = call("GET", "/api/policy-audit", headers_for("admin-1", ADMIN), fwd({"items": []}), fwd({"items": []}), fc)
+    assert [i["action"] for i in res.json()["items"]] == ["parameter.saved"] and res.json()["unavailable"] == []
+    down = AsyncMock()
+    down.forward.side_effect = httpx.ConnectError("down")
+    res2 = call("GET", "/api/policy-audit", headers_for("admin-1", ADMIN), fwd({"items": []}), fwd({"items": []}), down)
+    assert res2.status_code == 200 and res2.json()["unavailable"] == ["forecast"]
 
 
 def test_the_effective_policy_view_forwards_the_segments_of_the_product(role_store):

@@ -51,6 +51,14 @@ class RuleBody(BaseModel):
     value: int
 
 
+AUDIT_VIEW_KEYS = ("sku", "from", "to", "reason_code", "active", "value", "revision", "clinical_critical")
+
+
+def _safe(payload: Any) -> dict[str, Any] | None:
+    """Only whitelisted keys reach the audit view: older events carried the typed exclusion reason and the ERP variant id (project rule 7)."""
+    return None if not isinstance(payload, dict) else {k: payload[k] for k in AUDIT_VIEW_KEYS if k in payload}
+
+
 def parse_revision(header: str | None) -> int | None:
     """If-Match carries the revision the editor read, as ``"3"`` or ``3``."""
     if header is None:
@@ -160,7 +168,7 @@ def build_rules_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> API
             entity_id = r.entity_id
             if r.entity == "product":                              # the ERP product id never leaves the service: show a SKU instead
                 entity_id = sku_of_product.get(int(r.entity_id), "")
-            items.append({"at": r.ts.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": entity_id, "before": r.before, "after": r.after,
+            items.append({"at": r.ts.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": entity_id, "before": _safe(r.before), "after": _safe(r.after),
                           "outcome": "accepted"})
         return {"items": items}
 

@@ -19,6 +19,32 @@ def test_a_toggle_without_a_revision_is_428_and_a_stale_one_is_412_with_the_curr
     assert stale.status_code == 412 and stale.json() == {"detail": "revision_conflict", "current_version": 2}
 
 
+def test_a_toggle_that_loses_the_race_changes_nothing_and_is_a_conflict(engine):
+    """T058: two toggles read revision 1; only the first update matches."""
+    from datetime import date
+
+    from db.tables import demand_exclusions
+    from projections.rules import RuleConflict, add_exclusion, exclusion_revision, set_exclusion_active
+    from sqlalchemy import update
+
+    with engine.begin() as c:
+        xid = add_exclusion(c, None, date(2026, 10, 3), date(2026, 10, 3), "promotion", "buyer-1", now=datetime(2026, 10, 10, tzinfo=UTC))
+    with engine.begin() as c:
+        real = c.execute
+
+        def racing(stmt, *a, **k):          # another writer toggles between this one's read and write
+            if getattr(stmt, "is_update", False) and not getattr(racing, "done", False):
+                racing.done = True
+                real(update(demand_exclusions).where(demand_exclusions.c.id == xid).values(revision=2, active=False))
+            return real(stmt, *a, **k)
+
+        c.execute = racing                                              # type: ignore[method-assign]
+        with __import__("pytest").raises(RuleConflict) as e:
+            set_exclusion_active(c, xid, False, "buyer-2", expected_revision=1)
+        c.execute = real                                                # type: ignore[method-assign]
+        assert e.value.current_revision == 2 and exclusion_revision(c, xid) == 2
+
+
 def test_a_censoring_rule_save_needs_the_current_revision_once_one_exists(client, engine):
     seed(engine)
     rule = "/demand-rules/rules/min_zero_stock_days"
@@ -50,6 +76,17 @@ def test_the_audit_read_is_admin_only_lists_rule_changes_and_shows_skus_not_ids(
     assert {i["action"] for i in items} == {"demand_exclusion.added", "censoring_rule.saved", "criticality.changed"}
     text = str(items)
     assert "variant_id" not in text and "campaña" not in text and "SYN-1" in text
+
+
+def test_an_older_audit_event_with_free_text_never_reaches_the_audit_view(client, engine):
+    """T055: before feature 011 the exclusion reason was written to the audit as typed text; the view shows only whitelisted keys."""
+    from audit import append
+
+    with engine.begin() as c:
+        append(c, "buyer-0", "demand_exclusion.added", "demand_exclusion", "1", after={"variant_id": 1, "from": "2026-10-03", "to": "2026-10-03", "reason": "campaña de otoño"})
+    items = client.get("/policy-audit", headers=auth("admin")).json()["items"]
+    assert len(items) == 1 and items[0]["after"] == {"from": "2026-10-03", "to": "2026-10-03"}
+    assert "campaña" not in str(items) and "variant_id" not in str(items)
 
 
 def test_the_series_export_carries_the_rule_versions(client, engine):

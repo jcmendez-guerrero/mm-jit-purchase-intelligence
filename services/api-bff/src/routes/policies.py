@@ -122,13 +122,13 @@ async def effective_policy(sku: str, session: SessionData = Depends(require_role
 
 @router.get("/policy-audit")
 async def policy_audit(session: SessionData = Depends(require_roles("admin")), proc: ProcurementClient = Depends(get_procurement_client),
-                       inv: InventoryClient = Depends(get_inventory_client)) -> dict[str, Any]:
+                       inv: InventoryClient = Depends(get_inventory_client), fc: ForecastClient = Depends(get_forecast_client)) -> dict[str, Any]:
     """Who changed which rule, and who was refused: accepted changes from the services that own the rules, refusals from the gateway's own audit."""
     from routes.admin_roles import get_store
 
     items: list[dict[str, Any]] = []
     unavailable: list[str] = []
-    for name, client in (("procurement", proc), ("inventory", inv)):
+    for name, client in (("procurement", proc), ("inventory", inv), ("forecast", fc)):
         try:
             items += (await client.forward("GET", "/policy-audit", user_id=session.user_id, roles=session.roles)).get("items", [])
         except (httpx.HTTPError, RuntimeError):

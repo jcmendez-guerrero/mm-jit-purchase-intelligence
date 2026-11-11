@@ -75,7 +75,10 @@ def set_exclusion_active(conn: Connection, xid: int, active: bool, actor: str, n
         raise RuleConflict(int(row.revision))
     if bool(row.active) == active:
         return
-    conn.execute(update(demand_exclusions).where(demand_exclusions.c.id == xid).values(active=active, revision=row.revision + 1, changed_by=actor))
+    done = conn.execute(update(demand_exclusions).where(demand_exclusions.c.id == xid, demand_exclusions.c.revision == row.revision)       # a simultaneous toggle changes nothing
+                        .values(active=active, revision=row.revision + 1, changed_by=actor))
+    if done.rowcount == 0:
+        raise RuleConflict(exclusion_revision(conn, xid) or int(row.revision))
     audit(conn, actor, "demand_exclusion.reactivated" if active else "demand_exclusion.deactivated", "demand_exclusion", str(xid), before={"active": bool(row.active)}, after={"active": active}, now=now)
 
 

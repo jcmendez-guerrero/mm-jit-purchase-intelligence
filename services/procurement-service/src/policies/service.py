@@ -9,6 +9,7 @@ product (variant) > segment (A/B/C/critical/sparse) > global.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -18,6 +19,7 @@ from audit.chain import append as audit
 from db.tables import budget_caps, policy_sets, product_refs
 from sqlalchemy import func, insert, select
 from sqlalchemy.engine import Connection, Row
+from sqlalchemy.exc import IntegrityError
 
 SCOPES = ("global", "segment", "product")
 SEGMENTS = ("A", "B", "C", "critical", "sparse")
@@ -84,6 +86,26 @@ def _current_revision(conn: Connection, scope: str, key: str) -> int:
     return int(conn.execute(select(func.max(policy_sets.c.revision)).where(policy_sets.c.scope == scope, policy_sets.c.key == key)).scalar() or 0)
 
 
+def _insert_or_conflict(conn: Connection, stmt: Any, current: Callable[[], int]) -> None:
+    """A second save that read the same revision only fails at the database (unique revision): that is a conflict, not a server error, and stores nothing."""
+    try:
+        with conn.begin_nested():
+            conn.execute(stmt)
+    except IntegrityError as exc:
+        raise PolicyConflict(current()) from exc
+
+
+def _snapshot(row: Row[Any] | None) -> dict[str, Any] | None:
+    """The previous values, for the audit trail: what a change replaced."""
+    if row is None:
+        return None
+    return {"revision": int(row.revision), "valid_from": row.valid_from.isoformat(), **{f: (None if getattr(row, f) is None else str(getattr(row, f))) for f in FIELDS}}
+
+
+def _latest_policy(conn: Connection, scope: str, key: str) -> Row[Any] | None:
+    return conn.execute(select(policy_sets).where(policy_sets.c.scope == scope, policy_sets.c.key == key).order_by(policy_sets.c.revision.desc()).limit(1)).first()
+
+
 def save_policy(conn: Connection, scope: str, key: str, values: PolicyValues, actor: str, *, valid_from: date | None = None, expected_revision: int | None = None,
                 today: date | None = None) -> int:
     """Returns the new revision. ``expected_revision`` must equal the current one (0 for the first save)."""
@@ -102,11 +124,12 @@ def save_policy(conn: Connection, scope: str, key: str, values: PolicyValues, ac
         raise PolicyError("a revision is already scheduled after this date", "policy_overlap")
     rev = current + 1
     pid = str(uuid.uuid4())
-    conn.execute(insert(policy_sets).values(id=pid, scope=scope, key=key, service_level=values.service_level, safety_stock_units=values.safety_stock_units,
-                                            min_units=values.min_units, max_units=values.max_units, replenishment_cadence_days=values.replenishment_cadence_days,
-                                            valid_from=start, revision=rev, changed_by=actor))
-    audit(conn, actor, "policy.saved", "policy_set", pid, after={"scope": scope, "key": key, "revision": rev, "valid_from": start.isoformat(),
-                                                                  **{f: (None if getattr(values, f) is None else str(getattr(values, f))) for f in FIELDS}})
+    previous = _snapshot(_latest_policy(conn, scope, key))
+    _insert_or_conflict(conn, insert(policy_sets).values(id=pid, scope=scope, key=key, service_level=values.service_level, safety_stock_units=values.safety_stock_units,
+                                                         min_units=values.min_units, max_units=values.max_units, replenishment_cadence_days=values.replenishment_cadence_days,
+                                                         valid_from=start, revision=rev, changed_by=actor), lambda: _current_revision(conn, scope, key))
+    audit(conn, actor, "policy.saved", "policy_set", pid, before=previous, after={"scope": scope, "key": key, "revision": rev, "valid_from": start.isoformat(),
+                                                                                  **{f: (None if getattr(values, f) is None else str(getattr(values, f))) for f in FIELDS}})
     return rev
 
 
@@ -123,9 +146,11 @@ def clear_policy(conn: Connection, scope: str, key: str, actor: str, *, expected
     if latest is not None and today < latest:
         raise PolicyError("a revision is already scheduled after this date", "policy_overlap")
     rev, pid = current + 1, str(uuid.uuid4())
-    conn.execute(insert(policy_sets).values(id=pid, scope=scope, key=key, service_level=None, safety_stock_units=None, min_units=None, max_units=None,
-                                            replenishment_cadence_days=None, valid_from=today, revision=rev, changed_by=actor))
-    audit(conn, actor, "policy.cleared", "policy_set", pid, after={"scope": scope, "key": key, "revision": rev, "valid_from": today.isoformat()})
+    previous = _snapshot(_latest_policy(conn, scope, key))
+    _insert_or_conflict(conn, insert(policy_sets).values(id=pid, scope=scope, key=key, service_level=None, safety_stock_units=None, min_units=None, max_units=None,
+                                                         replenishment_cadence_days=None, valid_from=today, revision=rev, changed_by=actor),
+                        lambda: _current_revision(conn, scope, key))
+    audit(conn, actor, "policy.cleared", "policy_set", pid, before=previous, after={"scope": scope, "key": key, "revision": rev, "valid_from": today.isoformat()})
     return rev
 
 
@@ -252,8 +277,11 @@ def save_budget_cap(conn: Connection, period: str, scope: str, scope_key: str | 
     if latest is not None and start < latest:
         raise PolicyError("a budget cap is already scheduled after this date", "policy_overlap")
     cid = str(uuid.uuid4())
-    conn.execute(insert(budget_caps).values(id=cid, period=period, scope=scope, scope_key=scope_key, amount=amount, valid_from=start, revision=prev + 1, changed_by=actor))
-    audit(conn, actor, "budget_cap.saved", "budget_cap", cid, after={"period": period, "scope": scope, "scope_key": scope_key, "amount": str(amount), "valid_from": start.isoformat(),
+    last = conn.execute(select(budget_caps).where(*_cap_filter(period, scope, scope_key)).order_by(budget_caps.c.revision.desc()).limit(1)).first()
+    before = None if last is None else {"revision": int(last.revision), "amount": str(last.amount), "valid_from": last.valid_from.isoformat()}
+    _insert_or_conflict(conn, insert(budget_caps).values(id=cid, period=period, scope=scope, scope_key=scope_key, amount=amount, valid_from=start, revision=prev + 1, changed_by=actor),
+                        lambda: budget_cap_revision(conn, period, scope, scope_key))
+    audit(conn, actor, "budget_cap.saved", "budget_cap", cid, before=before, after={"period": period, "scope": scope, "scope_key": scope_key, "amount": str(amount), "valid_from": start.isoformat(),
                                                                        "revision": prev + 1})
     return cid
 
