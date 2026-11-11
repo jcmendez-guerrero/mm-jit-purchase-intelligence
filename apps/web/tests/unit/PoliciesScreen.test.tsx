@@ -182,12 +182,13 @@ describe("feature 011: revisions, sources and audit", () => {
   });
 
   it("filters the audit by what changed, the outcome and the dates, and pages through it", async () => {
-    const audit = vi.spyOn(api, "getPolicyAudit").mockResolvedValue({ items: [], unavailable: [], total: 120, page: 1, page_size: 50 });
+    const audit = vi.spyOn(api, "getPolicyAudit").mockResolvedValue({ items: [], unavailable: [], truncated: ["procurement"], total: 120, page: 1, page_size: 50 });
     render(<PoliciesScreen userRoles={["viewer", "buyer", "approver", "admin"]} />);
     await screen.findByText(/Presupuesto semanal vigente/);
     tab(/Auditoría de reglas/);
     expect(await screen.findByText("Página 1 de 3 · 120 registros")).toBeTruthy();
     expect(audit).toHaveBeenLastCalledWith({ page: 1 });
+    expect(screen.getByText(/solo los cambios más recientes de: /).textContent).toContain("Acote las fechas");
     fireEvent.change(screen.getByLabelText("Qué cambió"), { target: { value: "budget" } });
     fireEvent.change(screen.getByLabelText("Resultado", { selector: "#audit-outcome" }), { target: { value: "refused" } });
     fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-11-01" } });
@@ -203,7 +204,7 @@ describe("feature 011: revisions, sources and audit", () => {
     vi.spyOn(api, "getPolicyAudit").mockResolvedValue({
       items: [{ at: "2026-11-09T10:00:00+00:00", actor: "buyer-1", action: "policy.saved", entity_id: "abc", outcome: "accepted" },
               { at: "2026-11-09T11:00:00+00:00", actor: "viewer-1", action: "access.refused", entity_id: "PUT /api/policies/global/*", outcome: "refused", reason_code: "forbidden_missing_role" }],
-      unavailable: ["inventory"], total: 2, page: 1, page_size: 50,
+      unavailable: ["inventory"], truncated: [], total: 2, page: 1, page_size: 50,
     });
     render(<PoliciesScreen userRoles={["viewer", "buyer"]} />);
     await screen.findByText(/Presupuesto semanal vigente/);

@@ -451,6 +451,7 @@
   "policies.audit.page": "Página {{page}} de {{pages}} · {{total}} registros",
   "policies.audit.empty": "Todavía no hay cambios registrados.",
   "policies.audit.unavailable": "No se pudo leer la auditoría de: {{sources}}.",
+  "policies.audit.truncated": "Se muestran solo los cambios más recientes de: {{sources}}. Acote las fechas para ver los anteriores.",
   "policies.audit.source.procurement": "compras",
   "policies.audit.source.inventory": "inventario",
   "policies.audit.at": "Fecha y hora",

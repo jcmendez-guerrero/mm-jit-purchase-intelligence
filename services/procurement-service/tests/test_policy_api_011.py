@@ -148,3 +148,17 @@ def test_the_preview_rows_carry_the_sku(api):
     assert r.status_code == 200, r.text
     assert all(row["sku"] == "SYN-0005" for row in r.json()["affected"])
     assert r.json()["forecast_run_id"] == "run-1"                                                    # T071: the preview says which forecast run it was computed with
+
+
+def test_the_audit_filters_run_before_the_row_limit(api):
+    """T073: an old budget change is found by its filter even when newer policy changes fill the limit."""
+    api.put("/budget-caps", json=CAP, headers=h("buyer"))
+    for n in (1, 2, 3):
+        api.put("/policies/global/*", json={"min_units": n}, headers=h("buyer") if n == 1 else {**h("buyer"), "If-Match": f'"{n - 1}"'})
+    newest = api.get("/policy-audit?limit=1", headers=h("admin")).json()["items"]
+    assert [i["action"] for i in newest] == ["policy.saved"]
+    assert [i["action"] for i in api.get("/policy-audit?limit=1&prefix=budget_cap.", headers=h("admin")).json()["items"]] == ["budget_cap.saved"]
+    assert api.get("/policy-audit?outcome=refused", headers=h("admin")).json()["items"] == []
+    tomorrow = (datetime.now(UTC) + timedelta(days=1)).isoformat()
+    assert api.get("/policy-audit", params={"since": tomorrow}, headers=h("admin")).json()["items"] == []
+    assert api.get("/policy-audit", params={"until": tomorrow}, headers=h("admin")).json()["items"] != []

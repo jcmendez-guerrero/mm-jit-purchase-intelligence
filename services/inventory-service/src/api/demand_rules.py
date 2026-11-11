@@ -7,7 +7,7 @@ revision it edited, and the audit never carries free text.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from classification.run import compute_segments, history_for
@@ -177,9 +177,19 @@ def build_rules_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> API
         return {"sku": shown, "segments": [*(["critical"] if crit else []), *([abc] if abc else [])]}
 
     @router.get("/policy-audit")
-    def policy_audit(limit: int = Query(default=100, ge=1, le=500), conn: Connection = Depends(conn_dep), _p: Any = Depends(require("admin"))) -> dict[str, Any]:
-        rows = conn.execute(select(audit_events).where(or_(audit_events.c.action.like("demand_exclusion.%"), audit_events.c.action.like("censoring_rule.%"),
-                                                           audit_events.c.action.like("criticality.%"))).order_by(audit_events.c.id.desc()).limit(limit)).all()
+    def policy_audit(limit: int = Query(default=100, ge=1, le=500), prefix: str = Query(default="", max_length=80, pattern="^[a-z_.,]*$"),
+                     outcome: str | None = Query(default=None, pattern="^(accepted|refused)$"), since: datetime | None = None, until: datetime | None = None,
+                     conn: Connection = Depends(conn_dep), _p: Any = Depends(require("admin"))) -> dict[str, Any]:
+        """Filters run in the query, before the row limit, so an old match is never cut by newer rows; this service records accepted changes only."""
+        wanted = tuple(p for p in ("demand_exclusion.", "censoring_rule.", "criticality.") if not prefix or p in prefix.split(","))
+        q = select(audit_events).where(or_(*(audit_events.c.action.like(f"{p}%") for p in wanted)))
+        if outcome == "refused":
+            return {"items": []}
+        if since:
+            q = q.where(audit_events.c.ts >= since)
+        if until:
+            q = q.where(audit_events.c.ts < until)
+        rows = conn.execute(q.order_by(audit_events.c.id.desc()).limit(limit)).all()
         sku_of_product = {r.product_id: str(r.sku).strip() for r in conn.execute(select(variants.c.product_id, func.min(variants.c.sku).label("sku"))
                                                                                    .group_by(variants.c.product_id)).all() if r.sku}
         items = []

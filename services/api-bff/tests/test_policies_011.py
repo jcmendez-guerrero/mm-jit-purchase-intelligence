@@ -171,3 +171,27 @@ def test_the_effective_policy_view_forwards_the_segments_of_the_product(role_sto
     res = call("GET", "/api/products/SYN-0005/effective-policy", headers_for("v", ["viewer"]), proc, inv)
     assert res.status_code == 200
     assert proc.forward.call_args.kwargs["params"] == {"segments": "critical,A"}
+
+
+def test_the_audit_filters_go_down_to_the_services_so_old_rows_are_not_cut_by_the_row_limit(role_store):
+    """T073/T075: scope, outcome and the date range are applied where the rows live, in Madrid-day bounds (November is UTC+1)."""
+    proc, inv, fc = fwd({"items": []}), fwd({"items": []}), fwd({"items": []})
+    call("GET", "/api/policy-audit?scope=budget&outcome=accepted&from=2026-11-10&to=2026-11-10", headers_for("admin-1", ADMIN), proc, inv, fc)
+    params = proc.forward.call_args.kwargs["params"]
+    assert params["prefix"] == "budget_cap." and params["outcome"] == "accepted"
+    assert params["since"] == "2026-11-09T23:00:00+00:00" and params["until"] == "2026-11-10T23:00:00+00:00"
+    assert inv.forward.call_args.kwargs["params"] == params and fc.forward.call_args.kwargs["params"] == params
+
+
+def test_the_audit_date_filter_uses_the_madrid_day(role_store):
+    """T074/T075: a change at 23:30 UTC on the 10th is the 11th in Madrid."""
+    proc = fwd({"items": [{"at": "2026-11-10T23:30:00+00:00", "actor": "buyer-1", "action": "policy.saved", "outcome": "accepted"}]})
+    get = lambda day: call("GET", f"/api/policy-audit?from={day}&to={day}", headers_for("admin-1", ADMIN), proc, fwd({"items": []}), fwd({"items": []})).json()["total"]          # noqa: E731
+    assert get("2026-11-11") == 1 and get("2026-11-10") == 0
+
+
+def test_the_audit_view_says_when_a_source_returned_its_whole_row_limit(role_store):
+    """T073: a source that filled its cap may hold older matching rows: the view says so instead of looking complete."""
+    full = fwd({"items": [{"at": "2026-11-09T10:00:00+00:00", "actor": "a", "action": "policy.saved", "outcome": "accepted"}] * 500})
+    res = call("GET", "/api/policy-audit", headers_for("admin-1", ADMIN), full, fwd({"items": []}), fwd({"items": []})).json()
+    assert res["truncated"] == ["procurement"]

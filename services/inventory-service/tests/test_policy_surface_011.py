@@ -128,3 +128,14 @@ def test_the_series_export_carries_the_rule_versions(client, engine):
     client.put(f"/demand-rules/exclusions/{xid}", json={"active": False}, headers={**auth("buyer"), **IF1})
     client.put("/demand-rules/rules/min_zero_stock_days", json={"value": 3}, headers=auth("buyer"))
     assert client.get("/export/series", headers=auth()).json()["rule_versions"] == {"exclusions": 2, "censoring.min_zero_stock_days": 1}
+
+
+def test_the_audit_filters_run_before_the_row_limit(client, engine):
+    """T073: an old exclusion is found by its prefix even when newer rule changes fill the limit; refused rows never exist here."""
+    seed(engine)
+    client.post("/demand-rules/exclusions", json={**BODY, "detail": "x"}, headers=auth("buyer"))
+    client.put("/demand-rules/rules/min_zero_stock_days", json={"value": 3}, headers=auth("buyer"))
+    assert [i["action"] for i in client.get("/policy-audit?limit=1", headers=auth("admin")).json()["items"]] == ["censoring_rule.saved"]
+    assert [i["action"] for i in client.get("/policy-audit?limit=1&prefix=demand_exclusion.", headers=auth("admin")).json()["items"]] == ["demand_exclusion.added"]
+    assert client.get("/policy-audit?outcome=refused", headers=auth("admin")).json()["items"] == []
+    assert client.get("/policy-audit?since=2999-01-01T00:00:00%2B00:00", headers=auth("admin")).json()["items"] == []

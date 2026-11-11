@@ -117,9 +117,18 @@ def build_router(app: FastAPI) -> APIRouter:
         return {"key": key, "revision": rev}
 
     @router.get("/policy-audit")
-    def policy_audit(limit: int = Query(default=100, ge=1, le=500), conn: Connection = Depends(conn_dep), _p: Any = Depends(require("admin"))) -> dict[str, Any]:
-        """Parameter changes for the admin audit view: who, from which value to which, when. Nothing else is read from the audit trail."""
-        rows = conn.execute(select(audit_events).where(audit_events.c.action.like("parameter.%")).order_by(audit_events.c.id.desc()).limit(limit)).all()
+    def policy_audit(limit: int = Query(default=100, ge=1, le=500), prefix: str = Query(default="", max_length=80, pattern="^[a-z_.,]*$"),
+                     outcome: str | None = Query(default=None, pattern="^(accepted|refused)$"), since: datetime | None = None, until: datetime | None = None,
+                     conn: Connection = Depends(conn_dep), _p: Any = Depends(require("admin"))) -> dict[str, Any]:
+        """Parameter changes for the admin audit view: who, from which value to which, when. Filters run before the row limit; only accepted changes are recorded here."""
+        if outcome == "refused" or (prefix and "parameter." not in prefix.split(",")):
+            return {"items": []}
+        q = select(audit_events).where(audit_events.c.action.like("parameter.%"))
+        if since:
+            q = q.where(audit_events.c.ts >= since)
+        if until:
+            q = q.where(audit_events.c.ts < until)
+        rows = conn.execute(q.order_by(audit_events.c.id.desc()).limit(limit)).all()
         keep = ("value", "revision", "valid_from")
         pick = lambda p: None if not isinstance(p, dict) else {k: p[k] for k in keep if k in p}          # noqa: E731
         return {"items": [{"at": r.ts.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": r.entity_id,

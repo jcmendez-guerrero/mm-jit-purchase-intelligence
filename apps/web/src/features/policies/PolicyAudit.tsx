@@ -47,6 +47,9 @@ export const PolicyAudit: React.FC = () => {
       {data && data.unavailable.length > 0 && (
         <p role="alert">{t("policies.audit.unavailable", { sources: data.unavailable.map((s) => t(`policies.audit.source.${s}`, { defaultValue: s })).join(", ") })}</p>
       )}
+      {data && data.truncated.length > 0 && (
+        <p role="status">{t("policies.audit.truncated", { sources: data.truncated.map((s) => t(`policies.audit.source.${s}`, { defaultValue: s })).join(", ") })}</p>
+      )}
       <div className="mmi-cluster" role="group" aria-label={t("policies.audit.filters")}>
         <div className="mmi-stack">
           <label htmlFor="audit-scope">{t("policies.audit.scope")}</label>

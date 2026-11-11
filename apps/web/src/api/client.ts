@@ -150,6 +150,7 @@ export interface PolicyAuditQuery {
 export interface PolicyAuditPage {
   items: PolicyAuditItem[];
   unavailable: string[];
+  truncated: string[];
   total: number;
   page: number;
   page_size: number;

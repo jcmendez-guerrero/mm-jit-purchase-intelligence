@@ -16,7 +16,8 @@ from auth.session import SessionData
 from clients.forecast import ForecastClient
 from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from datetime import date
+from datetime import date, datetime, time, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from routes.api import get_inventory_client, get_procurement_client
@@ -29,8 +30,20 @@ POLICY_PATHS = ("/api/policies", "/api/budget-caps", "/api/stocking", "/api/poli
 
 
 AUDIT_PAGE = 50
+AUDIT_SOURCE_LIMIT = 500
+MADRID = ZoneInfo("Europe/Madrid")
 AUDIT_SCOPES = {"policy": ("policy.",), "budget": ("budget_cap.",), "safety_stock": ("stocking.", "policy_override."),
                 "demand": ("demand_exclusion.", "censoring_rule.", "criticality."), "forecast": ("parameter.",), "access": ("access.",)}
+
+
+def _madrid_day(at: str) -> date:
+    """The calendar day a stored UTC instant falls on for the people reading the audit (es-ES, rule 8)."""
+    d = datetime.fromisoformat(at)
+    return (d if d.tzinfo else d.replace(tzinfo=timezone.utc)).astimezone(MADRID).date()
+
+
+def _day_start_utc(day: date) -> str:
+    return datetime.combine(day, time.min, MADRID).astimezone(timezone.utc).isoformat()
 
 
 def _need_fresh_mfa(request: Request, session: SessionData) -> None:
@@ -143,24 +156,32 @@ async def policy_audit(
     """
     from routes.admin_roles import get_store
 
+    prefixes = AUDIT_SCOPES.get(scope or "", ())
+    # The services apply the filters before their row limit, so an old match is never cut by newer rows of another kind.
+    params: dict[str, Any] = {"limit": AUDIT_SOURCE_LIMIT, **({"prefix": ",".join(prefixes)} if prefixes else {}), **({"outcome": outcome} if outcome else {}),
+                              **({"since": _day_start_utc(from_day)} if from_day else {}), **({"until": _day_start_utc(to_day + timedelta(days=1))} if to_day else {})}
     items: list[dict[str, Any]] = []
     unavailable: list[str] = []
+    truncated: list[str] = []
     for name, client in (("procurement", proc), ("inventory", inv), ("forecast", fc)):
         try:
-            items += (await client.forward("GET", "/policy-audit", params={"limit": 500}, user_id=session.user_id, roles=session.roles)).get("items", [])
+            got = (await client.forward("GET", "/policy-audit", params=params, user_id=session.user_id, roles=session.roles)).get("items", [])
         except (httpx.HTTPError, RuntimeError):
             unavailable.append(name)
+            continue
+        items += got
+        if len(got) >= AUDIT_SOURCE_LIMIT:
+            truncated.append(name)
     for e in get_store().audit_view():
         if e["action"] == "access.refused" and any(f" {p}" in f" {e['target_user']}" for p in POLICY_PATHS):
             items.append({"at": e["timestamp"], "actor": e["actor"], "action": "access.refused", "entity": "access", "entity_id": e["target_user"], "outcome": "refused",
                           "reason_code": e["refusal_reason"]})
-    prefixes = AUDIT_SCOPES.get(scope or "", ())
     items = [i for i in items
              if (not prefixes or i["action"].startswith(prefixes)) and (outcome is None or i.get("outcome") == outcome)
-             and (from_day is None or i["at"][:10] >= from_day.isoformat()) and (to_day is None or i["at"][:10] <= to_day.isoformat())]
+             and (from_day is None or _madrid_day(i["at"]) >= from_day) and (to_day is None or _madrid_day(i["at"]) <= to_day)]
     items.sort(key=lambda i: i["at"], reverse=True)
     start = (page - 1) * AUDIT_PAGE
-    return {"items": items[start:start + AUDIT_PAGE], "total": len(items), "page": page, "page_size": AUDIT_PAGE, "unavailable": unavailable}
+    return {"items": items[start:start + AUDIT_PAGE], "total": len(items), "page": page, "page_size": AUDIT_PAGE, "unavailable": unavailable, "truncated": truncated}
 
 
 # Stocking, override and recommendation routes take the SKU (feature 011, FR-018): the ERP variant id is resolved inside procurement and never shown.

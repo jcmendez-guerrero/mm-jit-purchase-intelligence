@@ -156,13 +156,36 @@ def build_router(app: FastAPI) -> APIRouter:
         return {"sku": sku.strip(), "as_of": today().isoformat(), "rules": effective_view(conn, vid, segs, today())}
 
     @router.get("/policy-audit")
-    def policy_audit(limit: int = Query(default=100, ge=1, le=500), conn: Connection = Depends(conn_dep), _p: Any = Depends(require("admin"))) -> dict[str, Any]:
-        rows = conn.execute(select(audit_events).where(or_(audit_events.c.action.like("policy.%"), audit_events.c.action.like("budget_cap.%"),
-                                                           audit_events.c.action.like("stocking.%"), audit_events.c.action.like("policy_override.%")))
-                            .order_by(audit_events.c.id.desc()).limit(limit)).all()
-        from db.tables import policy_override_requests
+    def policy_audit(limit: int = Query(default=100, ge=1, le=500), prefix: str = Query(default="", max_length=80, pattern="^[a-z_.,]*$"),
+                     outcome: str | None = Query(default=None, pattern="^(accepted|refused)$"), since: datetime | None = None, until: datetime | None = None,
+                     conn: Connection = Depends(conn_dep), _p: Any = Depends(require("admin"))) -> dict[str, Any]:
+        """Filters (action prefix, outcome, time range) run in the query, before the row limit, so an old match is never cut by newer rows (FR-013)."""
+        own = ("policy.", "budget_cap.", "stocking.", "policy_override.")
+        wanted = tuple(p for p in own if not prefix or p in prefix.split(","))
+        q = select(audit_events).where(or_(*(audit_events.c.action.like(f"{p}%") for p in wanted)))
+        if outcome:
+            q = q.where(audit_events.c.action.like("%.refused") if outcome == "refused" else audit_events.c.action.not_like("%.refused"))
+        if since:
+            q = q.where(audit_events.c.ts >= since)
+        if until:
+            q = q.where(audit_events.c.ts < until)
+        rows = conn.execute(q.order_by(audit_events.c.id.desc()).limit(limit)).all()
+        from db.tables import policy_override_requests, product_refs
 
-        override_variant = {r.id: int(r.variant_id) for r in conn.execute(select(policy_override_requests.c.id, policy_override_requests.c.variant_id)).all()}
+        def num(v: Any) -> int | None:
+            return int(v) if str(v).isdigit() else None
+
+        override_ids = {r.entity_id for r in rows if r.action.startswith("policy_override.")}
+        override_variant = ({r.id: int(r.variant_id) for r in conn.execute(select(policy_override_requests.c.id, policy_override_requests.c.variant_id)
+                                                                          .where(policy_override_requests.c.id.in_(override_ids))).all()} if override_ids else {})
+
+        def product_key(payload: Any) -> int | None:
+            return num(payload.get("key")) if isinstance(payload, dict) and payload.get("scope") == "product" else None
+
+        wanted_variants = {v for r in rows for v in (num(r.entity_id) if r.action.startswith("stocking.") else None, override_variant.get(r.entity_id) if r.action.startswith("policy_override.") else None,
+                                                     product_key(r.after)) if v is not None}
+        sku_of = ({r.variant_id: str(r.sku).strip() for r in conn.execute(select(product_refs.c.variant_id, product_refs.c.sku).where(product_refs.c.variant_id.in_(wanted_variants))).all()
+                   if r.sku is not None} if wanted_variants else {})                                    # one lookup for the page, not one per row
 
         def shown(payload: Any, product_scope: bool) -> dict[str, Any] | None:
             """Only whitelisted keys, and the SKU where the stored key is a variant id: no ERP id and no typed text reaches the admin view (FR-013, FR-018)."""
@@ -170,18 +193,17 @@ def build_router(app: FastAPI) -> APIRouter:
                 return None
             out = {k: payload[k] for k in AUDIT_VIEW_KEYS if k in payload}
             if product_scope and str(out.get("key", "")).isdigit():
-                out["key"] = sku_for_variant(conn, int(out["key"])) or None
+                out["key"] = sku_of.get(int(out["key"])) or None
             return out
 
         items = []
         for r in rows:
             entity_id = r.entity_id
             if r.action.startswith("stocking."):
-                entity_id = sku_for_variant(conn, int(r.entity_id)) or ""
+                entity_id = sku_of.get(num(r.entity_id), "")
             elif r.action.startswith("policy_override."):
-                vid = override_variant.get(r.entity_id)
-                entity_id = (sku_for_variant(conn, vid) or "") if vid is not None else ""
-            product = bool(isinstance(r.after, dict) and r.after.get("scope") == "product")
+                entity_id = sku_of.get(override_variant.get(r.entity_id), "")
+            product = product_key(r.after) is not None
             items.append({"at": r.ts.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": entity_id, "before": shown(r.before, product),
                           "after": shown(r.after, product), "outcome": "refused" if r.action.endswith(".refused") else "accepted"})
         return {"items": items}

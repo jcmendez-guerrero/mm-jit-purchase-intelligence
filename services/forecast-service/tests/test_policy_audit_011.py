@@ -40,3 +40,12 @@ def test_the_audit_read_is_admin_only_and_shows_the_previous_value(api):
     assert oldest["before"] is None and oldest["after"]["value"] == "9"
     assert newest["before"]["value"] == "9" and newest["before"]["revision"] == 1 and newest["after"]["value"] == "12" and newest["entity_id"] == "lead_time"
     assert newest["actor"] == "user-buyer" and newest["outcome"] == "accepted"
+
+
+def test_the_audit_filters_run_before_the_row_limit(api):
+    """T073: a prefix of another service, a refused outcome or a future start finds nothing; the right prefix finds the change."""
+    api.put("/parameters/lead_time", json={"value": "9"}, headers=h("buyer"))
+    assert len(api.get("/policy-audit?prefix=parameter.", headers=h("admin")).json()["items"]) == 1
+    assert api.get("/policy-audit?prefix=budget_cap.", headers=h("admin")).json()["items"] == []
+    assert api.get("/policy-audit?outcome=refused", headers=h("admin")).json()["items"] == []
+    assert api.get("/policy-audit?since=2999-01-01T00:00:00%2B00:00", headers=h("admin")).json()["items"] == []
