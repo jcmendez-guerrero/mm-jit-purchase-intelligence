@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import JSON, BigInteger, Boolean, Column, DateTime, Index, Integer, MetaData, String, Table
+from sqlalchemy import JSON, BigInteger, Boolean, Column, DateTime, Index, Integer, MetaData, String, Table, text
 
 metadata = MetaData()
 
@@ -43,3 +43,45 @@ role_mirror_outbox = Table(
     Column("sent_at", DateTime(timezone=True)),
 )
 Index("ix_role_mirror_outbox_due", role_mirror_outbox.c.status, role_mirror_outbox.c.next_attempt_at)
+
+# ---- feature 010: administration and operations (migration 0002) ----
+alerts = Table(
+    "alerts", metadata,
+    Column("id", BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True),
+    Column("condition_key", String(40), nullable=False),
+    Column("subject", String(80), nullable=False),                       # a code (source key, job id), never free text
+    Column("severity", String(10), nullable=False),                      # warning / critical
+    Column("state", String(14), nullable=False, default="open"),         # open / acknowledged / closed
+    Column("opened_at", DateTime(timezone=True), nullable=False),
+    Column("last_seen_at", DateTime(timezone=True), nullable=False),
+    Column("acknowledged_by", String(120)),
+    Column("acknowledged_at", DateTime(timezone=True)),
+    Column("closed_at", DateTime(timezone=True)),
+    Column("reason_code", String(40), nullable=False),
+)
+Index("uq_alerts_live", alerts.c.condition_key, alerts.c.subject, unique=True,
+      sqlite_where=text("state <> 'closed'"), postgresql_where=text("state <> 'closed'"))
+ops_snapshots = Table(
+    "ops_snapshots", metadata,
+    Column("id", BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True),
+    Column("kind", String(10), nullable=False),                          # backup / cost / queues
+    Column("captured_at", DateTime(timezone=True), nullable=False),
+    Column("captured_at_original", String(40), nullable=False),
+    Column("payload", JSON, nullable=False),
+    Column("status", String(12), nullable=False),                        # ok / unavailable
+)
+Index("ix_ops_snapshots_kind", ops_snapshots.c.kind, ops_snapshots.c.captured_at)
+ops_settings = Table(
+    "ops_settings", metadata,
+    Column("key", String(40), primary_key=True),
+    Column("value", Integer, nullable=False),
+    Column("updated_by", String(120), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+alert_observations = Table(
+    "alert_observations", metadata,
+    Column("condition_key", String(40), primary_key=True),
+    Column("subject", String(80), primary_key=True),
+    Column("count", Integer, nullable=False, default=1),                 # consecutive evaluations that saw the condition (repeat rule)
+    Column("last_seen_at", DateTime(timezone=True), nullable=False),
+)

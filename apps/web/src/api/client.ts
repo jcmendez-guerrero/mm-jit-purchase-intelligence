@@ -398,7 +398,51 @@ export interface AdminStatus {
   model_runs: StatusCard<{ runs: Array<{ id: string; started_at: string; status: string; through_day: string; total: number; eligible: number; dataset_version_id: string | null }> }>;
   policy_history: StatusCard<Array<{ id: string; status: string; variant_id: number; [k: string]: unknown }>>;
   role_mirror: StatusCard<{ pending: number; failed: number; sent: number; oldest_pending_seconds: number }>;
-  cost: { budget_eur: number; estimate_eur: number; guardrails: { min_replicas: number; max_replicas: number; job_parallelism: number } };
+  cost: { budget_eur: number; guardrails: { min_replicas: number; max_replicas: number; job_parallelism: number } };
+}
+
+export interface AlertRow {
+  id: number;
+  condition_key: string;
+  subject: string;
+  severity: "warning" | "critical";
+  state: "open" | "acknowledged" | "closed";
+  opened_at: string;
+  last_seen_at: string;
+  acknowledged_by: string | null;
+  acknowledged_at: string | null;
+  reason_code: string;
+}
+export interface AlertsListing { items: AlertRow[]; delivery_configured: boolean }
+export interface OpsThresholds {
+  source_stale_hours: number;
+  backup_max_age_hours: number;
+  budget_warn_pct: number;
+  budget_critical_pct: number;
+  mirror_lag_minutes: number;
+  alert_repeat_hours: number;
+  job_failed_observations: number;
+}
+export type QueueKind = "mirror" | "import" | "forecast" | "message";
+export interface QueueItem {
+  kind: QueueKind;
+  id: string;
+  state: "waiting" | "running" | "succeeded" | "failed" | "dead_lettered";
+  attempts: number;
+  reason_code: string | null;
+  stale?: boolean;
+}
+export interface AuditRow { id: number; ts: string; actor: string; action: string; entity: string; entity_id: string; outcome: "allowed" | "refused"; reason_code: string | null }
+export interface AuditQuery { actor?: string; action?: string; outcome?: "allowed" | "refused" | ""; from?: string; to?: string }
+export interface AuditPage { items: AuditRow[]; next_cursor: string | null }
+export interface AuditVerify { ok: boolean; checked: number; first_broken_id: number | null }
+export interface OpsSummary {
+  backup: StatusCard<{ last_success_at: string | null; last_restore_drill_at: string | null; captured_at: string; stale_snapshot: boolean; old: boolean }>;
+  cost: StatusCard<{
+    currency: "EUR"; budget: string; month_to_date: string; projected: string; partial_month: boolean; captured_at: string; stale_snapshot: boolean;
+    projected_pct: string; level: "ok" | "warning" | "critical"; projection_is_estimate: boolean;
+    limits?: { min_replicas?: number | null; max_replicas?: number | null; job_parallelism?: number | null } | null;
+  }>;
 }
 
 export interface ScenarioSummary {
@@ -970,6 +1014,13 @@ export function onUnauthorized(listener: (() => void) | null): void {
   unauthorizedListener = listener;
 }
 
+export function auditParams(q: AuditQuery, cursor?: string): string {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(q)) if (v) p.set(k, k === "from" || k === "to" ? new Date(v).toISOString() : v);
+  if (cursor) p.set("cursor", cursor);
+  return p.toString();
+}
+
 export class ApiClient {
   private baseUrl = "/api";
 
@@ -1472,11 +1523,56 @@ export class ApiClient {
     return this.request<{ requeued: number }>("/admin/roles/mirror/retry", { method: "POST" });
   }
 
-  async updateRoles(userId: string, roles: string[], active = true): Promise<JsonRecord> {
+  async updateRoles(userId: string, roles: string[], active = true, expectedRevision?: number): Promise<JsonRecord> {
     return this.request<JsonRecord>(`/admin/roles/${encodeURIComponent(userId)}`, {
       method: "PUT",
-      body: JSON.stringify({ roles, active }),
+      body: JSON.stringify(expectedRevision === undefined ? { roles, active } : { roles, active, expected_revision: expectedRevision }),
     });
+  }
+
+  async getOpsSummary(): Promise<OpsSummary> {
+    return this.request<OpsSummary>("/admin/ops/summary");
+  }
+
+  async getQueue(): Promise<{ items: QueueItem[] }> {
+    return this.request<{ items: QueueItem[] }>("/admin/ops/queue");
+  }
+
+  async retryQueueItem(kind: Exclude<QueueKind, "message">, id: string): Promise<unknown> {
+    return this.request<unknown>(`/admin/ops/queue/${kind}/${encodeURIComponent(id)}/retry`, { method: "POST", body: JSON.stringify({}) });
+  }
+
+  async getAlerts(): Promise<AlertsListing> {
+    return this.request<AlertsListing>("/admin/alerts");
+  }
+
+  async acknowledgeAlert(id: number): Promise<AlertRow> {
+    return this.request<AlertRow>(`/admin/alerts/${id}/acknowledge`, { method: "POST", body: JSON.stringify({}) });
+  }
+
+  async getOpsSettings(): Promise<OpsThresholds> {
+    return this.request<OpsThresholds>("/admin/ops/settings");
+  }
+
+  async saveOpsSettings(values: Partial<OpsThresholds>): Promise<OpsThresholds> {
+    return this.request<OpsThresholds>("/admin/ops/settings", { method: "PUT", body: JSON.stringify(values) });
+  }
+
+  async getAudit(q: AuditQuery, cursor?: string): Promise<AuditPage> {
+    return this.request<AuditPage>(`/admin/audit?${auditParams(q, cursor)}`);
+  }
+
+  async verifyAudit(): Promise<AuditVerify> {
+    return this.request<AuditVerify>("/admin/audit/verify");
+  }
+
+  async exportAudit(q: AuditQuery): Promise<{ blob: Blob; truncated: boolean }> {
+    const res = await fetch(`${this.baseUrl}/admin/audit/export?${auditParams(q)}`, { credentials: "same-origin", headers: { Accept: "text/csv" } });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+      throw new ApiError(res.status, typeof body.detail === "string" && /^[a-z][a-z0-9_:]*$/.test(body.detail) ? body.detail : "unknown");
+    }
+    return { blob: await res.blob(), truncated: res.headers.get("X-Export-Truncated") === "true" };
   }
 
   async getSupplierTerms(supplierId: string): Promise<SupplierTermsView> {

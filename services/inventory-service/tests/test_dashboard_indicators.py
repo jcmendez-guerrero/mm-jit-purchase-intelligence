@@ -45,7 +45,7 @@ def seeded(engine, monkeypatch):
 
 def build(engine, roles=("buyer",), forecast=None, open_orders=OPEN, **filters):
     with engine.connect() as c:
-        return build_indicators(c, TODAY, FilterSet.parse(TODAY, **filters), forecast, roles, open_orders)
+        return build_indicators(c, TODAY, FilterSet.parse(TODAY, **filters), forecast, roles, open_orders, NOW)
 
 
 def test_a_buyer_gets_the_seven_indicators_matching_the_reference_totals_and_the_contract(seeded):

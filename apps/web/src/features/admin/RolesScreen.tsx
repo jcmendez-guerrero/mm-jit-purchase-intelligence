@@ -16,7 +16,7 @@ export const RolesScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useActionNotice();
   const [loading, setLoading] = useState(true);
-  const [pending, setPending] = useState<{ userId: string; roles: string[]; active: boolean } | null>(null);
+  const [pending, setPending] = useState<{ userId: string; roles: string[]; active: boolean; revision: number } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -34,11 +34,11 @@ export const RolesScreen: React.FC = () => {
     void load();
   }, [load]);
 
-  const save = async (userId: string, roles: string[], active: boolean) => {
+  const save = async (userId: string, roles: string[], active: boolean, revision: number) => {
     setError(null);
     setNotice(null);
     try {
-      await api.updateRoles(userId, roles, active);
+      await api.updateRoles(userId, roles, active, revision);
       setNotice(t("admin.roles.saved"));
     } catch (err) {
       setError(errorMessage(err, t("common.error")));
@@ -70,7 +70,7 @@ export const RolesScreen: React.FC = () => {
         onConfirm={() => {
           const change = pending;
           setPending(null);
-          if (change) void save(change.userId, change.roles, change.active);
+          if (change) void save(change.userId, change.roles, change.active, change.revision);
         }}
       />
       <Card as="div">
@@ -112,7 +112,7 @@ export const RolesScreen: React.FC = () => {
                               type="checkbox"
                               checked={u.roles.includes(r)}
                               aria-label={`${u.user_id} ${t(`roles.${r}`)}`}
-                              onChange={() => setPending({ userId: u.user_id, roles: toggleRole(u.roles, r), active: u.active })}
+                              onChange={() => setPending({ userId: u.user_id, roles: toggleRole(u.roles, r), active: u.active, revision: u.revision })}
                             />{" "}
                             {t(`roles.${r}`)}
                           </label>
@@ -128,7 +128,7 @@ export const RolesScreen: React.FC = () => {
                         type="checkbox"
                         checked={u.active}
                         aria-label={`${u.user_id} ${t("admin.roles.active")}`}
-                        onChange={() => setPending({ userId: u.user_id, roles: u.roles, active: !u.active })}
+                        onChange={() => setPending({ userId: u.user_id, roles: u.roles, active: !u.active, revision: u.revision })}
                       />
                     ),
                   },

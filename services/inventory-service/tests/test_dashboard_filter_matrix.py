@@ -39,7 +39,7 @@ def seeded(engine, monkeypatch):
 
 def indicators(engine, **filters):
     with engine.connect() as c:
-        return {i["key"]: i for i in build_indicators(c, TODAY, FilterSet.parse(TODAY, **filters), None, ("buyer",), Decimal("0.00"))["indicators"]}
+        return {i["key"]: i for i in build_indicators(c, TODAY, FilterSet.parse(TODAY, **filters), None, ("buyer",), Decimal("0.00"), NOW)["indicators"]}
 
 
 @pytest.mark.parametrize("filters,stock,expiring,demand", MATRIX, ids=[str(m[0]) for m in MATRIX])

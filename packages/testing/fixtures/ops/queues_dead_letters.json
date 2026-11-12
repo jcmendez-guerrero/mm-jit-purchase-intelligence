@@ -1,0 +1,14 @@
+{
+  "kind": "queues",
+  "captured_at": "2026-11-10T06:00:00Z",
+  "status": "ok",
+  "queues": {
+    "dead_lettered": [
+      {
+        "queue": "inventory.projections",
+        "count": 2,
+        "reason_code": "poison"
+      }
+    ]
+  }
+}

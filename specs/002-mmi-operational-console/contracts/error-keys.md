@@ -38,6 +38,9 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | override_release_by_setter | 403 | The admin who set an override cannot release it |
 | roles_invalid | 422 | A role is not valid |
 | roles_last_admin | 409 | The last administrator cannot be removed |
+| roles_conflict | 409 | The user's roles changed since the editor loaded them (feature 010; expected_revision differs) |
+| ops_item_unknown | 404 | The alert or queue item does not exist (feature 010) |
+| ops_settings_invalid | 422 | An operations threshold is out of range or inconsistent (feature 010) |
 | role_mirror_failed | 503 | A role change could not be mirrored to the purchasing side; it is retried |
 | auth_unauthenticated | 401 | Sign-in is required |
 | auth_csrf_invalid | 403 | The CSRF token is missing or invalid |

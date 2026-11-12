@@ -6,7 +6,6 @@ Each section degrades alone. A re-run is admin only, goes through the owning ser
 from __future__ import annotations
 
 import asyncio
-import os
 import re
 from typing import Any
 
@@ -19,7 +18,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from routes.admin_roles import _mirror_pass, get_store
 from routes.api import get_inventory_client, get_procurement_client
 from routes.policies import get_forecast_client
-from routes.rbac import require_roles
+from routes.rbac import require_fresh_mfa, require_roles
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 JOB_ID = re.compile(r"^[0-9a-fA-F-]{8,40}$")
@@ -43,9 +42,8 @@ async def _local(fn: Any) -> dict[str, Any]:
 
 
 def cost_indicators() -> dict[str, Any]:
-    """Guardrail figures from configuration, never from a cloud API: the estimate lives in the architecture document."""
-    return {"budget_eur": BUDGET_EUR, "estimate_eur": float(os.environ.get("MMI_COST_ESTIMATE_EUR", "0") or 0),
-            "guardrails": {"min_replicas": 0, "max_replicas": 1, "job_parallelism": 1}}
+    """Guardrail limits from configuration. Spend and backup figures come from validated snapshots (/admin/ops/summary)."""
+    return {"budget_eur": BUDGET_EUR, "guardrails": {"min_replicas": 0, "max_replicas": 1, "job_parallelism": 1}}
 
 
 @router.get("/status")
@@ -64,14 +62,16 @@ def _audit(session: SessionData, subject: str, outcome: dict[str, Any]) -> None:
 
 
 @router.post("/rerun/forecast", status_code=202)
-async def rerun_forecast(session: SessionData = Depends(require_roles("admin")), fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+async def rerun_forecast(session: SessionData = Depends(require_roles("admin")), _fresh: SessionData = Depends(require_fresh_mfa()),
+                         fc: ForecastClient = Depends(get_forecast_client)) -> Any:
     out = await fc.forward("POST", "/runs", user_id=session.user_id, roles=session.roles)
     _audit(session, "forecast", out)
     return out
 
 
 @router.post("/rerun/import/{job_id}", status_code=202)
-async def rerun_import(job_id: str, session: SessionData = Depends(require_roles("admin")), fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+async def rerun_import(job_id: str, session: SessionData = Depends(require_roles("admin")), _fresh: SessionData = Depends(require_fresh_mfa()),
+                       fc: ForecastClient = Depends(get_forecast_client)) -> Any:
     if not JOB_ID.match(job_id):
         raise HTTPException(422, "request_invalid")
     out = await fc.forward("POST", f"/imports/jobs/{job_id}/rerun", user_id=session.user_id, roles=session.roles)
@@ -80,7 +80,8 @@ async def rerun_import(job_id: str, session: SessionData = Depends(require_roles
 
 
 @router.post("/rerun/mirror", status_code=202)
-def rerun_mirror(background: BackgroundTasks, session: SessionData = Depends(require_roles("admin"))) -> dict[str, Any]:
+def rerun_mirror(background: BackgroundTasks, session: SessionData = Depends(require_roles("admin")),
+                 _fresh: SessionData = Depends(require_fresh_mfa())) -> dict[str, Any]:
     out = {"requeued": get_store().requeue_failed()}
     background.add_task(_mirror_pass)
     _audit(session, "mirror", out)

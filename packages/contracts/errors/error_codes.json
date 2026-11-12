@@ -700,6 +700,21 @@
       "http": 422,
       "kind": "request",
       "meaning": "The exclusion reason is not in the list, or its detail is too long"
+    },
+    "roles_conflict": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The user's roles changed since the editor loaded them (expected_revision differs); reload and retry"
+    },
+    "ops_item_unknown": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The alert or queue item does not exist"
+    },
+    "ops_settings_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "An operations threshold is outside its allowed range or the set is inconsistent"
     }
   }
 }

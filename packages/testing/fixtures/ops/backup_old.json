@@ -1,0 +1,9 @@
+{
+  "kind": "backup",
+  "captured_at": "2026-11-10T06:00:00Z",
+  "status": "ok",
+  "backup": {
+    "last_success_at": "2026-11-08T02:00:00Z",
+    "last_restore_drill_at": null
+  }
+}
