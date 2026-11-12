@@ -28,3 +28,9 @@
    - Reinsertarlo en la cola principal mediante `az storage message put`.
    - Eliminar el mensaje de la cola de veneno.
 3. Si el mensaje es corrupto o no recuperable: Documentar el incidente en el registro de incidencias y eliminar el mensaje tras guardar una copia para análisis forense.
+
+## Visibilidad en la consola (feature 010)
+
+- Administración → «Trabajos y colas» lista los elementos fallidos o en la cola de errores. Los mensajes de la cola de veneno aparecen como «Mensaje en cola» a partir de la última cifra de operaciones recibida de la plataforma (fichero `ops-inputs/*.json`); si la cifra es antigua se marca «cifra antigua».
+- Desde la consola solo se reintentan trabajos de importación, previsiones y envíos de roles (pide un segundo factor reciente). Los mensajes de la cola de veneno se siguen reinsertando con el procedimiento anterior.
+- Al abrirse una alerta se escribe una línea `ADMIN_ALERT_OPENED condition=... subject=...` (solo códigos) que dispara la regla `admin-alert-opened` del correo de alertas.

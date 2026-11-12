@@ -8,7 +8,7 @@ without cost access gets ``hidden_by_role`` and no value.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -50,13 +50,15 @@ def _capital(stock: str | None, open_orders: Decimal | None, snap: dict[str, obj
     return {**_indicator("capital_tied_up", total, "EUR", "no_data" if unsupported else "ok", snap, unvalued, unsupported), "parts": parts}
 
 
-def build_indicators(conn: Connection, today: date, fs: FilterSet, forecast: ForecastMeans | None, roles: Iterable[str], open_orders: Decimal | None = None) -> dict[str, Any]:
+def build_indicators(conn: Connection, today: date, fs: FilterSet, forecast: ForecastMeans | None, roles: Iterable[str], open_orders: Decimal | None = None,
+                     now: datetime | None = None) -> dict[str, Any]:
+    """``now`` is the clock freshness is judged against; None means the real time (tests pass a fixed one so they do not age)."""
     f, days = fs.to_filters(), (fs.date_to - fs.date_from).days + 1
     s = compute_summary(conn, today, f, forecast)
     d = demand_summary(conn, fs.date_to, days, f)
     fc = forecast_summary(conn, today, f, forecast)
     hours = stale_after_hours()
-    fresh: dict[str, Freshness] = {x.source: x for x in inventory_freshness(conn, hours=hours)}
+    fresh: dict[str, Freshness] = {x.source: x for x in inventory_freshness(conn, now=now, hours=hours)}
     snap, moves = fresh["inventory_snapshot"].as_json(), fresh["movements"].as_json()
     forecast_fresh = {"source": "forecast", "refreshed_at": None, "refreshed_at_original": None, "origin": "forecast", "state": "ok" if fc["state"] == "ok" else "no_data", "stale_after_hours": hours}
     money = can_see_money(roles)

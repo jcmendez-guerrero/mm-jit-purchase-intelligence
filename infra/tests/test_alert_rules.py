@@ -28,6 +28,7 @@ def test_every_failure_class_has_alert_rule():
         "import-failed",
         "upload-rejected",
         "role-mirror-lag",
+        "admin-alert-opened",
     ]
 
     for failure_class in required_classes:

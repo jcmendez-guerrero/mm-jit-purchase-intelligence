@@ -15,7 +15,7 @@ from db.engine import make_engine
 from db.roles import ROLES, RoleError, RoleStore
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
-from routes.rbac import require_roles
+from routes.rbac import require_fresh_mfa, require_roles
 
 logger = logging.getLogger("mmi.api_bff.admin_roles")
 
@@ -76,6 +76,7 @@ def has_at_least_two_eligible_approvers() -> bool:
 class RoleUpdateRequest(BaseModel):
     roles: list[str] = Field(..., description="List of roles: viewer, buyer, approver, admin")
     active: bool = True
+    expected_revision: int | None = Field(None, ge=0, description="When set and different from the stored revision the call fails with 409 roles_conflict.")
 
 
 @router.get("")
@@ -94,7 +95,8 @@ def mirror_status(session: SessionData = Depends(require_roles("admin"))) -> dic
 
 
 @router.post("/mirror/retry")
-def mirror_retry(background: BackgroundTasks, session: SessionData = Depends(require_roles("admin"))) -> dict[str, Any]:
+def mirror_retry(background: BackgroundTasks, session: SessionData = Depends(require_roles("admin")),
+                 _fresh: SessionData = Depends(require_fresh_mfa())) -> dict[str, Any]:
     n = get_store().requeue_failed()
     background.add_task(_mirror_pass)
     return {"requeued": n}
@@ -102,11 +104,11 @@ def mirror_retry(background: BackgroundTasks, session: SessionData = Depends(req
 
 @router.put("/{user_id}")
 def update_user_roles(user_id: str, body: RoleUpdateRequest, background: BackgroundTasks,
-                      session: SessionData = Depends(require_roles("admin"))) -> dict[str, Any]:
+                      session: SessionData = Depends(require_roles("admin")), _fresh: SessionData = Depends(require_fresh_mfa())) -> dict[str, Any]:
     store = get_store()
     old = store.get(user_id)
     try:
-        rec = store.set_roles(user_id, body.roles, actor=session.user_id, active=body.active)
+        rec = store.set_roles(user_id, body.roles, actor=session.user_id, active=body.active, expected_revision=body.expected_revision)
     except RoleError as exc:
         store.record_refusal(session.user_id, "roles.refused", user_id, before={"roles": list(old.roles) if old else []},
                              after={"roles": sorted(set(body.roles)), "reason": exc.code})

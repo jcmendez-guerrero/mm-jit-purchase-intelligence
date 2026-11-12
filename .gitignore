@@ -251,3 +251,6 @@ __marimo__/
 # Playwright output
 test-results/
 playwright-report/
+
+# operations snapshots supplied by the platform (feature 010); never committed
+ops-inputs/

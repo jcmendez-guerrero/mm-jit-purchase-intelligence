@@ -17,8 +17,13 @@ async function backend(page: Page, roles: string[], runsDown = false) {
     model_runs: runsDown ? { ok: false, error: "downstream_unavailable" } : { ok: true, data: { runs: [{ id: "r1", started_at: recent, status: "completed", through_day: "2026-11-09", total: 5, eligible: 3, dataset_version_id: "abcdef1234" }] } },
     policy_history: { ok: true, data: [{ id: "o1", status: "approved", variant_id: 9001 }] },
     role_mirror: { ok: true, data: { pending: 1, failed: 0, sent: 4, oldest_pending_seconds: 120 } },
-    cost: { budget_eur: 120, estimate_eur: 0, guardrails: { min_replicas: 0, max_replicas: 1, job_parallelism: 1 } },
+    cost: { budget_eur: 120, guardrails: { min_replicas: 0, max_replicas: 1, job_parallelism: 1 } },
   })));
+  await page.route("**/api/admin/ops/summary", (r) => r.fulfill(json({ backup: { ok: false, error: "snapshot_unavailable" }, cost: { ok: false, error: "snapshot_unavailable" } })));
+  await page.route("**/api/admin/ops/queue", (r) => r.fulfill(json({ items: [] })));
+  await page.route("**/api/admin/alerts", (r) => r.fulfill(json({ items: [], delivery_configured: true })));
+  await page.route("**/api/admin/ops/settings", (r) => r.fulfill(json({ source_stale_hours: 36, backup_max_age_hours: 26, budget_warn_pct: 80, budget_critical_pct: 100, mirror_lag_minutes: 15, alert_repeat_hours: 24, job_failed_observations: 2 })));
+  await page.route("**/api/admin/audit?*", (r) => r.fulfill(json({ items: [], next_cursor: null })));
   await page.route("**/api/admin/rerun/import/*", (r) => { state.reruns.push(r.request().url()); return r.fulfill(json({ job_id: "j2", state: "queued", reused: false }, 202)); });
   await page.route("**/api/admin/rerun/forecast", (r) => { state.forecastReruns += 1; return r.fulfill(json({ run_id: "r1", reused: true, eligible: 3 }, 202)); });
   return state;

@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: MMI BFF admin and operations delta (feature 010)
+  version: 0.1.0
+  description: >
+    Additions and changes to the BFF /admin surface. All routes require the admin role; every route marked
+    `x-fresh-mfa` also requires MFA no older than 300 s (error `auth_mfa_stale`). Every refusal by an authenticated
+    caller is audited. Shared with Agent 00 before implementation (FR-022).
+paths:
+  /admin/roles/{user_id}:
+    put:
+      summary: Change a user's roles (CHANGED - adds fresh MFA and optional optimistic concurrency)
+      x-fresh-mfa: true
+      parameters: [{name: user_id, in: path, required: true, schema: {type: string}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roles]
+              properties:
+                roles: {type: array, items: {type: string, enum: [viewer, buyer, approver, admin]}}
+                active: {type: boolean, default: true}
+                expected_revision: {type: integer, minimum: 0, description: "When present and different from the stored revision the call fails with 409 roles_conflict."}
+      responses:
+        "200": {description: Updated}
+        "403": {description: "auth_mfa_stale or role refused"}
+        "409": {description: "roles_conflict, roles_last_admin or approval_fewer_than_two_approvers"}
+        "422": {description: roles_invalid}
+  /admin/roles/mirror/retry:
+    post: {summary: "Requeue failed mirror items (CHANGED - fresh MFA)", x-fresh-mfa: true, responses: {"200": {description: Requeued count}}}
+  /admin/rerun/forecast:
+    post: {summary: "Re-run forecast (CHANGED - fresh MFA)", x-fresh-mfa: true, responses: {"202": {description: "Accepted, idempotent"}}}
+  /admin/rerun/import/{job_id}:
+    post:
+      summary: Re-run an import job (CHANGED - fresh MFA)
+      x-fresh-mfa: true
+      parameters: [{name: job_id, in: path, required: true, schema: {type: string, pattern: "^[0-9a-fA-F-]{8,40}$"}}]
+      responses: {"202": {description: "Accepted, idempotent"}}
+  /admin/rerun/mirror:
+    post: {summary: "Requeue mirror (CHANGED - fresh MFA)", x-fresh-mfa: true, responses: {"202": {description: Accepted}}}
+  /admin/audit:
+    get:
+      summary: Page through the BFF audit trail
+      parameters:
+        - {name: actor, in: query, schema: {type: string}}
+        - {name: action, in: query, schema: {type: string}}
+        - {name: outcome, in: query, schema: {type: string, enum: [allowed, refused]}}
+        - {name: from, in: query, schema: {type: string, format: date-time}}
+        - {name: to, in: query, schema: {type: string, format: date-time}}
+        - {name: cursor, in: query, schema: {type: string}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+      responses:
+        "200":
+          description: Entries, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: "#/components/schemas/AuditEntry"}}
+                  next_cursor: {type: string, nullable: true}
+  /admin/audit/verify:
+    get:
+      summary: Verify the hash chain
+      responses:
+        "200":
+          description: Chain check
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, checked]
+                properties:
+                  ok: {type: boolean}
+                  checked: {type: integer}
+                  first_broken_id: {type: integer, nullable: true}
+  /admin/audit/export:
+    get:
+      summary: CSV export of the filtered trail (capped at 10000 rows)
+      x-fresh-mfa: true
+      parameters:
+        - {name: actor, in: query, schema: {type: string}}
+        - {name: action, in: query, schema: {type: string}}
+        - {name: outcome, in: query, schema: {type: string}}
+        - {name: from, in: query, schema: {type: string, format: date-time}}
+        - {name: to, in: query, schema: {type: string, format: date-time}}
+      responses:
+        "200":
+          description: "text/csv; header X-Export-Truncated true|false"
+          content: {text/csv: {schema: {type: string}}}
+  /admin/ops/queue:
+    get:
+      summary: Jobs and queue items by state with reason code and retry count
+      responses:
+        "200":
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: "#/components/schemas/OpsItem"}}
+  /admin/ops/queue/{kind}/{item_id}/retry:
+    post:
+      summary: Retry a failed job or requeue a dead-lettered item (idempotent, audited)
+      x-fresh-mfa: true
+      parameters:
+        - {name: kind, in: path, required: true, schema: {type: string, enum: [mirror, import, forecast]}}
+        - {name: item_id, in: path, required: true, schema: {type: string, pattern: "^[A-Za-z0-9_-]{1,64}$"}}
+      responses: {"202": {description: Accepted or already done}}
+  /admin/alerts:
+    get:
+      summary: List alerts (open, acknowledged, recently closed)
+      responses:
+        "200":
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: "#/components/schemas/Alert"}}
+                  delivery_configured: {type: boolean}
+  /admin/alerts/{alert_id}/acknowledge:
+    post: {summary: Acknowledge an alert, x-fresh-mfa: true, parameters: [{name: alert_id, in: path, required: true, schema: {type: integer}}], responses: {"200": {description: Acknowledged or already}}}
+  /admin/ops/summary:
+    get:
+      summary: Backup and cost cards (replaces the static cost block of /admin/status)
+      responses:
+        "200":
+          description: "Cards; each card is {ok, data|error} like /admin/status"
+          content: {application/json: {schema: {$ref: "#/components/schemas/OpsSummary"}}}
+  /admin/ops/settings:
+    get: {summary: Read thresholds, responses: {"200": {description: Settings}}}
+    put: {summary: "Change thresholds (audited); keys include job_failed_observations (1-20)", x-fresh-mfa: true, responses: {"200": {description: Saved}, "422": {description: ops_settings_invalid}}}
+components:
+  schemas:
+    AuditEntry:
+      type: object
+      required: [id, ts, actor, action, entity, entity_id, outcome]
+      properties:
+        id: {type: integer}
+        ts: {type: string, format: date-time}
+        actor: {type: string}
+        action: {type: string}
+        entity: {type: string}
+        entity_id: {type: string}
+        outcome: {type: string, enum: [allowed, refused]}
+        reason_code: {type: string, nullable: true}
+    OpsItem:
+      type: object
+      required: [kind, id, state, attempts]
+      properties:
+        kind: {type: string, enum: [mirror, import, forecast, message]}
+        id: {type: string}
+        state: {type: string, enum: [waiting, running, succeeded, failed, dead_lettered]}
+        attempts: {type: integer}
+        reason_code: {type: string, nullable: true}
+        stale: {type: boolean, description: "message items only: the platform snapshot is older than its limit"}
+    Alert:
+      type: object
+      required: [id, condition_key, severity, state, opened_at, last_seen_at]
+      properties:
+        id: {type: integer}
+        condition_key: {type: string}
+        subject: {type: string}
+        severity: {type: string, enum: [warning, critical]}
+        state: {type: string, enum: [open, acknowledged, closed]}
+        opened_at: {type: string, format: date-time}
+        last_seen_at: {type: string, format: date-time}
+        acknowledged_by: {type: string, nullable: true}
+        acknowledged_at: {type: string, format: date-time, nullable: true}
+        reason_code: {type: string}
+    OpsSummary:
+      type: object
+      properties:
+        backup: {type: object, description: "see ops_snapshot.v1 kind=backup"}
+        cost: {type: object, description: "see ops_snapshot.v1 kind=cost; amounts are decimal strings"}
