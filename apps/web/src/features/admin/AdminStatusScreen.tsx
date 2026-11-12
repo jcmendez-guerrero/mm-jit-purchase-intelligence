@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AdminStatus, api, errorMessage, StatusCard } from "../../api/client";
-import { formatCurrencyEUR, formatDate, formatDateTime, formatPercent } from "../../i18n/formatters";
-import { canRerunJob, freshness, spendShare } from "./statusModel";
+import { formatCurrencyEUR, formatDate, formatDateTime } from "../../i18n/formatters";
+import { canRerunJob, freshness, STALE_AFTER_HOURS } from "./statusModel";
 import { ScreenState } from "../../ui/ScreenState";
 import { useActionNotice } from "../../ui/NoticeProvider";
 import { Button } from "../../ui/Button";
@@ -22,12 +22,14 @@ function Card<T>({ title, card, children }: { title: string; card: StatusCard<T>
 export const AdminStatusScreen: React.FC = () => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<AdminStatus | null>(null);
+  const [limitHours, setLimitHours] = useState(STALE_AFTER_HOURS);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useActionNotice();
 
   const load = useCallback(async () => {
     try {
       setStatus(await api.getAdminStatus());
+      api.getOpsSettings().then((o) => setLimitHours(o.source_stale_hours)).catch(() => undefined);   // keeps the default if thresholds cannot be read
     } catch (err) {
       setError(errorMessage(err, t("common.error")));
     }
@@ -72,7 +74,7 @@ export const AdminStatusScreen: React.FC = () => {
                   <td>{r.last ? (r.last.length === 10 ? formatDate(r.last) : formatDateTime(r.last)) : "—"}</td>
                   <td>{r.rows ?? "—"}</td>
                   <td>{r.q ?? "—"}</td>
-                  <td>{t(`admin.status.${freshness(r.last, now)}`)}</td>
+                  <td>{t(`admin.status.${freshness(r.last, now, limitHours)}`)}</td>
                 </tr>
               ))}
             </tbody>
@@ -138,9 +140,7 @@ export const AdminStatusScreen: React.FC = () => {
 
       <Panel className="mmi-mb-4" aria-label={t("admin.status.cost")}>
         <h4>{t("admin.status.cost")}</h4>
-        <p>{c.estimate_eur > 0
-          ? t("admin.status.cost_text", { estimate: formatCurrencyEUR(c.estimate_eur), budget: formatCurrencyEUR(c.budget_eur), share: formatPercent(spendShare(c.estimate_eur, c.budget_eur)) })
-          : t("admin.status.cost_unknown")}</p>
+        <p>{t("admin.status.cost_limits", { budget: formatCurrencyEUR(c.budget_eur) })}</p>
         <p>{t("admin.status.guardrails", { min: c.guardrails.min_replicas, max: c.guardrails.max_replicas, par: c.guardrails.job_parallelism })}</p>
       </Panel>
     </section>

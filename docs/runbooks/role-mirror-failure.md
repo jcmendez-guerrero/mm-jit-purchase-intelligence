@@ -35,3 +35,8 @@ El servicio de compras mantiene su propia copia de los roles para decidir quién
 
 - Pendientes y fallidos a 0 y antigüedad 0 min.
 - El registro de auditoría de roles conserva la cadena íntegra.
+
+## Alertas y consola (feature 010)
+
+- Un retraso superior al umbral («Retraso de roles (minutos)», 15 por defecto) abre la alerta «Cambios de rol sin comunicar a compras»; un envío agotado (8 intentos) aparece en «Trabajos y colas» como «En cola de errores» y se reintenta desde el mismo botón.
+- Reintentar, cambiar roles y reconocer alertas exigen un segundo factor de menos de 5 minutos; cada intento, permitido o rechazado, queda en el registro de auditoría (Administración → «Registro de auditoría»).

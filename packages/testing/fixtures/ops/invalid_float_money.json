@@ -1,0 +1,12 @@
+{
+  "kind": "cost",
+  "captured_at": "2026-11-10T06:00:00Z",
+  "status": "ok",
+  "cost": {
+    "currency": "EUR",
+    "budget": 120.0,
+    "month_to_date": "30.00",
+    "projected": "60.00",
+    "partial_month": true
+  }
+}

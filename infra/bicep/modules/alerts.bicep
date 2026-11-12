@@ -108,6 +108,14 @@ var rules = [
     windowSize: 'PT15M'
   }
   {
+    key: 'admin-alert-opened'
+    description: 'The administration console opened an alert (stale source, failed job, old backup, budget, role-mirror lag). The marker carries codes only; details are in the console.'
+    severity: 2
+    query: '${logTable} | where Log_s has "ADMIN_ALERT_OPENED"'
+    evaluationFrequency: 'PT15M'
+    windowSize: 'PT15M'
+  }
+  {
     key: 'role-mirror-lag'
     description: 'A role change has not reached procurement for 15 minutes or failed; permissions may differ between the console and the service.'
     severity: 1

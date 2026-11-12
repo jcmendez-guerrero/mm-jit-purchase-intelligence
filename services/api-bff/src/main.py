@@ -8,6 +8,8 @@ from auth.session import get_current_session
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from mmi_common.service import create_service_app
+from routes.admin_audit import router as admin_audit_router
+from routes.admin_ops import router as admin_ops_router
 from routes.admin_roles import router as admin_roles_router
 from routes.admin_status import router as admin_status_router
 from routes.api import router as api_router
@@ -92,5 +94,7 @@ app.include_router(dashboard_router, prefix="/api")
 app.include_router(scenarios_router, prefix="/api")
 app.include_router(admin_status_router, prefix="/api")
 app.include_router(admin_roles_router, prefix="/api")
+app.include_router(admin_audit_router, prefix="/api")
+app.include_router(admin_ops_router, prefix="/api")
 if local_load_enabled():          # local export loader only (MMI_LOCAL_LOADER=1, never prod/staging): absent from every cloud configuration
     app.include_router(local_load_router, prefix="/api")
