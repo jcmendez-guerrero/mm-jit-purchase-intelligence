@@ -26,6 +26,10 @@ Run from `scripts/` (or with `scripts` on `PYTHONPATH`). `run --openapi <gateway
 
 `scripts/gates` and its tests are checked by `ruff` with the repository configuration (the `gates` CI job runs `ruff check scripts/gates scripts/tests/gates`). They are **outside the strict `mypy` scope**: CI installs `mypy` but does not run it on any target, and `mypy --strict scripts/gates` reports 54 errors (mostly missing type arguments and parameter annotations). Annotate the package if strict typing is ever enforced in CI.
 
+Reproduce the CI lint before pushing: `npx prettier@3.9.8 --check <changed json/css files>` and `npx markdownlint-cli@0.49.1 <changed .md files>` (the Super-linter job is the only other place they run). The generated `contract-matrix.json` is excluded from Prettier by `.prettierignore`.
+
+In a git worktree the Python environment may import `mmi_models` and the test fixtures from another checkout, which makes tests fail on stale code (seen in `forecast-service` seed tests, also on a clean `main`). Point it at the worktree: `PYTHONPATH=$PWD/packages/testing/src:$PWD/packages/contracts/python`, or install those two packages editable per worktree. CI is not affected.
+
 ## How contract owners were set
 
 `python -m gates matrix` guesses an owner from which service mentions a schema, and keeps any owner, status or successor already in `contract-matrix.json`, so hand curation survives regeneration. Curated on 2026-11-09:
@@ -33,7 +37,7 @@ Run from `scripts/` (or with `scripts` on `PYTHONPATH`). `run --openapi <gateway
 - **Procurement-service** owns `supplier`, `supplier_terms`, `supplier_cost`, `lot_acquisition_cost`, `cost_write`, `proposal`, `proposal_line` and `scenario`: ADR-018 says procurement owns terms, policies and scenarios, the supplier cost and lot tables live in its schema, and cost writes are requested by procurement.
 - **Inventory-service** owns `dashboard_summary` (the dashboard aggregates), **forecast-service** owns `seed_validation_result` (predictive seed datasets), **siweb-cost-writer** owns `conditions_block` (the supplier-note block it writes). For these three no service source file references the schema by name (only the generated models do), so the owner follows the feature design, not code references.
 - **Shared, owner `agent-00`:** `money`, `variant`, `envelope` and `error_codes` (used by every service) and `load_result` (used by the local loader tooling and the gateway).
-- **Consumers are a lower bound.** They are references found in service source: the schema file or event type (`name.vN`) or the generated module (`name_vN_schema`). No service imports the generated models or names a DTO schema by version, so 34 of the 42 schema entries list no consumers even though services use the same shapes through their own models. An empty list therefore does **not** mean unused: before deprecating or retiring any version, search the code and ask the owning agents by hand. The gate's check that consumers have moved to a successor is only as good as these lists.
+- **Consumers are a lower bound.** They are references found in service source: the schema file or event type (`name.vN`) or the generated module (`name_vN_schema`). No service imports the generated models or names a DTO schema by version, so 34 of the 44 schema entries (counted on 2026-11-10) list no consumers even though services use the same shapes through their own models. An empty list therefore does **not** mean unused: before deprecating or retiring any version, search the code and ask the owning agents by hand. Consumers you add by hand in `contract-matrix.json` (for example `web`, which is not found in service code) are kept when the matrix is regenerated; regeneration only adds newly found consumers and never removes one. The gate's check that consumers have moved to a successor is only as good as these lists.
 
 ## Required checks (repository setting, maintainer)
 
@@ -68,3 +72,7 @@ When: after the domain PRs are open and listed in `integration-plan.json` **on `
 2. A compatible change (only added optional properties) edits the schema, refreshes `packages/contracts/baseline/` with `packages/contracts/tools/update_baseline.py`, and is recorded in the matrix.
 3. A breaking change adds `name.v2.schema.json` next to `name.v1`; v1 becomes `deprecated` with `superseded_by` and stays until every consumer listed in the matrix has moved to v2.
 4. `python -m gates run --gate contracts` must pass before the PR is reviewed.
+
+## Adding a new contract
+
+A new schema (for example `name.v1.schema.json`) needs a matrix entry before the contracts gate passes: owner, consumers and status. Start it as `draft` while no consumer has merged and set it to `frozen` when the first consumer PR merges; a contract whose consumers are in the same PR may start as `frozen`. Ask Agent 00 to curate owner and consumers instead of copying the generated guess.

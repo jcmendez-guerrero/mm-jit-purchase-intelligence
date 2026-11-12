@@ -17,6 +17,10 @@ Run on a developer machine at commit `9d11abb` plus the uncommitted changes of t
 
 The overall result of this first run was **fail** (e2e, see above).
 
+## Full quickstart run on 2026-11-10 (T052)
+
+`MMI_GATES_DATABASE=1 MMI_GATES_LIVE_STACK=1 python -m gates run` from `scripts/`, on this branch after merging `main` (features 006 to 008 included) and with `integration-plan.json` listing PRs 16, 18, 17 and 19 as integrated: contracts, isolation, integration (4 steps accounted for), e2e (3 commands), security (8 commands) and cost (1 command) all `pass`, exit 0, in 422 seconds (about 7 minutes, over the 3 minutes noted earlier because the live stack was rebuilt). The shell had the worktree's `packages/testing/src` and `packages/contracts/python` on `PYTHONPATH`. Endpoints were not checked (no `--openapi`).
+
 ## Clean full run and the per-gate time limits (SC-008, T067)
 
 After the fixes above, on the same machine with the other `mmi` stack stopped, `MMI_GATES_DATABASE=1 MMI_GATES_LIVE_STACK=1 python -m gates run`: **2 minutes 57 seconds** in total. Five gates passed; `integration` is `not_run` only because the integration plan is still empty (T030), so the overall result is `not_run`, exit 2.
@@ -36,7 +40,7 @@ The limits are about 7 to 15 times these warm-cache timings, to leave room for a
 
 | Step | Status |
 |---|---|
-| 1 `validate` | exits 3: only `integration-plan.json` is missing (T030). The audit and matrix pass. |
+| 1 `validate` | exits 0 since T030: `integration-plan.json` lists PRs 16, 18, 17 and 19 (all integrated). |
 | 2 contracts gate catches an undeclared change | covered by `test_contracts_gate.py` (removed property, missing entry, unmoved consumers); not repeated by hand |
 | 3 isolation gate catches a cross-schema read | covered by `test_isolation_gate.py`; not repeated by hand |
 | 4 full gate run | run once, see above |
@@ -47,9 +51,14 @@ The limits are about 7 to 15 times these warm-cache timings, to leave room for a
 
 Clarified on 2026-11-09: SC-007 is checked by a command and its test, not by a timed human trial. `python -m gates lookup NAME` prints the owner, version, consumers and status (exit 3 for an unknown name); `scripts/tests/gates/test_matrix.py` and `test_cli.py` cover it, and a run against the real matrix returned, for example, `procurement.order.confirmed v1 | event | owner: procurement-service | consumers: inventory-service | status: frozen`. This supersedes the manual timed check asked for in T061, which was therefore not carried out.
 
+Re-checked on 2026-11-10 after PR 19 merged: `python -m gates lookup dashboard_indicators` answered in 0.34 s with `v2 | dto | owner: inventory-service | consumers: api-bff, web | status: frozen`. Regenerating the matrix no longer drops consumers added by hand (T090 follow-up in `test_matrix.py`).
+
 ## Not verified
 
-- The two new workflows (`gates` job in `ci.yml`, `integration-gates.yml`) parse as YAML but have never run on GitHub.
-- The real-services Spanish UI journey (T035) and its screenshots (T045) do not exist.
-- The audit statuses did not execute any test suite; the e2e failure above is the only suite result that contradicts an audited "complete" and may be environmental.
-- `gitleaks` was not installed locally; only the repo's export-signature guard and a pattern scan of the new files were run.
+Updated 2026-11-10 (T092).
+
+- The `gates` job in `ci.yml` ran on GitHub for PR 16; its first run exposed the exit-code bug for a gate subset (fixed in `ccea7ea`). The manual `integration-gates.yml` workflow has never been started on GitHub, so its artifact download and comment steps are untested there.
+- Super-linter (including GITLEAKS) ran on the PRs and passed; `gitleaks` itself was not run locally.
+- The endpoint check never ran with `--openapi` in the full run, so the matrix's endpoint entries were compared with the gateway only by `test_gateway_matrix.py`.
+- The audit statuses did not execute any test suite; the table notes say "tests present, not executed by this audit".
+- The audit was refreshed on 2026-11-10 at commit `8cb6bd4` for the rows that features 006 to 008 changed; the other rows keep their evidence from the first audit.

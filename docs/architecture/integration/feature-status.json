@@ -1,6 +1,6 @@
 {
-  "audited_commit": "9d11abb",
-  "audited_at": "2026-11-09T00:00:00Z",
+  "audited_commit": "8cb6bd4",
+  "audited_at": "2026-11-10T22:00:00Z",
   "features": [
     {
       "id": "001-us1",
@@ -75,7 +75,7 @@
       ],
       "owner": "inventory-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "tests present, not executed by this audit Extended by feature 006 (ten indicators, filters, role-hidden money): tests in services/inventory-service/tests/test_dashboard_*.py; not executed by this audit."
     },
     {
       "id": "001-us7",
@@ -111,7 +111,7 @@
       ],
       "owner": "api-bff",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "tests present, not executed by this audit Extended by feature 006: gateway overview now carries the ten indicators (services/api-bff/tests/test_dashboard_indicators_bff.py); not executed by this audit."
     },
     {
       "id": "002-us3",
@@ -123,7 +123,7 @@
       ],
       "owner": "procurement-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "tests present, not executed by this audit Extended by feature 007 (idempotent term saves, FX, bulk outcomes): services/procurement-service/tests/test_terms_idempotency.py; not executed by this audit."
     },
     {
       "id": "002-us4",
@@ -148,7 +148,7 @@
       ],
       "owner": "forecast-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "tests present, not executed by this audit Extended by feature 008 (SKU matching, governed activation, rollback reasons): services/forecast-service/tests/test_seed_sku.py; not executed by this audit."
     },
     {
       "id": "002-us6",
@@ -262,7 +262,7 @@
       ],
       "owner": "api-bff",
       "reuse": true,
-      "notes": "open tasks in spec 004: T076, T077, T078, T079, T109, T110, T080, T081, T082; tests present, not executed by this audit"
+      "notes": "open tasks in spec 004: T076, T077, T078, T079, T109, T110, T080, T081, T082; tests present, not executed by this audit Re-checked at 8cb6bd4: still partial. services/siweb-cost-writer/src/writer/note_block.py does not exist (T076 to T082 open), and migration 0012 in procurement is now 0012_terms_idempotency_fx_rates, so the planned 0012_conditions_sync needs the next free number."
     },
     {
       "id": "004-us3",
@@ -274,7 +274,7 @@
       ],
       "owner": "api-bff",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "tests present, not executed by this audit Extended by feature 008 (ERP-export refusal, SKU lookup); not executed by this audit."
     },
     {
       "id": "004-us4",

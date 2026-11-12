@@ -77,3 +77,24 @@ def test_endpoint_entries_validate_against_the_matrix_schema():
     schema = json.loads((REPO / "docs/architecture/integration/schemas/contract-matrix.schema.json").read_text())
     doc = {"matrix_version": 1, "generated_at": "2026-11-09T00:00:00Z", "schema_ownership": {}, "entries": m.endpoint_entries(OPENAPI)}
     jsonschema.validate(doc, schema)
+
+
+def test_regeneration_without_changes_is_byte_identical(tmp_path: Path, monkeypatch):
+    """T090: a fresh timestamp on every run made every parallel PR conflict on that line."""
+    (tmp_path / "packages/contracts/dto").mkdir(parents=True)
+    first = m.write(tmp_path, OPENAPI).read_bytes()
+    monkeypatch.setattr(m, "datetime", type("D", (), {"now": staticmethod(lambda tz=None: __import__("datetime").datetime(2030, 1, 1, tzinfo=tz))}))
+    assert m.write(tmp_path).read_bytes() == first
+    changed = json.loads(m.write(tmp_path, {"paths": {"/api/c": {"get": {}}}}).read_text())
+    assert changed["generated_at"] == "2030-01-01T00:00:00Z"
+
+
+def test_regeneration_keeps_consumers_added_by_hand(tmp_path: Path):
+    """Seen on the dashboard PR: consumers like `web` are not found in service code and were wiped on regeneration."""
+    (tmp_path / "packages/contracts/dto").mkdir(parents=True)
+    (tmp_path / "packages/contracts/dto/money.v1.schema.json").write_text("{}")
+    path = m.write(tmp_path)
+    doc = json.loads(path.read_text())
+    doc["entries"][0]["consumers"] = ["web"]
+    path.write_text(json.dumps(doc))
+    assert json.loads(m.write(tmp_path).read_text())["entries"][0]["consumers"] == ["web"]
