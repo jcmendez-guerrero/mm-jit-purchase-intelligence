@@ -38,7 +38,7 @@ Completion and verification of the policy console from feature 002. A first audi
 
 ## Known limitations
 
-- PostgreSQL was not used (SQLite stand-in); the migrations ran on SQLite only.
+- The test suites run on a SQLite stand-in. The four migrations were also run on a local PostgreSQL 18 (up, down to the revision before this feature, up again): procurement 0013, inventory 0008 and 0009, forecast 0006 all pass. On PostgreSQL, 0013's unique index refuses a second global cap with the same revision, the upgrade stops cleanly on a database that holds duplicates (stays at 0012, data untouched), and a real two-connection race on a budget-cap save ends with one saved and one `PolicyConflict`. The service concurrency tests themselves were not rerun on PostgreSQL.
 - No browser journey runs against a real stack (T047): the Playwright specs mock the backend, so persistence is covered by the service tests, not the browser.
 - The `e2e` gate runs the docker-compose pipeline test, which needs Docker and could not run here. The full web unit run also has 24 failures in `ui/DataTable`, `ui/ThemeToggle`, `ui/forms`, `ui/preferences` (`localStorage` and `AbortSignal` under Node 26 and jsdom) in files this branch does not touch.
 - Not built: re-proposal after a save and the failure notice of a re-forecast (T018), previews for budget, criticality, exclusion, censoring and parameter saves (FR-006 narrowed to policy values by decision), removal of a scoped censoring rule, applying budget caps by category, extra abuse cases (T029), preview timing (T049), accessibility check of the audit tab (T050), new DTO schemas for the new endpoints (T064).
