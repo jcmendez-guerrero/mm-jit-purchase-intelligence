@@ -142,3 +142,8 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | import_conflict | 409 | Another activation or rollback ran at the same time |
 | import_reason_required | 422 | A reason (a choice from the list) is required |
 | import_reason_invalid | 422 | The reason is not in the list, or its detail is longer than 100 characters |
+| sku_unknown | 422 | The SKU matches no product in the loaded catalogue (feature 011) |
+| sku_ambiguous | 422 | The SKU matches more than one product, so none is chosen (feature 011) |
+| policy_overlap | 422 | A revision of this policy or budget cap is already scheduled after the chosen date (feature 011) |
+| budget_scope_unsupported | 422 | Budget caps by product category are not applied yet; use the global cap or a supplier cap (feature 011) |
+| exclusion_reason_invalid | 422 | The exclusion reason is not in the list, or its detail is too long (feature 011) |

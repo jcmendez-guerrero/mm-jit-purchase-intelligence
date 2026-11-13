@@ -25,8 +25,9 @@ describe("keys, ids and roles", () => {
     expect(scopeKeyValid("global", "A")).toBe(false);
     expect(scopeKeyValid("segment", "critical")).toBe(true);
     expect(scopeKeyValid("segment", "Z")).toBe(false);
-    expect(scopeKeyValid("product", "123")).toBe(true);
-    expect(scopeKeyValid("product", "0")).toBe(false);
+    expect(scopeKeyValid("product", "SYN-0001")).toBe(true);      // people type the SKU, never the ERP id
+    expect(scopeKeyValid("product", "  ")).toBe(false);
+    expect(scopeKeyValid("product", "x".repeat(61))).toBe(false);
   });
   it("parses whole positive ids only", () => {
     expect(parseId(" 42 ")).toBe(42);

@@ -23,6 +23,16 @@ TODAY = date(2026, 11, 9)
 NOW = datetime(2026, 11, 9, 8, tzinfo=UTC)
 
 
+def freeze_clock(monkeypatch):
+    """The reference data is dated 2026-11-09: freshness is measured against that moment, not the day the suite runs."""
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return NOW if tz is None else NOW.astimezone(tz)
+
+    monkeypatch.setattr("dashboard.freshness.datetime", Frozen)
+
+
 def load() -> dict:
     return json.loads(DATA.read_text(encoding="utf-8"))
 

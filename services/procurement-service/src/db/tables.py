@@ -20,6 +20,7 @@ from sqlalchemy import (
     Table,
     UniqueConstraint,
     false,
+    func,
 )
 
 metadata = MetaData()
@@ -369,6 +370,8 @@ budget_caps = Table(
     Column("revision", Integer, nullable=False, default=1),
     Column("changed_by", String(120), nullable=False),
 )
+# feature 011 (migration 0013): two simultaneous saves cannot both take the same revision (a NULL scope key counts as one value)
+Index("uq_budget_caps_revision", budget_caps.c.period, budget_caps.c.scope, func.coalesce(budget_caps.c.scope_key, ""), budget_caps.c.revision, unique=True)
 stocking_settings = Table(
     "stocking_settings", metadata,
     Column("variant_id", Integer, primary_key=True, autoincrement=False),

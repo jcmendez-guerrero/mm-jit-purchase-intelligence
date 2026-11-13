@@ -78,7 +78,8 @@ class VariantInput:
     max_units: int | None = None                  # policy cap on the order-up-to level
     floor_units: int = 0                          # always-stocked floor
     monthly_check: bool = False                   # always-stocked and nothing bought for 30 days: at least one unit
-    policy_info: tuple[tuple[str, Any], ...] = () # which policy fields and revisions applied (for the explanation)
+    policy_info: tuple[tuple[str, Any], ...] = () # which policy fields applied, each {"source": "scope:key", "revision": n} (for the explanation), plus the stocking mode
+    review_days: int | None = None                # the replenishment cadence policy (days between purchase reviews); None keeps the weekly default (feature 011)
 
 
 @dataclass(frozen=True)
@@ -119,6 +120,10 @@ class ProposalInputs:
     # Where the forecast came from (FR-026). Recorded, never hashed: the same numbers from another run or dataset must give the same result.
     forecast_run_id: str | None = field(default=None, metadata={"hash": False})
     dataset_version_id: str | None = field(default=None, metadata={"hash": False})
+    # Caps (feature 011), last so existing positional construction keeps working.
+    budget_source: str | None = None                                   # which global cap supplies `budget`: "global_week" or "global_month"
+    supplier_budgets: dict[str, Decimal] = field(default_factory=dict)  # supplier_id -> weekly cap in force; the tighter of it and the global cap binds
+    defer_for_cap: bool = False                                        # the weekly proposal may leave non-critical needed lines out when a cap binds; scenarios report instead
 
 
 def canonical(obj: Any) -> str:

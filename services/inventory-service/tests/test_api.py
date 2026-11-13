@@ -35,13 +35,14 @@ def test_api_variant_detail_and_review_flow(client, engine):
 
 
 def test_criticality_and_service_level_endpoints(client, engine):
-    from db.tables import products
+    from db.tables import products, variants
 
     with engine.begin() as c:
         c.execute(insert(products).values(external_id=5, name="P", status="active", missed_syncs=0))
-    assert client.put("/products/5/criticality", json={"critical": True}, headers=auth("viewer")).status_code == 403
-    assert client.put("/products/5/criticality", json={"critical": True}, headers=auth("buyer")).json()["changed"] is True
-    assert client.put("/products/99/criticality", json={"critical": True}, headers=auth("buyer")).status_code == 404
+        c.execute(insert(variants).values(external_id=1, product_id=5, sku="S5"))
+    assert client.put("/products/S5/criticality", json={"critical": True}, headers=auth("viewer")).status_code == 403
+    assert client.put("/products/S5/criticality", json={"critical": True}, headers=auth("buyer")).json()["changed"] is True
+    assert client.put("/products/S99/criticality", json={"critical": True}, headers=auth("buyer")).status_code == 422
     # service levels are edited in procurement policies (ADR-018, T006); inventory keeps its history readable and offers no edit route
     assert client.put("/service-levels", json={"scope": "abc", "key": "A", "target": "0.98"}, headers=auth("buyer")).status_code == 405
     from classification.service_levels import set_target
@@ -58,7 +59,7 @@ def test_export_series_carries_segment_and_service_level(client, engine):
     seed_variant(engine, 1, 1, SMOOTH, price="20")
     with engine.begin() as c:
         compute_segments(c)
-    client.put("/products/1/criticality", json={"critical": True}, headers=auth("buyer"))
+    client.put("/products/S1/criticality", json={"critical": True}, headers=auth("buyer"))
     body = client.get("/export/series", headers=auth()).json()
     s = body["series"][0]
     assert body["count"] == 1 and len(s["demand"]) == len(s["censored"]) == len(SMOOTH) * 7

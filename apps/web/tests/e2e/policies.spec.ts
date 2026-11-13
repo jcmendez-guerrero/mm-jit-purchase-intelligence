@@ -31,7 +31,7 @@ async function backend(page: Page, roles: string[]) {
     return r.fulfill(json({ revision: state.revision }));
   });
   await page.route("**/api/policies/global/*/preview", (r) => r.fulfill(json({
-    as_of: "2026-11-09", affected_count: 1, affected: [{ variant_id: 5, qty_before: 4, qty_after: 9 }], spend_before: "100.00", spend_after: "190.00", spend_delta: "90.00", saved: false,
+    as_of: "2026-11-09", affected_count: 1, affected: [{ sku: "SYN-0005", qty_before: 4, qty_after: 9 }], spend_before: "100.00", spend_after: "190.00", spend_delta: "90.00", saved: false,
   })));
   return state;
 }
@@ -49,7 +49,7 @@ test.describe("Policy console (T083)", () => {
     await page.getByLabel("Nivel de servicio (%)").fill("99");
     await page.click("button:has-text('Previsualizar efecto')");
     await expect(page.getByText("Productos afectados: 1")).toBeVisible();
-    await expect(page.getByText("Variante 5: 4 → 9 unidades")).toBeVisible();
+    await expect(page.getByText("SKU SYN-0005: 4 → 9 unidades")).toBeVisible();
     expect(state.saved).toHaveLength(0);
     await page.click("button:has-text('Guardar nueva versión')");
     await expect(page.getByText("Política guardada (versión 2)")).toBeVisible();

@@ -116,9 +116,56 @@ export interface PolicyFields {
 
 export interface PolicySummary {
   scope: string;
-  key: string;
+  key: string | null;                 // null for a product policy whose SKU left the catalogue
   revision: number;
   in_force: (PolicyFields & { valid_from: string }) | null;
+  orphaned?: boolean;
+}
+
+/** One rule of a product's effective policy: where the value in force comes from (feature 011). */
+export interface EffectiveRule {
+  value: string | null;
+  source: "default" | "global" | "segment" | "product";
+  key: string | null;
+  revision: number | null;
+  valid_from: string | null;
+}
+
+export interface EffectivePolicy {
+  sku: string;
+  as_of: string;
+  rules: Record<"service_level" | "safety_stock_units" | "min_units" | "max_units" | "replenishment_cadence_days", EffectiveRule>;
+}
+
+export const AUDIT_SCOPES = ["policy", "budget", "safety_stock", "demand", "forecast", "access"] as const;
+
+export interface PolicyAuditQuery {
+  scope?: string;
+  outcome?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+}
+
+export interface PolicyAuditPage {
+  items: PolicyAuditItem[];
+  unavailable: string[];
+  truncated: string[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface PolicyAuditItem {
+  at: string;
+  actor: string;
+  action: string;
+  entity?: string;
+  entity_id?: string;
+  before?: unknown;
+  after?: unknown;
+  outcome: "accepted" | "refused";
+  reason_code?: string;
 }
 
 export interface PolicyDetail {
@@ -132,19 +179,24 @@ export interface PolicyDetail {
 export interface PolicyPreview {
   as_of: string;
   affected_count: number;
-  affected: Array<{ variant_id: number; qty_before: number; qty_after: number }>;
+  affected: Array<{ sku: string | null; qty_before: number; qty_after: number }>;
   spend_before: string;
   spend_after: string;
   spend_delta: string;
   saved: false;
+  /** The last finished forecast run the preview was computed with; a run in progress never changes it. */
+  forecast_run_id?: string | null;
 }
+
+export const EXCLUSION_REASONS = ["promotion", "closure", "supplier_outage", "bulk_sale", "other"] as const;
 
 export interface DemandExclusion {
   id: number;
-  variant_id: number | null;
+  sku: string | null;
   from_day: string;
   to_day: string;
-  reason: string;
+  reason_code: string;
+  detail?: string | null;
   active: boolean;
   revision: number;
 }
@@ -155,7 +207,12 @@ export interface CensoringRule {
   min: number;
   max: number;
   default: number;
+  revision: number;
+  scope: "global" | "segment" | "product";
+  key: string | null;               // "*" for global, a segment, or the SKU of a product
 }
+
+export const CENSORING_SEGMENTS = ["critical", "A", "B", "C", "sparse"] as const;
 
 export interface ForecastParameter {
   key: string;
@@ -175,13 +232,13 @@ export interface Section<T> {
 }
 
 export interface PolicyConsole {
-  purchasing: Section<{ as_of: string; policies: PolicySummary[]; weekly_budget: string | null }>;
+  purchasing: Section<{ as_of: string; policies: PolicySummary[]; weekly_budget: string | null; weekly_budget_revision?: number; orphaned?: number }>;
   demand: Section<{ exclusions: DemandExclusion[]; rules: CensoringRule[] }>;
   forecast: Section<{ as_of: string; parameters: ForecastParameter[] }>;
 }
 
 export interface StockingSetting {
-  variant_id: number;
+  sku: string | null;
   stocking_mode: "standard" | "always_stocked" | "on_request";
   min_floor_units: number;
   revision: number;
@@ -189,7 +246,7 @@ export interface StockingSetting {
 
 export interface OverrideRequest {
   id: string;
-  variant_id: number;
+  sku: string | null;
   field: "safety_stock" | "min" | "max";
   recommended_value: number;
   requested_value: number;
@@ -208,13 +265,13 @@ export interface EffectiveValue {
 }
 
 export interface Recommendation {
-  variant_id: number;
+  sku: string | null;
   safety_stock: number | null;
   effective?: { safety_stock: EffectiveValue; min: EffectiveValue; max: EffectiveValue };
 }
 
 export interface CriticalProduct {
-  product_id: number;
+  sku: string | null;
   name: string;
   clinical_critical: boolean;
   variants: number;
@@ -829,6 +886,8 @@ export interface ProposalExplanation {
   };
   cost: { unit: string; source: string; status: string };
   constraints: string[];
+  /** Which saved policy supplied each rule and in which version (feature 011): older proposals hold only the source, or nothing. */
+  policy_applied?: Record<string, { source: string; revision: number } | string>;
   terms?: {
     supplier_version: number | null;
     override_version: number | null;
@@ -894,6 +953,23 @@ export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
   forecast_run_id?: string | null;
   approval: { approver: string; decision: string; version: number; valid: boolean } | null;
   warnings?: string[];
+  flags?: ProposalFlags | null;
+}
+
+/** What a binding budget did to the proposal (feature 011): the lines left out, the caps that bound, and the excess a person must decide on. */
+export interface DeferredLine {
+  sku: string | null;
+  product_name: string | null;
+  needed_qty: number | null;
+  estimated_cost: string | null;
+  reason: string | null;
+  bound_by: Array<{ kind: string; supplier_name?: string | null }>;
+}
+
+export interface ProposalFlags {
+  over_budget?: string;
+  notes?: string[];
+  deferred?: DeferredLine[];
 }
 
 /** Local export loader (MMI 004): present only in the local environment. */
@@ -1145,20 +1221,42 @@ export class ApiClient {
     });
   }
 
+  /** Removes an override: a new revision with every field empty, so the inherited or default value applies again. */
+  async clearPolicy(scope: string, key: string, version: number): Promise<{ revision: number }> {
+    return this.request<{ revision: number }>(`/policies/${scope}/${encodeURIComponent(key)}`, { method: "DELETE", headers: { "If-Match": `"${version}"` } });
+  }
+
   async previewPolicy(scope: string, key: string, body: Record<string, unknown>): Promise<PolicyPreview> {
     return this.request<PolicyPreview>(`/policies/${scope}/${encodeURIComponent(key)}/preview`, { method: "POST", body: JSON.stringify(body) });
   }
 
-  async putBudgetCap(body: Record<string, unknown>): Promise<{ weekly_budget: string | null }> {
-    return this.request<{ weekly_budget: string | null }>("/budget-caps", { method: "PUT", body: JSON.stringify(body) });
+  async putBudgetCap(body: Record<string, unknown>, version: number): Promise<{ weekly_budget: string | null; revision: number }> {
+    return this.request<{ weekly_budget: string | null; revision: number }>("/budget-caps", {
+      method: "PUT",
+      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      body: JSON.stringify(body),
+    });
   }
 
-  async getStocking(variantId: number): Promise<StockingSetting> {
-    return this.request<StockingSetting>(`/stocking/${variantId}`);
+  async getEffectivePolicy(sku: string): Promise<EffectivePolicy> {
+    return this.request<EffectivePolicy>(`/products/${encodeURIComponent(sku)}/effective-policy`);
   }
 
-  async putStocking(variantId: number, body: { stocking_mode: string; min_floor_units: number }, version: number): Promise<{ revision: number }> {
-    return this.request<{ revision: number }>(`/stocking/${variantId}`, {
+  async getPolicyAudit(q: PolicyAuditQuery = {}): Promise<PolicyAuditPage> {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries({ scope: q.scope, outcome: q.outcome, from: q.from, to: q.to, page: q.page && q.page > 1 ? String(q.page) : undefined })) {
+      if (value) params.set(key, value);
+    }
+    const qs = params.toString();
+    return this.request<PolicyAuditPage>(`/policy-audit${qs ? `?${qs}` : ""}`);
+  }
+
+  async getStocking(sku: string): Promise<StockingSetting> {
+    return this.request<StockingSetting>(`/stocking/${encodeURIComponent(sku)}`);
+  }
+
+  async putStocking(sku: string, body: { stocking_mode: string; min_floor_units: number }, version: number): Promise<{ revision: number }> {
+    return this.request<{ revision: number }>(`/stocking/${encodeURIComponent(sku)}`, {
       method: "PUT",
       headers: version > 0 ? { "If-Match": `"${version}"` } : {},
       body: JSON.stringify(body),
@@ -1169,11 +1267,11 @@ export class ApiClient {
     return this.request<OverrideRequest[]>(`/policy-overrides?status=${status}`);
   }
 
-  async getRecommendation(variantId: number): Promise<Recommendation> {
-    return this.request<Recommendation>(`/policy-overrides/recommendation/${variantId}`);
+  async getRecommendation(sku: string): Promise<Recommendation> {
+    return this.request<Recommendation>(`/policy-overrides/recommendation/${encodeURIComponent(sku)}`);
   }
 
-  async createOverride(body: { variant_id: number; field: string; requested_value: number; reason: string }): Promise<OverrideRequest> {
+  async createOverride(body: { sku: string; field: string; requested_value: number; reason: string }): Promise<OverrideRequest> {
     return this.request<OverrideRequest>("/policy-overrides", { method: "POST", body: JSON.stringify(body) });
   }
 
@@ -1185,20 +1283,30 @@ export class ApiClient {
     return this.request<{ products: CriticalProduct[] }>("/criticality");
   }
 
-  async setCriticality(productId: number, critical: boolean): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/products/${productId}/criticality`, { method: "PUT", body: JSON.stringify({ critical }) });
+  async setCriticality(sku: string, critical: boolean): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/products/${encodeURIComponent(sku)}/criticality`, { method: "PUT", body: JSON.stringify({ critical }) });
   }
 
-  async addExclusion(body: { variant_id: number | null; from_day: string; to_day: string; reason: string }): Promise<{ id: number }> {
+  async addExclusion(body: { sku: string | null; from_day: string; to_day: string; reason_code: string; detail?: string }): Promise<{ id: number }> {
     return this.request<{ id: number }>("/demand-rules/exclusions", { method: "POST", body: JSON.stringify(body) });
   }
 
-  async toggleExclusion(id: number, active: boolean): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/demand-rules/exclusions/${id}`, { method: "PUT", body: JSON.stringify({ active }) });
+  async toggleExclusion(id: number, active: boolean, version: number): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/demand-rules/exclusions/${id}`, { method: "PUT", headers: { "If-Match": `"${version}"` }, body: JSON.stringify({ active }) });
   }
 
-  async putCensoringRule(rule: string, value: number): Promise<JsonRecord> {
-    return this.request<JsonRecord>(`/demand-rules/rules/${rule}`, { method: "PUT", body: JSON.stringify({ value }) });
+  /** The global rule when `target` is omitted; otherwise the rule for a segment or, by SKU, a product. */
+  async putCensoringRule(rule: string, value: number, version: number, target?: { scope: "segment" | "product"; key: string }): Promise<JsonRecord> {
+    return this.request<JsonRecord>(`/demand-rules/rules/${rule}`, {
+      method: "PUT",
+      headers: version > 0 ? { "If-Match": `"${version}"` } : {},
+      body: JSON.stringify(target ? { value, scope: target.scope, key: target.key } : { value }),
+    });
+  }
+
+  /** The category history of a product addressed by SKU (the safety-stock screen); the dashboard keeps its own id-based call. */
+  async getSegmentHistoryBySku(sku: string): Promise<{ sku: string; history: SegmentHistoryRow[] }> {
+    return this.request<{ sku: string; history: SegmentHistoryRow[] }>(`/products/${encodeURIComponent(sku)}/segment-history`);
   }
 
   async getSegmentHistory(variantId: number): Promise<{ variant_id: number; history: SegmentHistoryRow[] }> {

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, ApiError, errorMessage, PolicyDetail, PolicyPreview, PolicySummary } from "../../api/client";
-import { formatCurrencyEUR } from "../../i18n/formatters";
+import { api, ApiError, EffectivePolicy, errorMessage, PolicyDetail, PolicyPreview, PolicySummary } from "../../api/client";
+import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
 import { FormField } from "../../ui/FormField";
 import { canEditPolicies, emptyForm, PolicyForm, scopeKeyValid, Scope, toForm, toPayload } from "./policiesModel";
 import { useActionNotice } from "../../ui/NoticeProvider";
@@ -15,10 +15,14 @@ interface Props {
   roles: string[];
   policies: PolicySummary[];
   weeklyBudget: string | null;
+  weeklyBudgetRevision?: number | undefined;
+  orphaned?: number | undefined;
   onChanged: () => void;
 }
 
-export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudget, onChanged }) => {
+const RULES = ["service_level", "safety_stock_units", "min_units", "max_units", "replenishment_cadence_days"] as const;
+
+export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudget, weeklyBudgetRevision = 0, orphaned = 0, onChanged }) => {
   const { t } = useTranslation();
   const [scope, setScope] = useState<Scope>("global");
   const [key, setKey] = useState("*");
@@ -29,6 +33,8 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
   const [notice, setNotice] = useActionNotice();
   const [conflict, setConflict] = useState<number | null>(null);
   const [budget, setBudget] = useState("");
+  const [effective, setEffective] = useState<EffectivePolicy | null>(null);
+  const [budgetConflict, setBudgetConflict] = useState<number | null>(null);
   const canEdit = canEditPolicies(roles);
   const fe = useFieldErrors();
 
@@ -43,6 +49,7 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
     setScope(next);
     setKey(next === "global" ? "*" : next === "segment" ? "A" : "");
     setDetail(null);
+    setEffective(null);
     setForm(emptyForm());
     reset();
   };
@@ -55,6 +62,7 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
       const d = await api.getPolicy(scope, key);
       setDetail(d);
       setForm(toForm(d.current));
+      setEffective(scope === "product" ? await api.getEffectivePolicy(key.trim()) : null);      // where each value in force comes from
     } catch (err) {
       fail(err);
     }
@@ -98,16 +106,32 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
     }
   };
 
+  const clear = async () => {
+    reset();
+    try {
+      const r = await api.clearPolicy(scope, key, detail?.revision ?? 0);
+      setConflict(null);
+      await load();
+      setNotice(t("policies.cleared", { revision: r.revision }));
+      onChanged();
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "revision_conflict") setConflict(err.currentVersion ?? detail?.revision ?? 0);
+      else fail(err);
+    }
+  };
+
   const saveBudget = async () => {
     reset();
     const amount = budget.trim().replace(",", ".");
     if (!/^\d{1,9}(\.\d{1,2})?$/.test(amount)) return setError(t("policies.invalid_field", { field: t("policies.budget.amount") }));
     try {
-      await api.putBudgetCap({ period: "week", scope: "global", amount });
+      await api.putBudgetCap({ period: "week", scope: "global", amount }, weeklyBudgetRevision);
+      setBudgetConflict(null);
       setNotice(t("policies.budget.saved"));
       onChanged();
     } catch (err) {
-      fail(err);
+      if (err instanceof ApiError && err.code === "revision_conflict") setBudgetConflict(err.currentVersion ?? weeklyBudgetRevision);
+      else fail(err);
     }
   };
 
@@ -127,12 +151,14 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
       ) : (
         <ul>
           {policies.map((p) => (
-            <li key={`${p.scope}:${p.key}`}>
-              {t(`policies.scope.${p.scope}`)} {p.key !== "*" ? `· ${p.key}` : ""} — {t("policies.history.revision")} {p.revision}
+            <li key={`${p.scope}:${p.key ?? "orphan"}:${p.revision}`}>
+              {t(`policies.scope.${p.scope}`)} {p.key !== "*" ? `· ${p.key ?? t("policies.orphaned_unknown")}` : ""} — {t("policies.history.revision")} {p.revision}
+              {p.orphaned && ` (${t("policies.orphaned")})`}
             </li>
           ))}
         </ul>
       )}
+      {orphaned > 0 && <p role="status">{t("policies.orphaned_note", { count: orphaned })}</p>}
 
       <div className="mmi-cluster">
         <div className="mmi-stack">
@@ -174,12 +200,35 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
               <Button onClick={() => void save()}>
                 {t("policies.save")}
               </Button>
+              {detail.revision > 0 && (
+                <Button variant="secondary" onClick={() => void clear()}>
+                  {t("policies.clear")}
+                </Button>
+              )}
             </PageActions>
+          )}
+
+          {effective && (
+            <div role="region" aria-label={t("policies.effective.title")}>
+              <h4>{t("policies.effective.title")}</h4>
+              <DataTable
+                ariaLabel={t("policies.effective.title")}
+                rows={RULES.map((r) => ({ rule: r, ...effective.rules[r] }))}
+                rowKey={(r) => r.rule}
+                columns={[
+                  { id: "rule", header: t("policies.effective.rule"), cell: (r) => t(`policies.effective.rule.${r.rule}`), sortValue: (r) => r.rule },
+                  { id: "value", header: t("policies.effective.value"), cell: (r) => (r.value === null ? "—" : r.rule === "service_level" ? `${Math.round(parseFloat(r.value) * 10000) / 100} %` : r.value), sortValue: (r) => r.value, align: "end" },
+                  { id: "source", header: t("policies.effective.source"), cell: (r) => t(`policies.effective.source.${r.source}`), sortValue: (r) => r.source },
+                  { id: "revision", header: t("policies.history.revision"), cell: (r) => r.revision ?? "—", sortValue: (r) => r.revision, align: "end" },
+                ]}
+              />
+            </div>
           )}
 
           {preview && (
             <div role="region" aria-label={t("policies.preview.title")}>
               <h4>{t("policies.preview.title")}</h4>
+              <p className="mmi-muted">{t("policies.preview.basis", { run: (preview.forecast_run_id ?? "—").slice(0, 8), date: formatDate(preview.as_of) })}</p>
               <p>{t("policies.preview.affected", { count: preview.affected_count })}</p>
               <p>
                 {t("policies.preview.spend", {
@@ -187,8 +236,8 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
                 })}
               </p>
               <ul>
-                {preview.affected.map((a) => (
-                  <li key={a.variant_id}>{t("policies.preview.row", { variant: a.variant_id, before: a.qty_before, after: a.qty_after })}</li>
+                {preview.affected.map((a, i) => (
+                  <li key={a.sku ?? i}>{t("policies.preview.row", { sku: a.sku ?? "—", before: a.qty_before, after: a.qty_after })}</li>
                 ))}
               </ul>
             </div>
@@ -213,6 +262,7 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
 
       <h3>{t("policies.budget")}</h3>
       <p>{weeklyBudget === null ? t("policies.budget.none") : t("policies.budget.current", { value: formatCurrencyEUR(weeklyBudget) })}</p>
+      {budgetConflict !== null && <p role="alert">{t("policies.conflict", { version: budgetConflict })}</p>}
       {canEdit && (
         <div className="mmi-cluster">
           <FormField id="pol-budget" label={t("policies.budget.amount")} value={budget} onChange={setBudget} inputMode="decimal" />

@@ -22,7 +22,12 @@ from db.tables import product_refs, supplier_costs, supplier_review_items, suppl
 from fx.rates import convert, latest_rate, rate_state
 from orders.confirm import open_inbound
 from policies.overrides import effective_overrides
-from policies.service import effective_weekly_budget, resolve_policy
+from policies.service import (
+    budget_versions,
+    effective_weekly_budget_with_source,
+    resolve_policy,
+    supplier_weekly_budgets,
+)
 from policies.stocking import MONTHLY_CHECK_DAYS, last_order_dates, stocking_map
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
@@ -199,12 +204,13 @@ class InputsProvider:
             policy_versions.update(pol.revisions)
             bought = last_bought.get(vid)
             monthly = mode == "always_stocked" and (bought is None or (today - bought).days >= MONTHLY_CHECK_DAYS)
-            info = tuple(sorted(pol.sources.items())) + ((("stocking", mode),) if mode != "standard" else ())
+            info = tuple(sorted((f, {"source": s, "revision": pol.revisions[s]}) for f, s in pol.sources.items())) + ((("stocking", mode),) if mode != "standard" else ())      # FR-004: scope, key and revision
             level = pol.values.service_level if pol.values.service_level is not None else Decimal(str(v["service_level"]))
             out.append(VariantInput(vid, int(pid), int(v.get("on_hand", 0)), forecast, level, tuple(offers),
                                     tuple(inbound.get(vid, ())), expiring, bool(v.get("clinical_critical")), soon,
                                     overrides.get((vid, "safety_stock")), overrides.get((vid, "min"), pol.values.min_units),
-                                    overrides.get((vid, "max"), pol.values.max_units), floor if mode == "always_stocked" else 0, monthly, info))
+                                    overrides.get((vid, "max"), pol.values.max_units), floor if mode == "always_stocked" else 0, monthly, info,
+                                    review_days=pol.values.replenishment_cadence_days))
             if pol.values.safety_stock_units is not None and (vid, "safety_stock") not in overrides:
                 out[-1] = replace(out[-1], safety_override=pol.values.safety_stock_units)
         terms: dict[str, SupplierTermsIn] = {}
@@ -218,6 +224,8 @@ class InputsProvider:
                 delivery_weekdays=t.delivery_weekdays)
             versions_used[sid] = {"supplier": None if row is None else int(row.version), "overrides": overrides_used.get(sid, {})}
         self.report = report
-        capped = effective_weekly_budget(conn, today)
+        capped, capped_by = effective_weekly_budget_with_source(conn, today)
+        policy_versions.update(budget_versions(conn, today))
         return ProposalInputs(today, tuple(out), terms, capped if capped is not None else self.budget, terms_versions=versions_used, policy_versions=policy_versions,
-                              forecast_run_id=fc.get("run_id"), dataset_version_id=fc.get("dataset_version_id"))
+                              forecast_run_id=fc.get("run_id"), dataset_version_id=fc.get("dataset_version_id"),
+                              budget_source=capped_by, supplier_budgets=supplier_weekly_budgets(conn, today), defer_for_cap=True)

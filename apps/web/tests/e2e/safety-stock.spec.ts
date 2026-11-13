@@ -6,9 +6,9 @@ const json = (body: unknown, status = 200) => ({ status, contentType: "applicati
 
 async function backend(page: Page, user: string, roles: string[]) {
   const state = {
-    queue: [{ id: "r1", variant_id: 5, field: "safety_stock", recommended_value: 2, requested_value: 6, reason: "proveedor poco fiable", status: "pending", requested_by: "buyer-1", decided_by: null, recommendation_changed: false }] as Array<Record<string, unknown>>,
+    queue: [{ id: "r1", sku: "SYN-0005", field: "safety_stock", recommended_value: 2, requested_value: 6, reason: "proveedor poco fiable", status: "pending", requested_by: "buyer-1", decided_by: null, recommendation_changed: false }] as Array<Record<string, unknown>>,
     effective: { safety_stock: { value: 2, source: "recommendation", request_id: null }, min: { value: null, source: "none", request_id: null }, max: { value: null, source: "none", request_id: null } } as Record<string, unknown>,
-    stocking: { variant_id: 5, stocking_mode: "standard", min_floor_units: 0, revision: 0 },
+    stocking: { sku: "SYN-0005", stocking_mode: "standard", min_floor_units: 0, revision: 0 },
     created: [] as unknown[], stockingSaved: [] as unknown[],
   };
   await page.route("**/api/me", (r) => r.fulfill(json({ user_id: user, roles, mfa_auth_time: new Date().toISOString(), csrf_token: "csrf" })));
@@ -18,14 +18,14 @@ async function backend(page: Page, user: string, roles: string[]) {
     demand: { ok: true, data: { exclusions: [], rules: [] } }, forecast: { ok: true, data: { as_of: "2026-11-09", parameters: [] } },
   })));
   await page.route("**/api/policy-overrides?status=pending", (r) => r.fulfill(json(state.queue)));
-  await page.route("**/api/policy-overrides/recommendation/5", (r) => r.fulfill(json({ variant_id: 5, safety_stock: 2, effective: state.effective })));
-  await page.route("**/api/segments/5/history", (r) => r.fulfill(json({ variant_id: 5, history: [{ changed_at: "2026-11-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] })));
-  await page.route("**/api/stocking/5", (r) => {
+  await page.route("**/api/policy-overrides/recommendation/SYN-0005", (r) => r.fulfill(json({ sku: "SYN-0005", safety_stock: 2, effective: state.effective })));
+  await page.route("**/api/products/SYN-0005/segment-history", (r) => r.fulfill(json({ sku: "SYN-0005", history: [{ changed_at: "2026-11-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] })));
+  await page.route("**/api/stocking/SYN-0005", (r) => {
     const req = r.request();
     if (req.method() === "GET") return r.fulfill(json(state.stocking));
     const body = req.postDataJSON() as { stocking_mode: string; min_floor_units: number };
     state.stockingSaved.push(body);
-    state.stocking = { variant_id: 5, stocking_mode: body.stocking_mode, min_floor_units: body.min_floor_units, revision: state.stocking.revision + 1 };
+    state.stocking = { sku: "SYN-0005", stocking_mode: body.stocking_mode, min_floor_units: body.min_floor_units, revision: state.stocking.revision + 1 };
     return r.fulfill(json({ revision: state.stocking.revision }));
   });
   await page.route("**/api/policy-overrides", (r) => {
@@ -49,7 +49,7 @@ test.describe("Safety stock and always-stocked (T080)", () => {
   test("a buyer requests a different value and sets a product as always stocked", async ({ page }) => {
     const state = await backend(page, "buyer-1", ["viewer", "buyer"]);
     await open(page);
-    await page.getByLabel("Variante").fill("5");
+    await page.getByLabel("SKU").fill("SYN-0005");
     await page.click("button:has-text('Consultar')");
     await expect(page.getByText("Recomendado por el sistema: 2 unidades")).toBeVisible();
     await expect(page.getByText(/primera clasificación/)).toBeVisible();
@@ -57,7 +57,7 @@ test.describe("Safety stock and always-stocked (T080)", () => {
     await page.getByLabel("Motivo").fill("proveedor poco fiable");
     await page.click("button:has-text('Solicitar cambio')");
     await expect(page.getByText(/no se aplica hasta que otra persona/)).toBeVisible();
-    expect(state.created).toEqual([{ variant_id: 5, field: "safety_stock", requested_value: 6, reason: "proveedor poco fiable" }]);
+    expect(state.created).toEqual([{ sku: "SYN-0005", field: "safety_stock", requested_value: 6, reason: "proveedor poco fiable" }]);
     await page.getByLabel("Modo de stock").selectOption("always_stocked");
     await page.getByLabel("Unidades mínimas siempre disponibles").fill("1");
     await page.click("button:has-text('Guardar modo de stock')");
@@ -97,7 +97,7 @@ test.describe("Safety stock and always-stocked (T080)", () => {
   test("the screen shows the value in force next to the recommendation and whether it is an approved override", async ({ page }) => {
     const state = await backend(page, "buyer-1", ["viewer", "buyer"]);
     await open(page);
-    await page.getByLabel("Variante").fill("5");
+    await page.getByLabel("SKU").fill("SYN-0005");
     await page.click("button:has-text('Consultar')");
     const list = page.getByRole("list", { name: "Valores en vigor" });
     await expect(list).toContainText("Stock de seguridad en vigor: 2 unidades (es la recomendación del sistema)");

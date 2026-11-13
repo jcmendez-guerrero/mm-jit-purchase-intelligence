@@ -206,7 +206,8 @@ demand_exclusions = Table(
     Column("variant_id", Integer),                                       # NULL = all products
     Column("from_day", Date, nullable=False),
     Column("to_day", Date, nullable=False),
-    Column("reason", String(500), nullable=False),
+    Column("reason", String(500), nullable=False),                       # a pick-list code (older rows may hold free text); never copied into the audit
+    Column("reason_detail", String(100)),                                # short optional detail, shown to admins only (feature 011)
     Column("active", Boolean, nullable=False, default=True),             # reversible: deactivate, never delete
     Column("revision", Integer, nullable=False, default=1),
     Column("changed_by", String(120), nullable=False),
@@ -215,6 +216,8 @@ censoring_rules = Table(
     "censoring_rules", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("rule", String(40), nullable=False),
+    Column("scope", String(10), nullable=False, server_default="global"),   # global / segment / product (feature 011)
+    Column("key", String(40), nullable=False, server_default="*"),           # '*', a segment (critical, A, B, C, sparse) or a variant id (never shown)
     Column("value", Integer, nullable=False),
     Column("valid_from", Date, nullable=False),
     Column("revision", Integer, nullable=False, default=1),
