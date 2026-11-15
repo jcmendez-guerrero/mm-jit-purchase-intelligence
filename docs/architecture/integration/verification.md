@@ -58,11 +58,21 @@ Re-checked on 2026-11-10 after PR 19 merged: `python -m gates lookup dashboard_i
 - **Endpoint check:** `python -m gates run --gate contracts --openapi <gateway openapi.json>`, with the document taken from `app.openapi()` of `services/api-bff` (95 paths), passes: the matrix's endpoint entries equal the gateway's real endpoints.
 - **Audit statuses backed by test runs:** the test file cited as evidence for each audit row was executed. 24 Python files pass (including `infra/tests/test_migrations_postgres.py`, 10 passed with `RUN_PG_MIGRATIONS=1` and Docker); `CommandPalette.test.tsx` passes (8); `a11y-all-routes.spec.ts` passes 11 of 12. The failing test is "reference task 3 by keyboard: edit one supplier term and save it", which also fails on `main` and does not cover the a11y routes. Each row's note records its result. Statuses were not changed. Rows `infra-bicep-deployment` and `infra-ci-deploy-workflows` stay `unverified`: the Bicep row's test checks guardrail settings, not a deployment, and no test covers the workflows.
 
+## Manual workflow `integration-gates.yml` on GitHub (2026-11-15)
+
+Started three times with `gh workflow run integration-gates.yml --ref claude/agent-00-integration-followups`; it had never run on GitHub before.
+
+1. **Run 43768210506 failed:** `git worktree add ... main` crashed because the Actions checkout of another branch has `origin/main` but no local `main`; no report was written and the comment job found no artifact. Fixed in `c26b430` (base resolved from `origin/<base>`, a missing base is exit 3), with two tests.
+2. **Run 43768440101 failed:** the security gate stopped on `ModuleNotFoundError: ortools` (procurement tests) because the install step did not list it. The report showed PR 16 as `gate_failed` and its dependents dropped, which is the designed behaviour. Fixed in `ce4d9ab`.
+3. **Run 43769197601 passed:** `integrate` and `comment` succeeded; the report lists contracts, isolation, integration (4 steps), e2e (3 commands), security (8 commands) and cost (1 command) as `pass`, with PRs 16, 18, 17 and 19 integrated. The comment job posts nothing until `integration-plan.json` is on the default branch.
+
+The endpoint check was not part of that workflow run (it needs `--openapi`); it was run separately, see above.
+
 ## Not verified
 
 Updated 2026-11-15.
 
-- The manual `integration-gates.yml` workflow: see the run recorded below, if present. Its comment job posts nothing until `integration-plan.json` is on the default branch.
+- The comment job of `integration-gates.yml` has not posted a comment on a PR: it posts nothing until `integration-plan.json` is on the default branch.
 - `gitleaks` itself was not run locally; Super-linter's GITLEAKS check passes on the PRs.
 - A test run backs an audit row only for the evidence file cited; other tests of the same feature were not run row by row.
 - The `e2e` gate's live-stack journey ran in the full run of 2026-11-10, not today.
