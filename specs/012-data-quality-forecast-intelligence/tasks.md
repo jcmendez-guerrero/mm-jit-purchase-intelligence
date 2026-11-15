@@ -221,3 +221,14 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 2. Add US4, validate scenario 6.
 3. Add US5, validate scenario 7, then Polish.
 4. Nothing reaches production, main or the ERP from this feature; humans keep deciding purchases.
+
+---
+
+## Phase 9: Convergence
+
+- [ ] T074 After Agent 00 answers the event-design decision in `contracts/matrix-request.md`, align `plan.md` (portfolio data flow), `contracts/quality-intelligence.md` (Events), `data-model.md` and the event names in T005, T044, T060a and T060b with the chosen option, per plan: portfolio data flow (partial)
+- [ ] T075 Write T014a (conventions: UTC with original text, decimals, SKU-only) and T014b (no mixing of local-export and ERP origins) only after T022 to T024 exist, and move them to run right after those tasks, per FR-023 and the spec edge case on local exports (partial)
+- [ ] T076 Install the web dependencies in `apps/web` and run `npm test` and `npm run lint` so the ten new `quality.*` es-ES strings added in T012 are checked by the existing web tests, per FR-019 (partial)
+- [ ] T077 Before opening the PR, check whether feature 011's inventory migration `0008` has merged; if it has, renumber `services/inventory-service/migrations/versions/0008_quality_intelligence.py` to 0009, point `down_revision` at 0008, update `tests/test_migration_quality.py` and re-run the PostgreSQL migration test (`RUN_PG_MIGRATIONS=1 pytest infra/tests/test_migrations_postgres.py`), per T007 (partial)
+- [ ] T078 Document the additive `provenance` field of `GET /export/series` in `contracts/quality-intelligence.md` and ask Agent 00 whether this service-to-service endpoint needs a contract-matrix entry, per FR-014 (partial)
+- [ ] T079 Install Playwright and `ortools` in the verification environment so the `e2e` and `security` gates can run before the final `python -m gates run`, per T071 (partial)
