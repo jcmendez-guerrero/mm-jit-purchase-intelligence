@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/product_backtest.v1",
+  "title": "ProductBacktest",
+  "description": "Per-product backtest result (feature 012): method error and bias against a simple baseline over past periods, with the versions used. Immutable once stored; a backtest never changes any stored forecast, proposal, stock or ERP data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["backtest_run_id", "sku", "periods", "beats_baseline", "model_version", "created_at"],
+  "properties": {
+    "backtest_run_id": { "type": "string", "format": "uuid" },
+    "sku": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "periods": { "type": "integer", "minimum": 0 },
+    "wape": { "type": ["string", "null"], "pattern": "^-?[0-9]+(\\.[0-9]{1,6})?$" },
+    "bias": { "type": ["string", "null"], "pattern": "^-?[0-9]+(\\.[0-9]{1,6})?$" },
+    "baseline_wape": { "type": ["string", "null"], "pattern": "^-?[0-9]+(\\.[0-9]{1,6})?$" },
+    "baseline_bias": { "type": ["string", "null"], "pattern": "^-?[0-9]+(\\.[0-9]{1,6})?$" },
+    "beats_baseline": { "type": "boolean" },
+    "model_version": { "type": "string", "maxLength": 120 },
+    "dataset_version_id": { "type": ["string", "null"], "maxLength": 36 },
+    "config_version_id": { "type": ["string", "null"], "maxLength": 36 },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

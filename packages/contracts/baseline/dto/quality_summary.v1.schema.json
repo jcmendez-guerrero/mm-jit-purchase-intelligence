@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/quality_summary.v1",
+  "title": "QualitySummary",
+  "description": "Per-product data-quality summary (feature 012): coverage, gap days, rejected and excluded movements, anomalies and stockout days. Products are identified by SKU only; reasons are codes, never free text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku", "period_start", "period_end", "days_in_period", "days_with_data", "coverage_ratio", "gap_days", "rejected_count", "quarantined_count", "ambiguous_count", "reason_counts", "excluded_by_type", "anomaly_count", "censored_days", "origin", "config_version_id", "built_at"],
+  "properties": {
+    "sku": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "period_start": { "type": "string", "format": "date" },
+    "period_end": { "type": "string", "format": "date" },
+    "days_in_period": { "type": "integer", "minimum": 0 },
+    "days_with_data": { "type": "integer", "minimum": 0 },
+    "coverage_ratio": { "type": "string", "pattern": "^[01](\\.[0-9]{1,6})?$" },
+    "gap_days": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "format": "date" },
+          "to": { "type": "string", "format": "date" }
+        }
+      }
+    },
+    "rejected_count": { "type": "integer", "minimum": 0 },
+    "quarantined_count": { "type": "integer", "minimum": 0 },
+    "ambiguous_count": { "type": "integer", "minimum": 0 },
+    "reason_counts": { "type": "array", "items": { "$ref": "#/$defs/KeyCount" } },
+    "excluded_by_type": { "type": "array", "items": { "$ref": "#/$defs/KeyCount" } },
+    "anomaly_count": { "type": "integer", "minimum": 0 },
+    "censored_days": { "type": "integer", "minimum": 0 },
+    "origin": { "enum": ["erp", "local_export"] },
+    "config_version_id": { "type": "string", "maxLength": 36 },
+    "dataset_version_id": { "type": ["string", "null"], "maxLength": 36 },
+    "built_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "KeyCount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "count"],
+      "properties": {
+        "key": { "type": "string", "maxLength": 40 },
+        "count": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
