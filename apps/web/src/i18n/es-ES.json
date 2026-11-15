@@ -1465,6 +1465,7 @@
   "imports.self_approval_admin": "No puede activar un archivo que usted subió o validó. Como administrador, indique un motivo en el campo de activación para autoactivarlo, o pida a otra persona que lo active.",
   "errors.import_reason_invalid": "El motivo no es válido o el detalle supera los 100 caracteres.",
   "errors.sku_unknown": "El SKU no existe en el catálogo cargado.",
+  "errors.invalid_input": "La dirección o la consulta contiene un carácter no válido. Revise el identificador e inténtelo de nuevo.",
   "errors.sku_ambiguous": "El SKU corresponde a más de un producto; no se ha elegido ninguno. Revise el catálogo.",
   "errors.policy_overlap": "Ya hay una versión programada para una fecha posterior. Elija una fecha igual o posterior a ella.",
   "errors.budget_scope_unsupported": "Los presupuestos por categoría todavía no se aplican: use el presupuesto global o el de un proveedor.",

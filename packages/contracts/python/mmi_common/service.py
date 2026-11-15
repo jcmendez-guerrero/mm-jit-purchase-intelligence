@@ -11,9 +11,11 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from typing import Any
+from urllib.parse import unquote_to_bytes
 
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from .auth import AuthError, Principal, TokenValidator, bearer_token
 from .logging import configure_logging
@@ -87,6 +89,13 @@ def create_service_app(
         return dep
 
     app.state.require_roles = require_roles
+
+    @app.middleware("http")
+    async def refuse_nul_bytes(request: Request, call_next: Callable[..., Any]) -> Any:
+        """PostgreSQL cannot store a NUL byte: an id or key carrying one would reach the database and come back as a server error (feature 011, T081)."""
+        if "\x00" in request.scope["path"] or b"\x00" in unquote_to_bytes(request.scope.get("query_string", b"")):
+            return JSONResponse({"detail": "invalid_input"}, status_code=422)
+        return await call_next(request)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:

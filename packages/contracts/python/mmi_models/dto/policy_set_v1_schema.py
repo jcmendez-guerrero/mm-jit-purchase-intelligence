@@ -43,7 +43,12 @@ class PolicySet(BaseModel):
     )
     id: UUID | None = None
     scope: Scope
-    key: str
+    key: Annotated[
+        str,
+        Field(
+            description="'*' for global, a segment code for segment, and the product's SKU for product scope; the ERP variant id is never used as a key in the API"
+        ),
+    ]
     service_level: ServiceLevel | None = None
     safety_stock_units: SafetyStockUnits | None = None
     min_units: MinUnits | None = None

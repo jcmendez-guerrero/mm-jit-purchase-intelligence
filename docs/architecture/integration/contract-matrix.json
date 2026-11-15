@@ -1,6 +1,6 @@
 {
   "matrix_version": 1,
-  "generated_at": "2026-11-15T15:27:32Z",
+  "generated_at": "2026-11-15T15:55:06Z",
   "schema_ownership": {
     "siweb-connector": "integration",
     "inventory-service": "inventory",
@@ -129,6 +129,18 @@
       "kind": "dto",
       "version": 1,
       "schema_path": "dto/policy_audit_page.v1.schema.json",
+      "owner": "agent-00",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "policy_cleared",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/policy_cleared.v1.schema.json",
       "owner": "agent-00",
       "consumers": [
         "api-bff",

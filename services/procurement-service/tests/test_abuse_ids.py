@@ -12,7 +12,9 @@ def test_unknown_scenario_ids_get_a_plain_refusal_on_every_scenario_route(api, b
         res = getattr(api, method)(f"/scenarios/{bad_id}{tail}", headers=h("buyer"))
         detail = res.json().get("detail") if res.headers.get("content-type", "").startswith("application/json") else None
         assert res.status_code in (404, 422), (tail, res.status_code)
-        assert detail in ("unknown_scenario", "Not Found", None) or isinstance(detail, list), (tail, detail)
+        assert detail in ("unknown_scenario", "Not Found", "invalid_input", None) or isinstance(detail, list), (tail, detail)
+        if "%00" in bad_id:                                      # a NUL byte never reaches the database (PostgreSQL would answer a server error)
+            assert res.status_code == 422 and detail == "invalid_input", (tail, res.status_code)
         assert "Traceback" not in res.text and "/etc/" not in res.text
 
 

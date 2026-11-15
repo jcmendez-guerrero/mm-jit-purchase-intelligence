@@ -38,3 +38,19 @@ def test_dev_issuer_refused_outside_dev(monkeypatch):
     monkeypatch.setenv("MMI_ENV", "production")
     with pytest.raises(RuntimeError):
         validator_from_env("api://a")
+
+
+@pytest.mark.parametrize("path", ["/items/%00", "/items/a%00b", "/items/x?q=%00", "/%00"])
+def test_a_nul_byte_in_the_path_or_query_is_refused_before_any_route_runs(path):
+    """T081: PostgreSQL cannot store a NUL byte, so an id carrying one would reach the database and come back as a server error."""
+    app = create_service_app("demo", validator=None)
+    reached = []
+
+    @app.get("/items/{item_id}")
+    def item(item_id: str):
+        reached.append(item_id)
+        return {"id": item_id}
+
+    res = TestClient(app).get(path)
+    assert res.status_code == 422 and res.json() == {"detail": "invalid_input"} and not reached
+    assert TestClient(app).get("/items/ok").json() == {"id": "ok"}

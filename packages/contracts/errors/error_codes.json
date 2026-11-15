@@ -681,6 +681,11 @@
       "kind": "request",
       "meaning": "The SKU matches no product in the loaded catalogue"
     },
+    "invalid_input": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The request path or query holds a character that is never valid in an id or a key (a NUL byte)"
+    },
     "sku_ambiguous": {
       "http": 422,
       "kind": "request",
