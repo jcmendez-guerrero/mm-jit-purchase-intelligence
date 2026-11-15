@@ -9,6 +9,7 @@ import { StatusBadge } from "../../ui/StatusBadge";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Button } from "../../ui/Button";
 import { Card } from "../../ui/Card";
+import { QualitySummary } from "./QualitySummary";
 
 interface Props {
   userRoles: string[];
@@ -147,6 +148,7 @@ export const QualityScreen: React.FC<Props> = ({ userRoles, showLocalReview = fa
           />
         </>
       )}
+      <QualitySummary userRoles={userRoles} />
     </Card>
   );
 };

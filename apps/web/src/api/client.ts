@@ -647,6 +647,38 @@ export function errorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/** Per-product data-quality summary (feature 012); reasons are codes, never sentences. */
+export interface QualitySummaryData {
+  sku: string;
+  period_start: string;
+  period_end: string;
+  days_in_period: number;
+  days_with_data: number;
+  coverage_ratio: string;
+  gap_days: { from: string; to: string }[];
+  rejected_count: number;
+  quarantined_count: number;
+  ambiguous_count: number;
+  reason_counts: { key: string; count: number }[];
+  excluded_by_type: { key: string; count: number }[];
+  anomaly_count: number;
+  censored_days: number;
+  origin: "erp" | "local_export";
+  config_version_id: string;
+  built_at: string;
+}
+
+export interface AnomalyFlag {
+  sku: string;
+  day: string;
+  rule_id: "mad_outlier" | "p95_cap" | "negative_qty";
+  original_value: string;
+  decision: "pending" | "accepted" | "excluded";
+  decided_by: string | null;
+  decided_at: string | null;
+  reason_code: string | null;
+}
+
 export interface RiskItem {
   variant_id: number;
   risk_type: "stockout" | "expiry" | "data_quality";
@@ -1062,6 +1094,22 @@ export class ApiClient {
     await this.request<void>(`/data-quality/import-errors/${id}/resolve`, {
       method: "POST",
       body: JSON.stringify({ decision }),
+    });
+  }
+
+  async getQualitySummary(sku: string): Promise<QualitySummaryData> {
+    return this.request<QualitySummaryData>(`/quality/products/${encodeURIComponent(sku)}`);
+  }
+
+  async getQualityAnomalies(sku: string): Promise<AnomalyFlag[]> {
+    const res = await this.request<{ anomalies: AnomalyFlag[] }>(`/quality/products/${encodeURIComponent(sku)}/anomalies`);
+    return res.anomalies;
+  }
+
+  async decideAnomaly(sku: string, day: string, decision: "accepted" | "excluded", reasonCode?: string): Promise<void> {
+    await this.request<unknown>(`/quality/products/${encodeURIComponent(sku)}/anomalies/${day}`, {
+      method: "PUT",
+      body: JSON.stringify({ decision, reason_code: reasonCode ?? null }),
     });
   }
 
