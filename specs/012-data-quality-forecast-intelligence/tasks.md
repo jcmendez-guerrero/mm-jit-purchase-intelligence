@@ -64,19 +64,19 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 
 - [X] T015 [P] [US1] Unit tests for coverage and gap-day calculation in `services/inventory-service/tests/test_quality_coverage.py`
 - [X] T016 [P] [US1] Unit tests for the anomaly rules (median/MAD outlier, p95 cap, negative quantity) using the default parameters fixed in research.md R2: deterministic, original value kept in `services/inventory-service/tests/test_anomaly_rules.py`
-- [ ] T017 [P] [US1] API contract tests for `GET /quality/products/{sku}`, `GET /quality/products/{sku}/anomalies` and `PUT .../anomalies/{day}` (viewer 403, idempotent, enumerated reason only, second factor required for `excluded` and its reversal, not for `accepted`) in `services/inventory-service/tests/test_quality_api.py`
-- [ ] T018 [P] [US1] PostgreSQL integration test: rejected movements never reach demand and every one appears in the review list with a Spanish reason (SC-004) in `services/inventory-service/tests/test_rejected_not_demand.py`
-- [ ] T019 [P] [US1] Integration test: an `excluded` decision creates a new series version and leaves ERP-derived rows untouched in `services/inventory-service/tests/test_anomaly_overlay.py`
+- [X] T017 [P] [US1] API contract tests for `GET /quality/products/{sku}`, `GET /quality/products/{sku}/anomalies` and `PUT .../anomalies/{day}` (viewer 403, idempotent, enumerated reason only, second factor required for `excluded` and its reversal, not for `accepted`) in `services/inventory-service/tests/test_quality_api.py`
+- [X] T018 [P] [US1] PostgreSQL integration test: rejected movements never reach demand and every one appears in the review list with a Spanish reason (SC-004) in `services/inventory-service/tests/test_rejected_not_demand.py`
+- [X] T019 [P] [US1] Integration test: an `excluded` decision creates a new series version and leaves ERP-derived rows untouched in `services/inventory-service/tests/test_anomaly_overlay.py`
 - [ ] T019a [P] [US1] Failure test for the recompute job: a failed or interrupted run leaves no partial snapshots, shows a Spanish failure reason, and a retry is idempotent (FR-022) in `services/inventory-service/tests/test_recompute_failure.py`
 
 ### Implementation for US1
 
 - [X] T020 [US1] Coverage and gap-day builder in `services/inventory-service/src/quality/coverage.py`
 - [X] T021 [US1] Anomaly rule engine in `services/inventory-service/src/quality/anomalies.py` (flags stored in `anomaly_flags`, never editing movements)
-- [ ] T022 [US1] Snapshot builder combining coverage, rejected/quarantined/ambiguous counts with reasons, excluded movement counts by type (the exclusion rules come from the existing `demand_exclusions` table), anomaly count and censored days; idempotent per input hash, in `services/inventory-service/src/quality/snapshot.py` (extends `metrics.py` and `review.py`)
-- [ ] T023 [US1] Exclusion overlay applied when the demand series is exported (excluded days dropped, version bumped) in `services/inventory-service/src/demand/provider.py`
-- [ ] T024 [US1] Endpoints and decision handler (buyer/admin only; the BFF enforces the fresh second-factor check for `excluded` and its reversal and inventory-service trusts that claim; audit event) in `services/inventory-service/src/api/quality.py`, registered in `src/api/__init__.py`
-- [ ] T025 [US1] Background job and endpoint `POST /quality/recompute` with job status in `services/inventory-service/src/worker.py` and `src/api/quality.py`
+- [X] T022 [US1] Snapshot builder combining coverage, rejected/quarantined/ambiguous counts with reasons, excluded movement counts by type (the exclusion rules come from the existing `demand_exclusions` table), anomaly count and censored days; idempotent per input hash, in `services/inventory-service/src/quality/snapshot.py` (extends `metrics.py` and `review.py`)
+- [X] T023 [US1] Exclusion overlay applied when the demand series is exported (excluded days dropped, version bumped) in `services/inventory-service/src/demand/provider.py`
+- [X] T024 [US1] Endpoints and decision handler (buyer/admin only; the BFF enforces the fresh second-factor check for `excluded` and its reversal and inventory-service trusts that claim; audit event) in `services/inventory-service/src/api/quality.py`, registered in `src/api/__init__.py`
+- [ ] T025 [US1] Background job and endpoint `POST /quality/recompute` with job status in `services/inventory-service/src/worker.py` and `src/api/quality.py`. STATUS: `POST /quality/recompute` runs inside the request and returns a stable job id with no duplicate rows (tested); the background worker run and visible job status are still open
 - [ ] T026 [P] [US1] BFF routes (orchestration and role checks only) in `services/api-bff/src/routes/quality.py` and tests in `services/api-bff/tests/test_quality_routes.py`, including that `excluded` without a recent second factor is refused with the shared error while `accepted` is not
 - [ ] T027 [US1] Quality summary and anomaly decision panel in Spanish in `apps/web/src/features/quality/QualitySummary.tsx` and `QualityScreen.tsx`, with its strings in `es-ES.json`
 - [ ] T028 [US1] Playwright E2E for quickstart scenarios 1 and 2 in `apps/web/tests/e2e/quality-summary.spec.ts`

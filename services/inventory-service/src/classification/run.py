@@ -18,6 +18,7 @@ from db.tables import (
     variants,
 )
 from mmi_common.time import utc_now
+from quality.overlay import excluded_days
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.engine import Connection
 
@@ -41,6 +42,7 @@ def load_series(conn: Connection, through_day: date | None = None) -> list[Serie
     pending = set(conn.execute(select(stock_movements.c.variant_id).where(stock_movements.c.quarantined).distinct()).scalars())
     services = set(conn.execute(select(variants.c.external_id).where(variants.c.is_service.is_(True))).scalars())   # FR-036: never classified
     out: list[SeriesInput] = []
+    dropped = excluded_days(conn)               # feature 012: days a buyer excluded read as censored; demand rows stay untouched
     for vid, per_day in hist.items():
         if vid in services:
             continue
@@ -49,7 +51,7 @@ def load_series(conn: Connection, through_day: date | None = None) -> list[Serie
         days = [first + timedelta(days=i) for i in range(n)]
         v = info.get(vid)
         out.append(SeriesInput(
-            variant_id=vid, days=days, demand=[demand[vid].get(d, 0) for d in days], censored=[per_day.get(d, (False, True))[0] for d in days],
+            variant_id=vid, days=days, demand=[demand[vid].get(d, 0) for d in days], censored=[per_day.get(d, (False, True))[0] or d in dropped.get(vid, ()) for d in days],
             price=Decimal(str(v.price)) if v is not None and v.price is not None else Decimal(0),
             product_discontinued=bool(v and status.get(v.product_id) == "discontinued"),
             history_reconciled=all(ok for _, ok in per_day.values()), pending_review=vid in pending))
