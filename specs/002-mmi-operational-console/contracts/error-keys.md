@@ -142,3 +142,9 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | import_conflict | 409 | Another activation or rollback ran at the same time |
 | import_reason_required | 422 | A reason (a choice from the list) is required |
 | import_reason_invalid | 422 | The reason is not in the list, or its detail is longer than 100 characters |
+| quality_product_not_found | 404 | The SKU is not in the synchronised catalogue or has no quality data |
+| quality_anomaly_not_found | 404 | The product has no anomaly flagged on that day |
+| quality_decision_invalid | 422 | The decision or its reason is not in the allowed list |
+| forecast_explanation_not_available | 404 | No forecast run holds an explanation for this product yet |
+| forecast_backtest_conflict | 409 | A full-catalogue backtest is already running; the response names it |
+| quality_job_failed | 502 | A quality recompute or backtest job failed and left no partial result |

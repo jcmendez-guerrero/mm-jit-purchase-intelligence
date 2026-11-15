@@ -22,6 +22,7 @@ from db.tables import (
     stock_snapshots,
     variants,
 )
+from demand.provenance import provenance
 from demand.rebuild import rebuild
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from mmi_common.errors import error_code
@@ -137,6 +138,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
                 "variant_id": s.variant_id, "sku": prod[s.variant_id].sku if s.variant_id in prod else None,   # additive (MMI-7): seed import resolves SKU here
                 "product_id": pid, "price": str(s.price), "start_day": s.days[0].isoformat(),
                 "demand": s.demand, "censored": s.censored,
+                "provenance": provenance("erp_sync", s.variant_id),   # feature 012: only ERP-collected demand under a real id is observed
                 "segment": {"abc": seg.abc, "xyz": seg.xyz, "pattern": seg.pattern, "forecast_eligible": seg.forecast_eligible,
                             "reasons": [r for r in seg.reason.split(",") if r]} if seg else None,
                 "service_level": str(effective_target(conn, pid or 0, seg.abc if seg else "C", seg.pattern if seg else "intermittent", pid in crit, now)),

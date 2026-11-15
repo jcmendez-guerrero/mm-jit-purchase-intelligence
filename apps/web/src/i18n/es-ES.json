@@ -1468,5 +1468,21 @@
   "admin.audit.export_done": "Exportación descargada.",
   "admin.status.cost_limits": "Presupuesto compartido: {{budget}}. Las cifras de gasto están en «Operaciones».",
   "admin.queue.reason.poison": "Mensaje rechazado repetidamente",
-  "admin.alerts.setting.job_failed_observations": "Trabajo fallido: comprobaciones seguidas antes de avisar"
+  "admin.alerts.setting.job_failed_observations": "Trabajo fallido: comprobaciones seguidas antes de avisar",
+  "errors.quality_product_not_found": "No se encuentra el producto o todavía no tiene datos de calidad.",
+  "errors.quality_anomaly_not_found": "No hay ninguna anomalía marcada para ese producto en esa fecha.",
+  "errors.quality_decision_invalid": "La decisión o su motivo no está en la lista permitida.",
+  "errors.forecast_explanation_not_available": "Todavía no hay una explicación de previsión para este producto.",
+  "errors.forecast_backtest_conflict": "Ya hay una prueba retrospectiva del catálogo completo en curso. Espere a que termine.",
+  "errors.quality_job_failed": "El trabajo de calidad ha fallado y no ha dejado resultados parciales. Puede reintentarlo.",
+  "quality.provenance.observed": "Observado (ERP)",
+  "quality.provenance.estimated": "Estimado",
+  "quality.provenance.manual": "Manual",
+  "quality.confidence.alta": "Confianza alta",
+  "quality.confidence.media": "Confianza media",
+  "quality.confidence.baja": "Confianza baja",
+  "quality.eligibility.eligible": "Apto para previsión estadística",
+  "quality.eligibility.manual_review_only": "Solo revisión manual",
+  "quality.eligibility.not_eligible": "Sin previsión estadística",
+  "quality.not_a_forecast": "No es una previsión: cantidad mínima y máxima prudentes"
 }

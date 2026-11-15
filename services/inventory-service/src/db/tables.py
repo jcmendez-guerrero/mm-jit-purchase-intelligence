@@ -157,6 +157,8 @@ product_segments = Table(
     Column("metrics", JSON, nullable=False),        # the numbers behind the labels (rationale)
     Column("computed_at", DateTime(timezone=True), nullable=False),
     Column("run_id", String(36), nullable=False),
+    Column("config_version_id", String(36)),                           # feature 012: thresholds' configuration version; NULL on older rows
+    Column("method", String(30)),                                      # feature 012: method mapped to the class; NULL on older rows
 )
 service_level_config = Table(
     "service_level_config", metadata,
@@ -280,4 +282,68 @@ audit_events = Table(
     Column("after", JSON),
     Column("prev_hash", String(64), nullable=False, unique=True),
     Column("hash", String(64), nullable=False),
+)
+
+
+# ---- feature 012: data quality and forecast intelligence (migration 0008) ----
+data_quality_snapshot = Table(
+    "data_quality_snapshot", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("variant_id", Integer, nullable=False, index=True),
+    Column("period_start", Date, nullable=False),
+    Column("period_end", Date, nullable=False),
+    Column("days_in_period", Integer, nullable=False),
+    Column("days_with_data", Integer, nullable=False),
+    Column("coverage_ratio", Numeric(7, 6), nullable=False),
+    Column("gap_days", JSON, nullable=False),                          # compact date ranges
+    Column("rejected_count", Integer, nullable=False, default=0),
+    Column("quarantined_count", Integer, nullable=False, default=0),
+    Column("ambiguous_count", Integer, nullable=False, default=0),
+    Column("reason_counts", JSON, nullable=False),                     # reason code -> count; never free text
+    Column("excluded_by_type", JSON, nullable=False),                  # movement type -> count excluded from demand
+    Column("anomaly_count", Integer, nullable=False, default=0),
+    Column("censored_days", Integer, nullable=False, default=0),
+    Column("origin", String(12), nullable=False),                      # erp / local_export; never mixed in one row
+    Column("config_version_id", String(36), nullable=False),
+    Column("dataset_version_id", String(36)),
+    Column("input_hash", String(64), nullable=False),
+    Column("built_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("variant_id", "period_start", "period_end", "config_version_id", "input_hash", name="uq_quality_snapshot_inputs"),
+)
+anomaly_flags = Table(
+    "anomaly_flags", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("variant_id", Integer, nullable=False, index=True),
+    Column("day", Date, nullable=False),
+    Column("rule_id", String(30), nullable=False),                     # mad_outlier / p95_cap / negative_qty
+    Column("original_value", Numeric(18, 4), nullable=False),          # never edited
+    Column("decision", String(10), nullable=False, default="pending"), # pending / accepted / excluded
+    Column("decided_by", String(120)),
+    Column("decided_at", DateTime(timezone=True)),
+    Column("reason_code", String(20)),                                 # enumerated, never free text
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("variant_id", "day", "rule_id", name="uq_anomaly_flag"),
+)
+forecast_inbox = Table(
+    "forecast_inbox", metadata,
+    Column("message_id", String(64), primary_key=True),                # idempotency record for consumed forecast events
+    Column("received_at", DateTime(timezone=True), nullable=False),
+)
+portfolio_aggregate = Table(
+    "portfolio_aggregate", metadata,
+    Column("variant_id", Integer, primary_key=True, autoincrement=False),
+    Column("origin", String(12), nullable=False),
+    Column("abc", String(1), nullable=False),
+    Column("xyz", String(1), nullable=False),
+    Column("pattern", String(14), nullable=False),
+    Column("intermittent", Boolean, nullable=False, default=False),
+    Column("coverage_ratio", Numeric(7, 6)),
+    Column("rejected_share", Numeric(7, 6)),
+    Column("anomaly_share", Numeric(7, 6)),
+    Column("eligibility", String(20), nullable=False, default="pending"),   # pending until a forecast run for the variant arrives
+    Column("confidence", String(10)),
+    Column("received_run_id", String(36)),
+    Column("received_at", DateTime(timezone=True)),
+    Column("category", String(120)),
+    Column("supplier", String(120)),
 )

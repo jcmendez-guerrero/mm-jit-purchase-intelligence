@@ -20,6 +20,10 @@ from sqlalchemy.exc import IntegrityError
 
 GENESIS = "0" * 64
 
+# feature 012: action names for the audit chain (actor, time and versions only; never free text)
+BACKTEST_STARTED = "forecast.backtest_started"
+BACKTEST_COMPLETED = "forecast.backtest_completed"
+
 
 def _canonical(body: dict[str, Any]) -> str:
     return json.dumps(body, sort_keys=True, separators=(",", ":"), default=str)
