@@ -1,16 +1,30 @@
 import json
+import os
 import uuid
 
 import pytest
 from db.tables import metadata
+from mmi_common import pg_testing
 from mmi_common.bus import InMemoryBus, new_envelope
 from projections.blob import LocalBlobReader
 from sqlalchemy import create_engine, event
 from sqlalchemy.pool import StaticPool
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _drop_pg_schema():
+    yield
+    pg_testing.drop_schema()
+
+
 @pytest.fixture
 def engine():
+    url = os.environ.get("MMI_TEST_DATABASE_URL")
+    if url:                                   # a real PostgreSQL (feature 011, T086)
+        eng = pg_testing.pg_engine(url, metadata)
+        yield eng
+        pg_testing.clean(eng, metadata)
+        return
     eng = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})  # shared with the API thread
 
     @event.listens_for(eng, "connect")
@@ -22,7 +36,7 @@ def engine():
         conn.exec_driver_sql("BEGIN")
 
     metadata.create_all(eng)
-    return eng
+    yield eng
 
 
 @pytest.fixture

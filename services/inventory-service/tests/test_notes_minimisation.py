@@ -19,7 +19,10 @@ def dump_everything(engine):
     with engine.connect() as c:
         for t in metadata.sorted_tables:
             out += [str(tuple(r)) for r in c.execute(select(t)).all()]
-        out.append(str(c.execute(text("select sql from sqlite_master")).all()))
+        if c.dialect.name == "sqlite":                                                       # the schema text itself must not name a note column either
+            out.append(str(c.execute(text("select sql from sqlite_master")).all()))
+        else:
+            out.append(str(c.execute(text("select table_name, column_name from information_schema.columns where table_schema = current_schema()")).all()))
     return "\n".join(out)
 
 
