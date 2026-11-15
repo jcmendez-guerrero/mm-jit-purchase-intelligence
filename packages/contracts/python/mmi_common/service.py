@@ -27,6 +27,19 @@ _NUL_ESCAPE = re.compile(rb"(?<!\\)(?:\\\\)*\\u0000")
 MAX_INSPECTED_BODY = 1024 * 1024        # a JSON body declared larger than this is not read by the NUL guard (the biggest service limit today is 256 KiB, procurement FR-040)
 
 
+def _refused() -> JSONResponse:
+    return JSONResponse({"detail": "invalid_input"}, status_code=422)
+
+
+def reject_nul(*values: str | None) -> None:
+    """422 ``invalid_input`` when a text value that is about to be stored or looked up holds a NUL byte (PostgreSQL cannot store U+0000).
+
+    The guard in ``create_service_app`` cannot read a multipart body (the file bytes share it), so a route that takes a multipart text field calls this.
+    """
+    if any(v and "\x00" in v for v in values):
+        raise HTTPException(status_code=422, detail="invalid_input")
+
+
 def _fetch_public_key(url: str) -> str:
     """Fetch the PEM public key from dev-issuer, handling both plain-text and JSON responses."""
     resp = httpx.get(f"{url}/public-key", timeout=5)
@@ -97,17 +110,18 @@ def create_service_app(
 
     @app.middleware("http")
     async def refuse_nul_bytes(request: Request, call_next: Callable[..., Any]) -> Any:
-        """PostgreSQL cannot store a NUL byte: an id or key carrying one would reach the database and come back as a server error (feature 011, T081, T082)."""
-        refused = JSONResponse({"detail": "invalid_input"}, status_code=422)
+        """PostgreSQL cannot store a NUL byte: an id or key carrying one would reach the database and come back as a server error (feature 011, T081, T082, T091)."""
         if "\x00" in request.scope["path"] or b"\x00" in unquote_to_bytes(request.scope.get("query_string", b"")):
-            return refused
+            return _refused()
         media_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
         declared = request.headers.get("content-length", "")
         too_large = declared.isdigit() and int(declared) > MAX_INSPECTED_BODY             # not held in memory here: the route or the service's own size limit deals with it
-        if (media_type == "application/json" or media_type.endswith("+json")) and not too_large:      # uploads are not JSON: their bytes are the route's business
+        is_form = media_type == "application/x-www-form-urlencoded"
+        # JSON and url-encoded forms are text that gets stored; multipart and uploads carry file bytes, so the routes that store a multipart text field call reject_nul.
+        if (media_type == "application/json" or media_type.endswith("+json") or is_form) and not too_large:
             body = await request.body()
-            if b"\x00" in body or _NUL_ESCAPE.search(body):
-                return refused
+            if b"\x00" in body or (b"%00" in body if is_form else _NUL_ESCAPE.search(body)):
+                return _refused()
         return await call_next(request)
 
     @app.get("/healthz")

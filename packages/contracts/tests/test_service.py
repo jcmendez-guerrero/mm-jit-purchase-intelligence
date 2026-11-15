@@ -121,3 +121,33 @@ def test_a_body_declared_larger_than_the_inspection_cap_is_left_to_the_route_and
     big = b'{"a": "' + b"x" * (service.MAX_INSPECTED_BODY + 10) + b'"}'
     res = TestClient(app).post("/echo", content=big, headers={"Content-Type": "application/json"})
     assert res.status_code == 200 and len(reached) == 1
+
+
+def test_a_nul_byte_in_a_form_urlencoded_body_is_refused_before_the_route_runs():
+    """T091: a form field is text that gets stored, just like a JSON string."""
+    app = create_service_app("demo", validator=None)
+    reached = []
+
+    @app.post("/form")
+    async def form(request: Request):
+        reached.append(await request.form())
+        return {"ok": True}
+
+    client = TestClient(app)
+    for raw in (b"name=a%00b", b"name=a\x00b"):
+        res = client.post("/form", content=raw, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        assert res.status_code == 422 and res.json() == {"detail": "invalid_input"}
+    assert not reached
+    assert client.post("/form", content=b"name=plain", headers={"Content-Type": "application/x-www-form-urlencoded"}).status_code == 200
+
+
+def test_reject_nul_refuses_a_value_with_a_nul_and_accepts_the_rest():
+    """T091: multipart text fields cannot be inspected by the guard (the file bytes share the body), so the routes that store them call this."""
+    from fastapi import HTTPException
+    from mmi_common.service import reject_nul
+
+    reject_nul("fine", None, "", "tilde ñ")
+    for bad in ("a\x00b", "\x00"):
+        with pytest.raises(HTTPException) as e:
+            reject_nul("ok", bad)
+        assert e.value.status_code == 422 and e.value.detail == "invalid_input"

@@ -11,6 +11,7 @@ from db.tables import seed_datasets
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Query, Response, UploadFile
 from i18n import t
 from mmi_common.errors import error_code
+from mmi_common.service import reject_nul
 from pydantic import BaseModel
 from runs.runner import RunConfig
 from seeds import lifecycle as lc
@@ -128,6 +129,7 @@ def build_router(app: FastAPI) -> APIRouter:
 
     @router.post("", status_code=201)
     def upload(file: UploadFile = File(...), name: str = Form(default=""), conn: Connection = Depends(conn_dep), principal: Any = Depends(editor)) -> dict[str, Any]:
+        reject_nul(name, file.filename)                                # a multipart text field is not read by the shared NUL guard
         limits = load_limits()
         data = file.file.read(limits.max_bytes + 1)                    # never reads more than the cap allows
         try:
