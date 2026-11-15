@@ -72,7 +72,28 @@ export const ExplanationPanel: React.FC<{ sku: string }> = ({ sku }) => {
             <dd>{formatNumber(Number(data.expected), 1)}</dd>
           </>
         )}
+        {data.low !== null && data.high !== null && (
+          <>
+            <dt>{t("quality.explain.range")}</dt>
+            <dd>{t("quality.explain.range_value", { low: formatNumber(Number(data.low), 1), high: formatNumber(Number(data.high), 1) })}</dd>
+          </>
+        )}
+        {data.confidence !== null && (
+          <>
+            <dt>{t("quality.explain.confidence")}</dt>
+            <dd>
+              {t(`quality.confidence.${data.confidence}`)}
+              {data.confidence_reason_codes.length > 0 && (
+                <>
+                  {" · "}
+                  {t("quality.explain.confidence_reasons")}: {data.confidence_reason_codes.map((c) => t(`quality.explain.confidence_reason.${c}`, { defaultValue: c })).join(", ")}
+                </>
+              )}
+            </dd>
+          </>
+        )}
       </dl>
+      {data.eligibility === "manual_review_only" && <p role="note"><strong>{t("quality.explain.low_confidence_warning")}</strong></p>}
       {data.eligibility !== "eligible" && <p role="note">{t("quality.not_a_forecast")}</p>}
       <p className="mmi-muted">{t("quality.explain.censored", { n: data.censored_days })}</p>
       <p className="mmi-muted">{t("quality.explain.excluded", { n: data.anomaly_days_excluded })}</p>

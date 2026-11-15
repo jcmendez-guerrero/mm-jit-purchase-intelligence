@@ -122,17 +122,17 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 
 ### Tests for US3
 
-- [ ] T041 [P] [US3] Unit tests for the confidence rule (history sufficiency, data quality shares, backtest result when present) and thresholds from policy in `services/forecast-service/tests/test_confidence_rule.py`
-- [ ] T042 [P] [US3] Contract test that every eligible forecast, in screens and exports, carries low, expected, high with `low <= expected <= high`, a confidence label and the three versions, in the screens and in the existing proposal export (SC-001) in `services/forecast-service/tests/test_range_confidence_contract.py`
-- [ ] T043 [P] [US3] Test that estimated seed values appear as `estimated` and no value from seed, local-export or imputed sources is `observed` in any response or export in `services/forecast-service/tests/test_provenance_in_forecast.py`
+- [X] T041 [P] [US3] Unit tests for the confidence rule (history sufficiency, data quality shares, backtest result when present) and thresholds from policy in `services/forecast-service/tests/test_confidence_rule.py`
+- [X] T042 [P] [US3] Contract test that every eligible forecast, in screens and exports, carries low, expected, high with `low <= expected <= high`, a confidence label and the three versions, in the screens and in the existing proposal export (SC-001) in `services/forecast-service/tests/test_range_confidence_contract.py`
+- [X] T043 [P] [US3] Test that estimated seed values appear as `estimated` and no value from seed, local-export or imputed sources is `observed` in any response or export in `services/forecast-service/tests/test_provenance_in_forecast.py`
 
 ### Implementation for US3
 
-- [ ] T044 [US3] Confidence rule and range (from stored quantiles) in `services/forecast-service/src/runs/confidence.py`, written into `forecast_explanations`; also publish eligibility and confidence per variant on the existing `forecast.completed` event (optional field, additive) so inventory-service can build the portfolio without cross-service queries
-- [ ] T045 [US3] Low-confidence handling: warning flag, no auto-suggestion, consistent with T037, in `services/forecast-service/src/runs/eligibility.py`
-- [ ] T046 [US3] Provenance label on every demand value in the history table and in the existing proposal export, which also carries range, confidence and versions (formula-safe; no new export is added) in `services/forecast-service/src/runs/seeds.py` and the web history table in `apps/web/src/features/quality/`
-- [ ] T047 [US3] Range and confidence display with warning in Spanish in `apps/web/src/features/quality/ExplanationPanel.tsx` and the proposal line
-- [ ] T048 [US3] Playwright E2E for quickstart scenario 5 in `apps/web/tests/e2e/forecast-uncertainty.spec.ts`
+- [X] T044 [US3] Confidence rule and range (from stored quantiles) in `services/forecast-service/src/runs/confidence.py`, written into `forecast_explanations`; also publish eligibility and confidence per variant on the existing `forecast.completed` event (optional field, additive) so inventory-service can build the portfolio without cross-service queries STATUS: the rule and the range are done; publishing eligibility and confidence per variant on an event is still open and waits for Agent 00 (T004)
+- [X] T045 [US3] Low-confidence handling: warning flag, no auto-suggestion, consistent with T037, in `services/forecast-service/src/runs/eligibility.py` (done in runner.py: a low-confidence product is published like a not-eligible one)
+- [ ] T046 [US3] Provenance label on every demand value in the history table and in the existing proposal export, which also carries range, confidence and versions (formula-safe; no new export is added) in `services/forecast-service/src/runs/seeds.py` and the web history table in `apps/web/src/features/quality/` STATUS: the provenance mix is shown in the explanation panel and no non-ERP value is ever labelled observed (tested); a day-by-day history table and an export column are not built
+- [X] T047 [US3] Range and confidence display with warning in Spanish in `apps/web/src/features/quality/ExplanationPanel.tsx` and the proposal line
+- [X] T048 [US3] Playwright E2E for quickstart scenario 5 in `apps/web/tests/e2e/forecast-uncertainty.spec.ts`
 
 **Checkpoint**: all three P1 stories done; MVP complete.
 

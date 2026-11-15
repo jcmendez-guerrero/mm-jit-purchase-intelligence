@@ -1563,5 +1563,17 @@
   "quality.pattern.intermittent": "Demanda intermitente",
   "quality.pattern.lumpy": "Demanda irregular",
   "quality.pattern.new": "Producto nuevo",
-  "quality.pattern.discontinued": "Producto descatalogado"
+  "quality.pattern.discontinued": "Producto descatalogado",
+  "quality.explain.range": "Rango (bajo – alto)",
+  "quality.explain.range_value": "{{low}} – {{high}}",
+  "quality.explain.confidence": "Confianza",
+  "quality.explain.confidence_reasons": "Motivos de la confianza",
+  "quality.explain.low_confidence_warning": "Confianza baja: la línea no se sugiere automáticamente y se muestra el mínimo y el máximo prudentes. Revise la cantidad antes de confirmar.",
+  "quality.explain.confidence_reason.short_history": "historial corto",
+  "quality.explain.confidence_reason.sparse_sales": "ventas escasas",
+  "quality.explain.confidence_reason.many_stockout_days": "muchos días sin existencias",
+  "quality.explain.confidence_reason.many_excluded_days": "muchos días excluidos por el comprador",
+  "quality.explain.confidence_reason.mostly_estimated": "datos en su mayoría estimados",
+  "quality.explain.confidence_reason.high_variability": "demanda muy variable",
+  "quality.explain.reason.low_confidence": "Confianza baja"
 }

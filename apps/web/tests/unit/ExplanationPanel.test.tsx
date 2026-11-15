@@ -54,6 +54,27 @@ describe("ExplanationPanel", () => {
     expect(await screen.findByText(/método pensado para ventas esporádicas/)).toBeTruthy();
   });
 
+  it("shows the range and the confidence with the reasons in words (T047)", async () => {
+    vi.spyOn(api, "getForecastExplanation").mockResolvedValue(explanation({ low: "8.0000", high: "19.5000", confidence: "media", confidence_reason_codes: ["short_history", "high_variability"] }));
+    render(<ExplanationPanel sku="EJ-1" />);
+    expect(await screen.findByText("8,0 – 19,5")).toBeTruthy();
+    expect(screen.getByText(/Confianza media · Motivos de la confianza: historial corto, demanda muy variable/)).toBeTruthy();
+    expect(screen.queryByText(/Confianza baja: la línea no se sugiere/)).toBeNull();
+  });
+
+  it("warns that a low-confidence line is not suggested automatically, with no figure (T047)", async () => {
+    vi.spyOn(api, "getForecastExplanation").mockResolvedValue(
+      explanation({ eligibility: "manual_review_only", eligibility_reason_codes: ["low_confidence"], confidence: "baja", confidence_reason_codes: ["short_history", "sparse_sales", "high_variability"],
+        expected: null, low: null, high: null, method: "minmax_conservative", method_reason_code: "min_max_fallback" }),
+    );
+    render(<ExplanationPanel sku="EJ-200" />);
+    expect(await screen.findByText(/Confianza baja: la línea no se sugiere automáticamente/)).toBeTruthy();
+    expect(screen.getByText(/No es una previsión/)).toBeTruthy();
+    expect(screen.getByText(/Solo revisión manual/)).toBeTruthy();
+    expect(screen.queryByText("Demanda esperada")).toBeNull();
+    expect(screen.queryByText(/Rango/)).toBeNull();
+  });
+
   it("shows a Spanish message when there is no explanation yet", async () => {
     vi.spyOn(api, "getForecastExplanation").mockRejectedValue(new ApiError(404, "forecast_explanation_not_available"));
     render(<ExplanationPanel sku="EJ-1" />);

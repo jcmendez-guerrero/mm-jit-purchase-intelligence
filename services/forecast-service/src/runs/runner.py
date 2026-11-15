@@ -29,7 +29,8 @@ from policies.fallback import conservative_plan
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection, Engine
 
-from runs.eligibility import decide
+from runs.confidence import assess
+from runs.eligibility import Decision, decide
 from runs.explanation import explain
 
 EVENT_TYPE = "forecast.completed.v1"
@@ -122,11 +123,15 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     eligible = 0
     for s in series:
         d = decide(s.get("segment"), adopted)
+        seed_days = len(s["demand"]) - original_days.get(s["variant_id"], len(s["demand"])) if s["variant_id"] in report.used else 0
+        if d.eligible and assess(s, seed_days).level == "baja":      # feature 012: too little trust to publish a figure, so it goes out as min/max for the buyer to confirm
+            d = Decision(FALLBACK, False, ("low_confidence",))
         history = prepare_history(s["demand"], s["censored"])
         level = float(s["service_level"])
         crit = bool(s.get("clinical_critical"))
         eligible += d.eligible
         first_mean: float | None = None
+        first_plan: Any = None
         shown_policy = d.policy if d.eligible else FALLBACK
         for h in cfg.horizons:
             if d.eligible:
@@ -136,7 +141,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
                     rate, policy_used = POLICIES[BASELINE].rate(history) or 0.0, BASELINE
                 plan = build_plan(policy_used, rate, history, h, min(cfg.lead_time, h), level)
                 if h == cfg.horizons[0]:
-                    first_mean, shown_policy = plan.mean_horizon, policy_used
+                    first_mean, shown_policy, first_plan = plan.mean_horizon, policy_used, plan
                 rows.append({"run_id": run_id, "variant_id": s["variant_id"], "horizon_days": h, "mean": plan.mean_horizon, "quantiles": plan.quantiles,
                              "policy_used": policy_used, "eligible": True, "reasons": "seed_used" if s["variant_id"] in report.used else "", "service_level": Decimal(str(level))})
             else:
@@ -145,8 +150,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
                              "quantiles": {"min": fb.reorder_point, "max": fb.order_up_to}, "policy_used": FALLBACK, "eligible": False,
                              "reasons": ",".join(d.reasons), "service_level": Decimal(str(level))})
 
-        seed_days = len(s["demand"]) - original_days.get(s["variant_id"], len(s["demand"])) if s["variant_id"] in report.used else 0
-        e = explain(s, d, shown_policy, first_mean, adopted, model_versions(), None if seeds is None or s["variant_id"] not in report.used else seeds.dataset_id, seed_days)
+        e = explain(s, d, shown_policy, first_mean, adopted, model_versions(), None if seeds is None or s["variant_id"] not in report.used else seeds.dataset_id, seed_days, first_plan)
         e["history_start"], e["history_end"] = date.fromisoformat(e["history_start"]), date.fromisoformat(e["history_end"])
         explanations.append({"run_id": run_id, "variant_id": s["variant_id"], **e})
 
