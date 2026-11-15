@@ -7,17 +7,21 @@ recompute need a buyer or admin; the fresh second-factor check for excluding a d
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Callable
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any
 
+import httpx
 from audit import CLASSES_RECOMPUTED
 from audit import append as audit
 from classification.policy_source import current_config
 from classification.run import compute_segments
+from dashboard.filters import FilterError, FilterSet
 from db.tables import ALL_WAREHOUSES, stock_history, variants
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel
+from quality.portfolio import BUCKETS, bucket_products, portfolio, rebuild_portfolio
 from quality.snapshot import (
     DecisionError,
     NoFlagError,
@@ -29,6 +33,8 @@ from quality.snapshot import (
 )
 from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
+
+log = logging.getLogger("inventory.quality")
 
 
 class DecisionBody(BaseModel):
@@ -96,9 +102,39 @@ def build_quality_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> A
             build_snapshot(conn, vid, start, end)
             done += 1
         segments = compute_segments(conn)
+        source, run_id, eligibility, state = getattr(app.state, "forecast_eligibility", None), None, None, "not_configured"
+        if source is not None:                                              # a forecast service that is down never fails the recompute: products show as pending
+            try:
+                run_id, eligibility = source.fetch()
+                state = "ok" if run_id else "no_run"
+            except (httpx.HTTPError, KeyError, ValueError):
+                log.warning("FORECAST_ELIGIBILITY_UNAVAILABLE")
+                state = "unavailable"
+        rebuild_portfolio(conn, eligibility, run_id)
         through = conn.execute(select(func.max(stock_history.c.day))).scalar()
         job = hashlib.sha256(f"{through}|{current_config()[1]}|{done}".encode()).hexdigest()[:16]
         audit(conn, principal.subject, CLASSES_RECOMPUTED, "product_segments", job, after={"products": done, "segments": segments, "config": current_config()[1]})
-        return {"job_id": job, "status": "completed", "products": done}
+        return {"job_id": job, "status": "completed", "products": done, "eligibility": state}
+
+    def parse_filters(category: str | None, supplier_id: str | None, family: str | None) -> Any:
+        try:
+            return FilterSet.parse(datetime.now(UTC).date(), supplier_id=supplier_id, category=category, family=family).to_filters()
+        except FilterError as exc:
+            raise HTTPException(422, "request_invalid") from exc
+
+    @router.get("/quality/portfolio")
+    def portfolio_view(category: str | None = Query(default=None, max_length=12), supplier_id: str | None = Query(default=None, max_length=36),
+                       family: str | None = Query(default=None, max_length=120), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """T062: counts by demand class, eligibility and confidence for the whole catalogue or a filtered part; every count drills down to its products."""
+        return portfolio(conn, parse_filters(category, supplier_id, family))
+
+    @router.get("/quality/portfolio/products")
+    def portfolio_products(bucket: str = Query(max_length=12), key: str = Query(max_length=40), category: str | None = Query(default=None, max_length=12),
+                           supplier_id: str | None = Query(default=None, max_length=36), family: str | None = Query(default=None, max_length=120),
+                           limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0), conn: Connection = Depends(conn_dep),
+                           _p: Any = Depends(require())) -> dict[str, Any]:
+        if bucket not in BUCKETS:
+            raise HTTPException(422, "request_invalid")
+        return bucket_products(conn, parse_filters(category, supplier_id, family), bucket, key, limit, offset)
 
     return router

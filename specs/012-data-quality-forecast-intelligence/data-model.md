@@ -41,14 +41,12 @@ Precomputed per variant so the portfolio view needs no cross-service query.
 | variant_id, origin | `erp` or `local_export`; never mixed |
 | abc, xyz, pattern, intermittent | from `product_segments` |
 | coverage_ratio, rejected_share, anomaly_share | from the latest `data_quality_snapshot`; used for the worst-quality list |
-| eligibility, confidence | received from forecast-service on `forecast.completed`; `pending` until a run for the variant arrives |
+| eligibility, confidence | pulled from forecast-service (`GET /forecasts/eligibility`) when the portfolio is rebuilt; `pending` until a run for the variant exists |
 | received_run_id, received_at | latest run applied; older runs are ignored |
 | category, supplier | filter keys already held by inventory-service |
 
 Counts by any bucket always sum to the number of active products because `pending` is a bucket.
 
-### forecast_inbox (new)
-Idempotency record for `forecast.completed` events consumed by inventory-service (message id, received_at); duplicates change nothing.
 
 ### product_segments (existing, extended additively)
 Add `config_version_id` and `method` (method name mapped to the class) so the class is reproducible and shown with its method (FR-007, FR-008).

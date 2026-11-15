@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 
-NEW_TABLES = {"data_quality_snapshot", "anomaly_flags", "forecast_inbox", "portfolio_aggregate"}
+NEW_TABLES = {"data_quality_snapshot", "anomaly_flags", "portfolio_aggregate"}
 NEW_COLUMNS = {"config_version_id", "method"}
 
 

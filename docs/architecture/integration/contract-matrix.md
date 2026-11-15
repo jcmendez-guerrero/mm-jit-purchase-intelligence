@@ -94,6 +94,8 @@ The gateway is `services/api-bff`.
 | `GET /api/proposals` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/proposals/{proposal_id}` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/proposals/{proposal_id}/export` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/quality/portfolio` | endpoint | v1 | agent-02 | web | draft |
+| `GET /api/quality/portfolio/products` | endpoint | v1 | agent-02 | web | draft |
 | `GET /api/quality/products/{sku}` | endpoint | v1 | agent-02 | web | draft |
 | `GET /api/quality/products/{sku}/anomalies` | endpoint | v1 | agent-02 | web | draft |
 | `GET /api/scenarios` | endpoint | v1 | agent-00 | web | draft |

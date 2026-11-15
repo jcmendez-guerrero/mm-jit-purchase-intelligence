@@ -2,7 +2,11 @@
 
 Requested additions to `docs/architecture/integration/contract-matrix.json`, all additive. Owner of each new entry is the service that produces it; status `draft` until the schemas land. Nothing here changes an existing frozen entry unless the decision below says so.
 
-## Decision needed from Agent 00
+## Update 2026-11-16: the event is no longer needed
+
+The portfolio (US5) was built without any event: inventory-service pulls eligibility and confidence from forecast-service's read-only `GET /forecasts/eligibility`, the same pattern the dashboard uses for forecast means. So `forecast.completed` stays frozen and untouched, and the `forecast.eligibility.published` row below can be dropped. The five DTOs and the gateway endpoints listed below are the entries that still need your confirmation. The options below are kept for the record.
+
+## Decision that was needed from Agent 00
 
 The portfolio view (US5) needs eligibility and confidence per variant inside inventory-service. `forecast.completed` v1 is **frozen** (owner forecast-service, consumer procurement-service), so the earlier idea of adding optional fields to it needs your ruling. Options:
 

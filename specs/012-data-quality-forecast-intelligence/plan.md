@@ -88,7 +88,7 @@ apps/web/tests/e2e/                               # Playwright, Spanish UI
 - Stockout days are left out of what the forecast learns from; no demand is estimated for them.
 - One full-catalogue backtest runs at a time; identical inputs reuse the result.
 - Explanations, quality snapshots, anomaly decisions and backtest results are kept 5 years in full detail.
-- Portfolio data flow: forecast-service publishes eligibility and confidence per variant on `forecast.completed`; inventory-service builds the portfolio from it (products without a value count as "pending"), so no cross-service query is needed.
+- Portfolio data flow: inventory-service rebuilds the portfolio on recompute and pulls eligibility and confidence per SKU from forecast-service's read-only `GET /forecasts/eligibility` (the same authenticated pull the dashboard already uses for forecast means). Products without a value, or no run at all, count as "pending". No event, queue or inbox table is involved, so the frozen `forecast.completed` is untouched and no infrastructure changes.
 - Thresholds come from the business policy configuration already on main (feature 002 console), with the current defaults as fallback; T010 confirms which thresholds it stores.
 - Playwright specs live in `apps/web/tests/e2e/`.
 

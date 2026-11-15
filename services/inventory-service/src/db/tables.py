@@ -324,11 +324,6 @@ anomaly_flags = Table(
     Column("created_at", DateTime(timezone=True), nullable=False),
     UniqueConstraint("variant_id", "day", "rule_id", name="uq_anomaly_flag"),
 )
-forecast_inbox = Table(
-    "forecast_inbox", metadata,
-    Column("message_id", String(64), primary_key=True),                # idempotency record for consumed forecast events
-    Column("received_at", DateTime(timezone=True), nullable=False),
-)
 portfolio_aggregate = Table(
     "portfolio_aggregate", metadata,
     Column("variant_id", Integer, primary_key=True, autoincrement=False),

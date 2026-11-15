@@ -19,9 +19,11 @@ def _wire_forecast() -> None:
         return
     from dashboard.forecast_source import HttpForecastMeans
     from mmi_common.servicetoken import service_token
+    from quality.eligibility_source import HttpForecastEligibility
 
     token = os.environ.get("MMI_FORECAST_TOKEN") or (lambda: service_token("api://mmi-forecast-service", "svc-inventory", ["viewer"]))
     app.state.forecast_means = HttpForecastMeans(url, token)
+    app.state.forecast_eligibility = HttpForecastEligibility(url, token)          # feature 012: the portfolio's eligibility and confidence per product
 
 
 app.router.on_startup.append(_wire_forecast)

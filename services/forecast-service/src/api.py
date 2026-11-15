@@ -93,6 +93,16 @@ def build_router(app: FastAPI) -> APIRouter:
                 "high": figure(row.high), "confidence": row.confidence, "confidence_reason_codes": row.confidence_reason_codes, "eligibility": row.eligibility,
                 "eligibility_reason_codes": row.eligibility_reason_codes}
 
+    @router.get("/forecasts/eligibility")
+    def eligibility(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """T060b: eligibility and confidence of every product in the latest completed run, by SKU. Inventory-service pulls it to build the portfolio."""
+        run = conn.execute(select(forecast_runs.c.id).where(forecast_runs.c.status == "completed").order_by(forecast_runs.c.started_at.desc(), forecast_runs.c.id.desc()).limit(1)).scalar()
+        if run is None:
+            raise HTTPException(404, "no_forecast_run")
+        rows = conn.execute(select(forecast_explanations.c.sku, forecast_explanations.c.eligibility, forecast_explanations.c.confidence)
+                            .where(forecast_explanations.c.run_id == run, forecast_explanations.c.sku.is_not(None)).order_by(forecast_explanations.c.sku)).all()
+        return {"run_id": run, "variants": [{"sku": r.sku, "eligibility": r.eligibility, "confidence": r.confidence} for r in rows]}
+
     @router.post("/forecasts/backtests")
     def start_backtest(body: BacktestBody, engine: Engine = Depends(get_engine), principal: Any = Depends(require())) -> Any:
         """T055: score the method of one product, or of the whole catalogue, against the baseline on past periods. Changes no forecast or proposal."""

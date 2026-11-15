@@ -10,6 +10,7 @@ import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Button } from "../../ui/Button";
 import { Card } from "../../ui/Card";
 import { BacktestView } from "./BacktestView";
+import { PortfolioView } from "./PortfolioView";
 import { QualitySummary } from "./QualitySummary";
 
 interface Props {
@@ -149,6 +150,7 @@ export const QualityScreen: React.FC<Props> = ({ userRoles, showLocalReview = fa
           />
         </>
       )}
+      <PortfolioView />
       <QualitySummary userRoles={userRoles} />
       <BacktestView userRoles={userRoles} />
     </Card>

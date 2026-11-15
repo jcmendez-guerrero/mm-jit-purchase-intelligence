@@ -722,6 +722,34 @@ export interface ProductBacktest {
   created_at: string;
 }
 
+/** The catalogue-wide quality distribution (feature 012): every bucket total equals the active product count. SKU only. */
+export interface PortfolioBucket {
+  key: string;
+  count: number;
+  drilldown: string;
+}
+
+export interface PortfolioSummary {
+  filters: { category: string | null; supplier: string | null };
+  active_products: number;
+  by_class: PortfolioBucket[];
+  by_eligibility: PortfolioBucket[];
+  by_confidence: PortfolioBucket[];
+  worst_quality: { sku: string; coverage_ratio: string; rejected_share: string | null; anomaly_share: string | null }[];
+}
+
+export interface PortfolioList {
+  bucket: string;
+  key: string;
+  total: number;
+  skus: string[];
+}
+
+export interface PortfolioFilters {
+  category?: string;
+  supplier_id?: string;
+}
+
 export interface BacktestJob {
   job_id: string;
   status: "completed";
@@ -1145,6 +1173,16 @@ export class ApiClient {
       method: "POST",
       body: JSON.stringify({ decision }),
     });
+  }
+
+  async getPortfolio(filters: PortfolioFilters = {}): Promise<PortfolioSummary> {
+    const q = new URLSearchParams(Object.entries(filters).filter(([, v]) => v)).toString();
+    return this.request<PortfolioSummary>(`/quality/portfolio${q ? `?${q}` : ""}`);
+  }
+
+  async getPortfolioProducts(bucket: string, key: string, filters: PortfolioFilters = {}, offset = 0, limit = 50): Promise<PortfolioList> {
+    const q = new URLSearchParams({ bucket, key, limit: String(limit), offset: String(offset), ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) }).toString();
+    return this.request<PortfolioList>(`/quality/portfolio/products?${q}`);
   }
 
   async startBacktest(scope: "catalogue" | "product", sku?: string): Promise<BacktestJob> {

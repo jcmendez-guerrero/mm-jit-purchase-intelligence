@@ -1638,6 +1638,26 @@
         "web"
       ],
       "status": "draft"
+    },
+    {
+      "name": "GET /api/quality/portfolio",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-02",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/quality/portfolio/products",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-02",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
     }
   ]
 }

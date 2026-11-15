@@ -33,7 +33,8 @@ Viewers receive `403` with the shared Spanish error key on write endpoints. Sens
 ## Events (additive, optional)
 
 - `quality.snapshot.built` (inventory-service): variant count, config and dataset versions; consumers must tolerate absence.
-- Existing `forecast.completed` payload gains optional `explanations_ref` and an optional per-variant list of eligibility and confidence, which inventory-service uses to build the portfolio; consumers ignoring them keep working. A product with no received value is counted as "pending".
+- No event is needed for the portfolio. Inventory-service pulls eligibility and confidence per SKU from forecast-service's read-only `GET /forecasts/eligibility` (latest completed run) when it recomputes; a product with no value there, or no forecast run at all, is counted as `pending`. `forecast.completed` is left exactly as it is.
+- Service-to-service reads added by this feature (not gateway endpoints): `GET /forecasts/eligibility`, and the series export's additive `provenance`, `anomaly_excluded_days` and `segment.config_version_id` fields.
 
 ## Compatibility and governance
 

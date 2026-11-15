@@ -59,11 +59,6 @@ def upgrade() -> None:
     )
     op.create_index("ix_anomaly_flags_variant_id", "anomaly_flags", ["variant_id"])
     op.create_table(
-        "forecast_inbox",
-        sa.Column("message_id", sa.String(64), primary_key=True),
-        sa.Column("received_at", sa.DateTime(timezone=True), nullable=False),
-    )
-    op.create_table(
         "portfolio_aggregate",
         sa.Column("variant_id", sa.Integer, primary_key=True, autoincrement=False),
         sa.Column("origin", sa.String(12), nullable=False),
@@ -85,7 +80,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("portfolio_aggregate")
-    op.drop_table("forecast_inbox")
     op.drop_index("ix_anomaly_flags_variant_id", table_name="anomaly_flags")
     op.drop_table("anomaly_flags")
     op.drop_index("ix_data_quality_snapshot_variant_id", table_name="data_quality_snapshot")
