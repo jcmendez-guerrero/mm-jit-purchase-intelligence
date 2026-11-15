@@ -131,7 +131,7 @@ erp_supplier_links = Table(
 product_refs = Table(
     "product_refs", metadata,
     Column("variant_id", Integer, primary_key=True, autoincrement=False),
-    Column("product_id", Integer, nullable=False, index=True),
+    Column("product_id", Integer, nullable=False),
     Column("vat_rate", Numeric(5, 2)),                       # buyer-maintained until Siweb provides it (V5)
     Column("vat_source", String(20)),
     Column("sku", String(60)),                               # catalogue attributes for exports only; never a key
@@ -176,7 +176,7 @@ proposals = Table(
 proposal_lines = Table(
     "proposal_lines", metadata,
     Column("id", String(36), primary_key=True),
-    Column("proposal_id", String(36), ForeignKey("proposals.id"), nullable=False, index=True),
+    Column("proposal_id", String(36), ForeignKey("proposals.id"), nullable=False),
     Column("variant_id", Integer, nullable=False),
     Column("product_id", Integer, nullable=False),
     Column("supplier_id", String(36), nullable=False),
@@ -221,7 +221,7 @@ supplier_order_groups = Table(
 approvals = Table(
     "approvals", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("proposal_id", String(36), nullable=False, index=True),
+    Column("proposal_id", String(36), nullable=False),
     Column("approver_id", String(120), nullable=False),
     Column("decided_at", DateTime(timezone=True), nullable=False),
     Column("decision", String(10), nullable=False),                     # approved / rejected
@@ -503,3 +503,9 @@ fx_rates = Table(
     Column("fetched_at", DateTime(timezone=True), nullable=False),
     Column("provider", String(20), nullable=False, server_default="ecb"),
 )
+
+# Indexes named as the migrations create them (0001, 0002), so the model and the migrated database agree (feature 011, T089).
+Index("ix_product_refs_product", product_refs.c.product_id)
+Index("ix_lines_proposal", proposal_lines.c.proposal_id)
+Index("ix_approvals_proposal", approvals.c.proposal_id)
+Index("ix_costs_current", supplier_costs.c.product_id, supplier_costs.c.supplier_id, supplier_costs.c.variant_id, supplier_costs.c.superseded_by)

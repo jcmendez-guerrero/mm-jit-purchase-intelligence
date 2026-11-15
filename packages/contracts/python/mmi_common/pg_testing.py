@@ -42,13 +42,12 @@ def clean(engine: Any, metadata: Any) -> None:
         c.execute(text("TRUNCATE " + ", ".join(f'"{t.name}"' for t in metadata.sorted_tables) + " RESTART IDENTITY CASCADE"))
 
 
-def schema_drift(url: str, service_dir: str, schema: str, metadata: Any, ignore_indexes: bool = True) -> list[str]:
+def schema_drift(url: str, service_dir: str, schema: str, metadata: Any, ignore_indexes: bool = False) -> list[str]:
     """What differs between a service's migrations and its table definitions (T087).
 
     Runs ``alembic upgrade head`` in a throw-away database and compares the result with ``metadata``: a column the code writes that the migrations
-    never created, a type or length that disagrees, a nullability that differs, a table on one side only. The version table is not part of the
-    comparison. Indexes are left out by default: the migrations name several of them differently from the model, which is noise, not a data risk;
-    pass ``ignore_indexes=False`` to see them.
+    never created, a type or length that disagrees, a nullability that differs, an index that is missing or named differently, a table on one side
+    only. The version table is not part of the comparison. ``ignore_indexes=True`` leaves the indexes out.
     """
     import os
     import subprocess

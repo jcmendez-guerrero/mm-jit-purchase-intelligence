@@ -286,3 +286,7 @@ audit_events = Table(
     Column("prev_hash", String(64), nullable=False, unique=True),
     Column("hash", String(64), nullable=False),
 )
+
+# Indexes the migrations create (0001, 0003) that the model did not declare, so the model and the migrated database agree (feature 011, T089).
+Index("ix_movements_variant_created", stock_movements.c.variant_id, stock_movements.c.created_at_utc)
+Index("ix_service_level_lookup", service_level_config.c.scope, service_level_config.c.key, service_level_config.c.valid_from)

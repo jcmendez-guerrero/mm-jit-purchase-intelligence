@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from mmi_common.outbox import inbox_table, outbox_table
-from sqlalchemy import JSON, BigInteger, Column, DateTime, Integer, MetaData, String, Table, UniqueConstraint
+from sqlalchemy import JSON, BigInteger, Column, DateTime, Index, Integer, MetaData, String, Table, UniqueConstraint
 
 metadata = MetaData()
 
 write_attempts = Table(
     "write_attempts", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("request_id", String(36), nullable=False, index=True),
+    Column("request_id", String(36), nullable=False),
     Column("attempt", Integer, nullable=False),
     Column("started_at", DateTime(timezone=True), nullable=False),
     Column("outcome", String(16), nullable=False),         # sent / succeeded / retrying / failed / pending_link / refused
@@ -18,6 +18,7 @@ write_attempts = Table(
     Column("error", String(200)),
     UniqueConstraint("request_id", "attempt", "outcome", name="uq_attempt"),
 )
+Index("ix_attempts_request", write_attempts.c.request_id)      # named as the migration creates it (0001), so the model and the migrated database agree (T089)
 writer_audit = Table(
     "writer_audit", metadata,
     Column("id", BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True),

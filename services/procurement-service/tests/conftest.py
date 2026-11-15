@@ -4,48 +4,26 @@ from datetime import UTC, datetime
 
 import pytest
 from db.tables import metadata, product_refs, suppliers
-from sqlalchemy import create_engine, event, insert, text
+from mmi_common import pg_testing
+from sqlalchemy import create_engine, event, insert
 from sqlalchemy.pool import StaticPool
 
 NOW = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
 
 
-_PG: dict[str, object] = {}
-
-
-def _pg_engine(url: str):
-    """A real PostgreSQL (feature 011, T077, T083): one throw-away schema for the whole run, built once; the tables are emptied between tests."""
-    if "engine" not in _PG:
-        schema = f"t_{uuid.uuid4().hex[:12]}"
-        admin = create_engine(url)
-        with admin.begin() as c:
-            c.execute(text(f'CREATE SCHEMA "{schema}"'))
-        eng = create_engine(url, connect_args={"options": f"-c search_path={schema} -c lock_timeout=15000 -c timezone=UTC"}, pool_pre_ping=True)
-        metadata.create_all(eng)
-        _PG.update(engine=eng, admin=admin, schema=schema)
-    return _PG["engine"]
-
-
 @pytest.fixture(scope="session", autouse=True)
 def _drop_pg_schema():
     yield
-    if _PG:
-        _PG["engine"].dispose()
-        with _PG["admin"].begin() as c:
-            c.execute(text(f'DROP SCHEMA "{_PG["schema"]}" CASCADE'))
-        _PG["admin"].dispose()
+    pg_testing.drop_schema()
 
 
 @pytest.fixture
 def engine():
     url = os.environ.get("MMI_TEST_DATABASE_URL")
-    if url:
-        eng = _pg_engine(url)
+    if url:                                   # a real PostgreSQL (feature 011, T077, T083, T090)
+        eng = pg_testing.pg_engine(url, metadata)
         yield eng
-        with _PG["admin"].begin() as c:              # a test that leaves a session open in a transaction would block the cleanup forever: close those first
-            c.execute(text("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() AND state = 'idle in transaction'"))
-        with eng.begin() as c:
-            c.execute(text("TRUNCATE " + ", ".join(f'"{t.name}"' for t in metadata.sorted_tables) + " RESTART IDENTITY CASCADE"))
+        pg_testing.clean(eng, metadata)
         return
     eng = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
 
