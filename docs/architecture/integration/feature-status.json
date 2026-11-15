@@ -13,7 +13,7 @@
       ],
       "owner": "inventory-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/inventory-service/tests/test_review_and_metrics.py: 6 passed."
     },
     {
       "id": "001-us2",
@@ -25,7 +25,7 @@
       ],
       "owner": "inventory-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/inventory-service/tests/test_demand.py: 7 passed."
     },
     {
       "id": "001-us3",
@@ -37,7 +37,7 @@
       ],
       "owner": "inventory-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/inventory-service/tests/test_classification.py: 14 passed."
     },
     {
       "id": "001-us4",
@@ -50,7 +50,7 @@
       ],
       "owner": "procurement-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/procurement-service/tests/test_costs.py: 13 passed."
     },
     {
       "id": "001-us5",
@@ -63,7 +63,7 @@
       ],
       "owner": "procurement-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/procurement-service/tests/test_approval.py: 17 passed."
     },
     {
       "id": "001-us6",
@@ -75,7 +75,7 @@
       ],
       "owner": "inventory-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit Extended by feature 006 (ten indicators, filters, role-hidden money): tests in services/inventory-service/tests/test_dashboard_*.py; not executed by this audit."
+      "notes": "Extended by feature 006 (ten indicators, filters, role-hidden money): tests in services/inventory-service/tests/test_dashboard_*.py; not executed by this audit. Executed 2026-11-15: services/inventory-service/tests/test_drilldown.py: 13 passed, 1 warning."
     },
     {
       "id": "001-us7",
@@ -87,7 +87,7 @@
       ],
       "owner": "infra",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: infra/tests/test_cost_guardrails.py: 6 passed."
     },
     {
       "id": "002-us1",
@@ -99,7 +99,7 @@
       ],
       "owner": "api-bff",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/api-bff/tests/test_auth_rbac.py: 5 passed, 6 warnings."
     },
     {
       "id": "002-us2",
@@ -111,7 +111,7 @@
       ],
       "owner": "api-bff",
       "reuse": true,
-      "notes": "tests present, not executed by this audit Extended by feature 006: gateway overview now carries the ten indicators (services/api-bff/tests/test_dashboard_indicators_bff.py); not executed by this audit."
+      "notes": "Extended by feature 006: gateway overview now carries the ten indicators (services/api-bff/tests/test_dashboard_indicators_bff.py); not executed by this audit. Executed 2026-11-15: services/api-bff/tests/test_dashboard_orchestration.py: 12 passed, 1 warning."
     },
     {
       "id": "002-us3",
@@ -123,7 +123,7 @@
       ],
       "owner": "procurement-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit Extended by feature 007 (idempotent term saves, FX, bulk outcomes): services/procurement-service/tests/test_terms_idempotency.py; not executed by this audit."
+      "notes": "Extended by feature 007 (idempotent term saves, FX, bulk outcomes): services/procurement-service/tests/test_terms_idempotency.py; not executed by this audit. Executed 2026-11-15: services/procurement-service/tests/test_allocation_terms.py: 15 passed."
     },
     {
       "id": "002-us4",
@@ -136,7 +136,7 @@
       ],
       "owner": "forecast-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/forecast-service/tests/test_policies.py: 12 passed."
     },
     {
       "id": "002-us5",
@@ -148,7 +148,7 @@
       ],
       "owner": "forecast-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit Extended by feature 008 (SKU matching, governed activation, rollback reasons): services/forecast-service/tests/test_seed_sku.py; not executed by this audit."
+      "notes": "Extended by feature 008 (SKU matching, governed activation, rollback reasons): services/forecast-service/tests/test_seed_sku.py; not executed by this audit. Executed 2026-11-15: services/forecast-service/tests/test_seed_activation.py: 9 passed."
     },
     {
       "id": "002-us6",
@@ -161,7 +161,7 @@
       ],
       "owner": "procurement-service",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/procurement-service/tests/test_allocation.py: 14 passed."
     },
     {
       "id": "002-us7",
@@ -173,7 +173,7 @@
       ],
       "owner": "api-bff",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/api-bff/tests/test_admin_rerun.py: 5 passed, 1 warning."
     },
     {
       "id": "003-us1",
@@ -186,7 +186,7 @@
       ],
       "owner": "web",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: apps/web/tests/e2e/a11y-all-routes.spec.ts: 11 passed, 1 failed (Playwright): the failing test is 'reference task 3 by keyboard: edit one supplier term and save it'."
     },
     {
       "id": "003-us2",
@@ -199,7 +199,7 @@
       ],
       "owner": "web",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: apps/web/tests/e2e/a11y-all-routes.spec.ts: 11 passed, 1 failed (Playwright): the failing test is 'reference task 3 by keyboard: edit one supplier term and save it'."
     },
     {
       "id": "003-us3",
@@ -212,7 +212,7 @@
       ],
       "owner": "web",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: apps/web/tests/e2e/a11y-all-routes.spec.ts: 11 passed, 1 failed (Playwright): the failing test is 'reference task 3 by keyboard: edit one supplier term and save it'."
     },
     {
       "id": "003-us4",
@@ -225,7 +225,7 @@
       ],
       "owner": "web",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: apps/web/tests/unit/CommandPalette.test.tsx: 8 passed (vitest)."
     },
     {
       "id": "003-us5",
@@ -238,7 +238,7 @@
       ],
       "owner": "web",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: apps/web/tests/e2e/a11y-all-routes.spec.ts: 11 passed, 1 failed (Playwright): the failing test is 'reference task 3 by keyboard: edit one supplier term and save it'."
     },
     {
       "id": "004-us1",
@@ -250,7 +250,7 @@
       ],
       "owner": "api-bff",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: services/api-bff/tests/test_local_load_routes.py: 19 passed, 1 warning."
     },
     {
       "id": "004-us2",
@@ -262,7 +262,7 @@
       ],
       "owner": "api-bff",
       "reuse": true,
-      "notes": "open tasks in spec 004: T076, T077, T078, T079, T109, T110, T080, T081, T082; tests present, not executed by this audit Re-checked at 8cb6bd4: still partial. services/siweb-cost-writer/src/writer/note_block.py does not exist (T076 to T082 open), and migration 0012 in procurement is now 0012_terms_idempotency_fx_rates, so the planned 0012_conditions_sync needs the next free number."
+      "notes": "open tasks in spec 004: T076, T077, T078, T079, T109, T110, T080, T081, T082;  Re-checked at 8cb6bd4: still partial. services/siweb-cost-writer/src/writer/note_block.py does not exist (T076 to T082 open), and migration 0012 in procurement is now 0012_terms_idempotency_fx_rates, so the planned 0012_conditions_sync needs the next free number. Executed 2026-11-15: services/api-bff/tests/test_supplier_routes.py: 20 passed, 1 warning."
     },
     {
       "id": "004-us3",
@@ -274,7 +274,7 @@
       ],
       "owner": "api-bff",
       "reuse": true,
-      "notes": "tests present, not executed by this audit Extended by feature 008 (ERP-export refusal, SKU lookup); not executed by this audit."
+      "notes": "Extended by feature 008 (ERP-export refusal, SKU lookup); not executed by this audit. Executed 2026-11-15: services/procurement-service/tests/test_internal_supplier_import.py: 34 passed, 1 warning."
     },
     {
       "id": "004-us4",
@@ -286,7 +286,7 @@
       ],
       "owner": "tooling",
       "reuse": true,
-      "notes": "open tasks in spec 004: T067, T068, T069, T070, T071, T072, T073, T074, T075; tests present, not executed by this audit"
+      "notes": "open tasks in spec 004: T067, T068, T069, T070, T071, T072, T073, T074, T075 Executed 2026-11-15: scripts/tests/test_check_export_signatures.py: 10 passed."
     },
     {
       "id": "infra-siweb-mock",
@@ -298,7 +298,7 @@
       ],
       "owner": "tooling",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: packages/testing/tests/test_siweb_mock.py: 13 passed, 1 warning."
     },
     {
       "id": "infra-dev-issuer",
@@ -310,7 +310,7 @@
       ],
       "owner": "tooling",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: packages/testing/tests/test_dev_issuer.py: 3 passed, 1 warning."
     },
     {
       "id": "infra-synthetic-generator",
@@ -322,7 +322,7 @@
       ],
       "owner": "tooling",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: packages/testing/tests/test_generator.py: 8 passed."
     },
     {
       "id": "infra-compose-stack",
@@ -334,7 +334,7 @@
       ],
       "owner": "infra",
       "reuse": true,
-      "notes": "started and removed by the e2e gate during this feature's verification; compose tests not executed by this audit"
+      "notes": "started and removed by the e2e gate during this feature's verification; compose tests not executed by this audit Executed 2026-11-15: infra/tests/test_compose_wiring.py: 4 passed."
     },
     {
       "id": "infra-web-hardening",
@@ -346,7 +346,7 @@
       ],
       "owner": "infra",
       "reuse": true,
-      "notes": "tests present, not executed by this audit"
+      "notes": "Executed 2026-11-15: infra/tests/test_web_headers.py: 3 passed."
     },
     {
       "id": "infra-db-migrations",
@@ -358,7 +358,7 @@
       ],
       "owner": "infra",
       "reuse": true,
-      "notes": "the role-grant and migration test ran in the isolation gate with the database check on (passed)"
+      "notes": "the role-grant and migration test ran in the isolation gate with the database check on (passed) Executed 2026-11-15: infra/tests/test_migrations_postgres.py: 10 passed on PostgreSQL (RUN_PG_MIGRATIONS=1); 10 skipped without it."
     },
     {
       "id": "infra-bicep-deployment",
@@ -370,7 +370,7 @@
       ],
       "owner": "infra",
       "reuse": true,
-      "notes": "guardrail tests pass, but the Bicep was never deployed or built by this audit"
+      "notes": "guardrail tests pass, but the Bicep was never deployed or built by this audit Executed 2026-11-15: infra/tests/test_cost_guardrails.py: 6 passed."
     },
     {
       "id": "infra-ci-deploy-workflows",
@@ -382,7 +382,7 @@
       ],
       "owner": "infra",
       "reuse": true,
-      "notes": "workflow run history on GitHub was not inspected; the same suites were run locally by the gates"
+      "notes": "workflow run history on GitHub was not inspected; the same suites were run locally by the gates No test executed: no test file covers the workflows; the `gates` job ran on GitHub for PR 16 and PR 20."
     }
   ]
 }
