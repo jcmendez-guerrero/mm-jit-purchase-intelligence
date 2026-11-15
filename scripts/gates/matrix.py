@@ -73,7 +73,7 @@ def generate(root: Path, endpoints: list[dict] | None = None) -> dict:
         old = curated.get((kind, name, version), {})
         owner = old.get("owner", owner)
         entry = {"name": name, "kind": kind, "version": version, "schema_path": path, "owner": owner,
-                 "consumers": [u for u in users if u != owner], "status": old.get("status", "frozen")}
+                 "consumers": sorted({*(u for u in users if u != owner), *old.get("consumers", [])}), "status": old.get("status", "frozen")}
         if "superseded_by" in old:
             entry["superseded_by"] = old["superseded_by"]
         entries.append(entry)
@@ -106,5 +106,10 @@ def write(root: Path, openapi: dict | None = None) -> Path:
     path = root / "docs/architecture/integration/contract-matrix.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     endpoints = endpoint_entries(openapi) if openapi else None
-    path.write_text(json.dumps(generate(root, endpoints), indent=2) + "\n", encoding="utf-8")
+    fresh = generate(root, endpoints)
+    if path.is_file():
+        old = json.loads(path.read_text(encoding="utf-8"))
+        if {k: v for k, v in old.items() if k != "generated_at"} == {k: v for k, v in fresh.items() if k != "generated_at"}:
+            fresh["generated_at"] = old["generated_at"]       # unchanged content keeps its stamp, so parallel PRs do not conflict on it
+    path.write_text(json.dumps(fresh, indent=2) + "\n", encoding="utf-8")
     return path
