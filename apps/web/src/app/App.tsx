@@ -54,7 +54,7 @@ const DashboardRoute: React.FC = () => {
           else next.set("producto", String(id));
           return next;
         },
-        { replace: false },
+        { replace: true },
       );
     },
     [setParams],

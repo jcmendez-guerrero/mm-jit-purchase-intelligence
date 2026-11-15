@@ -110,6 +110,18 @@ describe("catalogue quality", () => {
     expect(sentenceLiterals('const k = "suppliers.form.err.name_required";')).toEqual([]);
   });
 
+  it("every literal key passed to t() exists in the catalogue (a missing key would show only the fallback text)", () => {
+    // Literal keys only: `t("a.b")`. Template keys such as t(`a.${x}`) are covered by the code that builds them.
+    const keys = new Set([...text.matchAll(/\bt\(\s*["']([a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+)["']/g)].map((m) => m[1]!));
+    expect(keys.size).toBeGreaterThan(500);
+    expect([...keys].filter((k) => !(k in catalogue)).sort(), "add the key to es-ES.json or fix the typo").toEqual([]);
+  });
+
+  it("the key scanner finds a literal key and ignores a template (self-check)", () => {
+    const re = /\bt\(\s*["']([a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+)["']/g;
+    expect([..."t('a.b') t(`a.${x}`) t(\"c.d_e\")".matchAll(re)].map((m) => m[1])).toEqual(["a.b", "c.d_e"]);
+  });
+
   it("catalogue keys that nothing references never grow", () => {
     // Used when the key appears literally, a template prefix covers it, or a dotted string in the code is its prefix
     // (props such as prefix="imports.reason.activate" and helpers such as known("proposals.why.constraint", code)).

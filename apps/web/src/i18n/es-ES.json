@@ -64,7 +64,7 @@
   "a11y.user_profile": "Perfil de usuario y sesión",
   "a11y.risk_table": "Tabla de riesgos detectados",
   "a11y.proposals_table": "Tabla de propuestas de compra",
-  "errors.auth_forbidden_role": "No tiene permiso para realizar esta acción. Pida a un administrador que le asigne el rol necesario.",
+  "errors.auth_forbidden_role": "No tiene permiso para realizar esta acción.",
   "errors.auth_mfa_stale": "Debe volver a verificar su segundo factor (válido durante 5 minutos).",
   "errors.approval_fewer_than_two_approvers": "Se necesitan al menos dos personas con rol de aprobador para enviar la propuesta a aprobación.",
   "errors.revision_conflict": "Otra persona ha modificado este registro. Revise la versión actual antes de guardar.",

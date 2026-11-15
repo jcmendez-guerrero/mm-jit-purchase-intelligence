@@ -1138,3 +1138,8 @@
     min-height: 2.75rem;
   }
 }
+
+/* Administration: the status panel reserves about the height of its loaded content so the panels below do not jump. */
+.mmi-admin-status-loading {
+  min-height: 70rem;
+}

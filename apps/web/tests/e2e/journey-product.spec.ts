@@ -83,3 +83,16 @@ test("a SKU with no lines in the proposal explains it", async ({ page }) => {
   await page.goto("/propuestas?sku=SYN-999");
   await expect(page.getByText("El producto SYN-999 no tiene líneas en esta propuesta.")).toBeVisible();
 });
+
+test("opening and closing the product detail add no history entry: Back leaves the panel", async ({ page }) => {
+  await signInAs(page, "buyer");
+  await mock(page, variant());
+  await page.goto("/calidad");
+  await page.goto("/panel");
+  await page.getByRole("button", { name: /Ver detalle/ }).first().click();
+  await expect(page).toHaveURL(/producto=100/);
+  await page.getByRole("button", { name: "Cerrar detalle" }).click();
+  await expect(page).not.toHaveURL(/producto=/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/calidad$/);
+});

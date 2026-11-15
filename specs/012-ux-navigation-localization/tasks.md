@@ -164,3 +164,13 @@
 
 - [ ] T058 Once Agent 00 and feature 010 make the audit CSV (`services/api-bff/src/routes/admin_audit.py`) use Spanish headers, `;` and `dd/mm/aaaa` dates like the proposal exports, check it with the same read-through as T057, record the result in `evidence/verification.md`, and align the download name in `web/src/features/admin/AuditScreen.tsx` per FR-008 and SC-007 (contradicts)
 - [ ] T059 [P] Record the owner's answer on the "Variante (ID Siweb)" column of the proposal exports in `agent-00-contract-note.md`, and if it is dropped, confirm the export no longer carries it per FR-004 (partial)
+
+## Phase 13: Convergence
+
+- [ ] T060 Check which of T050 and T054 PR 22 (open) and PR 18 (merged) already unblock, switch the screens whose lookup or `sku` field now exists in `web/src/features/suppliers/OverrideEditor.tsx`, `web/src/features/policies/SafetyStockSection.tsx`, `web/src/features/policies/DemandSection.tsx` and the other five screens listed in `evidence/audit-inventory.md`, lower `web/tests/unit/variant-id-display.baseline.json`, and answer Agent 00 on PR 24 with what is still blocked per FR-004 and Agent 00 comment 1 (contradicts)
+- [X] T061 Put the original sentence back in `errors.auth_forbidden_role` in `web/src/i18n/es-ES.json` ("No tiene permiso para realizar esta acción.") and list that key as an exception in the next-step test in `web/tests/unit/api-errors.test.ts`, because the no-access box already gives the next step per review finding 1 (partial)
+- [X] T062 [P] Add a test in `web/tests/unit/i18n-coverage.test.ts` that every literal key passed to `t(` in `web/src` exists in `web/src/i18n/es-ES.json`, now that a missing key shows a fallback instead of failing visibly per FR-007 and review finding 2 (partial)
+- [X] T063 [P] Make the loading placeholder of `web/src/features/admin/AdminStatusScreen.tsx` match the loaded height so the layout shift in `web/tests/e2e/states.spec.ts` is well under 0.1 (now about 0.094) per FR-011 and review finding 3 (partial)
+- [ ] T064 Decide with the owner whether the catalogue uses formal or informal address, write the choice in `web/src/i18n/glossary.json` or the spec, convert `web/src/i18n/es-ES.json` to it, and add a test that flags the other form per Agent 00 comment 5 and FR-009 (partial)
+- [ ] T065 After PR 22 merges, merge `main` into this branch, resolve the conflicts in `web/src/api/client.ts`, `web/src/i18n/es-ES.json` and the policy and dashboard screens, and rerun unit, lint, build and Playwright per Agent 00 comment 6 (partial)
+- [X] T066 [P] Make closing the product detail replace the history entry (`replace: id === null`) in `web/src/app/App.tsx`, with a Playwright check that Back after closing leaves the panel per US1 and review finding 4 (partial)

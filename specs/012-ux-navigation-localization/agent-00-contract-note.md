@@ -28,3 +28,19 @@ Feature 012 changes presentation, wording and accessibility only. No contract, s
 - **`sku` in payloads.** Quality items, the administration policy history, the safety-stock queue, demand exclusions, the policy preview and the scenario lines carry only `variant_id`, so the screens show "Variante #id". Adding a `sku` field to those payloads would let the screens drop it (guard: `no-variant-id-display.test.tsx`).
 - **Audit CSV in the Spanish locale profile.** `GET /admin/audit/export` writes English field names, ISO timestamps and a comma delimiter, while the proposal exports use Spanish headers, `;`, comma decimals and `dd/mm/yyyy` (FR-008). A Spanish header row and local date format would align it; the web app only passes the file through.
 - **"Variante (ID Siweb)" column in the proposal exports.** Confirm it is wanted for ERP hand-off; otherwise drop it per rule 5.
+
+## Answer to Agent 00 on the SKU rule (T060; draft, not posted)
+
+Compared the screens on this branch with `claude/jira-mmi-8-spec-f00d63` (PR 22, still open) and `main` (PR 18 is merged):
+
+| Screen | Shows or asks for the variant id here | After PR 22 | What is still needed |
+|---|---|---|---|
+| `SafetyStockSection.tsx` | queue row; typed id | fixed (routes take the SKU) | nothing; rebase after PR 22 (T065) |
+| `DemandSection.tsx` | "variante n"; typed id | fixed | nothing; rebase after PR 22 |
+| `PurchasingSection.tsx` | policy preview row | fixed | nothing; rebase after PR 22 |
+| `QualityScreen.tsx` | "Variante #id" (2 places) | unchanged | `sku` in the data-quality items |
+| `AdminStatusScreen.tsx` | policy history column | unchanged | `sku` in the policy history |
+| `ScenariosScreen.tsx` | change rows and lines (2) | unchanged | `sku` in the scenario changes and lines |
+| `OverrideEditor.tsx` | typed id | unchanged | a SKU route for `product-suppliers` overrides |
+
+So three of the nine are blocked only by PR 22 merging; four need new `sku` fields or a SKU route. This feature does not edit the three PR 22 files, to avoid conflicts.

@@ -61,7 +61,9 @@ describe("permission refusals", () => {
 const NEXT_STEP = /\b(int[eé]nt\w+|reint\w+|revis\w+|compruebe\w*|corrij\w+|corríj\w+|indique\w*|elija\w*|espere\w*|vuelva\w*|acote\w*|use\b|usa\b|contact\w+|solicit\w+|cargue\w*|añad\w+|añádal\w+|cree\w*|pida\w*|pídalo|debe\w*|deben|necesita\w*|solo\b|sólo|puede\w*|pueden|se reintentar\w+|automáticamente|actualice\w*|seleccion\w+|escriba|ajuste\w*|asegúrese|confirme\w*|repita\w*|sustituya|cambie\w*|quite\w*|pruebe\w*|calcúl\w+|reduzca|divida|suba\b|abra\b|consulte\w*|relaje|descargue\w*)/i;
 
 describe("every error message tells the person what to do next", () => {
-  const messages = Object.entries(catalogue).filter(([k]) => k.startsWith("errors."));
+  // The no-access box (ScreenState) adds its own next step and link, so this one sentence stands alone.
+  const OWN_NEXT_STEP = new Set(["errors.auth_forbidden_role"]);
+  const messages = Object.entries(catalogue).filter(([k]) => k.startsWith("errors.") && !OWN_NEXT_STEP.has(k));
 
   it("the next-step detector recognises a next step and a bare statement (self-check)", () => {
     expect(NEXT_STEP.test("El archivo es demasiado grande. Reduzca o divida el archivo.")).toBe(true);

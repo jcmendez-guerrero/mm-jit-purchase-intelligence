@@ -4,11 +4,11 @@ Run on 2026-11-15 from `apps/web` and `scripts`, synthetic data only, no Siweb h
 
 | Check | Command | Result |
 |---|---|---|
-| Unit tests | `npx vitest run` | 52 files, 745 tests pass (baseline was 46 files, 552 tests) |
+| Unit tests | `npx vitest run` | 52 files, 746 tests pass (baseline was 46 files, 552 tests) |
 | Lint | `npm run lint` | clean |
 | Types | `npx tsc --noEmit` | clean |
 | Build and bundle budget | `npm run build && npm run check:bundle` | JS gzip total 273.2 kB (budget 350), charts chunk 154.6 kB (budget 160) |
-| Browser tests, whole suite | `npx playwright test` | 268 pass, 14 skipped (evidence capture and earlier skips), 0 failed |
+| Browser tests, whole suite | `npx playwright test` | 269 pass, 14 skipped (evidence capture and earlier skips), 0 failed |
 | Accessibility, every route | `npx playwright test a11y-all-routes` | 27 route cases (9 routes × 1280, 768, 375 px), each in light and dark: no serious or critical violations |
 | No horizontal scroll at 375 px | `npx playwright test responsive.spec` | 9 routes pass; palette focus check passes |
 | Heading focus after a screen change | `npx playwright test navigation.spec` | 15 pass |
