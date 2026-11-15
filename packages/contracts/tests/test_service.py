@@ -103,3 +103,21 @@ def test_only_json_bodies_are_inspected():
 
     res = TestClient(app).post("/upload", content=b"a\x00b", headers={"Content-Type": "application/octet-stream"})
     assert res.status_code == 200 and res.json() == {"size": 3}
+
+
+@pytest.mark.parametrize("content_type", ["Application/JSON", "application/json; charset=utf-8", "APPLICATION/JSON;charset=UTF-8", "application/vnd.api+json"])
+def test_the_nul_guard_reads_a_json_content_type_whatever_its_case_or_suffix(content_type):
+    """Agent 00 review of PR 22: the content type is case-insensitive, and a +json media type is JSON too."""
+    app, reached = _echo_app()
+    res = TestClient(app).post("/echo", content=b'{"a": "x\\u0000y"}', headers={"Content-Type": content_type})
+    assert res.status_code == 422 and res.json() == {"detail": "invalid_input"} and not reached
+
+
+def test_a_body_declared_larger_than_the_inspection_cap_is_left_to_the_route_and_never_read_by_the_guard():
+    """Agent 00 review of PR 22: the guard must not hold a very large body in memory; the route (or the service's own size limit) deals with it."""
+    from mmi_common import service
+
+    app, reached = _echo_app()
+    big = b'{"a": "' + b"x" * (service.MAX_INSPECTED_BODY + 10) + b'"}'
+    res = TestClient(app).post("/echo", content=big, headers={"Content-Type": "application/json"})
+    assert res.status_code == 200 and len(reached) == 1

@@ -24,6 +24,7 @@ from .time import set_correlation_id
 
 # A JSON escape of U+0000 (an odd number of backslashes before u0000; an escaped backslash followed by the text u0000 is not one).
 _NUL_ESCAPE = re.compile(rb"(?<!\\)(?:\\\\)*\\u0000")
+MAX_INSPECTED_BODY = 1024 * 1024        # a JSON body declared larger than this is not read by the NUL guard (the biggest service limit today is 256 KiB, procurement FR-040)
 
 
 def _fetch_public_key(url: str) -> str:
@@ -100,7 +101,10 @@ def create_service_app(
         refused = JSONResponse({"detail": "invalid_input"}, status_code=422)
         if "\x00" in request.scope["path"] or b"\x00" in unquote_to_bytes(request.scope.get("query_string", b"")):
             return refused
-        if request.headers.get("content-type", "").startswith("application/json"):          # uploads are not JSON: their bytes are the route's business
+        media_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
+        declared = request.headers.get("content-length", "")
+        too_large = declared.isdigit() and int(declared) > MAX_INSPECTED_BODY             # not held in memory here: the route or the service's own size limit deals with it
+        if (media_type == "application/json" or media_type.endswith("+json")) and not too_large:      # uploads are not JSON: their bytes are the route's business
             body = await request.body()
             if b"\x00" in body or _NUL_ESCAPE.search(body):
                 return refused
