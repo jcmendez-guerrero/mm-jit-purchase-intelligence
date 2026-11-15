@@ -261,11 +261,6 @@ async def segment_history_by_sku(sku: str, session: SessionData = Depends(requir
     return await inv.forward("GET", f"/products/{sku}/segment-history", user_id=session.user_id, roles=session.roles)
 
 
-@router.get("/segments/{variant_id}/history")
-async def segment_history(variant_id: int, session: SessionData = Depends(require_roles("viewer")), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
-    return await inv.forward("GET", f"/segments/{variant_id}/history", user_id=session.user_id, roles=session.roles)
-
-
 # ---- forecast parameters ---------------------------------------------------------------------------------------------------------
 
 @router.put("/parameters/{key}")

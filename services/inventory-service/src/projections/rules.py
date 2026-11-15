@@ -16,6 +16,7 @@ from audit import append as audit
 from db.tables import censoring_rules, demand_exclusions, product_segments, products, variants
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.engine import Connection
+from sqlalchemy.exc import IntegrityError
 
 EARLIEST = date(2015, 1, 1)
 MAX_AHEAD_DAYS = 548                       # about 18 months
@@ -156,7 +157,11 @@ def set_censoring_rule(conn: Connection, rule: str, value: int, actor: str, toda
     if expected_revision is not None and expected_revision != current:
         raise RuleConflict(current)
     rev = current + 1
-    conn.execute(insert(censoring_rules).values(rule=rule, scope=scope, key=key, value=value, valid_from=today or datetime.now(UTC).date(), revision=rev, changed_by=actor))
+    try:
+        with conn.begin_nested():                               # a second save that read the same revision fails at the unique index: that is a conflict, not a server error
+            conn.execute(insert(censoring_rules).values(rule=rule, scope=scope, key=key, value=value, valid_from=today or datetime.now(UTC).date(), revision=rev, changed_by=actor))
+    except IntegrityError as exc:
+        raise RuleConflict(censoring_revision(conn, rule, scope, key)) from exc
     audit(conn, actor, "censoring_rule.saved", "censoring_rule", rule, after={"scope": scope, "key": shown_key or key, "value": value, "revision": rev}, now=now)
     return rev
 

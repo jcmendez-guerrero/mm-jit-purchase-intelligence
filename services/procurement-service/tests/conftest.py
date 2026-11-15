@@ -1,9 +1,10 @@
+import os
 import uuid
 from datetime import UTC, datetime
 
 import pytest
 from db.tables import metadata, product_refs, suppliers
-from sqlalchemy import create_engine, event, insert
+from sqlalchemy import create_engine, event, insert, text
 from sqlalchemy.pool import StaticPool
 
 NOW = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
@@ -11,6 +12,20 @@ NOW = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
 
 @pytest.fixture
 def engine():
+    url = os.environ.get("MMI_TEST_DATABASE_URL")
+    if url:                                   # a real PostgreSQL: one throw-away schema per test (feature 011, T077)
+        schema = f"t_{uuid.uuid4().hex[:12]}"
+        admin = create_engine(url)
+        with admin.begin() as c:
+            c.execute(text(f'CREATE SCHEMA "{schema}"'))
+        eng = create_engine(url, connect_args={"options": f"-c search_path={schema}"})
+        metadata.create_all(eng)
+        yield eng
+        eng.dispose()
+        with admin.begin() as c:
+            c.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
+        admin.dispose()
+        return
     eng = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
 
     @event.listens_for(eng, "connect")
@@ -22,7 +37,7 @@ def engine():
         conn.exec_driver_sql("BEGIN")
 
     metadata.create_all(eng)
-    return eng
+    yield eng
 
 
 @pytest.fixture

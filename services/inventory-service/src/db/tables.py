@@ -15,6 +15,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     MetaData,
     Numeric,
@@ -222,6 +223,7 @@ censoring_rules = Table(
     Column("valid_from", Date, nullable=False),
     Column("revision", Integer, nullable=False, default=1),
     Column("changed_by", String(120), nullable=False),
+    Index("uq_censoring_rules_revision", "rule", "scope", "key", "revision", unique=True),          # a second save that took the same revision fails here (migration 0010)
 )
 agg_daily_kpis = Table(
     "agg_daily_kpis", metadata,

@@ -11,7 +11,8 @@ Shared interfaces touched by this feature. Everything is additive unless stated;
 | New | `DELETE /api/policies/{scope}/{key}` (removes an override as a new revision; `If-Match`; fresh MFA for global scope) |
 | **Renamed (breaking for callers of the old path)** | `PUT /api/products/{product_id}/criticality` is now `PUT /api/products/{sku}/criticality`; the only consumer is the web app, changed in the same PR |
 | **Renamed (breaking for callers of the old path)** | `GET /api/stocking/{variant_id}`, `PUT /api/stocking/{variant_id}` and `GET /api/policy-overrides/recommendation/{variant_id}` are now `.../{sku}`; `POST /api/policy-overrides` takes `sku` instead of `variant_id`; responses (stocking, overrides, recommendation) no longer carry `variant_id`. Only the web app consumes them and changed in the same PR |
-| New | `GET /api/products/{sku}/segment-history` (category history by SKU, used by the safety-stock screen); `GET /api/segments/{variant_id}/history` stays for the dashboard, which only uses ids in API calls |
+| New | `GET /api/products/{sku}/segment-history` (category history by SKU, used by the dashboard detail and the safety-stock screen) |
+| **Removed** | `GET /api/segments/{variant_id}/history` (gateway route and matrix entry); the only consumer, the dashboard detail, now uses the SKU route in this PR. The inventory service keeps its own route |
 | Behaviour | `PUT /api/budget-caps` now requires `If-Match` once a cap exists (428 / 412) and a fresh second factor; `PUT /api/policies/global/*` needs a fresh second factor |
 | Behaviour | Product-scope policy keys, preview rows, exclusions and criticality use the SKU; responses no longer carry `variant_id` |
 | Behaviour | `PUT /api/demand-rules/rules/{rule}` takes optional `scope` (`global` default, `segment`, `product`) and `key` (a segment code or, for a product, the SKU); each scope and key has its own revision for `If-Match`; `GET /api/policy-console` rules carry `scope`, `key` and `revision` per entry |
@@ -29,6 +30,7 @@ Shared interfaces touched by this feature. Everything is additive unless stated;
 ## Schemas
 
 - `packages/contracts/dto/demand_rule.v1.schema.json`: added optional `sku`, `reason_code` (pick list), `detail`; `reason` kept and marked superseded. Generated Python and TypeScript types regenerated; no other generated file changed. A v2 that removes `variant_id` and `reason` is a decision for you.
+- New response schemas (T064), all additive, with baseline, Python models, TypeScript types and matrix entries (`draft`): `policy_audit_page.v1` (`GET /api/policy-audit`), `effective_policy.v1` (`GET /api/products/{sku}/effective-policy`) and `segment_history.v1` (`GET /api/products/{sku}/segment-history`). `DELETE /api/policies/{scope}/{key}` answers `{revision}` and has no schema. Regenerating the matrix emptied the consumers of `dashboard_indicators` and `seed_dataset_summary`; they were restored by hand.
 - Error keys added (`packages/contracts/errors/error_codes.json`, `apps/web/src/i18n/es-ES.json`, `specs/002-mmi-operational-console/contracts/error-keys.md`): `sku_unknown`, `sku_ambiguous`, `policy_overlap`, `exclusion_reason_invalid`.
 
 ## Service interfaces (not in the matrix as endpoints)
@@ -39,8 +41,8 @@ Shared interfaces touched by this feature. Everything is additive unless stated;
 
 ## Migrations
 
-procurement `0013` (unique index on budget-cap revisions; fails on a database that already holds duplicates), inventory `0008` (`demand_exclusions.reason_detail`), inventory `0009` (`censoring_rules.scope` and `key`, defaults keep existing rows global), forecast `0006` (`forecast_runs.rule_version_ids`). All additive and reversible.
+procurement `0013` (unique index on budget-cap revisions; fails on a database that already holds duplicates), inventory `0008` (`demand_exclusions.reason_detail`), inventory `0009` (`censoring_rules.scope` and `key`, defaults keep existing rows global), inventory `0010` (unique index on `censoring_rules` rule, scope, key and revision; fails on a database that already holds duplicates), forecast `0006` (`forecast_runs.rule_version_ids`). All additive and reversible; all five were run up, down and up on PostgreSQL 18.
 
 ## Open
 
-The dashboard still calls `GET /api/segments/{variant_id}/history` with an id taken from its own rows; it never shows the id. Moving it to the SKU route is a possible follow-up.
+Nothing from the contract side beyond your review of the `draft` matrix entries. `update_baseline` also refreshed the baseline of `proposal_line` and `seed_dataset` (additive changes that came with `main`).

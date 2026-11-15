@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/segment_history.v1",
+  "title": "SegmentHistory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku", "history"],
+  "description": "GET /api/products/{sku}/segment-history: the category (ABC, XYZ, pattern, clinical criticality) a product had over time and why it changed, newest first.",
+  "properties": {
+    "sku": { "type": "string" },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["changed_at", "abc", "xyz", "pattern", "critical", "reason_key"],
+        "properties": {
+          "changed_at": { "type": "string", "format": "date-time" },
+          "abc": { "type": "string" },
+          "xyz": { "type": "string" },
+          "pattern": { "type": "string" },
+          "critical": { "type": "boolean" },
+          "reason_key": { "type": "string", "description": "Translation key of the reason, for example first_classification or criticality_changed" }
+        }
+      }
+    }
+  }
+}

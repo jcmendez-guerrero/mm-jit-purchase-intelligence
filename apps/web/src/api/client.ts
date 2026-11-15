@@ -1304,13 +1304,9 @@ export class ApiClient {
     });
   }
 
-  /** The category history of a product addressed by SKU (the safety-stock screen); the dashboard keeps its own id-based call. */
+  /** The category history of a product addressed by SKU (the dashboard detail and the safety-stock screen). */
   async getSegmentHistoryBySku(sku: string): Promise<{ sku: string; history: SegmentHistoryRow[] }> {
     return this.request<{ sku: string; history: SegmentHistoryRow[] }>(`/products/${encodeURIComponent(sku)}/segment-history`);
-  }
-
-  async getSegmentHistory(variantId: number): Promise<{ variant_id: number; history: SegmentHistoryRow[] }> {
-    return this.request<{ variant_id: number; history: SegmentHistoryRow[] }>(`/segments/${variantId}/history`);
   }
 
   async putParameter(key: string, value: string, version: number): Promise<{ revision: number }> {
