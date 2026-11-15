@@ -62,8 +62,8 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 
 ### Tests for US1 (write first, expect failure)
 
-- [ ] T015 [P] [US1] Unit tests for coverage and gap-day calculation in `services/inventory-service/tests/test_quality_coverage.py`
-- [ ] T016 [P] [US1] Unit tests for the anomaly rules (median/MAD outlier, p95 cap, negative quantity) using the default parameters fixed in research.md R2: deterministic, original value kept in `services/inventory-service/tests/test_anomaly_rules.py`
+- [X] T015 [P] [US1] Unit tests for coverage and gap-day calculation in `services/inventory-service/tests/test_quality_coverage.py`
+- [X] T016 [P] [US1] Unit tests for the anomaly rules (median/MAD outlier, p95 cap, negative quantity) using the default parameters fixed in research.md R2: deterministic, original value kept in `services/inventory-service/tests/test_anomaly_rules.py`
 - [ ] T017 [P] [US1] API contract tests for `GET /quality/products/{sku}`, `GET /quality/products/{sku}/anomalies` and `PUT .../anomalies/{day}` (viewer 403, idempotent, enumerated reason only, second factor required for `excluded` and its reversal, not for `accepted`) in `services/inventory-service/tests/test_quality_api.py`
 - [ ] T018 [P] [US1] PostgreSQL integration test: rejected movements never reach demand and every one appears in the review list with a Spanish reason (SC-004) in `services/inventory-service/tests/test_rejected_not_demand.py`
 - [ ] T019 [P] [US1] Integration test: an `excluded` decision creates a new series version and leaves ERP-derived rows untouched in `services/inventory-service/tests/test_anomaly_overlay.py`
@@ -71,8 +71,8 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 
 ### Implementation for US1
 
-- [ ] T020 [US1] Coverage and gap-day builder in `services/inventory-service/src/quality/coverage.py`
-- [ ] T021 [US1] Anomaly rule engine in `services/inventory-service/src/quality/anomalies.py` (flags stored in `anomaly_flags`, never editing movements)
+- [X] T020 [US1] Coverage and gap-day builder in `services/inventory-service/src/quality/coverage.py`
+- [X] T021 [US1] Anomaly rule engine in `services/inventory-service/src/quality/anomalies.py` (flags stored in `anomaly_flags`, never editing movements)
 - [ ] T022 [US1] Snapshot builder combining coverage, rejected/quarantined/ambiguous counts with reasons, excluded movement counts by type (the exclusion rules come from the existing `demand_exclusions` table), anomaly count and censored days; idempotent per input hash, in `services/inventory-service/src/quality/snapshot.py` (extends `metrics.py` and `review.py`)
 - [ ] T023 [US1] Exclusion overlay applied when the demand series is exported (excluded days dropped, version bumped) in `services/inventory-service/src/demand/provider.py`
 - [ ] T024 [US1] Endpoints and decision handler (buyer/admin only; the BFF enforces the fresh second-factor check for `excluded` and its reversal and inventory-service trusts that claim; audit event) in `services/inventory-service/src/api/quality.py`, registered in `src/api/__init__.py`
