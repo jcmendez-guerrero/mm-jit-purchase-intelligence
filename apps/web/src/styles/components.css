@@ -1125,3 +1125,16 @@
   display: flex;
   align-items: center;
 }
+
+.mmi-field-with-help {
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Touch: the help button is as large as every other control (WCAG 2.5.8, FR-023 of feature 003). */
+@media (pointer: coarse) {
+  .mmi-help__button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}

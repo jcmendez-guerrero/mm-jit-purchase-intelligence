@@ -9,6 +9,7 @@ import { useActionNotice } from "../../ui/NoticeProvider";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { Card } from "../../ui/Card";
 import { Button } from "../../ui/Button";
+import { HelpHint } from "../../ui/HelpHint";
 import { PageActions } from "../../ui/PageActions";
 import { DataTable } from "../../ui/DataTable";
 
@@ -59,6 +60,16 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
 
   const dirty = canEdit && JSON.stringify(form) !== JSON.stringify(baseline);
   const errorText = (id: string) => (fieldErrors[id] ? t(fieldErrors[id]) : undefined);
+  // A message goes away as soon as the value is corrected; new messages still appear only on leaving the field or saving.
+  useEffect(() => {
+    setFieldErrors((prev) => {
+      const ids = Object.keys(prev);
+      if (ids.length === 0) return prev;
+      const found = validateTerms(form);
+      const still = ids.filter((id) => found[id]);
+      return still.length === ids.length ? prev : Object.fromEntries(still.map((id) => [id, prev[id]!]));
+    });
+  }, [form]);
   const checkField = (id: string) => () => {
     const found = validateTerms(form)[id];
     setFieldErrors((prev) => {
@@ -126,7 +137,10 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
       )}
 
       <div className="mmi-cluster mmi-mb-4">
-        <FormField error={errorText("f-lead")} onBlur={checkField("f-lead")} id="f-lead" label={t("suppliers.f.lead_time_days")} value={form.lead_time_days} inputMode="numeric" disabled={readOnly} onChange={(v) => set("lead_time_days", v)} />
+        <div className="mmi-field-with-help">
+          <FormField error={errorText("f-lead")} onBlur={checkField("f-lead")} id="f-lead" label={t("suppliers.f.lead_time_days")} value={form.lead_time_days} inputMode="numeric" disabled={readOnly} onChange={(v) => set("lead_time_days", v)} />
+          <HelpHint concept="lead_time" />
+        </div>
         <FormField error={errorText("f-cutoff")} onBlur={checkField("f-cutoff")} id="f-cutoff" label={t("suppliers.f.order_cutoff_time")} value={form.order_cutoff_time} disabled={readOnly} onChange={(v) => set("order_cutoff_time", v)} />
         <FormField error={errorText("f-min")} onBlur={checkField("f-min")} id="f-min" label={t("suppliers.f.min_order_value")} value={form.min_order_value} inputMode="decimal" disabled={readOnly} onChange={(v) => set("min_order_value", v)} />
         <FormField error={errorText("f-minq")} onBlur={checkField("f-minq")} id="f-minq" label={t("suppliers.f.min_qty_for_delivery")} value={form.min_qty_for_delivery} inputMode="numeric" disabled={readOnly} onChange={(v) => set("min_qty_for_delivery", v)} />

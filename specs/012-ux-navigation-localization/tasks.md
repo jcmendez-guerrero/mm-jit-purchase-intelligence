@@ -41,9 +41,9 @@
 **Independent test**: sign in as each role, open every offered screen from the rail and the quick-jump, open a forbidden and an unknown address.
 
 - [X] T012 [P] [US1] E2E `web/tests/e2e/navigation.spec.ts` (extend): per role, rail and quick-jump list the expected screens; keyboard-only open lands focus on the page heading; current screen indicated; forbidden and unknown addresses show the Spanish screens with a way back
-- [ ] T013 [P] [US1] E2E role-change case in `web/tests/e2e/roles.spec.ts` (extend): a role change while a screen is open updates the offer without a stale entry (edge case)
+- [X] T013 [P] [US1] E2E role-change case in `web/tests/e2e/roles.spec.ts` (extend): a role change while a screen is open updates the offer without a stale entry (edge case)
 - [X] T014 [US1] Fix navigation gaps from T003 in `web/src/app/routes.ts`, `web/src/app/Navigation.tsx`, `web/src/app/CommandPalette.tsx`, `web/src/app/NoAccess.tsx`, `web/src/app/NotFound.tsx`; make T010 and T012 pass
-- [ ] T015 [US1] Add a visible step indicator and "back to list" to multi-step workflows (proposal review) in `web/src/features/proposals/ProposalsScreen.tsx` if T003/T006 show it missing; add catalogue keys in `web/src/i18n/es-ES.json`
+- [X] T015 [US1] Add a visible step indicator and "back to list" to multi-step workflows (proposal review) in `web/src/features/proposals/ProposalsScreen.tsx` if T003/T006 show it missing; add catalogue keys in `web/src/i18n/es-ES.json`
 
 ---
 
@@ -52,7 +52,7 @@
 **Goal**: dashboard signal → product detail by SKU → supplier/proposal → back, with context preserved.
 **Independent test**: as buyer with synthetic data, complete the journey keyboard-only.
 
-- [ ] T016 [P] [US2] E2E `web/tests/e2e/journey-product.spec.ts` (new): at-risk product on dashboard → detail shows SKU, stock, supplier terms, quality warning → link to supplier and to a proposal line → back to the same product; product with missing data shows what is missing and what to do; no ERP id visible
+- [X] T016 [P] [US2] E2E `web/tests/e2e/journey-product.spec.ts` (new): at-risk product on dashboard → detail shows SKU, stock, supplier terms, quality warning → link to supplier and to a proposal line → back to the same product; product with missing data shows what is missing and what to do; no ERP id visible
 - [X] T017 [P] [US2] Unit `web/tests/unit/dashboard-sku-display.test.tsx` (extend): SKU shown and entered in product detail, drill-down and proposal lines; no internal id rendered
 - [X] T018 [US2] Fix product-journey gaps from T006 in `web/src/features/dashboard/ProductDetail.tsx`, `DrillDownPanel.tsx`, `SupplierPanel.tsx`, `web/src/features/proposals/ProposalLineExplanation.tsx` (links with preserved context, back links, missing-data messages)
 - [X] T019 [US2] Add catalogue keys for new messages in `web/src/i18n/es-ES.json`
@@ -64,11 +64,11 @@
 **Goal**: search → terms → edit or import → confirmation, with Spanish validation and unsaved-change protection.
 **Independent test**: as buyer, edit with an invalid value, correct, leave with and without unsaved changes, import a file with a rejected row.
 
-- [ ] T020 [P] [US3] E2E `web/tests/e2e/journey-supplier.spec.ts` (new): search and open supplier, invalid save names field and rule in Spanish and focuses the first error, unsaved-change prompt on leaving, import lists rejected rows with reasons
-- [ ] T021 [P] [US3] Extend `web/tests/e2e/roles.spec.ts` and `dashboard-roles.spec.ts`: on the product and supplier screens, viewer, approver and admin see each action offered, hidden or read-only exactly as the role matrix says (FR-017) [FR-017]
-- [ ] T022 [P] [US3] Unit `web/tests/unit/SupplierManagement.test.tsx` and `SupplierImport.test.tsx` (extend): field-level messages, focus on first error, rejected rows never dropped silently
-- [ ] T023 [US3] Fix supplier-journey gaps from T006 in `web/src/features/suppliers/SupplierForm.tsx`, `SupplierTermsEditor.tsx`, `SupplierImport.tsx`, `SupplierReview.tsx`, `LinksPanel.tsx`, `BulkAssign.tsx`, `OverrideEditor.tsx`; reuse `web/src/ui/useFieldErrors.ts` and `useUnsavedChanges.ts`
-- [ ] T024 [US3] Add catalogue keys in `web/src/i18n/es-ES.json`
+- [X] T020 [P] [US3] E2E `web/tests/e2e/journey-supplier.spec.ts` (new): search and open supplier, invalid save names field and rule in Spanish and focuses the first error, unsaved-change prompt on leaving, import lists rejected rows with reasons
+- [X] T021 [P] [US3] Extend `web/tests/e2e/roles.spec.ts` and `dashboard-roles.spec.ts`: on the product and supplier screens, viewer, approver and admin see each action offered, hidden or read-only exactly as the role matrix says (FR-017) [FR-017]
+- [X] T022 [P] [US3] Unit `web/tests/unit/SupplierManagement.test.tsx` and `SupplierImport.test.tsx` (extend): field-level messages, focus on first error, rejected rows never dropped silently
+- [X] T023 [US3] Fix supplier-journey gaps from T006 in `web/src/features/suppliers/SupplierForm.tsx`, `SupplierTermsEditor.tsx`, `SupplierImport.tsx`, `SupplierReview.tsx`, `LinksPanel.tsx`, `BulkAssign.tsx`, `OverrideEditor.tsx`; reuse `web/src/ui/useFieldErrors.ts` and `useUnsavedChanges.ts`
+- [X] T024 [US3] Add catalogue keys in `web/src/i18n/es-ES.json`
 
 ---
 
@@ -78,7 +78,7 @@
 **Independent test**: T009, T008 and T011 pass; every screen reviewed in each state.
 
 - [X] T025 [P] [US4] Unit `web/tests/unit/i18n.test.ts` (extend): amounts, dates (Spanish format, local zone, daylight-saving boundary), quantities, percentages, and export headers use the shared formatters [FR-008, SC-007]
-- [ ] T026 [P] [US4] Unit `web/tests/unit/api-errors.test.ts` (extend): every code in `packages/contracts/errors/error_codes.json` maps to a Spanish message with a next step; unknown code gives the generic message; raw code never shown [FR-010, SC-005]
+- [X] T026 [P] [US4] Unit `web/tests/unit/api-errors.test.ts` (extend): every code in `packages/contracts/errors/error_codes.json` maps to a Spanish message with a next step; unknown code gives the generic message; raw code never shown [FR-010, SC-005]
 - [X] T027 [P] [US4] Unit `web/tests/unit/i18n.test.ts` (extend): a catalogue key missing at runtime renders a readable Spanish fallback, never the raw key, and is reported to the console in development (edge case) [FR-006]
 - [X] T028 [P] [US4] Unit `web/tests/unit/no-erp-notes.test.tsx` (new): with a synthetic fixture whose product and supplier carry a free-text note, no screen, help text or CSV export shows the note text, only the "has note" indicator (FR-016, project rule 7) [FR-016]
 - [X] T029 [US4] Move all user text found in T004 into `web/src/i18n/es-ES.json` and replace literals with `t()` in `web/src/features/**` and `web/src/app/**` (`.tsx` and `.ts`), grouped by feature; make T009, T027 and T028 pass with an empty baseline; implement the Spanish missing-key fallback in `web/src/i18n/index.ts`
@@ -93,7 +93,7 @@
 **Independent test**: T011 passes for every screen; help opens and closes by keyboard.
 
 - [X] T032 [P] [US5] Unit `web/tests/unit/ui/HelpHint.test.tsx` (new): button with accessible name, opens a glossary definition, closes with Escape, returns focus, never renders free-text notes [FR-012]
-- [ ] T033 [P] [US5] E2E `web/tests/e2e/states.spec.ts` (extend): forced loading (placeholder appears if data takes more than 300 ms; cumulative layout shift ≤ 0.1 when data arrives), empty (reason and action), error (retry, input preserved) on each screen
+- [X] T033 [P] [US5] E2E `web/tests/e2e/states.spec.ts` (extend): forced loading (placeholder appears if data takes more than 300 ms; cumulative layout shift ≤ 0.1 when data arrives), empty (reason and action), error (retry, input preserved) on each screen
 - [X] T034 [US5] Add `web/src/ui/HelpHint.tsx` (accessible disclosure fed by `glossary.json`) only if T005 confirms none exists; export from the shared UI [FR-012]
 - [X] T035 [US5] Migrate screens that bypass `ScreenState` (from T005) to `web/src/ui/ScreenState.tsx` in `web/src/features/**`; fix loading placeholders to match layout
 - [X] T036 [US5] Place `HelpHint` next to key terms (stock de seguridad, plazo de entrega, cobertura, nivel de servicio) in `web/src/features/policies/*` and `web/src/features/dashboard/*`; add catalogue keys [FR-012]
@@ -142,3 +142,25 @@
 - **MVP**: Phase 1, Phase 2 and US1 (navigation proven for every role) plus US4's T029 (no untranslated text), since the Jira gate is "no untranslated text".
 - **Then**: US2 and US3 (journeys), US5, US6, polish.
 - Stop and demonstrate after each story; the cross-feature note (`agent-00-contract-note.md`) is sent to Agent 00 at the end of Phase 3 and again before the pull request.
+
+## Phase 10: Convergence
+
+- [X] T047 Inventory every place that shows the Siweb variant id (`web/src/features/quality/QualityScreen.tsx:71,111`, `admin/AdminStatusScreen.tsx:130`, `policies/SafetyStockSection.tsx:143`, `policies/DemandSection.tsx:95`, `scenarios/ScenariosScreen.tsx:220,259`, `proposals/ProposalsScreen.tsx:196`, catalogue `policies.preview.row`, `scenarios.change_row`, `safety.queue_row`, `demand.variant_n`) in `evidence/audit-inventory.md`, and list in `agent-00-contract-note.md` which API payloads need a `sku` field per FR-004 (contradicts)
+- [X] T048 Add a shrink-only guard test `web/tests/unit/no-variant-id-display.test.tsx` with a baseline of the files from T047 that render `variant_id`, so no new screen shows the Siweb id per FR-004 (contradicts)
+- [X] T049 Switch the places from T047 whose payload already carries a SKU (the `#variant_id` fallback in `web/src/features/proposals/ProposalsScreen.tsx:196` first) to show the SKU, and lower the T048 baseline per FR-004 (contradicts)
+- [ ] T050 Once Agent 00 provides a SKU-to-variant lookup, replace the typed variant id with SKU entry in `web/src/features/suppliers/OverrideEditor.tsx`, `web/src/features/policies/SafetyStockSection.tsx` and `web/src/features/policies/DemandSection.tsx`, remove `KNOWN_EXCEPTIONS` in `web/tests/unit/glossary.test.ts`, and cover it in the supplier journey test per FR-004 and FR-005 (contradicts)
+- [X] T051 [P] Add `HelpHint` for plazo de entrega beside `lead_time_days` in `web/src/features/suppliers/SupplierTermsEditor.tsx` and for cobertura on the coverage indicator in `web/src/features/dashboard/IndicatorCard.tsx`, with unit tests per FR-012 and US5/AC4 (partial)
+- [X] T052 [P] Triage the 95 keys in `web/tests/unit/unused-keys.baseline.json`: delete the keys nothing uses from `web/src/i18n/es-ES.json`, and keep only keys reached through a dynamic prefix, noting the prefix per FR-007 (partial)
+- [X] T053 Run the `e2e`, `security` and `cost` gates (`python -m gates run` from `scripts/` with `pytest` installed) and record the result in `evidence/verification.md` per SC-008 (partial)
+
+## Phase 11: Convergence
+
+- [ ] T054 Once Agent 00 adds a `sku` field to the quality items, administration policy history, safety-stock queue, demand exclusions, policy preview and scenario lines, show the SKU in `web/src/features/quality/QualityScreen.tsx`, `admin/AdminStatusScreen.tsx`, `policies/SafetyStockSection.tsx`, `policies/DemandSection.tsx`, `policies/PurchasingSection.tsx` and `scenarios/ScenariosScreen.tsx`, and empty `web/tests/unit/variant-id-display.baseline.json` per FR-004 (contradicts)
+- [X] T055 [P] Add a test with 500 or more rows and amounts of 9 digits on the proposals and costs screens: no horizontal page scroll, Spanish euro format and the full value reachable, in `web/tests/e2e/states.spec.ts` per Edge Cases and FR-014 (partial)
+- [X] T056 [P] Add a test that a failed save keeps what the person typed and offers a retry, on the supplier terms form (`web/tests/e2e/journey-supplier.spec.ts`) per US5/AC3 (partial)
+- [X] T057 [P] Check the headers and values of the proposal CSV and Excel exports and the audit CSV (dot or comma decimals, date format, euro), record the result in `evidence/verification.md`, and add a unit test for any export the web app builds itself per FR-008 and SC-007 (partial)
+
+## Phase 12: Convergence
+
+- [ ] T058 Once Agent 00 and feature 010 make the audit CSV (`services/api-bff/src/routes/admin_audit.py`) use Spanish headers, `;` and `dd/mm/aaaa` dates like the proposal exports, check it with the same read-through as T057, record the result in `evidence/verification.md`, and align the download name in `web/src/features/admin/AuditScreen.tsx` per FR-008 and SC-007 (contradicts)
+- [ ] T059 [P] Record the owner's answer on the "Variante (ID Siweb)" column of the proposal exports in `agent-00-contract-note.md`, and if it is dropped, confirm the export no longer carries it per FR-004 (partial)

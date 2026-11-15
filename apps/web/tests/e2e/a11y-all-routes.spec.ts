@@ -103,6 +103,8 @@ test("reference task 3 by keyboard: edit one supplier term and save it", async (
   await page.goto("/proveedores");
   await tabTo(page, (e) => e.tag === "BUTTON" && e.name === "Proveedor Sintético A");
   await page.keyboard.press("Enter");
+  // wait for the saved terms to load: typing before that is overwritten when they arrive (an intermittent failure)
+  await expect(page.getByLabel("Plazo de entrega (días)")).toHaveValue("3");
   await tabTo(page, (e) => e.tag === "INPUT" && e.name === "Plazo de entrega (días)");
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.type("7");

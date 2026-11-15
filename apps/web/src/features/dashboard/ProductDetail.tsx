@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { api, errorMessage, ForecastBasis, SegmentHistoryRow, VariantDetail } from "../../api/client";
 import { formatDate, formatNumber } from "../../i18n/formatters";
 import { CategoryHistory } from "../policies/CategoryHistory";
@@ -67,6 +68,11 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
       <Button variant="secondary" small onClick={onClose}>
         {t("dashboard.detail.close")}
       </Button>
+      {d?.variant.sku && (
+        <Link className="mmi-button mmi-button--secondary mmi-button--small" to={`/propuestas?sku=${encodeURIComponent(d.variant.sku)}&volver=${variantId}`}>
+          {t("dashboard.detail.see_in_proposals")}
+        </Link>
+      )}
       {error && <ScreenState state="error" errorHint={error} />}
       {!d && !error && <ScreenState state="loading" skeletonLines={4} />}
       {d && (

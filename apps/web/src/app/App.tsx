@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
-import { api, ApiError, onUnauthorized, UserSession } from "../api/client";
+import { useTranslation } from "react-i18next";
+import { Link, Navigate, Route, Routes, useSearchParams } from "react-router-dom";
+import { api, ApiError, onForbidden, onUnauthorized, UserSession } from "../api/client";
 import { AdminStatusScreen } from "../features/admin/AdminStatusScreen";
 import { AlertsPanel } from "../features/admin/AlertsPanel";
 import { AuditScreen } from "../features/admin/AuditScreen";
@@ -42,7 +43,37 @@ const DashboardRoute: React.FC = () => {
     },
     [setParams],
   );
-  return <DashboardScreen selectedWarehouse={warehouse} onSelectWarehouse={select} />;
+  const rawProduct = params.get("producto");
+  const product = rawProduct !== null && /^\d+$/.test(rawProduct) ? parseInt(rawProduct, 10) : null;
+  const selectProduct = useCallback(
+    (id: number | null) => {
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (id === null) next.delete("producto");
+          else next.set("producto", String(id));
+          return next;
+        },
+        { replace: false },
+      );
+    },
+    [setParams],
+  );
+  return <DashboardScreen selectedWarehouse={warehouse} onSelectWarehouse={select} selectedProduct={product} onSelectProduct={selectProduct} />;
+};
+
+/** The proposals screen, filtered to one SKU when arriving from a product's detail (?sku=), with a way back to it (?volver=). */
+const ProposalsRoute: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
+  const { t } = useTranslation();
+  const [params, setParams] = useSearchParams();
+  const sku = params.get("sku") || undefined;
+  const back = params.get("volver");
+  const backAction = back !== null && /^\d+$/.test(back) ? (
+    <Link className="mmi-button mmi-button--secondary mmi-button--small" to={`/panel?producto=${back}`}>
+      {t("proposals.back_to_product")}
+    </Link>
+  ) : undefined;
+  return <ProposalsScreen userRoles={userRoles} skuFilter={sku} onClearSku={() => setParams({}, { replace: true })} backAction={backAction} />;
 };
 
 export const App: React.FC = () => {
@@ -96,6 +127,23 @@ export const App: React.FC = () => {
     return () => onUnauthorized(null);
   }, []);
 
+  useEffect(() => {
+    // A refusal for lack of a role may mean the roles changed while a screen was open: re-read them so the menu is current.
+    let reading = false;
+    onForbidden(() => {
+      if (reading || !sessionRef.current) return;
+      reading = true;
+      api
+        .getMe()
+        .then((me) => setSession((prev) => (prev && JSON.stringify(prev.roles) === JSON.stringify(me.roles) ? prev : me)))
+        .catch(() => undefined)
+        .finally(() => {
+          reading = false;
+        });
+    });
+    return () => onForbidden(null);
+  }, []);
+
   const handleDevLogin = async (role: string) => {
     const roles = role === "viewer" ? ["viewer"] : ["viewer", role];
     const user = await api.devLogin(`${role}-1`, roles);
@@ -120,7 +168,7 @@ export const App: React.FC = () => {
         <Route index element={<Navigate to={DEFAULT_PATH} replace />} />
         <Route path="panel" element={<DashboardRoute />} />
         <Route path="calidad" element={<QualityScreen userRoles={userRoles} showLocalReview={features.includes("localLoad")} />} />
-        <Route path="propuestas" element={<ProposalsScreen userRoles={userRoles} />} />
+        <Route path="propuestas" element={<ProposalsRoute userRoles={userRoles} />} />
         <Route path="escenarios" element={<ScenariosScreen userRoles={userRoles} />} />
         <Route path="costes" element={<CostsScreen userRoles={userRoles} userId={session?.user_id} />} />
         <Route path="proveedores" element={<SuppliersScreen userRoles={userRoles} />} />

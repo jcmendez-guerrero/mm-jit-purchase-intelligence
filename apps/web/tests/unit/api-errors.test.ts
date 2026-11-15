@@ -56,3 +56,21 @@ describe("permission refusals", () => {
     expect(errorMessage(new ApiError(403, "auth_mfa_stale"), "x")).toBe(catalogue["errors.auth_mfa_stale"]);
   });
 });
+
+// T026 (feature 012, FR-010): every message says what to do next, in Spanish, without technical terms.
+const NEXT_STEP = /\b(int[eé]nt\w+|reint\w+|revis\w+|compruebe\w*|corrij\w+|corríj\w+|indique\w*|elija\w*|espere\w*|vuelva\w*|acote\w*|use\b|usa\b|contact\w+|solicit\w+|cargue\w*|añad\w+|añádal\w+|cree\w*|pida\w*|pídalo|debe\w*|deben|necesita\w*|solo\b|sólo|puede\w*|pueden|se reintentar\w+|automáticamente|actualice\w*|seleccion\w+|escriba|ajuste\w*|asegúrese|confirme\w*|repita\w*|sustituya|cambie\w*|quite\w*|pruebe\w*|calcúl\w+|reduzca|divida|suba\b|abra\b|consulte\w*|relaje|descargue\w*)/i;
+
+describe("every error message tells the person what to do next", () => {
+  const messages = Object.entries(catalogue).filter(([k]) => k.startsWith("errors."));
+
+  it("the next-step detector recognises a next step and a bare statement (self-check)", () => {
+    expect(NEXT_STEP.test("El archivo es demasiado grande. Reduzca o divida el archivo.")).toBe(true);
+    expect(NEXT_STEP.test("El proveedor no existe.")).toBe(false);
+  });
+
+  it.each(messages)("%s has a next step and no technical wording", (key, text) => {
+    expect(NEXT_STEP.test(text), `${key}: add what the person should do`).toBe(true);
+    expect(text.length, key).toBeGreaterThan(20);
+    expect(/Traceback|HTTP|\b[45]\d\d\b|undefined|null\b/.test(text), key).toBe(false);
+  });
+});

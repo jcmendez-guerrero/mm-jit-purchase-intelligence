@@ -69,3 +69,34 @@ Baseline tests: `npm test` in `apps/web` passes, 46 files and 552 tests.
 ## Re-check after the changes
 
 Still `unverified` (not done in this pass): proposal step indicator (T015), focus on the first error in supplier forms (T022), a dedicated end-to-end product and supplier journey (T016, T020), non-buyer actions on product and supplier screens (T021). They are listed under known limitations in `pull-request.md`.
+
+## Convergence pass (T047): where the Siweb variant id reaches the screen
+
+Guarded by `tests/unit/no-variant-id-display.test.tsx` and `variant-id-display.baseline.json` (may only shrink).
+
+| Screen | Where | Payload has a SKU? | Status |
+|---|---|---|---|
+| Proposals | `ProposalsScreen.tsx` line code and name fallback | yes (`sku`, `product_name`) | fixed: "Sin código" / "Producto sin nombre" (T049) |
+| Quality | `QualityScreen.tsx:71,111` ("Variante #id") | no (`variant_id` only) | open: needs `sku` in the data-quality items (Agent 00) |
+| Administration | `AdminStatusScreen.tsx:130` policy history column | no | open: needs `sku` |
+| Safety stock queue | `SafetyStockSection.tsx:143` | no | open: needs `sku` |
+| Demand exclusions | `DemandSection.tsx:95` | no | open: needs `sku` |
+| Policy preview | `PurchasingSection.tsx:195` | no | open: needs `sku` |
+| Scenarios | `ScenariosScreen.tsx:220,259` | no | open: needs `sku` |
+| Typed id | `OverrideEditor.tsx`, `SafetyStockSection.tsx`, `DemandSection.tsx` | n/a | open: needs a SKU-to-variant lookup (T050) |
+
+## Found and fixed in the second pass
+
+| Item | Evidence | Fix |
+|---|---|---|
+| Layout shifted by 0.43 when the administration data arrived (limit 0.1) | `states.spec.ts` (new check per screen) | `AdminStatusScreen.tsx` loading skeleton uses the dashboard shape (now about 0.09) |
+| 52 of 138 error messages said what failed but not what to do | `api-errors.test.ts` (new check) | next step added to each message in `es-ES.json` |
+| A role removed while a screen was open stayed in the menu | `roles.spec.ts` (new test) | a 403 now re-reads the roles (`onForbidden` in `client.ts`, `App.tsx`) |
+| Product detail had no way onward or back | `journey-product.spec.ts` | link to the proposal lines of the SKU, URL keeps the open product (`?producto=`), way back |
+| An old validation message stayed after the value was corrected | `journey-supplier.spec.ts` | `SupplierTermsEditor.tsx` drops a message when the value becomes valid |
+| Help button smaller than a touch target | `touch-targets.spec.ts` | 44 px on coarse pointers |
+| Proposal workflow step | `ProposalsScreen.tsx` status badge and per-proposal status | complete: no change needed (T015) |
+
+## Known limitation: register
+
+The catalogue mixes formal and informal address ("No tiene permiso", "Debe volver a verificar" against "Tienes cambios sin guardar", "Introduce un número"). A full sweep is out of scope; it should be decided with the owner before it is changed.

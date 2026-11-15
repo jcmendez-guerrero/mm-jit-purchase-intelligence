@@ -12,6 +12,17 @@ const ind = (over: Partial<Indicator>): Indicator => ({ key: "stock_value", valu
 
 afterEach(cleanup);
 
+describe("indicator card help (feature 012)", () => {
+  it("offers help on coverage, keeps the heading name, and none on other cards", () => {
+    const { rerender } = render(<IndicatorCard indicator={ind({ key: "coverage_days", unit: "days", value: "5.8" })} />);
+    expect(screen.getByRole("heading", { name: "Cobertura" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Qué significa cobertura" }));
+    expect(screen.getByRole("note").textContent).toContain("Días que el stock actual cubre");
+    rerender(<IndicatorCard indicator={ind({})} />);
+    expect(screen.queryByRole("button", { name: /Qué significa/ })).toBeNull();
+  });
+});
+
 describe("indicator card states", () => {
   it("shows an ok figure in euros with Spanish separators, its basis, origin and refresh time", () => {
     const { container } = render(<IndicatorCard indicator={ind({})} />);

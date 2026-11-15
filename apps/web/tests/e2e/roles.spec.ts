@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signInAs } from "./ui-helpers";
 
 const line = {
   id: "line-1", variant_id: 101, sku: "AMX-500", product_name: "Amoxicilina", supplier_id: "supp-1", supplier_name: "Farmax", qty: 10,
@@ -150,4 +151,19 @@ test.describe("Role matrix UI permissions (T106)", () => {
     await expect(page.locator("text=Usuarios y roles")).toBeVisible();
     await expect(page.locator("text=buyer-1")).toBeVisible();
   });
+});
+
+/** Feature 012 edge case: a role removed while a screen is open shows up in the menu after the next refusal. */
+test("a role removed while a screen is open disappears from the menu after the server refuses an action", async ({ page }) => {
+  await signInAs(page, "admin");
+  await page.goto("/panel");
+  const nav = page.getByRole("navigation", { name: "Menú principal de navegación" });
+  await expect(nav.getByRole("link", { name: "Administración", exact: true })).toBeVisible();
+  // from now on the person is only a viewer, and the costs screen refuses
+  await page.route("**/api/me", (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user_id: "admin-1", roles: ["viewer"], mfa_auth_time: new Date().toISOString(), csrf_token: "csrf" }) }));
+  await page.route("**/api/costs", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "auth_forbidden_role" }) }));
+  await page.route("**/api/cost-writes", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "auth_forbidden_role" }) }));
+  await nav.getByRole("link", { name: "Costes y proveedores", exact: true }).click();
+  await expect(page.getByText("No tiene permiso para realizar esta acción.").first()).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Administración", exact: true })).toHaveCount(0);
 });

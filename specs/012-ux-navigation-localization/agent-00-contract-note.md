@@ -14,7 +14,17 @@ Feature 012 changes presentation, wording and accessibility only. No contract, s
 | 010 | `apps/web/src/features/admin/AuditScreen.tsx` | Loading placeholder and error state with retry | FR-011 | screen-level |
 | 011 | `apps/web/src/features/policies/PurchasingSection.tsx` | History date and service level through `formatDate` and `formatPercent`; help beside the heading | FR-008, FR-012 | screen-level |
 | 011 | `apps/web/src/features/policies/SafetyStockSection.tsx` | Help beside the heading | FR-012 | screen-level |
+| shared | `apps/web/src/api/client.ts`, `apps/web/src/app/App.tsx` | New `onForbidden` hook: a 403 re-reads the person's roles | A role removed while a screen is open must leave the menu | shared client |
+| shared | `apps/web/src/i18n/es-ES.json` | Next step added to 52 `errors.*` messages; 37 dead keys removed; new keys for help, filters and fallbacks | FR-010, FR-007 | catalogue |
+| 006 | `apps/web/src/features/dashboard/DashboardScreen.tsx`, `ProductDetail.tsx`, `IndicatorCard.tsx` | Open product kept in the URL (`?producto=`), link to its proposal lines, help on coverage | US2 | screen-level |
+| 002 | `apps/web/src/features/proposals/ProposalsScreen.tsx` | SKU filter (`?sku=`) with way back; no variant id fallback | US2, FR-004 | screen-level |
+| 007 | `apps/web/src/features/suppliers/SupplierTermsEditor.tsx` | Help on lead time; a message clears when the value is corrected | US3, FR-012 | screen-level |
+| 003, 007 | `apps/web/tests/e2e/a11y-all-routes.spec.ts`, `suppliers.spec.ts` | Wait for the supplier terms to load before typing (test timing only) | Intermittent failures that also affected the `e2e` gate | test-only |
+| 010 | `apps/web/src/features/admin/AdminStatusScreen.tsx` | Loading skeleton of the dashboard shape | FR-011 | screen-level |
 
 ## Requests for Agent 00 (not changed by this feature)
 
 - **SKU-to-variant lookup.** Three screens still ask the user for the Siweb variant id (`OverrideEditor.tsx`, `SafetyStockSection.tsx`, `DemandSection.tsx`). Project rule 5 says users see and enter the SKU. A read-only lookup in the gateway (SKU in, variant id out, from the synced catalogue) would let the screens switch. This feature adds no endpoint (FR-016); the gap is listed as a known limitation.
+- **`sku` in payloads.** Quality items, the administration policy history, the safety-stock queue, demand exclusions, the policy preview and the scenario lines carry only `variant_id`, so the screens show "Variante #id". Adding a `sku` field to those payloads would let the screens drop it (guard: `no-variant-id-display.test.tsx`).
+- **Audit CSV in the Spanish locale profile.** `GET /admin/audit/export` writes English field names, ISO timestamps and a comma delimiter, while the proposal exports use Spanish headers, `;`, comma decimals and `dd/mm/yyyy` (FR-008). A Spanish header row and local date format would align it; the web app only passes the file through.
+- **"Variante (ID Siweb)" column in the proposal exports.** Confirm it is wanted for ERP hand-off; otherwise drop it per rule 5.

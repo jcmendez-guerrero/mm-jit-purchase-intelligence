@@ -50,7 +50,7 @@ export const AdminStatusScreen: React.FC = () => {
     }
   };
 
-  if (!status) return error ? <ScreenState state="error" errorHint={error} onRetry={() => void load()} /> : <ScreenState state="loading" skeletonLines={4} />;
+  if (!status) return error ? <ScreenState state="error" errorHint={error} onRetry={() => void load()} /> : <ScreenState state="loading" skeletonShape="dashboard" />;
   const now = new Date();
   const c = status.cost;
   return (

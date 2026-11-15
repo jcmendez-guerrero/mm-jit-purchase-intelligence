@@ -140,6 +140,26 @@ for (const screen of SCREENS) {
       await expect(screen.ready(page)).toBeVisible({ timeout: 8000 });
     });
 
+    test("the layout does not shift when data arrives (cumulative shift 0.1 or less)", async ({ page }) => {
+      // Feature 012, FR-011: the placeholder reserves the space of the content that follows.
+      await page.addInitScript(() => {
+        (window as unknown as { __cls: number }).__cls = 0;
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries() as unknown as Array<{ value: number; hadRecentInput: boolean }>) {
+            if (!e.hadRecentInput) (window as unknown as { __cls: number }).__cls += e.value;
+          }
+        }).observe({ type: "layout-shift", buffered: true });
+      });
+      await signInAs(page, screen.name === "administration" ? "admin" : "buyer");
+      await screen.mock(page, "slow");
+      await page.goto(screen.path);
+      await expect(page.getByRole("status", { name: "Cargando datos" }).first()).toBeVisible();
+      await expect(screen.ready(page)).toBeVisible({ timeout: 8000 });
+      await page.waitForTimeout(500);
+      const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
+      expect(cls, `cumulative layout shift on ${screen.path}`).toBeLessThanOrEqual(0.1);
+    });
+
     test("shows a designed empty state", async ({ page }) => {
       test.skip(!screen.empty, "this screen always shows its sections");
       await signInAs(page, "buyer");

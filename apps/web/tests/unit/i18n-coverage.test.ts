@@ -111,14 +111,16 @@ describe("catalogue quality", () => {
   });
 
   it("catalogue keys that nothing references never grow", () => {
-    // A key counts as used when it appears literally, or when a template or concatenation prefix covers it.
-    const prefixes = new Set<string>([
-      ...[...text.matchAll(/[`"']([a-zA-Z0-9_.-]+\.)\$\{/g)].map((m) => m[1]!),
-      ...[...text.matchAll(/[`"']([a-zA-Z0-9_.-]+\.)[`"']\s*\+/g)].map((m) => m[1]!),
-    ]);
-    const unused = Object.keys(catalogue).filter((k) => !text.includes(k) && ![...prefixes].some((p) => k.startsWith(p)));
-    const baseline = new Set(JSON.parse(readFileSync(unusedBaselineFile, "utf8")) as string[]);
-    expect(unused.filter((k) => !baseline.has(k)), "new unused key: use it or remove it").toEqual([]);
-    expect([...baseline].filter((k) => !unused.includes(k)), "now used or gone: remove it from unused-keys.baseline.json").toEqual([]);
+    // Used when the key appears literally, a template prefix covers it, or a dotted string in the code is its prefix
+    // (props such as prefix="imports.reason.activate" and helpers such as known("proposals.why.constraint", code)).
+    const literals = new Set([...text.matchAll(/[`"']([a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+)[`"']/g)].map((m) => m[1]!));
+    const prefixes = [...text.matchAll(/[`"']([a-zA-Z0-9_.-]+[._])\$\{/g)].map((m) => m[1]!);
+    const used = (k: string) => text.includes(k) || prefixes.some((p) => k.startsWith(p)) || [...literals].some((l) => k.startsWith(`${l}.`) || k.startsWith(`${l}_`));
+    const unused = Object.keys(catalogue).filter((k) => !used(k));
+    // The baseline holds keys the server builds itself, with the reason; it may only shrink.
+    const baseline = JSON.parse(readFileSync(unusedBaselineFile, "utf8")) as Record<string, string>;
+    expect(unused.filter((k) => !(k in baseline)), "new unused key: use it or remove it").toEqual([]);
+    expect(Object.keys(baseline).filter((k) => !unused.includes(k)), "now used or gone: remove it from unused-keys.baseline.json").toEqual([]);
+    expect(Object.values(baseline).every((r) => r.length > 0), "every baseline key needs a reason").toBe(true);
   });
 });
