@@ -16,6 +16,9 @@ Format: [MADR](https://adr.github.io/madr/) (see `template.md`). Full register a
 | [018](018-configuration-ownership.md) | Ownership of operational configuration and durable roles | Proposed |
 | [019](019-override-precedence.md) | Precedence: ERP facts, local overrides, estimates | Proposed |
 | [020](020-seed-provenance.md) | Predictive seed datasets, provenance, activation | Proposed |
+| [021](021-contract-versioning.md) | Contract versioning and deprecation | Accepted |
+| [022](022-integration-branch.md) | Integration branch, drop-and-continue and agent auto-fix | Accepted |
+| [023](023-gateway-boundaries.md) | Gateway orchestrates, domains own business rules | Accepted |
 | [024](024-exchange-rates.md) | Exchange rates for suppliers in another currency (Frankfurter, ECB) | Accepted |
 
 Status changes after Gate 0 are recorded here (task T131).

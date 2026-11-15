@@ -55,7 +55,7 @@
 - [X] T027 [US3] Index the ADRs and link existing decisions (e.g. ADR-006) from `docs/architecture/implementation-plan.md`
 - [X] T028 [US3] Document the watch-and-fix protocol (where agents read the report, auto-fix limited to own files, no merge to main, no ERP write, fixed PR re-enters only after passing) in `docs/architecture/integration/README.md`
 - [X] T029 [P] [US3] Write tests that an integration plan entry with missing `owned_paths`, a dependency cycle, or an unknown gate name is rejected, in `scripts/tests/gates/test_integration_plan.py`
-- [ ] T030 [US3] Create `docs/architecture/integration/integration-plan.json` from the list of sibling PRs, agents and owned paths supplied by the maintainer (PR numbers and paths only), and validate it with `python -m gates validate`
+- [X] T030 [US3] Create `docs/architecture/integration/integration-plan.json` from the list of sibling PRs, agents and owned paths supplied by the maintainer (PR numbers and paths only), and validate it with `python -m gates validate`
 
 ## Phase 6: US4 Release gates (P2)
 
@@ -88,7 +88,7 @@
 
 - [X] T050 [P] Run the secret scan and export-signature check on the new files (synthetic data only, no real names or identifiers)
 - [X] T051 [P] Add a one-line pointer to `docs/architecture/integration/` in `AGENTS.md` and `CLAUDE.md`
-- [ ] T052 Run the quickstart end to end, time the first full gate run (SC-008) and record outcomes and duration in `docs/architecture/integration/verification.md`
+- [X] T052 Run the quickstart end to end, time the first full gate run (SC-008) and record outcomes and duration in `docs/architecture/integration/verification.md`
 - [X] T053 Prepare the single PR from `.github/pull_request_template.md` (summary, migration impact, screenshots, test evidence, limitations, first-run duration, links to the Confluence page and MMI-2). No merge, deploy or ERP write
 
 ## Dependencies and Order
@@ -113,7 +113,7 @@ MVP is Phase 1, Phase 2 and US1, then US2 to freeze contracts so other agents ca
 - [X] T058 Document in `docs/architecture/integration/README.md` that the per-PR `gates` job must be a required check (branch protection) and how and when the maintainer starts `integration-gates.yml`, per FR-010 (missing)
 - [X] T059 Review each test file in `docs/architecture/integration/guarantee-test-map.md` for real coverage of its guarantee; record gaps in that file and add tests only for guarantees that turn out uncovered, per FR-013 (partial)
 - [X] T060 Update `docs/architecture/integration/README.md` so it no longer says only `contracts` and `isolation` are implemented, per plan documentation (partial)
-- [ ] T061 Record a manual check in `docs/architecture/integration/verification.md` that a reader finds any interface's owner, version and consumers in `contract-matrix.md` in under 2 minutes, per SC-007 (missing)
+- [X] T061 Record a manual check in `docs/architecture/integration/verification.md` that a reader finds any interface's owner, version and consumers in `contract-matrix.md` in under 2 minutes, per SC-007 (missing)
 
 ## Phase 10: Convergence
 
@@ -153,3 +153,21 @@ MVP is Phase 1, Phase 2 and US1, then US2 to freeze contracts so other agents ca
 
 - [X] T084 Refresh `specs/005-architecture-contracts-integration/pull-request.md` to the current state before the PR is opened: 102 tests (not 94), the review fixes (undo of a failed merge, dropping a missing PR head, up-front plan validation, per-artifact validation errors, stricter consumer search with the lower-bound note, tolerant report timestamps, updating the previous PR comment), the `lookup` command and the updated task count, per FR-016 (partial)
 - [X] T085 Describe the failure handling of `integrate` in `specs/005-architecture-contracts-integration/research.md` (R7), `data-model.md` and `contracts/gate-runner-cli.md`: a PR whose head does not exist is dropped with `failed_gate: "ref"`, an invalid plan is refused before anything is built and exits 3, a merge that adds nothing does not undo the previous PR, and `failed_gate` can be a gate name or `merge`, `ownership` or `ref`, per FR-010 and research R7 (partial)
+
+## Phase 15: Convergence
+
+- [X] T086 Merge `origin/main` into this branch before the tasks below, keep both sides of the shared contract files, and run `python -m gates run --gate contracts --gate isolation` per plan: ADR-022 (partial)
+- [X] T087 Move `docs/architecture/adr/021-contract-versioning.md`, `022-integration-branch.md` and `023-gateway-boundaries.md` into `docs/adr/`, add their rows to `docs/adr/README.md` and fix every path that names them (ADR-024 of feature 007 already lives there) per FR-007 (partial)
+- [X] T088 Add one line to `AGENTS.md` that the gateway does no money arithmetic (ADR-023, `test_routes_do_no_money_arithmetic`, a textual check for `Decimal`, `float(` and `round(`) per plan: ADR-023 (partial)
+- [X] T089 Document in `docs/architecture/integration/README.md` that a new contract starts as `draft` until its first consumer PR merges and then becomes `frozen`, the pinned `prettier` and `markdownlint-cli` commands that reproduce the CI lint, and the `PYTHONPATH` or editable-install note for worktrees per FR-005 (partial)
+- [X] T090 Make `python -m gates matrix` keep the previous `generated_at` when the entries are unchanged, with a test that two runs on the same input give a byte-identical file per FR-003 (partial)
+- [X] T091 Refresh row G3 of `docs/architecture/integration/gateway-review.md`: the keyed routes now include the two supplier-term saves, and `POST /api/imports/{id}/activate` and `/rollback` are repeat-safe through the unique active-dataset index and the status check, and update the pinned-set note per FR-014 (partial)
+
+## Phase 16: Convergence
+
+- [X] T092 Update the "Not verified" list in `docs/architecture/integration/verification.md`: the `gates` job and Super-linter (including GITLEAKS) ran on GitHub for PR 16, the live journey and its screenshots exist, and keep only what still was not run (endpoint check without `--openapi`, audit statuses not backed by test runs) per FR-016 (partial)
+- [X] T093 Re-audit the `feature-status.json` rows for the dashboard, supplier terms and seed import features against the current `main` commit, set `audited_commit` and regenerate `feature-status.md` with `python -m gates audit-md`, and run `python -m gates validate` per FR-001 (partial)
+
+## Phase 17: Convergence
+
+- [X] T094 In `docs/architecture/integration/README.md` say that consumers added by hand in `contract-matrix.json` are kept when the matrix is regenerated, and replace the "34 of the 42 schema entries" count by the current number of schema entries without consumers per FR-003 (partial)

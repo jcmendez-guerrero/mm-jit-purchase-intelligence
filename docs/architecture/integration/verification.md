@@ -17,6 +17,10 @@ Run on a developer machine at commit `9d11abb` plus the uncommitted changes of t
 
 The overall result of this first run was **fail** (e2e, see above).
 
+## Full quickstart run on 2026-11-10 (T052)
+
+`MMI_GATES_DATABASE=1 MMI_GATES_LIVE_STACK=1 python -m gates run` from `scripts/`, on this branch after merging `main` (features 006 to 008 included) and with `integration-plan.json` listing PRs 16, 18, 17 and 19 as integrated: contracts, isolation, integration (4 steps accounted for), e2e (3 commands), security (8 commands) and cost (1 command) all `pass`, exit 0, in 422 seconds (about 7 minutes, over the 3 minutes noted earlier because the live stack was rebuilt). The shell had the worktree's `packages/testing/src` and `packages/contracts/python` on `PYTHONPATH`. Endpoints were not checked (no `--openapi`).
+
 ## Clean full run and the per-gate time limits (SC-008, T067)
 
 After the fixes above, on the same machine with the other `mmi` stack stopped, `MMI_GATES_DATABASE=1 MMI_GATES_LIVE_STACK=1 python -m gates run`: **2 minutes 57 seconds** in total. Five gates passed; `integration` is `not_run` only because the integration plan is still empty (T030), so the overall result is `not_run`, exit 2.
@@ -36,7 +40,7 @@ The limits are about 7 to 15 times these warm-cache timings, to leave room for a
 
 | Step | Status |
 |---|---|
-| 1 `validate` | exits 3: only `integration-plan.json` is missing (T030). The audit and matrix pass. |
+| 1 `validate` | exits 0 since T030: `integration-plan.json` lists PRs 16, 18, 17 and 19 (all integrated). |
 | 2 contracts gate catches an undeclared change | covered by `test_contracts_gate.py` (removed property, missing entry, unmoved consumers); not repeated by hand |
 | 3 isolation gate catches a cross-schema read | covered by `test_isolation_gate.py`; not repeated by hand |
 | 4 full gate run | run once, see above |
@@ -47,9 +51,28 @@ The limits are about 7 to 15 times these warm-cache timings, to leave room for a
 
 Clarified on 2026-11-09: SC-007 is checked by a command and its test, not by a timed human trial. `python -m gates lookup NAME` prints the owner, version, consumers and status (exit 3 for an unknown name); `scripts/tests/gates/test_matrix.py` and `test_cli.py` cover it, and a run against the real matrix returned, for example, `procurement.order.confirmed v1 | event | owner: procurement-service | consumers: inventory-service | status: frozen`. This supersedes the manual timed check asked for in T061, which was therefore not carried out.
 
+Re-checked on 2026-11-10 after PR 19 merged: `python -m gates lookup dashboard_indicators` answered in 0.34 s with `v2 | dto | owner: inventory-service | consumers: api-bff, web | status: frozen`. Regenerating the matrix no longer drops consumers added by hand (T090 follow-up in `test_matrix.py`).
+
+## Endpoint check and audit test runs (2026-11-15)
+
+- **Endpoint check:** `python -m gates run --gate contracts --openapi <gateway openapi.json>`, with the document taken from `app.openapi()` of `services/api-bff` (95 paths), passes: the matrix's endpoint entries equal the gateway's real endpoints.
+- **Audit statuses backed by test runs:** the test file cited as evidence for each audit row was executed. 24 Python files pass (including `infra/tests/test_migrations_postgres.py`, 10 passed with `RUN_PG_MIGRATIONS=1` and Docker); `CommandPalette.test.tsx` passes (8); `a11y-all-routes.spec.ts` passes 11 of 12. The failing test is "reference task 3 by keyboard: edit one supplier term and save it", which also fails on `main` and does not cover the a11y routes. Each row's note records its result. Statuses were not changed. Rows `infra-bicep-deployment` and `infra-ci-deploy-workflows` stay `unverified`: the Bicep row's test checks guardrail settings, not a deployment, and no test covers the workflows.
+
+## Manual workflow `integration-gates.yml` on GitHub (2026-11-15)
+
+Started three times with `gh workflow run integration-gates.yml --ref claude/agent-00-integration-followups`; it had never run on GitHub before.
+
+1. **Run 43768210506 failed:** `git worktree add ... main` crashed because the Actions checkout of another branch has `origin/main` but no local `main`; no report was written and the comment job found no artifact. Fixed in `c26b430` (base resolved from `origin/<base>`, a missing base is exit 3), with two tests.
+2. **Run 43768440101 failed:** the security gate stopped on `ModuleNotFoundError: ortools` (procurement tests) because the install step did not list it. The report showed PR 16 as `gate_failed` and its dependents dropped, which is the designed behaviour. Fixed in `ce4d9ab`.
+3. **Run 43769197601 passed:** `integrate` and `comment` succeeded; the report lists contracts, isolation, integration (4 steps), e2e (3 commands), security (8 commands) and cost (1 command) as `pass`, with PRs 16, 18, 17 and 19 integrated. The comment job posts nothing until `integration-plan.json` is on the default branch.
+
+The endpoint check was not part of that workflow run (it needs `--openapi`); it was run separately, see above.
+
 ## Not verified
 
-- The two new workflows (`gates` job in `ci.yml`, `integration-gates.yml`) parse as YAML but have never run on GitHub.
-- The real-services Spanish UI journey (T035) and its screenshots (T045) do not exist.
-- The audit statuses did not execute any test suite; the e2e failure above is the only suite result that contradicts an audited "complete" and may be environmental.
-- `gitleaks` was not installed locally; only the repo's export-signature guard and a pattern scan of the new files were run.
+Updated 2026-11-15.
+
+- The comment job of `integration-gates.yml` has not posted a comment on a PR: it posts nothing until `integration-plan.json` is on the default branch.
+- `gitleaks` itself was not run locally; Super-linter's GITLEAKS check passes on the PRs.
+- A test run backs an audit row only for the evidence file cited; other tests of the same feature were not run row by row.
+- The `e2e` gate's live-stack journey ran in the full run of 2026-11-10, not today.
