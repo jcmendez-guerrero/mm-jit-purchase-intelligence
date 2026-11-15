@@ -40,7 +40,7 @@ Jira MMI-5 (Agent 03, Procurement Proposals & Scenarios), Confluence 3145771. Au
 
 ## Test evidence
 
-Procurement service 880 tests, gateway 302, web unit 559 plus the new ones, mocked Playwright (proposals, scenarios, roles, accessibility, i18n) and the real-services journey against the local compose stack; ruff and tsc and eslint clean.
+Procurement service 880 tests, gateway 302, web unit 562, mocked Playwright (proposals, scenarios, roles, accessibility, i18n) and the real-services journey against the local compose stack; ruff and tsc and eslint clean.
 
 ## Known limitations
 
