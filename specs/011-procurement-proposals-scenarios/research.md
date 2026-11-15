@@ -67,3 +67,10 @@ Existing tests were executed for this audit: the procurement suite (876 tests), 
 | G11 grouping by supplier | Already present (supplier groups and per-supplier export); verified. | `ProposalsScreen.tsx`, `groupLinesBySupplier` |
 
 Not done: `docs/architecture/integration/feature-status.json` (owned by Agent 00) is not edited here; the table above is the evidence to hand over. The Agent 00 note is a draft and has not been sent.
+
+## 6. Agent 00 answer (PR review, 2026-11-15)
+
+- Export routes: confirmed. The matrix lists only `web` as consumer of both export routes and no other agent calls them as a viewer.
+- Error keys `proposal_line_conflict` and `proposal_superseded`: accepted as additive.
+- `review_notes` and `over_budget`: accepted in substance. The proposal detail response is now described by a new schema, `packages/contracts/dto/proposal_detail.v1.schema.json` (baseline refreshed, model generated), because `proposal.v1` types money as an object and this response returns strings, so changing it would break its baseline. Agent 00 should register the new schema in `contract-matrix.json` (it owns that file). `review_notes[].variant_id` is for the web app's lookups only and is never displayed.
+- Role gate recorded in `docs/architecture/integration/gateway-review.md` (G6).

@@ -4,7 +4,7 @@
 
 **Approach**: audit-then-close-gaps. Gaps G1 to G7 are in research.md section 2. Tests come before implementation within each story. Synthetic fixtures only (`packages/testing`). Paths are relative to the repo root; `PS` = `services/procurement-service`, `BFF` = `services/api-bff`, `WEB` = `apps/web`.
 
-## Note: T043 to T046 were added after the analysis pass; IDs are unique, not in file order.
+## Note: T043 to T046 were added after the analysis pass; IDs are unique, not in file order
 
 ## Format: `- [ ] T### [P?] [US?] Description with file path`
 
@@ -140,3 +140,13 @@ MVP is the three P1 stories (Phases 3 to 5): deterministic proposals and scenari
 - [X] T055 Give `over_budget` and `review_notes` each their own comment in `Proposal`, in `apps/web/src/api/client.ts` per FR-014 (partial)
 - [X] T056 Keep one definition of the export roles per layer: import the gateway constant in `services/api-bff/src/routes/scenarios.py` instead of repeating it, and have `canExportScenario` reuse the proposal export rule in `apps/web/src/features/scenarios/scenariosModel.ts` per FR-010 (unrequested)
 - [X] T057 Move `Blob` and `Users` into `services/procurement-service/tests/proposal_support.py` so the plugin no longer imports a test module, and update `tests/test_api_proposals.py` to import them from there, per plan: test approach (unrequested)
+
+## Phase 11: Convergence
+
+- [X] T058 Add the new optional properties (`over_budget`, `review_notes` with `variant_id` marked "web lookups only, never displayed", and every other detail field the proposal response now returns) to `packages/contracts/dto/proposal.v1.schema.json`, refresh its baseline with `packages/contracts/tools/update_baseline.py`, regenerate `mmi_models/dto/proposal_v1_schema.py`, and add a test that a real detail response validates against the schema (`additionalProperties: false` rejects it today), then run `python -m gates run`, per Agent 00 finding 1, FR-004, FR-014 and AGENTS.md rule 9 (partial)
+- [X] T059 Record Agent 00's answer to the contract note in `specs/011-procurement-proposals-scenarios/research.md` (export routes confirmed, two error keys accepted, `review_notes` and `over_budget` accepted once T058 lands) and tick the contract checkbox in `pull-request.md` after T058, per plan: Constitution IV and T050 (partial)
+- [X] T060 Add one line to `docs/architecture/integration/gateway-review.md` stating that proposal and scenario export is for buyer, approver and admin, a viewer is refused and the refusal is audited, per Agent 00 finding 6 and FR-010 (missing)
+- [ ] T061 Open an issue for the failing `a11y-all-routes.spec.ts` "reference task 3 by keyboard" test and either fix it or quarantine it so the `e2e` gate is not red for this branch, and link the issue in `pull-request.md`, per Agent 00 finding 3 and SC-008 (partial)
+- [X] T062 Fix the Markdown lint error MD026 (trailing period in the heading at `specs/011-procurement-proposals-scenarios/tasks.md` line 7, found by the Super-linter job) by removing the period, per the CI Linting check (partial)
+- [ ] T063 Rebase on `main` once #22 and #24 are merged and resolve the semantic conflicts by hand in `apps/web/src/api/client.ts`, `services/procurement-service/src/api/proposals.py` and `apps/web/src/features/proposals/ProposalsScreen.tsx`, then re-run the procurement, gateway and web suites, per Agent 00 finding 2 (missing)
+- [ ] T064 Decide whether to rename this spec folder or `specs/011-business-policy-configuration` (#22) so spec numbers are unique, and update `.specify/feature.json` and links if renamed, per Agent 00 finding 4 (unrequested)
