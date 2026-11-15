@@ -1608,6 +1608,16 @@
         "web"
       ],
       "status": "draft"
+    },
+    {
+      "name": "GET /api/forecast/products/{sku}/explanation",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-02",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
     }
   ]
 }

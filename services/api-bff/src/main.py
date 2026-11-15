@@ -19,6 +19,7 @@ from routes.imports import router as imports_router
 from routes.local_load import enabled as local_load_enabled
 from routes.local_load import router as local_load_router
 from routes.policies import router as policies_router
+from routes.quality import forecast_router as quality_forecast_router
 from routes.quality import router as quality_router
 from routes.scenarios import router as scenarios_router
 from routes.suppliers import router as suppliers_router
@@ -97,6 +98,7 @@ app.include_router(admin_status_router, prefix="/api")
 app.include_router(admin_roles_router, prefix="/api")
 app.include_router(admin_audit_router, prefix="/api")
 app.include_router(quality_router, prefix="/api")
+app.include_router(quality_forecast_router, prefix="/api")
 app.include_router(admin_ops_router, prefix="/api")
 if local_load_enabled():          # local export loader only (MMI_LOCAL_LOADER=1, never prod/staging): absent from every cloud configuration
     app.include_router(local_load_router, prefix="/api")

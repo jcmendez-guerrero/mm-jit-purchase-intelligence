@@ -76,6 +76,7 @@ The gateway is `services/api-bff`.
 | `GET /api/dashboard/risk` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/dashboard/variants/{variant_id}/forecast-basis` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/data-quality/import-errors` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/forecast/products/{sku}/explanation` | endpoint | v1 | agent-02 | web | draft |
 | `GET /api/imports` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/imports/jobs` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/imports/mappings` | endpoint | v1 | agent-00 | web | draft |

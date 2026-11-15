@@ -679,6 +679,33 @@ export interface AnomalyFlag {
   reason_code: string | null;
 }
 
+/** Why a forecast is what it is (feature 012): versions, class, method and the reason for it, eligibility, provenance. SKU only. */
+export interface ForecastExplanation {
+  run_id: string;
+  sku: string;
+  model_version: string;
+  dataset_version_id: string | null;
+  config_version_id: string | null;
+  history_start: string | null;
+  history_end: string | null;
+  abc: string | null;
+  xyz: string | null;
+  pattern: string | null;
+  intermittent: boolean;
+  method: string;
+  method_reason_code: string;
+  censored_days: number;
+  anomaly_days_excluded: number;
+  provenance_mix: { observed?: number; estimated?: number; manual?: number };
+  low: string | null;
+  expected: string | null;
+  high: string | null;
+  confidence: "alta" | "media" | "baja" | null;
+  confidence_reason_codes: string[];
+  eligibility: "eligible" | "manual_review_only" | "not_eligible";
+  eligibility_reason_codes: string[];
+}
+
 export interface RiskItem {
   variant_id: number;
   risk_type: "stockout" | "expiry" | "data_quality";
@@ -1095,6 +1122,11 @@ export class ApiClient {
       method: "POST",
       body: JSON.stringify({ decision }),
     });
+  }
+
+  async getForecastExplanation(sku: string, runId?: string): Promise<ForecastExplanation> {
+    const query = runId ? `?run_id=${encodeURIComponent(runId)}` : "";
+    return this.request<ForecastExplanation>(`/forecast/products/${encodeURIComponent(sku)}/explanation${query}`);
   }
 
   async getQualitySummary(sku: string): Promise<QualitySummaryData> {

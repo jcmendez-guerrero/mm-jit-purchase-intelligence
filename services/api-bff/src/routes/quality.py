@@ -11,13 +11,16 @@ from typing import Any
 from urllib.parse import quote
 
 from auth.session import SessionData
+from clients.forecast import ForecastClient
 from clients.inventory import InventoryClient
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
 from routes.api import get_inventory_client
+from routes.policies import get_forecast_client
 from routes.rbac import log_refusal, require_roles
 
 router = APIRouter(prefix="/quality", tags=["quality"])
+forecast_router = APIRouter(prefix="/forecast", tags=["quality"])
 READ = ("viewer", "buyer", "approver", "admin")
 EDIT = ("buyer", "admin")
 MFA_MAX_AGE = 300
@@ -60,3 +63,11 @@ async def decide_anomaly(sku: str, day: date, body: DecisionBody, request: Reque
 @router.post("/recompute")
 async def recompute(session: SessionData = Depends(require_roles(*EDIT)), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
     return await inv.forward("POST", "/quality/recompute", user_id=session.user_id, roles=session.roles)
+
+
+@forecast_router.get("/products/{sku}/explanation")
+async def explanation(sku: str, run_id: str | None = Query(default=None, max_length=36), session: SessionData = Depends(require_roles(*READ)),
+                      fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+    """T038: why this product's forecast is what it is. Forwarded as is; forecast-service owns the content."""
+    params = {"run_id": run_id} if run_id else None
+    return await fc.forward("GET", f"/forecasts/products/{quote(sku, safe='')}/explanation", params=params, user_id=session.user_id, roles=session.roles)

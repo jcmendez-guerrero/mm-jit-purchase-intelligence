@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ProposalLine } from "../../api/client";
 import { formatCurrencyEUR, formatDate, formatNumber } from "../../i18n/formatters";
+import { Button } from "../../ui/Button";
+import { ExplanationPanel } from "../quality/ExplanationPanel";
 
 /** Structured, Spanish-rendered reasoning for one line: quantity, supplier choice, saved terms and ERP conflicts. */
 export const ProposalLineExplanation: React.FC<{ line: ProposalLine }> = ({ line }) => {
   const { t } = useTranslation();
+  const [detail, setDetail] = useState(false);
   const e = line.explanation;
   const terms = e.terms;
   const known = (prefix: string, key: string) => (t(`${prefix}.${key}`, { defaultValue: "" }) as string) || key;
@@ -22,6 +25,15 @@ export const ProposalLineExplanation: React.FC<{ line: ProposalLine }> = ({ line
         {t("proposals.why.position", { total: e.position.total, on_hand: e.position.on_hand, expiring: e.position.expiring, inbound: e.position.inbound, need: e.need })}
       </p>
       {!e.forecast_eligible && <p>{t("proposals.why.fallback")}</p>}
+      {!e.forecast_eligible && <p role="note"><strong>{t("quality.not_a_forecast")}</strong></p>}
+      {line.sku && (
+        <>
+          <Button variant="quiet" small aria-expanded={detail} onClick={() => setDetail(!detail)}>
+            {detail ? t("quality.explain.close") : t("quality.explain.open")}
+          </Button>
+          {detail && <ExplanationPanel sku={line.sku} />}
+        </>
+      )}
       {e.forecast_basis === "imported_estimates" && <p role="note">{t("proposals.why.estimate")}</p>}
       {e.clinical_critical && <p>{t("proposals.why.critical")}</p>}
       <p>{t("proposals.why.supplier", { reason: known("proposals.why.supplier_reason", e.supplier.reason) })}</p>
