@@ -12,11 +12,21 @@
       "additionalProperties": false,
       "required": ["value", "source"],
       "properties": {
-        "value": { "oneOf": [{ "type": "string" }, { "type": "null" }], "description": "Decimal text; null when nothing is in force and the computed default applies" },
+        "value": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "Decimal text; null when nothing is in force and the computed default applies"
+        },
         "source": { "enum": ["product", "segment", "global", "default"] },
-        "key": { "oneOf": [{ "type": "string" }, { "type": "null" }], "description": "The segment code, or * for global; the product's own key is never shown" },
-        "revision": { "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }] },
-        "valid_from": { "oneOf": [{ "type": "string", "format": "date" }, { "type": "null" }] }
+        "key": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "The segment code, or * for global; the product's own key is never shown"
+        },
+        "revision": {
+          "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+        },
+        "valid_from": {
+          "oneOf": [{ "type": "string", "format": "date" }, { "type": "null" }]
+        }
       }
     }
   },
@@ -26,7 +36,13 @@
     "rules": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["service_level", "safety_stock_units", "min_units", "max_units", "replenishment_cadence_days"],
+      "required": [
+        "service_level",
+        "safety_stock_units",
+        "min_units",
+        "max_units",
+        "replenishment_cadence_days"
+      ],
       "properties": {
         "service_level": { "$ref": "#/$defs/rule" },
         "safety_stock_units": { "$ref": "#/$defs/rule" },

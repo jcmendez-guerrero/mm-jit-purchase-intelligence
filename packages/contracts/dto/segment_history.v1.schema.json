@@ -13,14 +13,24 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["changed_at", "abc", "xyz", "pattern", "critical", "reason_key"],
+        "required": [
+          "changed_at",
+          "abc",
+          "xyz",
+          "pattern",
+          "critical",
+          "reason_key"
+        ],
         "properties": {
           "changed_at": { "type": "string", "format": "date-time" },
           "abc": { "type": "string" },
           "xyz": { "type": "string" },
           "pattern": { "type": "string" },
           "critical": { "type": "boolean" },
-          "reason_key": { "type": "string", "description": "Translation key of the reason, for example first_classification or criticality_changed" }
+          "reason_key": {
+            "type": "string",
+            "description": "Translation key of the reason, for example first_classification or criticality_changed"
+          }
         }
       }
     }
