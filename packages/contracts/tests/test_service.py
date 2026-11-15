@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from mmi_common.auth import DevIssuer, TokenValidator
 from mmi_common.service import create_service_app, validator_from_env
+from starlette.requests import Request
 
 
 @pytest.fixture
@@ -54,3 +55,51 @@ def test_a_nul_byte_in_the_path_or_query_is_refused_before_any_route_runs(path):
     res = TestClient(app).get(path)
     assert res.status_code == 422 and res.json() == {"detail": "invalid_input"} and not reached
     assert TestClient(app).get("/items/ok").json() == {"id": "ok"}
+
+
+def _echo_app():
+    app = create_service_app("demo", validator=None)
+    reached = []
+
+    @app.post("/echo")
+    def echo(body: dict):
+        reached.append(body)
+        return {"ok": True}
+
+    return app, reached
+
+
+@pytest.mark.parametrize("raw", [
+    b'{"a": "x\\u0000y"}',                       # an escaped NUL inside a string
+    b'{"a": {"b": ["fine", "\\u0000"]}}',        # nested
+    b'{"a": "x\x00y"}',                          # a raw NUL byte
+    b'{"a": "\\\\\\u0000"}',                     # an escaped backslash followed by an escaped NUL: still a NUL
+])
+def test_a_nul_byte_in_a_json_body_is_refused_before_the_route_runs(raw):
+    """T082: the same refusal as for the path, because a JSON string can carry the NUL that PostgreSQL cannot store."""
+    app, reached = _echo_app()
+    res = TestClient(app).post("/echo", content=raw, headers={"Content-Type": "application/json"})
+    assert res.status_code == 422 and res.json() == {"detail": "invalid_input"} and not reached
+
+
+@pytest.mark.parametrize("raw", [
+    b'{"a": "plain"}',
+    b'{"a": "\\\\u0000"}',                       # a backslash followed by the text u0000: not a NUL
+    b'{"a": "caf\\u00e9"}',
+])
+def test_a_body_without_a_nul_reaches_the_route_unchanged(raw):
+    app, reached = _echo_app()
+    res = TestClient(app).post("/echo", content=raw, headers={"Content-Type": "application/json"})
+    assert res.status_code == 200 and len(reached) == 1
+
+
+def test_only_json_bodies_are_inspected():
+    """An upload is not JSON: its bytes are the route's business."""
+    app = create_service_app("demo", validator=None)
+
+    @app.post("/upload")
+    async def upload(request: Request):
+        return {"size": len(await request.body())}
+
+    res = TestClient(app).post("/upload", content=b"a\x00b", headers={"Content-Type": "application/octet-stream"})
+    assert res.status_code == 200 and res.json() == {"size": 3}

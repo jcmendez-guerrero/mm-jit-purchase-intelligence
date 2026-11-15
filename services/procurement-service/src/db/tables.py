@@ -265,7 +265,7 @@ cost_write_requests = Table(
     Column("trigger", String(16), nullable=False),                      # missing_cost / order_confirmed
     Column("proposed_value", MONEY, nullable=False),
     Column("previous_siweb_value", MONEY),
-    Column("status", String(16), nullable=False),
+    Column("status", String(24), nullable=False),                         # approved_by_buyer is 17 characters (migration 0014)
     Column("attempts", Integer, nullable=False, default=0),
     Column("last_error", String(200)),
     Column("requested_by", String(120), nullable=False),

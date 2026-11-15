@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, errorMessage, SupplierLinkRow, SupplierSummary } from "../../api/client";
 import { formatCurrency, formatCurrencyEUR, formatDate, formatDateTime, formatNumber } from "../../i18n/formatters";
@@ -30,13 +30,16 @@ export const LinksPanel: React.FC<Props> = ({ supplier, canManage }) => {
   const [removing, setRemoving] = useState<SupplierLinkRow | null>(null);
   const writable = canManage && supplier.status !== "deactivated";
 
+  const tRef = useRef(t);
+  tRef.current = t;                                         // the loader must not depend on `t`: a new `t` would only repeat the request
+
   const load = useCallback(async () => {
     try {
       setRows(await api.getSupplierLinks(supplier.id));
     } catch (err) {
-      setError(errorMessage(err, t("common.error")));
+      setError(errorMessage(err, tRef.current("common.error")));
     }
-  }, [supplier.id, t]);
+  }, [supplier.id]);
   useEffect(() => {
     void load();
   }, [load]);

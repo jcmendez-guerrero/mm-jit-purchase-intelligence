@@ -9,6 +9,7 @@ Audience defaults to ``api://mmi-<service>``; the issuer to ``MMI_ISSUER``.
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import unquote_to_bytes
@@ -20,6 +21,9 @@ from fastapi.responses import JSONResponse
 from .auth import AuthError, Principal, TokenValidator, bearer_token
 from .logging import configure_logging
 from .time import set_correlation_id
+
+# A JSON escape of U+0000 (an odd number of backslashes before u0000; an escaped backslash followed by the text u0000 is not one).
+_NUL_ESCAPE = re.compile(rb"(?<!\\)(?:\\\\)*\\u0000")
 
 
 def _fetch_public_key(url: str) -> str:
@@ -92,9 +96,14 @@ def create_service_app(
 
     @app.middleware("http")
     async def refuse_nul_bytes(request: Request, call_next: Callable[..., Any]) -> Any:
-        """PostgreSQL cannot store a NUL byte: an id or key carrying one would reach the database and come back as a server error (feature 011, T081)."""
+        """PostgreSQL cannot store a NUL byte: an id or key carrying one would reach the database and come back as a server error (feature 011, T081, T082)."""
+        refused = JSONResponse({"detail": "invalid_input"}, status_code=422)
         if "\x00" in request.scope["path"] or b"\x00" in unquote_to_bytes(request.scope.get("query_string", b"")):
-            return JSONResponse({"detail": "invalid_input"}, status_code=422)
+            return refused
+        if request.headers.get("content-type", "").startswith("application/json"):          # uploads are not JSON: their bytes are the route's business
+            body = await request.body()
+            if b"\x00" in body or _NUL_ESCAPE.search(body):
+                return refused
         return await call_next(request)
 
     @app.get("/healthz")
