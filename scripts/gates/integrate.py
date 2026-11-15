@@ -62,13 +62,24 @@ def web_commands(tree: Path) -> list[tuple[list[str], Path]]:
     return [(["npm", "ci", "--no-audit", "--no-fund"], web), (["npx", "playwright", "install", "chromium"], web)]
 
 
+def _resolve_base(root: Path, name: str) -> str:
+    """The plan names `main`; a CI checkout of another branch only has `origin/main`."""
+    for candidate in (name, f"origin/{name}"):
+        try:
+            _git(root, "rev-parse", "--verify", "--quiet", f"{candidate}^{{commit}}")
+            return candidate
+        except subprocess.CalledProcessError:
+            continue
+    raise ValueError(f"base branch '{name}' not found (also tried origin/{name})")
+
+
 def integrate(root: Path, plan: dict, run_gates: RunGates, ref_for: Callable[[int], str] = lambda pr: f"refs/pull/{pr}/head",
               prepare: Callable[[Path], None] | None = None) -> dict:
     """`prepare(tree)` runs once on the throwaway tree before any merge, for installs that must come from that tree."""
     problems = plan_errors(plan)
     if problems:
         raise ValueError("invalid integration plan: " + "; ".join(problems))
-    base = plan["base"]
+    base = _resolve_base(root, plan["base"])
     dropped: dict[int, dict] = {}
     integrated: list[int] = []
     tree = Path(tempfile.mkdtemp(prefix="mmi-integration-"))

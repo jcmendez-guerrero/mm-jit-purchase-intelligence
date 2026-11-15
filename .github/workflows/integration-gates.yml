@@ -34,7 +34,7 @@ jobs:
         run: |
           uv venv --python 3.12
           uv pip install pytest pyyaml jsonschema "psycopg[binary]" alembic sqlalchemy \
-            azure-storage-queue azure-storage-blob fastapi httpx pydantic hypothesis openpyxl
+            azure-storage-queue azure-storage-blob fastapi httpx pydantic hypothesis openpyxl ortools
       - name: Run all gates on the integration tree
         id: gates
         env:
