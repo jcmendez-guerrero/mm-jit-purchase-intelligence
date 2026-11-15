@@ -1,0 +1,71 @@
+{
+  "safety_stock": {
+    "term": "stock de seguridad",
+    "forbidden": [
+      "existencias de seguridad",
+      "inventario de seguridad",
+      "colchón de stock"
+    ]
+  },
+  "lead_time": {
+    "term": "plazo de entrega",
+    "forbidden": [
+      "lead time",
+      "leadtime",
+      "tiempo de entrega",
+      "plazo de reposición",
+      "plazo de reposicion"
+    ]
+  },
+  "service_level": {
+    "term": "nivel de servicio",
+    "forbidden": [
+      "nivel de atención",
+      "service level"
+    ]
+  },
+  "coverage": {
+    "term": "cobertura",
+    "forbidden": [
+      "autonomía de stock",
+      "días de inventario"
+    ]
+  },
+  "supplier": {
+    "term": "proveedor",
+    "forbidden": [
+      "suplidor",
+      "vendedor"
+    ]
+  },
+  "purchase_order": {
+    "term": "pedido",
+    "forbidden": [
+      "orden de compra",
+      "orden de pedido"
+    ]
+  },
+  "cost": {
+    "term": "coste",
+    "forbidden": [
+      "costo",
+      "costos"
+    ]
+  },
+  "sku": {
+    "term": "SKU",
+    "forbidden": [
+      "código de artículo",
+      "código de producto",
+      "id de variante",
+      "variant_id"
+    ]
+  },
+  "quarantine": {
+    "term": "cuarentena",
+    "forbidden": [
+      "lista negra",
+      "cuarentenados"
+    ]
+  }
+}

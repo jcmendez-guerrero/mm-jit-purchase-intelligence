@@ -36,4 +36,4 @@ Interface commitments this feature makes to users, other features and CI. No API
 
 ## 7. Cross-feature changes
 
-- Shared component or style changes land first and are recorded in `docs/architecture/integration/` for Agent 00. Screen-level fixes in other features are limited to wording, states and accessibility, are listed by feature and file, and keep the owning feature's tests passing.
+- Shared component or style changes land first and are recorded in `specs/012-ux-navigation-localization/agent-00-contract-note.md` for Agent 00. Screen-level fixes in other features are limited to wording, states and accessibility, are listed by feature and file, and keep the owning feature's tests passing.

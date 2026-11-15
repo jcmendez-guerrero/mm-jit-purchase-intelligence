@@ -106,7 +106,7 @@ Every data screen shows a loading indicator that matches the layout, a helpful e
 
 **Acceptance Scenarios**:
 
-1. **Given** a screen whose data is loading, **When** it takes longer than a moment, **Then** a placeholder of the same shape is shown and the layout does not jump when data arrives.
+1. **Given** a screen whose data is loading, **When** it takes longer than 300 ms, **Then** a placeholder of the same shape is shown and the layout does not jump when data arrives (cumulative layout shift of 0.1 or less).
 2. **Given** a screen with no data, **When** it is shown, **Then** it explains the reason (nothing loaded yet, filters too narrow, no permission) and offers the relevant action.
 3. **Given** a failed request, **When** the error is shown, **Then** it keeps the user's input, offers a retry and does not expose technical details.
 4. **Given** a control with a business term (for example safety stock or lead time), **When** the user opens its help, **Then** a short Spanish explanation appears and can be dismissed with the keyboard.
@@ -154,7 +154,7 @@ A person using only a keyboard, a screen reader, 200% zoom, reduced motion or a 
 - **FR-008**: Amounts MUST be shown and exported in euros with Spanish formatting; dates and times in Spanish format in the user's local time zone while the stored value stays UTC; quantities and percentages in Spanish number format; money MUST never pass through binary floating point in the interface.
 - **FR-009**: A shared glossary of business terms MUST define one Spanish term per concept, and every screen MUST use it.
 - **FR-010**: Server errors MUST be translated by stable code into Spanish messages with a next step; unknown codes MUST fall back to a generic message; technical details MUST NOT be shown.
-- **FR-011**: Every data screen MUST provide loading, empty, error (with retry) and success states with the content defined in User Story 5, and the layout MUST NOT shift when data arrives.
+- **FR-011**: Every data screen MUST provide loading, empty, error (with retry) and success states with the content defined in User Story 5, and the layout MUST NOT shift when data arrives (cumulative layout shift of 0.1 or less; a placeholder appears when data takes more than 300 ms).
 - **FR-012**: Contextual help MUST be available next to controls and terms that need it, keyboard-operable, in Spanish, and MUST NOT show free-text ERP notes.
 - **FR-013**: The interface MUST meet WCAG 2.2 AA for the core journeys: keyboard operation, visible focus, focus management in dialogs/drawers/palette, accessible names, contrast, reduced motion, text alternatives for charts, and no colour-only status.
 - **FR-014**: The interface MUST work at desktop (1280 px wide), tablet (768 px) and narrow (375 px) window sizes, in light and dark appearance, and at 200% zoom without loss of information or function.

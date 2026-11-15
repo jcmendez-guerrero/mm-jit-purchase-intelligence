@@ -6,14 +6,14 @@
 
 **Format**: `- [ ] T### [P?] [US?] Description with file path`. `[P]` = different files, no dependency on an unfinished task. Paths are relative to the repository root; `web/` means `apps/web/`.
 
-**Rules for every task**: presentation, wording and interaction only; no API, contract, ERP or business-rule change (FR-016). A fix inside another feature's screen is allowed (FR-015) but must be logged in the Agent 00 note (T002). Mark `[X]` when done.
+**Rules for every task**: presentation, wording and interaction only; no API, contract, ERP or business-rule change (FR-016). A fix inside another feature's screen is allowed (FR-015) but must be logged in the Agent 00 note (T002). Mark `[X]` when done. Task IDs T021–T051 were added after the analysis pass and sit in the phase where they belong.
 
 ---
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `specs/012-ux-navigation-localization/evidence/` with `audit-inventory.md` (table: area, item, status complete/partial/broken/missing/unverified, evidence file:line, decision reuse/fix/build, owning feature) per data-model.md "Audit inventory item"
-- [ ] T002 [P] Create `docs/architecture/integration/ui-changes-agent-08.md` with an empty table (feature, file, change, reason, shared-or-screen-level) to log cross-feature changes for Agent 00 (FR-015)
+- [X] T001 Create `specs/012-ux-navigation-localization/evidence/` with `audit-inventory.md` (table: area, item, status complete/partial/broken/missing/unverified, evidence file:line, decision reuse/fix/build, owning feature) per data-model.md "Audit inventory item"
+- [X] T002 [P] Create `specs/012-ux-navigation-localization/agent-00-contract-note.md` with an empty table (feature, file, change, reason, shared-or-screen-level) to log cross-feature changes for Agent 00 (FR-015)
 
 ---
 
@@ -21,15 +21,15 @@
 
 **Audit and the checks that make gaps visible. Nothing in Phase 3+ starts before T003–T011 are done.**
 
-- [ ] T003 Audit navigation: for each entry in `web/src/app/routes.ts` and each role (viewer, buyer, approver, admin) record offered/hidden, label and description keys, quick-jump behaviour, no-access and not-found screens in `evidence/audit-inventory.md` (FR-001, FR-002, FR-003)
-- [ ] T004 Audit text and formats: scan `web/src/features/**`, `web/src/app/**`, `web/src/ui/**` for user text outside the catalogue (`.ts` models, notices, export headers, accessible names, placeholders), non-Spanish text, and amounts/dates/numbers shown without `web/src/i18n/formatters.ts`; record file:line in `evidence/audit-inventory.md` (FR-006, FR-008)
-- [ ] T005 Audit states, help, accessibility and responsive: for each screen record loading/empty/error/success handling (uses `ScreenState` or not), contextual help presence, focus handling in dialogs/drawer/palette, chart table alternatives, 1280/768/375 px behaviour; record in `evidence/audit-inventory.md` (FR-011–FR-014)
-- [ ] T006 Audit the journeys: walk dashboard → product detail (`web/src/features/dashboard/ProductDetail.tsx`) → supplier/proposal and supplier search → terms → import (`web/src/features/suppliers/*`); record broken or missing steps, any ERP id shown instead of SKU, any amounts computed in the browser (research R6) in `evidence/audit-inventory.md` (FR-004, FR-005)
-- [ ] T007 [P] Add `web/src/i18n/glossary.json` (concept, preferred es-ES term, forbidden variants, Spanish definition) seeded from terms found in T004 (FR-009)
-- [ ] T008 [P] Write glossary test `web/tests/unit/glossary.test.ts`: every entry complete; no catalogue value in `web/src/i18n/es-ES.json` contains a forbidden variant
-- [ ] T009 Extend `web/tests/unit/i18n-coverage.test.ts`: also scan `.ts` files under `web/src/features` and `web/src/app` for user-text literals (labels, notices, export headers), keep the self-check, keep `hardcoded-strings.baseline.json` empty; add a check for unused and empty catalogue keys (FR-007)
-- [ ] T010 [P] Write `web/tests/unit/nav-role-matrix.test.ts`: for viewer, buyer, approver, admin assert the offered routes equal the expected set derived from `routes.ts` and reported capabilities; every `labelKey`/`descriptionKey` exists in the catalogue (SC-001)
-- [ ] T011 [P] Write `web/tests/unit/screen-states.test.tsx`: render each screen with mocked loading, empty, error responses and assert Spanish content, retry button, input preserved, no technical detail (FR-010, FR-011, SC-006)
+- [X] T003 Audit navigation: for each entry in `web/src/app/routes.ts` and each role (viewer, buyer, approver, admin) record offered/hidden, label and description keys, quick-jump behaviour, no-access and not-found screens in `evidence/audit-inventory.md` (FR-001, FR-002, FR-003)
+- [X] T004 Audit text and formats: scan `web/src/features/**`, `web/src/app/**`, `web/src/ui/**` for user text outside the catalogue (`.ts` models, notices, export headers, accessible names, placeholders), non-Spanish text, and amounts/dates/numbers shown without `web/src/i18n/formatters.ts`; record file:line in `evidence/audit-inventory.md` (FR-006, FR-008)
+- [X] T005 Audit states, help, accessibility and responsive: for each screen record loading/empty/error/success handling (uses `ScreenState` or not), contextual help presence, focus handling in dialogs/drawer/palette, chart table alternatives, 1280/768/375 px behaviour; record in `evidence/audit-inventory.md` (FR-011–FR-014)
+- [X] T006 Audit the journeys: walk dashboard → product detail (`web/src/features/dashboard/ProductDetail.tsx`) → supplier/proposal and supplier search → terms → import (`web/src/features/suppliers/*`); record broken or missing steps, any ERP id shown instead of SKU, any amounts computed in the browser (research R6) in `evidence/audit-inventory.md` (FR-004, FR-005)
+- [X] T007 [P] Add `web/src/i18n/glossary.json` (concept, preferred es-ES term, forbidden variants, Spanish definition) seeded from terms found in T004 (FR-009)
+- [X] T008 [P] Write glossary test `web/tests/unit/glossary.test.ts`: every entry complete; no catalogue value in `web/src/i18n/es-ES.json` contains a forbidden variant
+- [X] T009 Extend `web/tests/unit/i18n-coverage.test.ts`: also scan `.ts` files under `web/src/features` and `web/src/app` for user-text literals (labels, notices, export headers), keep the self-check, keep `hardcoded-strings.baseline.json` empty; add a check for unused and empty catalogue keys (FR-007) [FR-006, FR-007, SC-003]
+- [X] T010 [P] Write `web/tests/unit/nav-role-matrix.test.ts`: for viewer, buyer, approver, admin assert the offered routes equal the expected set derived from `routes.ts` and reported capabilities; every `labelKey`/`descriptionKey` exists in the catalogue (SC-001) [FR-002, SC-001]
+- [X] T011 [P] Write `web/tests/unit/screen-states.test.tsx`: render each screen with mocked loading, empty, error responses and assert Spanish content, retry button, input preserved, no technical detail (FR-010, FR-011, SC-006) [FR-010, FR-011, SC-006]
 
 **Checkpoint**: audit complete, new checks written and failing where gaps exist.
 
@@ -40,11 +40,10 @@
 **Goal**: every role reaches exactly its screens; forbidden and unknown addresses explain themselves.
 **Independent test**: sign in as each role, open every offered screen from the rail and the quick-jump, open a forbidden and an unknown address.
 
-- [ ] T012 [P] [US1] E2E `web/tests/e2e/navigation.spec.ts` (extend): per role, rail and quick-jump list the expected screens; keyboard-only open lands focus on the page heading; current screen indicated; forbidden and unknown addresses show the Spanish screens with a way back
+- [X] T012 [P] [US1] E2E `web/tests/e2e/navigation.spec.ts` (extend): per role, rail and quick-jump list the expected screens; keyboard-only open lands focus on the page heading; current screen indicated; forbidden and unknown addresses show the Spanish screens with a way back
 - [ ] T013 [P] [US1] E2E role-change case in `web/tests/e2e/roles.spec.ts` (extend): a role change while a screen is open updates the offer without a stale entry (edge case)
-- [ ] T014 [US1] Fix navigation gaps from T003 in `web/src/app/routes.ts`, `web/src/app/Navigation.tsx`, `web/src/app/CommandPalette.tsx`, `web/src/app/NoAccess.tsx`, `web/src/app/NotFound.tsx`; make T010 and T012 pass
+- [X] T014 [US1] Fix navigation gaps from T003 in `web/src/app/routes.ts`, `web/src/app/Navigation.tsx`, `web/src/app/CommandPalette.tsx`, `web/src/app/NoAccess.tsx`, `web/src/app/NotFound.tsx`; make T010 and T012 pass
 - [ ] T015 [US1] Add a visible step indicator and "back to list" to multi-step workflows (proposal review) in `web/src/features/proposals/ProposalsScreen.tsx` if T003/T006 show it missing; add catalogue keys in `web/src/i18n/es-ES.json`
-- [ ] T016 [US1] Log each cross-feature file touched in `docs/architecture/integration/ui-changes-agent-08.md`
 
 ---
 
@@ -53,10 +52,10 @@
 **Goal**: dashboard signal → product detail by SKU → supplier/proposal → back, with context preserved.
 **Independent test**: as buyer with synthetic data, complete the journey keyboard-only.
 
-- [ ] T017 [P] [US2] E2E `web/tests/e2e/journey-product.spec.ts` (new): at-risk product on dashboard → detail shows SKU, stock, supplier terms, quality warning → link to supplier and to a proposal line → back to the same product; product with missing data shows what is missing and what to do; no ERP id visible
-- [ ] T018 [P] [US2] Unit `web/tests/unit/dashboard-sku-display.test.tsx` (extend): SKU shown and entered in product detail, drill-down and proposal lines; no internal id rendered
-- [ ] T019 [US2] Fix product-journey gaps from T006 in `web/src/features/dashboard/ProductDetail.tsx`, `DrillDownPanel.tsx`, `SupplierPanel.tsx`, `web/src/features/proposals/ProposalLineExplanation.tsx` (links with preserved context, back links, missing-data messages)
-- [ ] T020 [US2] Add catalogue keys for new messages in `web/src/i18n/es-ES.json`; log changes in `docs/architecture/integration/ui-changes-agent-08.md`
+- [ ] T016 [P] [US2] E2E `web/tests/e2e/journey-product.spec.ts` (new): at-risk product on dashboard → detail shows SKU, stock, supplier terms, quality warning → link to supplier and to a proposal line → back to the same product; product with missing data shows what is missing and what to do; no ERP id visible
+- [X] T017 [P] [US2] Unit `web/tests/unit/dashboard-sku-display.test.tsx` (extend): SKU shown and entered in product detail, drill-down and proposal lines; no internal id rendered
+- [X] T018 [US2] Fix product-journey gaps from T006 in `web/src/features/dashboard/ProductDetail.tsx`, `DrillDownPanel.tsx`, `SupplierPanel.tsx`, `web/src/features/proposals/ProposalLineExplanation.tsx` (links with preserved context, back links, missing-data messages)
+- [X] T019 [US2] Add catalogue keys for new messages in `web/src/i18n/es-ES.json`
 
 ---
 
@@ -65,10 +64,11 @@
 **Goal**: search → terms → edit or import → confirmation, with Spanish validation and unsaved-change protection.
 **Independent test**: as buyer, edit with an invalid value, correct, leave with and without unsaved changes, import a file with a rejected row.
 
-- [ ] T021 [P] [US3] E2E `web/tests/e2e/journey-supplier.spec.ts` (new): search and open supplier, invalid save names field and rule in Spanish and focuses the first error, unsaved-change prompt on leaving, import lists rejected rows with reasons
+- [ ] T020 [P] [US3] E2E `web/tests/e2e/journey-supplier.spec.ts` (new): search and open supplier, invalid save names field and rule in Spanish and focuses the first error, unsaved-change prompt on leaving, import lists rejected rows with reasons
+- [ ] T021 [P] [US3] Extend `web/tests/e2e/roles.spec.ts` and `dashboard-roles.spec.ts`: on the product and supplier screens, viewer, approver and admin see each action offered, hidden or read-only exactly as the role matrix says (FR-017) [FR-017]
 - [ ] T022 [P] [US3] Unit `web/tests/unit/SupplierManagement.test.tsx` and `SupplierImport.test.tsx` (extend): field-level messages, focus on first error, rejected rows never dropped silently
 - [ ] T023 [US3] Fix supplier-journey gaps from T006 in `web/src/features/suppliers/SupplierForm.tsx`, `SupplierTermsEditor.tsx`, `SupplierImport.tsx`, `SupplierReview.tsx`, `LinksPanel.tsx`, `BulkAssign.tsx`, `OverrideEditor.tsx`; reuse `web/src/ui/useFieldErrors.ts` and `useUnsavedChanges.ts`
-- [ ] T024 [US3] Add catalogue keys in `web/src/i18n/es-ES.json`; log changes in `docs/architecture/integration/ui-changes-agent-08.md`
+- [ ] T024 [US3] Add catalogue keys in `web/src/i18n/es-ES.json`
 
 ---
 
@@ -77,12 +77,13 @@
 **Goal**: zero untranslated or inconsistent text; euro, date and number formats everywhere, including exports.
 **Independent test**: T009, T008 and T011 pass; every screen reviewed in each state.
 
-- [ ] T025 [P] [US4] Unit `web/tests/unit/i18n.test.ts` (extend): amounts, dates (Spanish format, local zone, daylight-saving boundary), quantities, percentages, and export headers use the shared formatters
-- [ ] T026 [P] [US4] Unit `web/tests/unit/api-errors.test.ts` (extend): every code in `packages/contracts/errors/error_codes.json` maps to a Spanish message with a next step; unknown code gives the generic message; raw code never shown
-- [ ] T027 [US4] Move all user text found in T004 into `web/src/i18n/es-ES.json` and replace literals with `t()` in `web/src/features/**` and `web/src/app/**` (`.tsx` and `.ts`), grouped by feature; make T009 pass with an empty baseline
-- [ ] T028 [US4] Apply glossary terms (T007) across `web/src/i18n/es-ES.json`; fix any value flagged by T008
-- [ ] T029 [US4] Replace ad-hoc number, date and currency formatting found in T004 with `web/src/i18n/formatters.ts`, including CSV export headers and values in `web/src/features/proposals/` and `web/src/features/dashboard/`; confirm no amount is summed or rounded in the browser (R6) and record any exception in `evidence/audit-inventory.md`
-- [ ] T030 [US4] Log all cross-feature files touched in `docs/architecture/integration/ui-changes-agent-08.md`
+- [X] T025 [P] [US4] Unit `web/tests/unit/i18n.test.ts` (extend): amounts, dates (Spanish format, local zone, daylight-saving boundary), quantities, percentages, and export headers use the shared formatters [FR-008, SC-007]
+- [ ] T026 [P] [US4] Unit `web/tests/unit/api-errors.test.ts` (extend): every code in `packages/contracts/errors/error_codes.json` maps to a Spanish message with a next step; unknown code gives the generic message; raw code never shown [FR-010, SC-005]
+- [X] T027 [P] [US4] Unit `web/tests/unit/i18n.test.ts` (extend): a catalogue key missing at runtime renders a readable Spanish fallback, never the raw key, and is reported to the console in development (edge case) [FR-006]
+- [X] T028 [P] [US4] Unit `web/tests/unit/no-erp-notes.test.tsx` (new): with a synthetic fixture whose product and supplier carry a free-text note, no screen, help text or CSV export shows the note text, only the "has note" indicator (FR-016, project rule 7) [FR-016]
+- [X] T029 [US4] Move all user text found in T004 into `web/src/i18n/es-ES.json` and replace literals with `t()` in `web/src/features/**` and `web/src/app/**` (`.tsx` and `.ts`), grouped by feature; make T009, T027 and T028 pass with an empty baseline; implement the Spanish missing-key fallback in `web/src/i18n/index.ts`
+- [X] T030 [US4] Apply glossary terms (T007) across `web/src/i18n/es-ES.json`; fix any value flagged by T008
+- [X] T031 [US4] Replace ad-hoc number, date and currency formatting found in T004 with `web/src/i18n/formatters.ts`, including CSV export headers and values in `web/src/features/proposals/` and `web/src/features/dashboard/`; confirm no amount is summed or rounded in the browser (R6) and record any exception in `evidence/audit-inventory.md`
 
 ---
 
@@ -91,12 +92,11 @@
 **Goal**: every data screen has all four states; contextual help available and keyboard-operable.
 **Independent test**: T011 passes for every screen; help opens and closes by keyboard.
 
-- [ ] T031 [P] [US5] Unit `web/tests/unit/ui/HelpHint.test.tsx` (new): button with accessible name, opens a glossary definition, closes with Escape, returns focus, never renders free-text notes
-- [ ] T032 [P] [US5] E2E `web/tests/e2e/states.spec.ts` (extend): forced loading (no layout shift), empty (reason and action), error (retry, input preserved) on each screen
-- [ ] T033 [US5] Add `web/src/ui/HelpHint.tsx` (accessible disclosure fed by `glossary.json`) only if T005 confirms none exists; export from the shared UI
-- [ ] T034 [US5] Migrate screens that bypass `ScreenState` (from T005) to `web/src/ui/ScreenState.tsx` in `web/src/features/**`; fix loading placeholders to match layout
-- [ ] T035 [US5] Place `HelpHint` next to key terms (stock de seguridad, plazo de entrega, cobertura, nivel de servicio) in `web/src/features/policies/*` and `web/src/features/dashboard/*`; add catalogue keys
-- [ ] T036 [US5] Log changes in `docs/architecture/integration/ui-changes-agent-08.md`
+- [X] T032 [P] [US5] Unit `web/tests/unit/ui/HelpHint.test.tsx` (new): button with accessible name, opens a glossary definition, closes with Escape, returns focus, never renders free-text notes [FR-012]
+- [ ] T033 [P] [US5] E2E `web/tests/e2e/states.spec.ts` (extend): forced loading (placeholder appears if data takes more than 300 ms; cumulative layout shift ≤ 0.1 when data arrives), empty (reason and action), error (retry, input preserved) on each screen
+- [X] T034 [US5] Add `web/src/ui/HelpHint.tsx` (accessible disclosure fed by `glossary.json`) only if T005 confirms none exists; export from the shared UI [FR-012]
+- [X] T035 [US5] Migrate screens that bypass `ScreenState` (from T005) to `web/src/ui/ScreenState.tsx` in `web/src/features/**`; fix loading placeholders to match layout
+- [X] T036 [US5] Place `HelpHint` next to key terms (stock de seguridad, plazo de entrega, cobertura, nivel de servicio) in `web/src/features/policies/*` and `web/src/features/dashboard/*`; add catalogue keys [FR-012]
 
 ---
 
@@ -105,20 +105,21 @@
 **Goal**: no serious or critical axe violations on every route at 1280, 768 and 375 px in light and dark; focus management; no colour-only status.
 **Independent test**: run the matrix; complete the journeys keyboard-only.
 
-- [ ] T037 [P] [US6] E2E `web/tests/e2e/a11y-all-routes.spec.ts` and `a11y-screens.spec.ts` (extend): run every route at 1280, 768 and 375 px in light and dark appearance (clarification 4)
-- [ ] T038 [P] [US6] E2E `web/tests/e2e/responsive.spec.ts` and `touch-targets.spec.ts` (extend): same three sizes; no horizontal page scroll at 375 px or 200% zoom except inside tables
-- [ ] T039 [P] [US6] E2E focus checks in `web/tests/e2e/forms-feedback.spec.ts` (extend): dialog, drawer and palette trap focus, close on Escape, return focus to the trigger
-- [ ] T040 [US6] Fix axe, focus, contrast, table-alternative and colour-only-status findings in `web/src/ui/**`, `web/src/app/Drawer.tsx`, `web/src/app/CommandPalette.tsx`, `web/src/features/dashboard/ChartWithTable.tsx` and affected screens; log in `docs/architecture/integration/ui-changes-agent-08.md`
-- [ ] T041 [US6] Fix responsive and zoom findings in `web/src/styles/**` and affected screens; confirm the bundle budget still holds (`npm run check:bundle`)
+- [X] T037 [P] [US6] E2E `web/tests/e2e/a11y-all-routes.spec.ts` and `a11y-screens.spec.ts` (extend): run every route at 1280, 768 and 375 px in light and dark appearance (clarification 4) [FR-013, SC-004]
+- [X] T038 [P] [US6] E2E `web/tests/e2e/responsive.spec.ts` and `touch-targets.spec.ts` (extend): same three sizes; no horizontal page scroll at 375 px or 200% zoom except inside tables; very long product and supplier names, 500+ rows and amounts of 9 digits wrap or truncate with the full value available
+- [X] T039 [P] [US6] E2E focus checks in `web/tests/e2e/forms-feedback.spec.ts` (extend): dialog, drawer and palette trap focus, close on Escape, return focus to the trigger [FR-013]
+- [X] T040 [US6] Fix axe, focus, contrast, table-alternative and colour-only-status findings in `web/src/ui/**`, `web/src/app/Drawer.tsx`, `web/src/app/CommandPalette.tsx`, `web/src/features/dashboard/ChartWithTable.tsx` and affected screens; log in `specs/012-ux-navigation-localization/agent-00-contract-note.md`
+- [X] T041 [US6] Fix responsive and zoom findings in `web/src/styles/**` and affected screens; confirm the bundle budget still holds (`npm run check:bundle`)
 
 ---
 
 ## Phase 9: Polish & cross-cutting
 
-- [ ] T042 Update `evidence/audit-inventory.md` so no item remains "unverified"; mark each as complete after fixes, or list it under known limitations
-- [ ] T043 Capture Spanish-UI screenshots with synthetic data for navigation, product journey, supplier journey, states and one a11y run into `specs/012-ux-navigation-localization/evidence/` (FR-018)
-- [ ] T044 Run all quickstart steps in `specs/012-ux-navigation-localization/quickstart.md` plus `python -m gates run` from `scripts/`; record results in `evidence/verification.md`
-- [ ] T045 Write `specs/012-ux-navigation-localization/pull-request.md` (change summary, screenshots, test evidence, cross-feature changes, risks, known limitations, links to MMI-10 and the Confluence page) and mark completed tasks `[X]` here
+- [X] T042 Update `evidence/audit-inventory.md` so no item remains "unverified"; mark each as complete after fixes, or list it under known limitations
+- [X] T043 Capture Spanish-UI screenshots with synthetic data for navigation, product journey, supplier journey, states and one a11y run into `specs/012-ux-navigation-localization/evidence/` (FR-018)
+- [X] T044 Run all quickstart steps in `specs/012-ux-navigation-localization/quickstart.md` plus `python -m gates run` from `scripts/`; record results in `evidence/verification.md` [SC-008]
+- [ ] T045 Prepare a short usability script (product journey and supplier journey, synthetic data, buyer role) and record the result of one moderated run, time per journey and problems found, in `specs/012-ux-navigation-localization/evidence/usability.md`; reported, not a gate (SC-002) [SC-002]
+- [X] T046 Write `specs/012-ux-navigation-localization/pull-request.md` (change summary, screenshots, test evidence, cross-feature changes, risks, known limitations, links to MMI-10 and the Confluence page) and mark completed tasks `[X]` here
 
 ---
 
@@ -126,17 +127,18 @@
 
 - Phase 1 → Phase 2 (T003–T006 audits before fixes; T007–T011 can run in parallel with each other after T004).
 - Phase 3–8 depend on Phase 2. Within a phase, tests (`[P]`) first and failing, then fixes.
-- US1, US2, US3 and US4 are independent after Phase 2; US4 (T027–T029) touches the same screens as US2/US3, so do US2 and US3 before US4 or coordinate by file. US5 depends on T007 (glossary). US6 runs last on the finished screens.
-- Shared component and catalogue changes (T033, T040, T028) land before screen-level fixes that depend on them.
+- US1, US2, US3 and US4 are independent after Phase 2; US4 (T029–T031) touches the same screens as US2/US3, so do US2 and US3 before US4 or coordinate by file. US5 depends on T007 (glossary). US6 runs last on the finished screens.
+- T008 and T009 intentionally fail from Phase 2 until T029/T030 land; this is one pull request, so do not merge or push to a protected branch mid-way.
+- Shared component and catalogue changes (T034, T040, T030) land before screen-level fixes that depend on them.
 
 ## Parallel Examples
 
 - Phase 2: T007, T008, T010, T011 together after T004.
-- US2 and US3 tests: T017, T018, T021, T022 together.
+- US2 and US3 tests: T016, T017, T020, T022 together.
 - US6 tests: T037, T038, T039 together.
 
 ## Implementation Strategy
 
-- **MVP**: Phase 1, Phase 2 and US1 (navigation proven for every role) plus US4's T027 (no untranslated text), since the Jira gate is "no untranslated text".
+- **MVP**: Phase 1, Phase 2 and US1 (navigation proven for every role) plus US4's T029 (no untranslated text), since the Jira gate is "no untranslated text".
 - **Then**: US2 and US3 (journeys), US5, US6, polish.
-- Stop and demonstrate after each story; the cross-feature note (`ui-changes-agent-08.md`) is sent to Agent 00 at the end of Phase 3 and again before the pull request.
+- Stop and demonstrate after each story; the cross-feature note (`agent-00-contract-note.md`) is sent to Agent 00 at the end of Phase 3 and again before the pull request.

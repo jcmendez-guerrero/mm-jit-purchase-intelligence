@@ -40,7 +40,7 @@ All Technical Context items are resolved from the existing repository; no open c
 
 ## R7. Cross-feature screen fixes
 
-- **Decision**: Fix wording, state and accessibility gaps directly in any feature's screen (Clarification 1), in small commits grouped by feature, shared components first. Each cross-feature change is recorded in `docs/architecture/integration/` as a note for Agent 00, and the other feature's existing tests must still pass.
+- **Decision**: Fix wording, state and accessibility gaps directly in any feature's screen (Clarification 1), in small commits grouped by feature, shared components first. Each cross-feature change is recorded in `specs/012-ux-navigation-localization/agent-00-contract-note.md` as a note for Agent 00, and the other feature's existing tests must still pass.
 - **Rationale**: The completion gate demands no untranslated text on any screen; the project's integration rules route shared-surface changes through Agent 00.
 - **Alternatives**: Report only (cannot meet the gate); fix only via catalogue (cannot fix hard-coded or structural gaps).
 

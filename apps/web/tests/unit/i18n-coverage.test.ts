@@ -71,3 +71,54 @@ describe("no new hard-coded user-facing text in the SPA", () => {
     }
   });
 });
+
+// T009 (feature 012): catalogue quality and text that hides in `.ts` files. The unused-key list may only shrink.
+
+const unusedBaselineFile = join(__dirname, "unused-keys.baseline.json");
+
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) return name === "generated" ? [] : sourceFiles(p);
+    return /\.tsx?$/.test(p) ? [p] : [];
+  });
+}
+
+const SENTENCE_LITERAL = /"([A-ZÁÉÍÓÚ][a-záéíóúñ]+(?: [a-záéíóúñ,.]+){2,})"/g;
+
+export function sentenceLiterals(source: string): string[] {
+  return [...source.matchAll(SENTENCE_LITERAL)].map((m) => m[1]!);
+}
+
+describe("catalogue quality", () => {
+  const all = sourceFiles(join(webRoot, "src"));
+  const text = all.map((f) => readFileSync(f, "utf8")).join("\n");
+
+  it("has no empty values", () => {
+    expect(Object.entries(catalogue).filter(([, v]) => !String(v).trim()).map(([k]) => k)).toEqual([]);
+  });
+
+  it("no `.ts` file builds a Spanish sentence outside the catalogue (models return keys)", () => {
+    const hits = all
+      .filter((f) => f.endsWith(".ts"))
+      .flatMap((f) => sentenceLiterals(readFileSync(f, "utf8")).map((s) => `${relative(webRoot, f)}: "${s}"`));
+    expect(hits, "move the text to es-ES.json and return its key").toEqual([]);
+  });
+
+  it("the sentence scanner finds a hard-coded sentence (self-check)", () => {
+    expect(sentenceLiterals('const m = "No se pudo guardar el cambio";')).toEqual(["No se pudo guardar el cambio"]);
+    expect(sentenceLiterals('const k = "suppliers.form.err.name_required";')).toEqual([]);
+  });
+
+  it("catalogue keys that nothing references never grow", () => {
+    // A key counts as used when it appears literally, or when a template or concatenation prefix covers it.
+    const prefixes = new Set<string>([
+      ...[...text.matchAll(/[`"']([a-zA-Z0-9_.-]+\.)\$\{/g)].map((m) => m[1]!),
+      ...[...text.matchAll(/[`"']([a-zA-Z0-9_.-]+\.)[`"']\s*\+/g)].map((m) => m[1]!),
+    ]);
+    const unused = Object.keys(catalogue).filter((k) => !text.includes(k) && ![...prefixes].some((p) => k.startsWith(p)));
+    const baseline = new Set(JSON.parse(readFileSync(unusedBaselineFile, "utf8")) as string[]);
+    expect(unused.filter((k) => !baseline.has(k)), "new unused key: use it or remove it").toEqual([]);
+    expect([...baseline].filter((k) => !unused.includes(k)), "now used or gone: remove it from unused-keys.baseline.json").toEqual([]);
+  });
+});

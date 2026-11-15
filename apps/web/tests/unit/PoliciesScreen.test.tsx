@@ -50,6 +50,17 @@ describe("purchasing section", () => {
     expect(within(screen.getByRole("table", { name: "Historial de versiones" })).getAllByRole("row")).toHaveLength(3);
   });
 
+  it("shows the history date and the service level in Spanish format, and offers help on the service level (feature 012)", async () => {
+    render(<PoliciesScreen userRoles={["viewer", "buyer"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Cargar política" }));
+    const history = within(await screen.findByRole("table", { name: "Historial de versiones" }));
+    expect(history.getByText("01/11/2026")).toBeTruthy();
+    expect(history.queryByText("2026-11-01")).toBeNull();
+    expect(history.getAllByText(/^95\s%$/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Qué significa nivel de servicio" }));
+    expect(screen.getByRole("note").textContent).toContain("Probabilidad objetivo");
+  });
+
   it("previews the effect without saving and then saves with the revision it read", async () => {
     const preview = vi.spyOn(api, "previewPolicy").mockResolvedValue({ as_of: "2026-11-09", affected_count: 1, affected: [{ variant_id: 5, qty_before: 4, qty_after: 9 }], spend_before: "100.00", spend_after: "190.00", spend_delta: "90.00", saved: false });
     const put = vi.spyOn(api, "putPolicy").mockResolvedValue({ revision: 3 });

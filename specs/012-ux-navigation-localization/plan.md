@@ -75,7 +75,7 @@ apps/web/
 └── tests/
     ├── unit/                # i18n-coverage (extend), glossary, nav-role-matrix, screen-states (new)
     └── e2e/                 # journey-product, journey-supplier (new); a11y-all-routes, responsive (extend)
-docs/architecture/integration/    # note of cross-feature UI changes for Agent 00
+specs/012-ux-navigation-localization/agent-00-contract-note.md   # cross-feature UI changes for Agent 00 (as in features 008 and 010)
 ```
 
 **Structure Decision**: Existing single web app; all work stays in `apps/web` plus the feature's spec directory and one note to Agent 00. No new package or service.

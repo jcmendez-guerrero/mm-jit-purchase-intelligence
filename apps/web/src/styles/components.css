@@ -1088,3 +1088,40 @@
   align-items: center;
   gap: var(--mmi-space-2);
 }
+
+/* Contextual help (feature 012): a small round button and a short explanation beside the term. */
+.mmi-help {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mmi-space-2, 0.5rem);
+  margin-inline-start: var(--mmi-space-2, 0.5rem);
+  vertical-align: middle;
+}
+
+.mmi-help__button {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  border: 1px solid var(--mmi-border-control);
+  border-radius: 50%;
+  background: var(--mmi-surface);
+  color: var(--mmi-primary);
+  font: inherit;
+  font-size: var(--mmi-text-sm);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mmi-help__text {
+  max-width: var(--mmi-measure);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: var(--mmi-surface-sunken);
+  color: var(--mmi-text);
+  font-size: var(--mmi-text-sm);
+  font-weight: 400;
+}
+
+.mmi-heading-with-help {
+  display: flex;
+  align-items: center;
+}

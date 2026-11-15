@@ -43,12 +43,13 @@ export function formatDate(dateInput: string | Date): string {
   }).format(d);
 }
 
-export function formatPercent(value: number | string, decimals: number = 1): string {
+/** `decimals` is the most fractional digits shown; `minDecimals` (default the same) lets 97,5 % stay without a trailing zero. */
+export function formatPercent(value: number | string, decimals: number = 1, minDecimals: number = decimals): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(num)) return "0 %";
   return new Intl.NumberFormat(LOCALE, {
     style: "percent",
-    minimumFractionDigits: decimals,
+    minimumFractionDigits: minDecimals,
     maximumFractionDigits: decimals,
   }).format(num);
 }

@@ -213,13 +213,16 @@ describe("DashboardScreen", () => {
     });
     renderScreen(<DashboardScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
-    const panel = await screen.findByLabelText("Detalle de la variante 7");
+    const panel = await screen.findByLabelText("Detalle del producto");
     expect(panel.textContent).toContain("SYN-7");
+    // Project rule 5: the person sees the SKU, never the Siweb variant id (7) in the heading.
+    expect(screen.getByRole("heading", { level: 3, name: /Detalle del producto · SYN-7/ })).toBeTruthy();
+    expect(within(panel).getByRole("heading", { level: 3 }).textContent).toBe("Detalle del producto · SYN-7 · Variante sintética");
     expect(panel.textContent).toContain("Sin previsión estadística");
     expect(panel.textContent).toContain("día con stock agotado");
     expect(panel.textContent).toContain("historial de stock sin reconciliar");
     fireEvent.click(screen.getByRole("button", { name: "Cerrar detalle" }));
-    await waitFor(() => expect(screen.queryByLabelText("Detalle de la variante 7")).toBeNull());
+    await waitFor(() => expect(screen.queryByLabelText("Detalle del producto")).toBeNull());
   });
 
   const detail = (risks: Array<{ risk_type: string; explanation_key: string; params: Record<string, unknown> }>) => ({
@@ -234,7 +237,7 @@ describe("DashboardScreen", () => {
       horizons: [{ days: 7, mean: 10.5, upper: 14 }, { days: 14, mean: 21, upper: 27.5 }] });
     renderScreen(<DashboardScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
-    const panel = await screen.findByLabelText("Detalle de la variante 7");
+    const panel = await screen.findByLabelText("Detalle del producto");
     const table = await within(panel).findByRole("table", { name: "Previsión estadística (no son ventas reales)" });
     const rows = within(table).getAllByRole("row").map((r) => within(r).queryAllByRole("cell").map((c) => c.textContent));
     expect(rows).toEqual([[], ["7", "10,5", "14,0"], ["14", "21,0", "27,5"]]);
@@ -253,7 +256,7 @@ describe("DashboardScreen", () => {
       { changed_at: "2026-10-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] });
     const first = renderScreen(<DashboardScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
-    const panel = await screen.findByLabelText("Detalle de la variante 7");
+    const panel = await screen.findByLabelText("Detalle del producto");
     expect(await within(panel).findByText(/ABC A · XYZ X · smooth · clínicamente crítico · cambió la criticidad \(manual\)/)).toBeTruthy();
     expect(within(panel).getByText(/ABC B · XYZ X · smooth · primera clasificación/)).toBeTruthy();
     expect(within(panel).getByText("Historial de categoría")).toBeTruthy();
@@ -269,14 +272,14 @@ describe("DashboardScreen", () => {
     const basis = vi.spyOn(api, "getForecastBasis").mockResolvedValue({ run_id: "r1", variant_id: 7, eligible: false, policy: "minmax_conservative", seed_used: false, horizons: [] });
     const first = renderScreen(<DashboardScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
-    const panel = await screen.findByLabelText("Detalle de la variante 7");
+    const panel = await screen.findByLabelText("Detalle del producto");
     await waitFor(() => expect(panel.textContent).toContain("mínimos y máximos conservadores"));
     expect(panel.textContent).toContain("No se ha detectado ningún riesgo en este producto");
     first.unmount();
     basis.mockRejectedValue(new Error("404"));
     renderScreen(<DashboardScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
-    expect((await screen.findByLabelText("Detalle de la variante 7")).textContent).toContain("Todavía no hay previsión para este producto");
+    expect((await screen.findByLabelText("Detalle del producto")).textContent).toContain("Todavía no hay previsión para este producto");
   });
 });
 

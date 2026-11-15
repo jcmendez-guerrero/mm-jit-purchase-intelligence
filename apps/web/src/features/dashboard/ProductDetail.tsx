@@ -59,9 +59,9 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
   }, [variantId]);
 
   return (
-    <Card as="aside" aria-label={t("dashboard.detail.title", { id: variantId })}>
+    <Card as="aside" aria-label={t("dashboard.detail.title")}>
       <h3>
-        {t("dashboard.detail.title", { id: variantId })}
+        {t("dashboard.detail.title")}
         {d ? ` · ${d.variant.sku} · ${d.variant.name}` : ""}
       </h3>
       <Button variant="secondary" small onClick={onClose}>
