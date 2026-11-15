@@ -46,5 +46,5 @@ Procurement service 882 tests, gateway 302, web unit 562, mocked Playwright (pro
 
 - The full generate-to-approve journey is not run against the compose stack: it has no forecast service and the gateway has no proposal-generation route. That flow is proven by the service tests.
 - `docs/architecture/integration/feature-status.json` is owned by Agent 00 and is not edited here.
-- One mocked Playwright test failed with and without this change (`a11y-all-routes.spec.ts`, "reference task 3 by keyboard: edit one supplier term and save it", expected 7 received 3). It belongs to supplier terms (spec 007), so it is quarantined with `test.fixme` and a comment; an issue for it is still to be opened. The `e2e` gate also needs the browser tooling and font path of a full checkout.
+- One mocked Playwright test failed with and without this change (`a11y-all-routes.spec.ts`, "reference task 3 by keyboard: edit one supplier term and save it", expected 7 received 3). It belongs to supplier terms (spec 007), so it is quarantined with `test.fixme` and a comment; it is tracked as MMI-12 (https://mundomascotix.atlassian.net/browse/MMI-12). The `e2e` gate also needs the browser tooling and font path of a full checkout.
 - No migration, no production deploy, no ERP write.
