@@ -4,7 +4,7 @@ import { api, ApiError, Proposal, ProposalSummary, errorMessage } from "../../ap
 import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
 import { VersionsUsed } from "./VersionsUsed";
 import { ProposalLineExplanation } from "./ProposalLineExplanation";
-import { canApprove, canEditLines, canSubmit, groupLinesBySupplier, pageLineGroups, parseQty } from "./proposalModel";
+import { canApprove, canEditLines, canExport, canSubmit, groupLinesBySupplier, pageLineGroups, parseQty } from "./proposalModel";
 import { ScreenState } from "../../ui/ScreenState";
 import { EmptyState } from "../../ui/EmptyState";
 import { StatusBadge } from "../../ui/StatusBadge";
@@ -91,6 +91,7 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
     });
 
   const editable = current ? canEditLines(userRoles, current.status) : false;
+  const newer = current && current.status === "superseded" ? list.find((p) => p.week === current.week && p.status !== "superseded") : undefined;
   const pagedLines = pageLineGroups(current ? groupLinesBySupplier(current.lines, current.supplier_groups) : [], linePage, LINES_PER_PAGE);
 
   return (
@@ -131,6 +132,30 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
             <VersionsUsed dataset={current.dataset_version_id} forecastRun={current.forecast_run_id} />
             <StatusBadge domain="approval" code={current.status} />
             <span className="mmi-muted"> {t("proposals.created_by", { user: current.created_by })}</span>
+            {current.status === "superseded" && (
+              <p role="note">
+                {t("proposals.superseded_note")}
+                {newer && (
+                  <>
+                    {" "}
+                    <Button variant="quiet" small onClick={() => void select(newer.id)}>
+                      {t("proposals.superseded_link")}
+                    </Button>
+                  </>
+                )}
+              </p>
+            )}
+            {current.over_budget && Number(current.over_budget) > 0 && <p role="note">{t("proposals.over_budget", { amount: formatCurrencyEUR(current.over_budget) })}</p>}
+            {current.review_notes && current.review_notes.length > 0 && (
+              <div role="note">
+                <strong>{t("proposals.review_notes")}</strong>
+                <ul>
+                  {current.review_notes.map((n) => (
+                    <li key={`${n.code}-${n.variant_id}`}>{t(`proposals.review_note.${n.code}`, { product: `${n.sku ?? n.variant_id}${n.product_name ? ` — ${n.product_name}` : ""}` })}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <PageActions>
               {canSubmit(userRoles, current.status) && (
                 <Button onClick={() => setConfirming("submit")}>
@@ -142,12 +167,16 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
                   {t("proposals.approve")}
                 </Button>
               )}
-              <a href={`/api/proposals/${current.id}/export?format=csv`} download className="mmi-button mmi-button--secondary">
-                {t("proposals.export_csv")}
-              </a>
-              <a href={`/api/proposals/${current.id}/export?format=xlsx`} download className="mmi-button mmi-button--secondary">
-                {t("proposals.export_excel")}
-              </a>
+              {canExport(userRoles, current.status) && (
+                <>
+                  <a href={`/api/proposals/${current.id}/export?format=csv`} download className="mmi-button mmi-button--secondary">
+                    {t("proposals.export_csv")}
+                  </a>
+                  <a href={`/api/proposals/${current.id}/export?format=xlsx`} download className="mmi-button mmi-button--secondary">
+                    {t("proposals.export_excel")}
+                  </a>
+                </>
+              )}
             </PageActions>
 
             {current.supplier_groups.length > 0 && (

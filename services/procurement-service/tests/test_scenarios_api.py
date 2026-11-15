@@ -80,8 +80,10 @@ def test_promotion_is_buyer_only_creates_a_draft_and_cannot_repeat(api):
 
 def test_export_returns_the_chosen_format_and_refuses_others(api):
     sid = api.post("/scenarios", json=body(api.sa), headers=h(**{"Idempotency-Key": "key-export-1"})).json()["id"]
-    csv = api.get(f"/scenarios/{sid}/export?format=csv", headers=h("viewer"))
+    csv = api.get(f"/scenarios/{sid}/export?format=csv", headers=h("buyer"))
     assert csv.status_code == 200 and csv.headers["content-type"].startswith("text/csv") and "escenario.csv" in csv.headers["content-disposition"]
-    assert api.get(f"/scenarios/{sid}/export?format=xlsx", headers=h("viewer")).status_code == 200
-    assert api.get(f"/scenarios/{sid}/export?format=pdf", headers=h("viewer")).status_code == 422
-    assert api.get("/scenarios/nope/export?format=csv", headers=h("viewer")).status_code == 404
+    assert api.get(f"/scenarios/{sid}/export?format=xlsx", headers=h("buyer")).status_code == 200
+    assert api.get(f"/scenarios/{sid}/export?format=pdf", headers=h("buyer")).status_code == 422
+    assert api.get("/scenarios/nope/export?format=csv", headers=h("buyer")).status_code == 404
+
+    assert api.get(f"/scenarios/{sid}/export?format=csv", headers=h("viewer")).status_code == 403      # T027: a viewer cannot export (FR-010)

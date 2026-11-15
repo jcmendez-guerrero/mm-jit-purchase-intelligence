@@ -13,6 +13,7 @@ from db.tables import erp_supplier_links
 from fastapi.testclient import TestClient
 from mmi_common.auth import AuthError, Principal
 from mmi_common.service import create_service_app
+from proposal_support import Blob, Users
 from sqlalchemy import insert
 from terms.service import Terms, save_terms
 
@@ -36,22 +37,6 @@ class Provider:
 
     def build(self, conn, today):
         return inputs([variant(1, [offer(self.supplier, "1.00", pack=6)], flat_forecast(1.0))], [terms(self.supplier)], budget="1000")
-
-
-class Users:
-    def active_approvers(self):
-        return {"user-approver", "user-buyerapprover"}
-
-
-class Blob:
-    def __init__(self, tmp):
-        self.tmp = tmp
-
-    def put(self, name, data):
-        p = self.tmp / name
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_bytes(data)
-        return p.as_uri()
 
 
 def h(role, **extra):

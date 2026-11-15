@@ -14,7 +14,7 @@ from typing import Protocol
 from audit.chain import append as audit
 from db.tables import approvals, proposal_lines, proposals, suppliers
 from mmi_common.auth import Principal
-from proposals.edit import ConcurrencyError, ProposalStateError
+from proposals.edit import ConcurrencyError, ProposalStateError, ProposalSupersededError
 from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection
 
@@ -50,6 +50,8 @@ def _refuse_deactivated_suppliers(conn: Connection, proposal_id: str) -> None:
 def submit(conn: Connection, proposal_id: str, actor: str, expected_version: int, users: UserDirectory, now: datetime | None = None) -> None:
     now = now or datetime.now(UTC)
     p = _get(conn, proposal_id)
+    if p.status == "superseded":
+        raise ProposalSupersededError("a superseded proposal cannot be submitted")
     if p.status != "draft":
         raise ProposalStateError(f"only a draft can be submitted, this one is {p.status}")
     if p.version != expected_version:
@@ -67,6 +69,8 @@ def decide(conn: Connection, proposal_id: str, principal: Principal, expected_ve
     p = _get(conn, proposal_id)
     if "approver" not in principal.roles:
         raise ApprovalError("not_an_approver")
+    if p.status == "superseded":
+        raise ProposalSupersededError("a superseded proposal cannot be decided")
     if p.status != "submitted":
         raise ProposalStateError(f"only a submitted proposal can be decided, this one is {p.status}")
     if p.version != expected_version:

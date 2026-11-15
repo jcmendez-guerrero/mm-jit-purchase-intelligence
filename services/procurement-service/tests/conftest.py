@@ -6,6 +6,8 @@ from db.tables import metadata, product_refs, suppliers
 from sqlalchemy import create_engine, event, insert
 from sqlalchemy.pool import StaticPool
 
+pytest_plugins = ["proposal_support"]       # the proposal routes fixture (`api`) of the feature-011 guarantee tests
+
 NOW = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
 
 
@@ -65,3 +67,29 @@ def client(engine):
 
 def auth(role="viewer"):
     return {"Authorization": f"Bearer {role}"}
+
+
+@pytest.fixture
+def outbound(monkeypatch):
+    """T005 (FR-011, SC-004): any attempt to open a network connection or send an HTTP request is recorded and refused. Tests assert the list stays empty."""
+    import socket
+
+    import httpx
+
+    attempts: list[str] = []
+
+    def _connect(self, address, *a, **k):
+        attempts.append(f"socket:{address}")
+        raise OSError("network access is denied in this test")
+
+    def _send(self, request, *a, **k):
+        attempts.append(f"http:{request.method} {request.url}")
+        raise httpx.ConnectError("network access is denied in this test")
+
+    monkeypatch.setattr(socket.socket, "connect", _connect)
+    async def _asend(self, request, *a, **k):
+        return _send(self, request)
+
+    monkeypatch.setattr(httpx.HTTPTransport, "handle_request", _send)             # the real network transports; the in-process test client has its own and is unaffected
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", _asend)
+    return attempts

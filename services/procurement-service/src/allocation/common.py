@@ -116,7 +116,9 @@ def build_lines(inputs: ProposalInputs) -> list[LineSpec]:
             else:
                 usable.append(o)
         if not usable:
-            if v.offers or ov.fixed_qty.get(v.variant_id):
+            # FR-014: a needed variant with no usable offer is kept (with no candidates) so it is named, never dropped silently; a stocked one is not a warning
+            fixed = ov.fixed_qty.get(v.variant_id)
+            if fixed or (v.offers and compute_target(v, min(o.lead_time_days for o in v.offers)).need > 0):
                 lines.append(LineSpec(v.variant_id, True, (), rejected=tuple(rejected)))
             continue
         fastest = min(o.lead_time_days for o in usable)

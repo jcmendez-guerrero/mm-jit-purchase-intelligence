@@ -91,3 +91,19 @@ def ready_other(conn, tmp_path):
     sa, sb = rows[0].id, rows[1].id
     out = sc.create(conn, Blob(tmp_path), "Sin B", ScenarioParams(disabled_suppliers=(sb,)), base(sa, sb), "buyer-1", "k-pro-000002", NOW)
     return sa, sb, out
+
+
+def test_promotion_makes_a_new_draft_version_and_marks_the_earlier_one_superseded_and_read_only(conn, tmp_path):
+    """T015 (FR-008, spec Q1): the earlier draft stays on record as superseded; it can no longer be submitted or approved, and the new one needs its own approval."""
+    from approvals.workflow import submit
+    from proposals.edit import ProposalSupersededError
+    from proposals.generate import generate, store
+
+    sa, sb, out = ready(conn, tmp_path)
+    earlier = store(conn, generate(base(sa, sb), 5), "buyer-1", WEEK, None, NOW)
+    res = sc.promote(conn, out["id"], base(sa, sb), "buyer-2", WEEK, NOW)
+    statuses = dict(conn.execute(select(proposals.c.id, proposals.c.status)).all())
+    assert statuses[earlier] == "superseded" and statuses[res["proposal_id"]] == "draft" and res["proposal_id"] != earlier
+    with pytest.raises(ProposalSupersededError):
+        submit(conn, earlier, "buyer-1", 1, Users(), NOW)
+    assert conn.execute(select(proposals.c.status).where(proposals.c.id == res["proposal_id"])).scalar() == "draft"      # no approval carried over

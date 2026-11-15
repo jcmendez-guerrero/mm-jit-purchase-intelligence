@@ -98,6 +98,8 @@ def export_proposal(conn: Connection, proposal_id: str, fmt: str, actor: str, su
     p = conn.execute(select(proposals).where(proposals.c.id == proposal_id)).first()
     if p is None:
         raise ExportError("unknown_proposal")
+    if p.status == "superseded":
+        raise ExportError("proposal_superseded")
     if p.status not in ("approved", "exported") or not is_approval_valid(conn, proposal_id):
         raise ExportError("proposal_not_approved")
     rows = rows_for(conn, proposal_id, supplier_id)

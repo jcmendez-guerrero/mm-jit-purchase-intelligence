@@ -236,6 +236,16 @@
       "kind": "request",
       "meaning": "The proposal state does not allow this action"
     },
+    "proposal_line_conflict": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The proposal line changed since it was read (reload and retry)"
+    },
+    "proposal_superseded": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "The proposal was superseded by a newer version and cannot be changed, submitted, approved or exported"
+    },
     "invalid_quantity": {
       "http": 422,
       "kind": "request",
