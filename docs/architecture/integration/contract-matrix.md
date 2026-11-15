@@ -19,6 +19,7 @@ The gateway is `services/api-bff`.
 
 | Name | Kind | Version | Owner | Consumers | Status |
 |---|---|---|---|---|---|
+| `anomaly_flag` | dto | v1 | inventory-service | api-bff, web | draft |
 | `budget_cap` | dto | v1 | procurement-service | - | frozen |
 | `conditions_block` | dto | v1 | siweb-cost-writer | - | frozen |
 | `cost_write` | dto | v1 | procurement-service | - | frozen |
@@ -26,15 +27,19 @@ The gateway is `services/api-bff`.
 | `dashboard_summary` | dto | v1 | inventory-service | - | frozen |
 | `demand_rule` | dto | v1 | inventory-service | - | frozen |
 | `forecast_accuracy` | dto | v1 | forecast-service | - | frozen |
+| `forecast_explanation` | dto | v1 | forecast-service | api-bff, web | draft |
 | `forecast_parameter` | dto | v1 | forecast-service | - | frozen |
 | `load_result` | dto | v1 | agent-00 | - | frozen |
 | `lot_acquisition_cost` | dto | v1 | procurement-service | - | frozen |
 | `money` | dto | v1 | agent-00 | - | frozen |
 | `policy_override_request` | dto | v1 | procurement-service | - | frozen |
 | `policy_set` | dto | v1 | procurement-service | - | frozen |
+| `portfolio_summary` | dto | v1 | inventory-service | api-bff, web | draft |
+| `product_backtest` | dto | v1 | forecast-service | api-bff, web | draft |
 | `product_supplier_terms` | dto | v1 | procurement-service | - | frozen |
 | `proposal` | dto | v1 | procurement-service | - | frozen |
 | `proposal_line` | dto | v1 | procurement-service | - | frozen |
+| `quality_summary` | dto | v1 | inventory-service | api-bff, web | draft |
 | `scenario` | dto | v1 | procurement-service | - | frozen |
 | `scenario_result` | dto | v1 | procurement-service | - | frozen |
 | `scenario_sensitivity` | dto | v1 | procurement-service | - | frozen |
@@ -49,6 +54,13 @@ The gateway is `services/api-bff`.
 | `supplier_terms` | dto | v1 | procurement-service | - | frozen |
 | `variant` | dto | v1 | agent-00 | - | frozen |
 | `DELETE /api/suppliers/{supplier_id}/links/{sku}` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/admin/alerts` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/admin/audit` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/admin/audit/export` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/admin/audit/verify` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/admin/ops/queue` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/admin/ops/settings` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/admin/ops/summary` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/admin/roles` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/admin/roles/mirror` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/admin/status` | endpoint | v1 | agent-00 | web | draft |
@@ -80,6 +92,8 @@ The gateway is `services/api-bff`.
 | `GET /api/proposals` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/proposals/{proposal_id}` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/proposals/{proposal_id}/export` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/quality/products/{sku}` | endpoint | v1 | agent-02 | web | draft |
+| `GET /api/quality/products/{sku}/anomalies` | endpoint | v1 | agent-02 | web | draft |
 | `GET /api/scenarios` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/scenarios/{sid}` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/scenarios/{sid}/export` | endpoint | v1 | agent-00 | web | draft |
@@ -94,6 +108,8 @@ The gateway is `services/api-bff`.
 | `GET /readyz` | endpoint | v1 | agent-00 | web | draft |
 | `GET /whoami` | endpoint | v1 | agent-00 | web | draft |
 | `PATCH /api/suppliers/{supplier_id}` | endpoint | v1 | agent-00 | web | draft |
+| `POST /api/admin/alerts/{alert_id}/acknowledge` | endpoint | v1 | agent-00 | web | draft |
+| `POST /api/admin/ops/queue/{kind}/{item_id}/retry` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/admin/rerun/forecast` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/admin/rerun/import/{job_id}` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/admin/rerun/mirror` | endpoint | v1 | agent-00 | web | draft |
@@ -124,6 +140,7 @@ The gateway is `services/api-bff`.
 | `POST /api/proposals/{proposal_id}/approve` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/proposals/{proposal_id}/orders/{supplier_id}/confirm` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/proposals/{proposal_id}/submit` | endpoint | v1 | agent-00 | web | draft |
+| `POST /api/quality/recompute` | endpoint | v1 | agent-02 | web | draft |
 | `POST /api/scenarios` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/scenarios/{sid}/promote` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/suppliers` | endpoint | v1 | agent-00 | web | draft |
@@ -133,6 +150,7 @@ The gateway is `services/api-bff`.
 | `POST /api/suppliers/{supplier_id}/links/bulk/preview` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/suppliers/{supplier_id}/merge` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/suppliers/{supplier_id}/reactivate` | endpoint | v1 | agent-00 | web | draft |
+| `PUT /api/admin/ops/settings` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/admin/roles/{user_id}` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/budget-caps` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/config/loss-cutover` | endpoint | v1 | agent-00 | web | draft |
@@ -143,6 +161,7 @@ The gateway is `services/api-bff`.
 | `PUT /api/product-suppliers/{variant_id}/{supplier_id}/terms` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/products/{product_id}/criticality` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/proposals/{proposal_id}/lines/{line_id}` | endpoint | v1 | agent-00 | web | draft |
+| `PUT /api/quality/products/{sku}/anomalies/{day}` | endpoint | v1 | agent-02 | web | draft |
 | `PUT /api/stocking/{variant_id}` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/suppliers/{supplier_id}/links/{sku}` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/suppliers/{supplier_id}/terms` | endpoint | v1 | agent-00 | web | draft |
