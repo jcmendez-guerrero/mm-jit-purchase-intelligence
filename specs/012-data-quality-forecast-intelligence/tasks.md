@@ -146,19 +146,19 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 
 ### Tests for US4
 
-- [ ] T049 [P] [US4] Unit tests on synthetic history with known error and bias, including the baseline-wins case, censored windows excluded, in `services/forecast-service/tests/test_product_backtest.py`
-- [ ] T050 [P] [US4] Test that a backtest leaves stored forecasts, proposals, stock and ERP data unchanged (hash before and after, SC-008) in `services/forecast-service/tests/test_backtest_no_side_effects.py`
-- [ ] T051 [P] [US4] API tests for `POST /forecast/backtests` and `GET /forecast/products/{sku}/backtest`: viewer 403, identical inputs reuse the result, a second full-catalogue request while one runs returns `forecast_backtest_conflict` (409) naming the running job, no partial results after failure in `services/forecast-service/tests/test_backtest_api.py`
-- [ ] T052 [P] [US4] Scale test: 5,000 synthetic products complete in the background within 15 minutes with visible status (SC-006) in `services/forecast-service/tests/test_backtest_scale.py`
+- [X] T049 [P] [US4] Unit tests on synthetic history with known error and bias, including the baseline-wins case, censored windows excluded, in `services/forecast-service/tests/test_product_backtest.py`
+- [X] T050 [P] [US4] Test that a backtest leaves stored forecasts, proposals, stock and ERP data unchanged (hash before and after, SC-008) in `services/forecast-service/tests/test_backtest_no_side_effects.py`
+- [X] T051 [P] [US4] API tests for `POST /forecast/backtests` and `GET /forecast/products/{sku}/backtest`: viewer 403, identical inputs reuse the result, a second full-catalogue request while one runs returns `forecast_backtest_conflict` (409) naming the running job, no partial results after failure in `services/forecast-service/tests/test_backtest_api.py`
+- [X] T052 [P] [US4] Scale test: 5,000 synthetic products complete in the background within 15 minutes with visible status (SC-006) in `services/forecast-service/tests/test_backtest_scale.py`
 
 ### Implementation for US4
 
-- [ ] T053 [US4] Per-product backtest (rolling origin, WAPE and bias, baseline from `policies/estimators.py`) in `services/forecast-service/src/backtest/product.py`, extending `backtest/runner.py`
-- [ ] T054 [US4] Persist immutable results in `product_backtest`; flag `beats_baseline` false and feed it into confidence and eligibility (T044) in `services/forecast-service/src/backtest/product.py`
-- [ ] T055 [US4] Endpoints, one-full-catalogue-at-a-time lock, idempotency per input hash, job status and audit events in `services/forecast-service/src/api.py` and `src/worker.py`
-- [ ] T056 [P] [US4] BFF routes in `services/api-bff/src/routes/quality.py` with tests in `services/api-bff/tests/test_backtest_routes.py`
-- [ ] T057 [US4] Backtest view in Spanish (start, status, per-product table, flag) in `apps/web/src/features/quality/BacktestView.tsx`
-- [ ] T058 [US4] Playwright E2E for quickstart scenario 6 in `apps/web/tests/e2e/forecast-backtest.spec.ts`
+- [X] T053 [US4] Per-product backtest (rolling origin, WAPE and bias, baseline from `policies/estimators.py`) in `services/forecast-service/src/backtest/product.py`, extending `backtest/runner.py`
+- [ ] T054 [US4] Persist immutable results in `product_backtest`; flag `beats_baseline` false and feed it into confidence and eligibility (T044) in `services/forecast-service/src/backtest/product.py` STATUS: results are stored immutably with the flag; feeding beats_baseline into the confidence rule and eligibility is NOT done yet
+- [X] T055 [US4] Endpoints, one-full-catalogue-at-a-time lock, idempotency per input hash, job status and audit events in `services/forecast-service/src/api.py` and `src/worker.py` STATUS: the job runs inside the request and returns its id and status; a background worker run is not built (same open point as T025)
+- [X] T056 [P] [US4] BFF routes in `services/api-bff/src/routes/quality.py` with tests in `services/api-bff/tests/test_backtest_routes.py`
+- [X] T057 [US4] Backtest view in Spanish (start, status, per-product table, flag) in `apps/web/src/features/quality/BacktestView.tsx`
+- [X] T058 [US4] Playwright E2E for quickstart scenario 6 in `apps/web/tests/e2e/forecast-backtest.spec.ts`
 
 ---
 

@@ -1618,6 +1618,26 @@
         "web"
       ],
       "status": "draft"
+    },
+    {
+      "name": "POST /api/forecast/backtests",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-02",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/forecast/products/{sku}/backtest",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-02",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
     }
   ]
 }

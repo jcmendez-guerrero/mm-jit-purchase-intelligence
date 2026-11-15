@@ -76,6 +76,7 @@ The gateway is `services/api-bff`.
 | `GET /api/dashboard/risk` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/dashboard/variants/{variant_id}/forecast-basis` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/data-quality/import-errors` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/forecast/products/{sku}/backtest` | endpoint | v1 | agent-02 | web | draft |
 | `GET /api/forecast/products/{sku}/explanation` | endpoint | v1 | agent-02 | web | draft |
 | `GET /api/imports` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/imports/jobs` | endpoint | v1 | agent-00 | web | draft |
@@ -123,6 +124,7 @@ The gateway is `services/api-bff`.
 | `POST /api/costs/import` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/data-quality/import-errors/{error_id}/resolve` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/demand-rules/exclusions` | endpoint | v1 | agent-00 | web | draft |
+| `POST /api/forecast/backtests` | endpoint | v1 | agent-02 | web | draft |
 | `POST /api/forecast/runs` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/imports` | endpoint | v1 | agent-00 | web | draft |
 | `POST /api/imports/mappings` | endpoint | v1 | agent-00 | web | draft |

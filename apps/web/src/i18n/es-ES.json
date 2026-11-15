@@ -1575,5 +1575,22 @@
   "quality.explain.confidence_reason.many_excluded_days": "muchos días excluidos por el comprador",
   "quality.explain.confidence_reason.mostly_estimated": "datos en su mayoría estimados",
   "quality.explain.confidence_reason.high_variability": "demanda muy variable",
-  "quality.explain.reason.low_confidence": "Confianza baja"
+  "quality.explain.reason.low_confidence": "Confianza baja",
+  "quality.backtest.title": "Prueba retrospectiva del método",
+  "quality.backtest.hint": "Compara, sobre periodos pasados, el método de cada producto con la referencia sencilla, sin cambiar ninguna previsión ni propuesta.",
+  "quality.backtest.load": "Ver resultado",
+  "quality.backtest.start_product": "Ejecutar la prueba de este producto",
+  "quality.backtest.start_catalogue": "Ejecutar la prueba de todo el catálogo",
+  "quality.backtest.running": "Ejecutando la prueba…",
+  "quality.backtest.done": "Prueba terminada ({{products}} productos).",
+  "quality.backtest.reused": "Ya existía un resultado con los mismos datos; no se ha repetido la prueba ({{products}} productos).",
+  "quality.backtest.periods": "Periodos evaluados",
+  "quality.backtest.wape": "Error del método (WAPE)",
+  "quality.backtest.bias": "Sesgo del método",
+  "quality.backtest.baseline_wape": "Error de la referencia (WAPE)",
+  "quality.backtest.baseline_bias": "Sesgo de la referencia",
+  "quality.backtest.flag": "El método no supera a la referencia en los periodos evaluados.",
+  "quality.backtest.ok": "El método iguala o supera a la referencia.",
+  "quality.backtest.not_assessable": "Todavía no hay periodos evaluables: falta historial o ventas.",
+  "quality.backtest.model": "Modelo"
 }

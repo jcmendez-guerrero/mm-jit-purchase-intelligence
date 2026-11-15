@@ -51,8 +51,9 @@ async function mockQuality(page: Page, opts: { staleMfa?: boolean } = {}) {
 
 async function lookUp(page: Page, sku: string) {
   await page.goto("/calidad");
-  await page.getByLabel("SKU").fill(sku);
-  await page.getByRole("button", { name: "Ver calidad" }).click();
+  const panel = page.getByRole("region", { name: "Calidad del historial por producto" });       // the screen has more than one SKU field
+  await panel.getByLabel("SKU").fill(sku);
+  await panel.getByRole("button", { name: "Ver calidad" }).click();
 }
 
 test.describe("quality summary by product", () => {

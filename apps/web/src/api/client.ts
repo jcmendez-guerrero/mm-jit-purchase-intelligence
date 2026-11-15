@@ -706,6 +706,29 @@ export interface ForecastExplanation {
   eligibility_reason_codes: string[];
 }
 
+/** How well one product's method would have forecast past periods against the simple baseline (feature 012). SKU only; ratios as decimal strings. */
+export interface ProductBacktest {
+  backtest_run_id: string;
+  sku: string;
+  periods: number;
+  wape: string | null;
+  bias: string | null;
+  baseline_wape: string | null;
+  baseline_bias: string | null;
+  beats_baseline: boolean;
+  model_version: string;
+  dataset_version_id: string | null;
+  config_version_id: string | null;
+  created_at: string;
+}
+
+export interface BacktestJob {
+  job_id: string;
+  status: "completed";
+  reused: boolean;
+  products: number;
+}
+
 export interface RiskItem {
   variant_id: number;
   risk_type: "stockout" | "expiry" | "data_quality";
@@ -1122,6 +1145,14 @@ export class ApiClient {
       method: "POST",
       body: JSON.stringify({ decision }),
     });
+  }
+
+  async startBacktest(scope: "catalogue" | "product", sku?: string): Promise<BacktestJob> {
+    return this.request<BacktestJob>("/forecast/backtests", { method: "POST", body: JSON.stringify({ scope, sku: sku ?? null }) });
+  }
+
+  async getProductBacktest(sku: string): Promise<ProductBacktest> {
+    return this.request<ProductBacktest>(`/forecast/products/${encodeURIComponent(sku)}/backtest`);
   }
 
   async getForecastExplanation(sku: string, runId?: string): Promise<ForecastExplanation> {

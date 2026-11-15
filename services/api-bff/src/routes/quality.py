@@ -7,14 +7,14 @@ reversing an exclusion, needs a second factor authenticated within five minutes 
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import quote
 
 from auth.session import SessionData
 from clients.forecast import ForecastClient
 from clients.inventory import InventoryClient
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from routes.api import get_inventory_client
 from routes.policies import get_forecast_client
 from routes.rbac import log_refusal, require_roles
@@ -63,6 +63,22 @@ async def decide_anomaly(sku: str, day: date, body: DecisionBody, request: Reque
 @router.post("/recompute")
 async def recompute(session: SessionData = Depends(require_roles(*EDIT)), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
     return await inv.forward("POST", "/quality/recompute", user_id=session.user_id, roles=session.roles)
+
+
+class BacktestBody(BaseModel):
+    scope: Literal["catalogue", "product"]
+    sku: str | None = Field(default=None, max_length=60)
+
+
+@forecast_router.post("/backtests")
+async def start_backtest(body: BacktestBody, session: SessionData = Depends(require_roles(*EDIT)), fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+    """T056: score one product's method or the whole catalogue's against the baseline. Changes no forecast or proposal; forecast-service enforces one catalogue run at a time."""
+    return await fc.forward("POST", "/forecasts/backtests", json=body.model_dump(), user_id=session.user_id, roles=session.roles)
+
+
+@forecast_router.get("/products/{sku}/backtest")
+async def product_backtest(sku: str, session: SessionData = Depends(require_roles(*READ)), fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+    return await fc.forward("GET", f"/forecasts/products/{quote(sku, safe='')}/backtest", user_id=session.user_id, roles=session.roles)
 
 
 @forecast_router.get("/products/{sku}/explanation")

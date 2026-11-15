@@ -19,6 +19,7 @@ from sqlalchemy import (
     String,
     Table,
     UniqueConstraint,
+    text,
 )
 
 metadata = MetaData()
@@ -220,6 +221,7 @@ product_backtest = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("backtest_run_id", String(36), nullable=False),
     Column("variant_id", Integer, nullable=False),
+    Column("sku", String(60), index=True),                              # the SKU users see; this service has no catalogue to look it up in
     Column("periods", Integer, nullable=False),
     Column("wape", Numeric(12, 6)),
     Column("bias", Numeric(12, 6)),
@@ -231,4 +233,15 @@ product_backtest = Table(
     Column("config_version_id", String(36)),
     Column("created_at", DateTime(timezone=True), nullable=False),
     UniqueConstraint("backtest_run_id", "variant_id", name="uq_product_backtest"),
+)
+backtest_jobs = Table(
+    "backtest_jobs", metadata,
+    Column("id", String(36), primary_key=True),                          # the backtest run id, deterministic from the inputs
+    Column("scope", String(12), nullable=False),                        # catalogue / product
+    Column("status", String(10), nullable=False),                       # running / completed / failed
+    Column("requested_by", String(120), nullable=False),
+    Column("started_at", DateTime(timezone=True), nullable=False),
+    Column("finished_at", DateTime(timezone=True)),
+    Index("uq_backtest_one_running_catalogue", "scope", unique=True, postgresql_where=text("scope = 'catalogue' AND status = 'running'"),
+          sqlite_where=text("scope = 'catalogue' AND status = 'running'")),
 )

@@ -5,15 +5,16 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from audit import append
-from db.tables import forecast_explanations, forecast_runs, forecast_values
+from backtest.jobs import BacktestConflict, JobFailed, UnknownProduct, run_backtest
+from db.tables import forecast_explanations, forecast_runs, forecast_values, product_backtest
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Path, Query
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
 from parameters import ParameterConflict, ParameterError, listing, save_parameter
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from runs.accuracy import latest_accuracy
 from runs.runner import run_forecast
 from sqlalchemy import create_engine, select
@@ -25,6 +26,17 @@ _engine: Engine | None = None
 class ParameterBody(BaseModel):
     value: str
     valid_from: date | None = None
+
+
+class BacktestBody(BaseModel):
+    scope: Literal["catalogue", "product"]
+    sku: str | None = None
+
+    @model_validator(mode="after")
+    def _product_needs_a_sku(self) -> BacktestBody:
+        if self.scope == "product" and not self.sku:
+            raise ValueError("a product backtest needs a SKU")
+        return self
 
 
 def get_engine() -> Engine:
@@ -80,6 +92,37 @@ def build_router(app: FastAPI) -> APIRouter:
                 "anomaly_days_excluded": row.anomaly_days_excluded, "provenance_mix": row.provenance_mix, "low": figure(row.low), "expected": figure(row.expected),
                 "high": figure(row.high), "confidence": row.confidence, "confidence_reason_codes": row.confidence_reason_codes, "eligibility": row.eligibility,
                 "eligibility_reason_codes": row.eligibility_reason_codes}
+
+    @router.post("/forecasts/backtests")
+    def start_backtest(body: BacktestBody, engine: Engine = Depends(get_engine), principal: Any = Depends(require())) -> Any:
+        """T055: score the method of one product, or of the whole catalogue, against the baseline on past periods. Changes no forecast or proposal."""
+        if not ({"buyer", "admin"} & set(principal.roles)):
+            raise HTTPException(403, "auth_forbidden_role")
+        source = getattr(app.state, "series_source", None)
+        if source is None:
+            raise HTTPException(503, "not_configured")
+        try:
+            return run_backtest(engine, source, scope=body.scope, sku=body.sku, actor=principal.subject)
+        except UnknownProduct as exc:
+            raise HTTPException(404, "quality_product_not_found") from exc
+        except BacktestConflict as exc:
+            return JSONResponse(status_code=409, content={"detail": "forecast_backtest_conflict", "running_job_id": exc.job_id})
+        except JobFailed as exc:
+            raise HTTPException(502, "quality_job_failed") from exc
+
+    @router.get("/forecasts/products/{sku}/backtest")
+    def product_backtest_result(sku: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """T055: the latest backtest result of one product, by SKU."""
+        row = conn.execute(select(product_backtest).where(product_backtest.c.sku == sku).order_by(product_backtest.c.created_at.desc(), product_backtest.c.id.desc()).limit(1)).first()
+        if row is None:
+            raise HTTPException(404, "quality_product_not_found")
+
+        def dec(v: Any) -> str | None:
+            return None if v is None else str(v)
+
+        return {"backtest_run_id": row.backtest_run_id, "sku": row.sku, "periods": row.periods, "wape": dec(row.wape), "bias": dec(row.bias), "baseline_wape": dec(row.baseline_wape),
+                "baseline_bias": dec(row.baseline_bias), "beats_baseline": bool(row.beats_baseline), "model_version": row.model_version, "dataset_version_id": row.dataset_version_id,
+                "config_version_id": row.config_version_id, "created_at": row.created_at.isoformat()}
 
     @router.get("/forecasts/variant/{variant_id}")
     def variant_forecast(variant_id: int = Path(ge=1), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

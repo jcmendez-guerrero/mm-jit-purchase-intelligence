@@ -48,6 +48,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
         sa.Column("backtest_run_id", sa.String(36), nullable=False),
         sa.Column("variant_id", sa.Integer, nullable=False),
+        sa.Column("sku", sa.String(60)),
         sa.Column("periods", sa.Integer, nullable=False),
         sa.Column("wape", sa.Numeric(12, 6)),
         sa.Column("bias", sa.Numeric(12, 6)),
@@ -62,6 +63,22 @@ def upgrade() -> None:
     )
 
 
+    op.create_index("ix_product_backtest_sku", "product_backtest", ["sku"])
+    op.create_table(
+        "backtest_jobs",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("scope", sa.String(12), nullable=False),
+        sa.Column("status", sa.String(10), nullable=False),
+        sa.Column("requested_by", sa.String(120), nullable=False),
+        sa.Column("started_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("finished_at", sa.DateTime(timezone=True)),
+    )
+    op.create_index("uq_backtest_one_running_catalogue", "backtest_jobs", ["scope"], unique=True,
+                    postgresql_where=sa.text("scope = 'catalogue' AND status = 'running'"), sqlite_where=sa.text("scope = 'catalogue' AND status = 'running'"))
+
+
 def downgrade() -> None:
+    op.drop_index("uq_backtest_one_running_catalogue", table_name="backtest_jobs")
+    op.drop_table("backtest_jobs")
     op.drop_table("product_backtest")
     op.drop_table("forecast_explanations")
