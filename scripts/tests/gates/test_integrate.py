@@ -151,3 +151,18 @@ def test_final_report_runs_all_six_gates(repo):
     branch(repo, "pr1", {"a/one.txt": "1"})
     report = run(repo, [step(1, ["a/**"])])
     assert report["overall"] == "pass" and len(report["gates"]) == 6
+
+
+def test_the_base_may_exist_only_as_a_remote_tracking_branch(repo):
+    """A GitHub Actions checkout of another branch has `origin/main` but no local `main` (first run of integration-gates.yml)."""
+    branch(repo, "pr1", {"a/one.txt": "1"})
+    git(repo, "update-ref", "refs/remotes/origin/main", "main")
+    git(repo, "checkout", "-q", "pr1")
+    git(repo, "branch", "-q", "-D", "main")
+    assert run(repo, [step(1, ["a/**"])])["integrated"] == [1]
+
+
+def test_a_missing_base_is_an_invalid_input_not_a_crash(repo):
+    git(repo, "branch", "-q", "-m", "main", "other")
+    with pytest.raises(ValueError, match="base"):
+        run(repo, [step(1, ["a/**"])])

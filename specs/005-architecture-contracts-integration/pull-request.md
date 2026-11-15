@@ -12,7 +12,7 @@ The coordination layer for the parallel MMI-1 effort: an evidence-based audit of
 
 - `scripts/gates/` (new) and 102 tests in `scripts/tests/gates/`. Commands: `validate`, `run`, `integrate`, `summary`, `lookup`, `matrix`, `matrix-md`, `audit-md`. `lookup NAME` prints an interface's owner, version, consumers and status.
 - `docs/architecture/integration/`: audit (31 features: 27 complete, 2 partial, 2 unverified), contract matrix (27 DTOs, 14 events, error codes and 98 gateway endpoints, owners curated), gateway review, guarantee-to-test map, README, verification record.
-- `docs/architecture/adr/021` to `023`, plus one row in `docs/architecture/implementation-plan.md`.
+- `docs/adr/021` to `023`, plus one row in `docs/architecture/implementation-plan.md`.
 - `.github/workflows/ci.yml`: new `gates` job (lint, gate tests, contracts and isolation gates). `.github/workflows/integration-gates.yml` (new, manual): builds the integration tree, runs all six gates, uploads the report and updates one comment on each domain PR. The job that runs merged PR code is read-only; a separate job holds the comment permission and runs only trusted code.
 - `services/api-bff/tests/`: three gateway tests (composition without business rules, idempotency keys pinned, endpoints equal the matrix). Tests only; no service code changed.
 - `apps/web`: a real-services Spanish UI journey (`tests/live/journey.spec.ts`) and its Playwright config.
