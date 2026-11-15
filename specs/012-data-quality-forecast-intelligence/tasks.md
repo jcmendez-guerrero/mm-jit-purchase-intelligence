@@ -79,7 +79,7 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 - [ ] T025 [US1] Background job and endpoint `POST /quality/recompute` with job status in `services/inventory-service/src/worker.py` and `src/api/quality.py`. STATUS: `POST /quality/recompute` runs inside the request and returns a stable job id with no duplicate rows (tested); the background worker run and visible job status are still open
 - [X] T026 [P] [US1] BFF routes (orchestration and role checks only) in `services/api-bff/src/routes/quality.py` and tests in `services/api-bff/tests/test_quality_routes.py`, including that `excluded` without a recent second factor is refused with the shared error while `accepted` is not
 - [X] T027 [US1] Quality summary and anomaly decision panel in Spanish in `apps/web/src/features/quality/QualitySummary.tsx` and `QualityScreen.tsx`, with its strings in `es-ES.json`
-- [ ] T028 [US1] Playwright E2E for quickstart scenarios 1 and 2 in `apps/web/tests/e2e/quality-summary.spec.ts`
+- [X] T028 [US1] Playwright E2E for quickstart scenarios 1 and 2 in `apps/web/tests/e2e/quality-summary.spec.ts`
 
 **Checkpoint**: US1 works alone and is demonstrable.
 
