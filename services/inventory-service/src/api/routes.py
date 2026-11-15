@@ -27,6 +27,7 @@ from demand.rebuild import rebuild
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from mmi_common.errors import error_code
 from pydantic import BaseModel, Field
+from quality.overlay import excluded_days
 from quality.review import ReviewError, decide, list_open
 from risk.daily import evaluate_risks
 from sqlalchemy import create_engine, func, select
@@ -130,6 +131,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
         prod = {r.external_id: r for r in conn.execute(select(variants.c.external_id, variants.c.product_id, variants.c.sku)).all()}
         crit = {r.external_id for r in conn.execute(select(products.c.external_id).where(products.c.clinical_critical)).all()}
         now = datetime.now(UTC)
+        excluded = excluded_days(conn)
         out = []
         for s in series:
             seg = segs.get(s.variant_id)
@@ -139,8 +141,9 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
                 "product_id": pid, "price": str(s.price), "start_day": s.days[0].isoformat(),
                 "demand": s.demand, "censored": s.censored,
                 "provenance": provenance("erp_sync", s.variant_id),   # feature 012: only ERP-collected demand under a real id is observed
+                "anomaly_excluded_days": len(excluded.get(s.variant_id, ())),
                 "segment": {"abc": seg.abc, "xyz": seg.xyz, "pattern": seg.pattern, "forecast_eligible": seg.forecast_eligible,
-                            "reasons": [r for r in seg.reason.split(",") if r]} if seg else None,
+                            "reasons": [r for r in seg.reason.split(",") if r], "config_version_id": seg.config_version_id} if seg else None,
                 "service_level": str(effective_target(conn, pid or 0, seg.abc if seg else "C", seg.pattern if seg else "intermittent", pid in crit, now)),
                 "clinical_critical": pid in crit})
         return {"through_day": series[0].days[-1].isoformat() if series else None, "count": len(out), "series": out}

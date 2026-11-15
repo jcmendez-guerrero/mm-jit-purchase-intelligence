@@ -8,7 +8,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from audit import append
-from db.tables import forecast_runs, forecast_values
+from db.tables import forecast_explanations, forecast_runs, forecast_values
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Path, Query
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
@@ -57,6 +57,29 @@ def build_router(app: FastAPI) -> APIRouter:
             v["horizons"][str(r.horizon_days)] = {"mean": r.mean, "quantiles": r.quantiles}
         return {"run_id": run.id, "input_hash": run.input_hash, "dataset_version_id": run.dataset_version_id, "through_day": run.through_day, "total": run.total_count, "eligible": run.eligible_count,
                 "variants": {str(k): v for k, v in variants.items()}}
+
+    @router.get("/forecasts/products/{sku}/explanation")
+    def explanation(sku: str, run_id: str | None = Query(default=None, max_length=36), conn: Connection = Depends(conn_dep),
+                    _p: Any = Depends(require())) -> dict[str, Any]:
+        """T036: why this product's forecast is what it is (latest completed run, or the one asked for). SKU only: the ERP id never leaves the service."""
+        q = (select(forecast_explanations).join(forecast_runs, forecast_runs.c.id == forecast_explanations.c.run_id)
+             .where(forecast_explanations.c.sku == sku, forecast_runs.c.status == "completed"))
+        if run_id:
+            q = q.where(forecast_explanations.c.run_id == run_id)
+        row = conn.execute(q.order_by(forecast_runs.c.started_at.desc(), forecast_runs.c.id.desc()).limit(1)).first()
+        if row is None:
+            raise HTTPException(404, "forecast_explanation_not_available")
+
+        def figure(v: float | None) -> str | None:
+            return None if v is None else f"{v:.4f}"
+
+        return {"run_id": row.run_id, "sku": row.sku, "model_version": row.model_version, "dataset_version_id": row.dataset_version_id,
+                "config_version_id": row.config_version_id, "history_start": row.history_start.isoformat() if row.history_start else None,
+                "history_end": row.history_end.isoformat() if row.history_end else None, "abc": row.abc, "xyz": row.xyz, "pattern": row.pattern,
+                "intermittent": bool(row.intermittent), "method": row.method, "method_reason_code": row.method_reason_code, "censored_days": row.censored_days,
+                "anomaly_days_excluded": row.anomaly_days_excluded, "provenance_mix": row.provenance_mix, "low": figure(row.low), "expected": figure(row.expected),
+                "high": figure(row.high), "confidence": row.confidence, "confidence_reason_codes": row.confidence_reason_codes, "eligibility": row.eligibility,
+                "eligibility_reason_codes": row.eligibility_reason_codes}
 
     @router.get("/forecasts/variant/{variant_id}")
     def variant_forecast(variant_id: int = Path(ge=1), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

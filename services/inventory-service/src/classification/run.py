@@ -22,6 +22,7 @@ from quality.overlay import excluded_days
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.engine import Connection
 
+from classification.policy_source import current_config, version_id
 from classification.segments import ClassificationConfig, SeriesInput, assign_abc, classify_series, series_value
 
 
@@ -64,11 +65,13 @@ def compute_segments(conn: Connection, cfg: ClassificationConfig | None = None, 
     abc = assign_abc({s.variant_id: series_value(s) for s in series}, cfg)
     run_id, stamp = str(uuid.uuid4()), now or utc_now()
     conn.execute(delete(product_segments))
+    config_id = version_id(cfg) if cfg is not None else current_config()[1]        # feature 012: the thresholds behind every class are recorded
     rows = []
     for s in series:
         seg = classify_series(s, abc[s.variant_id], cfg)
         rows.append({"variant_id": s.variant_id, "abc": seg.abc, "xyz": seg.xyz, "pattern": seg.pattern, "forecast_eligible": seg.eligible,
-                     "reason": ",".join(seg.reasons), "metrics": {**seg.metrics, "value": float(series_value(s))}, "computed_at": stamp, "run_id": run_id})
+                     "reason": ",".join(seg.reasons), "metrics": {**seg.metrics, "value": float(series_value(s))}, "computed_at": stamp, "run_id": run_id,
+                     "config_version_id": config_id})
     if rows:
         conn.execute(insert(product_segments), rows)
         record_history(conn, rows, run_id, stamp)

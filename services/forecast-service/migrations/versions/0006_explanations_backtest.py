@@ -19,6 +19,7 @@ def upgrade() -> None:
         "forecast_explanations",
         sa.Column("run_id", sa.String(36), sa.ForeignKey("forecast_runs.id"), primary_key=True),
         sa.Column("variant_id", sa.Integer, primary_key=True, autoincrement=False),
+        sa.Column("sku", sa.String(60)),
         sa.Column("model_version", sa.String(120), nullable=False),
         sa.Column("dataset_version_id", sa.String(36)),
         sa.Column("config_version_id", sa.String(36)),
@@ -41,6 +42,7 @@ def upgrade() -> None:
         sa.Column("eligibility", sa.String(20), nullable=False),
         sa.Column("eligibility_reason_codes", sa.JSON, nullable=False),
     )
+    op.create_index("ix_forecast_explanations_sku", "forecast_explanations", ["sku"])
     op.create_table(
         "product_backtest",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),

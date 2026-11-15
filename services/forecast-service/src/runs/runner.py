@@ -13,12 +13,12 @@ import json
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any, Protocol
 
 from backtest.runner import BacktestConfig, BacktestSeries, compare, select_policies
-from db.tables import backtest_metrics, forecast_runs, forecast_values, model_registry, outbox
+from db.tables import backtest_metrics, forecast_explanations, forecast_runs, forecast_values, model_registry, outbox
 from mmi_common.bus import new_envelope
 from mmi_common.outbox import enqueue
 from mmi_common.time import get_correlation_id, set_correlation_id
@@ -30,6 +30,7 @@ from sqlalchemy import insert, select, update
 from sqlalchemy.engine import Connection, Engine
 
 from runs.eligibility import decide
+from runs.explanation import explain
 
 EVENT_TYPE = "forecast.completed.v1"
 SUBSCRIPTIONS = {EVENT_TYPE: ["procurement-in"], "forecast.seed.activated.v1": ["forecast-in"]}
@@ -92,6 +93,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
 
         cfg, versions = config_from_parameters(conn, clock().date())
     export = source.fetch()
+    original_days = {s["variant_id"]: len(s["demand"]) for s in export["series"]}      # before any seed rows extend a history: the extra days are estimated
     from runs.accuracy import evaluate_previous
 
     evaluate_previous(conn, export)          # score the previous run against what really happened (real demand only, before any seed is applied)
@@ -116,6 +118,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     adopted = select_policies(results, cfg.backtest)
 
     rows: list[dict[str, Any]] = []
+    explanations: list[dict[str, Any]] = []
     eligible = 0
     for s in series:
         d = decide(s.get("segment"), adopted)
@@ -123,6 +126,8 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
         level = float(s["service_level"])
         crit = bool(s.get("clinical_critical"))
         eligible += d.eligible
+        first_mean: float | None = None
+        shown_policy = d.policy if d.eligible else FALLBACK
         for h in cfg.horizons:
             if d.eligible:
                 rate = POLICIES[d.policy].rate(history)
@@ -130,6 +135,8 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
                 if rate is None:   # e.g. seasonal naive without a year of history: fall back to the baseline estimator
                     rate, policy_used = POLICIES[BASELINE].rate(history) or 0.0, BASELINE
                 plan = build_plan(policy_used, rate, history, h, min(cfg.lead_time, h), level)
+                if h == cfg.horizons[0]:
+                    first_mean, shown_policy = plan.mean_horizon, policy_used
                 rows.append({"run_id": run_id, "variant_id": s["variant_id"], "horizon_days": h, "mean": plan.mean_horizon, "quantiles": plan.quantiles,
                              "policy_used": policy_used, "eligible": True, "reasons": "seed_used" if s["variant_id"] in report.used else "", "service_level": Decimal(str(level))})
             else:
@@ -138,6 +145,11 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
                              "quantiles": {"min": fb.reorder_point, "max": fb.order_up_to}, "policy_used": FALLBACK, "eligible": False,
                              "reasons": ",".join(d.reasons), "service_level": Decimal(str(level))})
 
+        seed_days = len(s["demand"]) - original_days.get(s["variant_id"], len(s["demand"])) if s["variant_id"] in report.used else 0
+        e = explain(s, d, shown_policy, first_mean, adopted, model_versions(), None if seeds is None or s["variant_id"] not in report.used else seeds.dataset_id, seed_days)
+        e["history_start"], e["history_end"] = date.fromisoformat(e["history_start"]), date.fromisoformat(e["history_end"])
+        explanations.append({"run_id": run_id, "variant_id": s["variant_id"], **e})
+
     cid = get_correlation_id() or set_correlation_id()
     conn.execute(insert(forecast_runs).values(
         id=run_id, started_at=started, through_day=export.get("through_day"), model_versions=model_versions(), input_hash=digest,
@@ -145,6 +157,8 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
         parameter_version_ids=versions or None, dataset_version_id=None if seeds is None else seeds.dataset_id))
     if rows:
         conn.execute(insert(forecast_values), rows)
+    if explanations:
+        conn.execute(insert(forecast_explanations), explanations)
     _store_backtests(conn, run_id, results, adopted)
     payload = json.dumps({"run_id": run_id, "input_hash": digest, "eligible_count": eligible, "dataset_version_id": None if seeds is None else seeds.dataset_id}, sort_keys=True, separators=(",", ":")).encode()
     uri = writer.put(f"events/forecast/{run_id}.json", payload)

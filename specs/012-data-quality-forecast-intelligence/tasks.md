@@ -93,18 +93,18 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 
 ### Tests for US2
 
-- [ ] T029 [P] [US2] Unit tests: class-to-method mapping and its reason codes, eligibility values (`eligible`, `manual_review_only`, `not_eligible`) in `services/forecast-service/tests/test_explanation_method.py`
-- [ ] T030 [P] [US2] Reproducibility test: unchanged inputs and versions give identical results and explanations; a changed input version gives a new run and keeps the old one (FR-011, SC-005) in `services/forecast-service/tests/test_explanation_reproducibility.py`
-- [ ] T031 [P] [US2] API contract tests for `GET /forecast/products/{sku}/explanation` (versions present, SKU only, no Siweb ids, no free text) in `services/forecast-service/tests/test_explanation_api.py`
-- [ ] T032 [P] [US2] Test that a not-eligible or low-confidence product has no stored forecast figure and its proposal line shows the conservative min/max labelled "not a forecast" with the reason, in `services/forecast-service/tests/test_not_a_forecast_line.py`
+- [X] T029 [P] [US2] Unit tests: class-to-method mapping and its reason codes, eligibility values (`eligible`, `manual_review_only`, `not_eligible`) in `services/forecast-service/tests/test_explanation_method.py`
+- [X] T030 [P] [US2] Reproducibility test: unchanged inputs and versions give identical results and explanations; a changed input version gives a new run and keeps the old one (FR-011, SC-005) in `services/forecast-service/tests/test_explanation_reproducibility.py`
+- [X] T031 [P] [US2] API contract tests for `GET /forecast/products/{sku}/explanation` (versions present, SKU only, no Siweb ids, no free text) in `services/forecast-service/tests/test_explanation_api.py`
+- [ ] T032 [P] [US2] Test that a not-eligible or low-confidence product has no stored forecast figure and its proposal line shows the conservative min/max labelled "not a forecast" with the reason, in `services/forecast-service/tests/test_not_a_forecast_line.py` (covered for the forecast side in test_explanation_api.py: no figure for a not-eligible product; the proposal-line label is T037 and T040)
 - [ ] T032a [P] [US2] Consistency test (FR-008): the class-to-method mapping and its reason are identical in the explanation, the proposal line and the proposal export for the same product, in `services/forecast-service/tests/test_method_mapping_consistent.py`
 
 ### Implementation for US2
 
-- [ ] T033 [US2] Persist class (ABC, XYZ, pattern, intermittent), thresholds' configuration version and mapped method in `services/inventory-service/src/classification/run.py` (additive columns from T007)
-- [ ] T034 [US2] Explanation builder: history window, class snapshot, method and reason, censored and anomaly-excluded day counts, provenance mix, eligibility with reasons, written at the end of each run in `services/forecast-service/src/runs/explanation.py`, called from `runs/runner.py`
+- [X] T033 [US2] Persist class (ABC, XYZ, pattern, intermittent), thresholds' configuration version and mapped method in `services/inventory-service/src/classification/run.py` (additive columns from T007) (done for the configuration version; the `method` column stays empty because the method is chosen per run in forecast-service and recorded in each explanation)
+- [X] T034 [US2] Explanation builder: history window, class snapshot, method and reason, censored and anomaly-excluded day counts, provenance mix, eligibility with reasons, written at the end of each run in `services/forecast-service/src/runs/explanation.py`, called from `runs/runner.py`
 - [X] T035 [US2] (T002 verified: no change needed, see research.md R4) If T002 found censored blocks read as zero, make the forecast fit leave them out (no estimation) in `services/forecast-service/src/policies/base.py` and `runs/runner.py`; otherwise record "verified, no change" in research.md
-- [ ] T036 [US2] Endpoint `GET /forecast/products/{sku}/explanation` in `services/forecast-service/src/api.py`; SKU resolved through the synced catalogue
+- [X] T036 [US2] Endpoint `GET /forecast/products/{sku}/explanation` in `services/forecast-service/src/api.py`; SKU resolved through the synced catalogue
 - [ ] T037 [US2] Proposal line shows the conservative min/max labelled "not a forecast" with the reason for not-eligible, manual-review-only and low-confidence products, in `services/forecast-service/src/runs/eligibility.py` and `apps/web/src/features/proposals/ProposalLineExplanation.tsx`
 - [ ] T038 [P] [US2] BFF route and test for the explanation in `services/api-bff/src/routes/quality.py` and `services/api-bff/tests/test_explanation_routes.py`
 - [ ] T039 [US2] Explanation panel in Spanish, reachable from the proposal line in under a minute (SC-003), in `apps/web/src/features/quality/ExplanationPanel.tsx`

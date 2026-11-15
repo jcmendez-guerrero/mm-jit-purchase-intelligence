@@ -192,6 +192,7 @@ forecast_explanations = Table(
     "forecast_explanations", metadata,
     Column("run_id", String(36), ForeignKey("forecast_runs.id"), primary_key=True),
     Column("variant_id", Integer, primary_key=True, autoincrement=False),
+    Column("sku", String(60), index=True),                              # the SKU users see; this service has no catalogue to look it up in
     Column("model_version", String(120), nullable=False),
     Column("dataset_version_id", String(36)),
     Column("config_version_id", String(36)),
