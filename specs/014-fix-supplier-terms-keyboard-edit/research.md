@@ -55,3 +55,7 @@ The root cause was **found during implementation** (2026-11-16) and is recorded 
 **A second, test-only race found while proving stability.** Under 7 parallel workers, 2–5 of 80 runs failed with "element not reachable with the keyboard" at the first `tabTo` (the supplier button), because the supplier list had not rendered yet and the 120 Tab presses ran out. Fix: wait for the button to be visible before tabbing. After it, 4 × 80 runs passed (320 of 320).
 
 **Regression tests added.** A delayed-terms case (fields disabled while loading, then a keyboard edit is kept) fails if the lock is removed; money-term cases by keyboard and mouse; unit cases for the payload and validation.
+
+## Why the loading lock is checked twice
+
+The lock is covered by a unit case (`tests/unit/SuppliersScreen.test.tsx`, fast guard, runs in the normal unit suite) and by an e2e case (`tests/e2e/a11y-all-routes.spec.ts`, "fields stay locked until the saved terms load"). Both fail if the lock is removed. They are kept on purpose: the e2e case proves the real keyboard flow after a late load, which is the original MMI-12 failure; the unit case is the quick check a developer sees first.

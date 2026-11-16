@@ -146,3 +146,10 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 ## Phase 8: Convergence
 
 - [X] T019 Replace the opening paragraph of `specs/014-fix-supplier-terms-keyboard-edit/research.md` ("Root cause is **not yet established** ...") with one that says the cause was found and points to the "Root cause" section, so the file no longer contradicts itself, per FR-004 (partial) — DONE
+
+---
+
+## Phase 9: Convergence
+
+- [X] T020 Update the stale numbers in the evidence notes: change "Tasks T001–T018" to "T001–T019" in `specs/014-fix-supplier-terms-keyboard-edit/pull-request.md` and "790 passed (57 files)" to "791 passed (57 files)" in `specs/014-fix-supplier-terms-keyboard-edit/quickstart.md`, per T017 and T018 (partial) — DONE
+- [X] T021 Decide whether to keep both loading-lock checks (the e2e case "fields stay locked until the saved terms load" in `apps/web/tests/e2e/a11y-all-routes.spec.ts` and the unit case in `apps/web/tests/unit/SuppliersScreen.test.tsx`): keep both and add one line to `specs/014-fix-supplier-terms-keyboard-edit/research.md` saying why (the e2e case proves the real keyboard flow after a late load, the unit case is the fast guard), or drop the e2e case if you prefer, per plan: Testing and FR-003 (unrequested) — DONE: kept both; reason added to `research.md`

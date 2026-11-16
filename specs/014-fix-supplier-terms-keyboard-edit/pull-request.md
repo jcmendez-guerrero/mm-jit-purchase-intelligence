@@ -1,6 +1,6 @@
 ## What and why
 
-Jira [MMI-12](https://mundomascotix.atlassian.net/browse/MMI-12): the e2e check "reference task 3 by keyboard: edit one supplier term and save it" saved lead time `3` instead of `7` and was quarantined with `test.fixme`, so the `e2e` gate could not prove that a keyboard-only buyer can edit a supplier term. Spec: `specs/014-fix-supplier-terms-keyboard-edit`. Tasks T001–T018.
+Jira [MMI-12](https://mundomascotix.atlassian.net/browse/MMI-12): the e2e check "reference task 3 by keyboard: edit one supplier term and save it" saved lead time `3` instead of `7` and was quarantined with `test.fixme`, so the `e2e` gate could not prove that a keyboard-only buyer can edit a supplier term. Spec: `specs/014-fix-supplier-terms-keyboard-edit`. Tasks T001–T019.
 
 **Root cause (screen, already fixed):** the terms form was editable before the saved terms arrived, and the late response replaced what had been typed. `e0e8b18` locks the form until the terms load and keeps the loader independent of `t`; it reached `origin/main` but not the MMI-5 branch where the check was quarantined. Removing the lock and the test's load wait brought the failure back (`Expected: 7, Received: 3`, 1 of 10 runs). See `research.md`.
 

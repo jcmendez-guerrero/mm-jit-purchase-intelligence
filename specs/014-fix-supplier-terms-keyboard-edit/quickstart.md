@@ -63,6 +63,6 @@ In the local app, sign in as buyer, open Proveedores, open a supplier, change "P
 
 - Reproduction (T002–T003): the check passed on this branch because `e0e8b18` already locks the form until the terms load; with the lock and the test's load wait removed it saved `3` in 1 of 10 runs. Details in [research.md](research.md).
 - Stability (T012, SC-001): `--repeat-each=20` on the keyboard check, 20 of 20 passed. The four supplier-terms cases (keyboard lead time, keyboard money term, mouse money term, delayed load) ran 4 × 80 times with 7 workers: 320 of 320 passed after the supplier-button wait was added (before it, 2–5 of 80 failed per run).
-- Unit tests: `npm test`, 790 passed (57 files).
+- Unit tests: `npm test`, 791 passed (57 files).
 - Full suites (T013): full Playwright run 273 passed, 14 skipped (env-gated, none for this check). `python -m gates run --gate e2e` shows no failure; it reports `not_run` only because its last step needs the live compose stack (`PLAYWRIGHT_BASE_URL`), which was not started here.
 - Not done: SC-003 was not timed by a person, and the live-stack Playwright step did not run.
