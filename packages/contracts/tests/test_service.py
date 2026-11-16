@@ -123,6 +123,26 @@ def test_a_body_declared_larger_than_the_inspection_cap_is_left_to_the_route_and
     assert res.status_code == 200 and len(reached) == 1
 
 
+def _chunks(*parts: bytes):
+    def gen():
+        yield from parts
+    return gen()
+
+
+def test_a_chunked_body_with_no_length_is_capped_and_still_reaches_the_route_intact():
+    """Agent 00 review of PR 22 (point 1): without Content-Length the guard stops reading at the cap, and a small body is replayed to the route."""
+    from mmi_common import service
+
+    app, reached = _echo_app()
+    client = TestClient(app)
+    ok = client.post("/echo", content=_chunks(b'{"a": ', b'"hello"}'), headers={"Content-Type": "application/json"})
+    assert ok.status_code == 200 and len(reached) == 1
+    nul = client.post("/echo", content=_chunks(b'{"a": "x\\u00', b'00y"}'), headers={"Content-Type": "application/json"})
+    assert nul.status_code == 422 and len(reached) == 1
+    big = client.post("/echo", content=_chunks(b"x" * service.MAX_INSPECTED_BODY, b"x"), headers={"Content-Type": "application/json"})
+    assert big.status_code == 413 and big.json() == {"detail": "payload_too_large"} and len(reached) == 1
+
+
 def test_a_nul_byte_in_a_form_urlencoded_body_is_refused_before_the_route_runs():
     """T091: a form field is text that gets stored, just like a JSON string."""
     app = create_service_app("demo", validator=None)

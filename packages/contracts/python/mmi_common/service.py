@@ -119,7 +119,17 @@ def create_service_app(
         is_form = media_type == "application/x-www-form-urlencoded"
         # JSON and url-encoded forms are text that gets stored; multipart and uploads carry file bytes, so the routes that store a multipart text field call reject_nul.
         if (media_type == "application/json" or media_type.endswith("+json") or is_form) and not too_large:
-            body = await request.body()
+            if declared.isdigit():
+                body = await request.body()
+            else:                                                                         # no length declared (chunked): stop reading at the cap instead of holding it all
+                chunks: list[bytes] = []
+                size = 0
+                async for chunk in request.stream():
+                    size += len(chunk)
+                    if size > MAX_INSPECTED_BODY:
+                        return JSONResponse({"detail": "payload_too_large"}, status_code=413)
+                    chunks.append(chunk)
+                body = request._body = b"".join(chunks)                                   # replayed to the route
             if b"\x00" in body or (b"%00" in body if is_form else _NUL_ESCAPE.search(body)):
                 return _refused()
         return await call_next(request)
