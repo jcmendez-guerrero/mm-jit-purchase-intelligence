@@ -133,3 +133,9 @@ In US2: T013 and T014 in parallel; T015 in parallel with T016 (service vs web).
 
 - [X] T026 Add `"web"` to `consumers` of the `policy_override_request` entry in `docs/architecture/integration/contract-matrix.json` (hand-added consumers are kept on regeneration) and regenerate or edit `docs/architecture/integration/contract-matrix.md` to match, then run `cd scripts && python -m gates run` per FR-008 and Agent 00's review request 2 (missing)
 - [X] T027 Record Agent 00's confirmation that procurement owns the policy history row (`policy_override_request`, owner `procurement-service` in the matrix) by updating assumption A1 in `specs/014-policy-history-sku/spec.md` and decision R1 in `specs/014-policy-history-sku/research.md` from "pending confirmation" to confirmed, per spec A1 and plan: R1 (partial)
+
+---
+
+## Phase 10: Convergence
+
+- [X] T028 Stop sending the variant id to the browser in the status page: wrap the `policy_history` card in `_without_variant_ids` (from `services/api-bff/src/routes/policies.py`) in `services/api-bff/src/routes/admin_status.py`, drop `variant_id` from the `policy_history` row type in `apps/web/src/api/client.ts`, add a gateway test in `services/api-bff/tests/test_admin_status.py` that no row in the card has `variant_id`, and amend FR-008 in `specs/014-policy-history-sku/spec.md` (the variant id stays in the service-to-service payload only) per project rule 5 and data-model "never shown to people" (partial)

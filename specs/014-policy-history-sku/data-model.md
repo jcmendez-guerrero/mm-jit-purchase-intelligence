@@ -7,7 +7,7 @@ No new tables, columns or migrations. The feature changes the shape of one respo
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | string (uuid) | Row identity |
-| `variant_id` | integer ≥ 1 | Internal product reference; stays in the payload for API use, never shown to people |
+| `variant_id` | integer ≥ 1 | Internal product reference; stays in the procurement response, removed by the gateway before the browser, never shown to people |
 | **`sku`** | string or null | **New in the contract.** Current catalogue SKU of the product (`product_refs.sku`, trimmed); null if unknown or blank |
 | `field` | `safety_stock` / `min` / `max` | Unchanged |
 | `recommended_value`, `requested_value` | integer ≥ 0 | Unchanged |

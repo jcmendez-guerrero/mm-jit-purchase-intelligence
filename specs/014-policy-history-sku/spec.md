@@ -71,12 +71,12 @@ The owner of the service updates the shared contract first, so that consumers, g
 
 - **FR-001**: Every policy history row returned to the administration status screen that refers to a product MUST include a `sku` value next to its internal product identifier.
 - **FR-002**: The `sku` value MUST be the SKU of that product in the synced catalogue at the time of the request, and MUST be `null` when the row has no product reference or the product cannot be resolved.
-- **FR-003**: The administration screen MUST show the SKU in the policy history column and MUST NOT display the Siweb variant id there or anywhere on the screen.
+- **FR-003**: The administration screen MUST show the SKU in the policy history column and MUST NOT display the Siweb variant id there or anywhere on the screen, nor send it to the browser in the status response.
 - **FR-004**: Rows with a null SKU MUST still be listed, with a Spanish "not applicable" marker, so no history is hidden.
 - **FR-005**: The SKU MUST be resolved by the service that owns the product data, not by the gateway; the gateway only passes the field through and does no resolution or arithmetic (ADR-023).
 - **FR-006**: The JSON Schema for the history row MUST be updated before any code, and the generated types and contract tests MUST cover a row with a SKU, a row with a null SKU, a row without the field (accepted, because the change is additive), and a SKU that is a number or an empty string (refused).
 - **FR-007**: The entry for the policy history column MUST be removed from the web variant-id baseline, and the test that scans for variant-id display MUST keep passing.
-- **FR-008**: The change MUST be additive: existing consumers that ignore unknown fields keep working, and the existing variant identifier stays in the payload for API use.
+- **FR-008**: The change MUST be additive: existing consumers that ignore unknown fields keep working, and the variant identifier stays in the service-to-service payload but is removed by the gateway before the browser receives the rows (rule 5).
 - **FR-009**: Resolving SKUs MUST NOT add a request to Siweb, store new personal or free-text data, or change what the history records.
 - **FR-010**: Any new user-facing text (the "not applicable" marker and its accessible label) MUST be in the es-ES catalogue, with no hard-coded strings.
 

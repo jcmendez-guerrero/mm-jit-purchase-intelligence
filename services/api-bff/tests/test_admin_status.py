@@ -65,11 +65,11 @@ def test_only_admins_see_the_status(role_store):
         i.forward.assert_not_called()
 
 
-def test_policy_history_passes_the_sku_through_unchanged(role_store):
-    """MMI-14: the gateway only forwards the rows procurement resolved; a null SKU stays null and the row stays."""
+def test_policy_history_carries_the_sku_and_never_the_variant_id(role_store):
+    """MMI-14 (rule 5): the rows keep their SKU (a null SKU stays null, the row stays) and the ERP variant id stays inside the platform."""
     rows = [{"id": "o1", "status": "approved", "variant_id": 9001, "sku": "SYN-9001"}, {"id": "o2", "status": "pending", "variant_id": 9002, "sku": None}]
     body = get(admin_headers(), *clients(proc=rows)).json()
-    assert body["policy_history"]["data"] == rows
+    assert body["policy_history"]["data"] == [{"id": "o1", "status": "approved", "sku": "SYN-9001"}, {"id": "o2", "status": "pending", "sku": None}]
 
 
 def test_policy_history_asks_procurement_for_the_20_rows_the_screen_shows(role_store):

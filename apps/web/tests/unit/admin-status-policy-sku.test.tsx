@@ -21,16 +21,15 @@ const status = (rows: AdminStatus["policy_history"]): AdminStatus => ({
 });
 
 describe("administration status: policy history", () => {
-  it("shows each SKU and never the variant id, and keeps a row without SKU", async () => {
+  it("shows each SKU and and keeps a row without SKU", async () => {
     vi.spyOn(api, "getAdminStatus").mockResolvedValue(status({ ok: true, data: [
-      { id: "o1", status: "approved", variant_id: 9017351, sku: "SYN-0001" },
-      { id: "o2", status: "pending", variant_id: 9017352, sku: null },
+      { id: "o1", status: "approved", sku: "SYN-0001" },
+      { id: "o2", status: "pending", sku: null },
     ] }));
     vi.spyOn(api, "getOpsSettings").mockRejectedValue(new Error("no thresholds"));
-    const { container } = render(<AdminStatusScreen />);
+    render(<AdminStatusScreen />);
     expect(await screen.findByText("SYN-0001")).toBeTruthy();
     expect(screen.getByText("No aplica")).toBeTruthy();
     expect(screen.getAllByRole("row").filter((r) => /Aprobado|Pendiente/.test(r.textContent ?? "")).length).toBe(2);
-    expect(container.textContent).not.toMatch(/9017351|9017352/);
   });
 });
