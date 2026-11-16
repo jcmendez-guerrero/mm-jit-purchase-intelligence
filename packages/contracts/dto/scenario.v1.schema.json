@@ -72,6 +72,51 @@
     },
     "created_by": {
       "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "description": "Computed summary; only the changes list is described here",
+      "properties": {
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["variant_id", "sku", "supplier_before", "supplier_after", "qty_before", "qty_after", "reasons"],
+            "properties": {
+              "variant_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sku": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "description": "Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id."
+              },
+              "supplier_before": {
+                "type": ["string", "null"]
+              },
+              "supplier_after": {
+                "type": ["string", "null"]
+              },
+              "qty_before": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "qty_after": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "description": "Computed against a read-only copy of inputs; never writes live tables or the ERP."

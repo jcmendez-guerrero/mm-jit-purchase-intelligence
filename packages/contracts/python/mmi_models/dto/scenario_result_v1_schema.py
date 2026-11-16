@@ -17,6 +17,13 @@ class Line(BaseModel):
         extra='forbid',
     )
     variant_id: Annotated[int, Field(ge=1)]
+    sku: Annotated[
+        str | None,
+        Field(
+            description='Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.',
+            min_length=1,
+        ),
+    ]
     quantity: Annotated[int, Field(ge=0)]
     unit_cost: money_v1_schema.Money
     discount: money_v1_schema.Money | None = None

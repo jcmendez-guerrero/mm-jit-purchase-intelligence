@@ -91,6 +91,17 @@ def test_sku_resolves_to_its_variant_ignoring_case_and_spaces(conn):
     assert sku_for_variant(conn, 11) == "SYN-0001"
 
 
+def test_skus_for_variants_resolves_many_in_one_call_and_never_returns_a_blank(conn):
+    from policies.service import skus_for_variants
+
+    add_ref(conn, 11, " SYN-0001 ")
+    add_ref(conn, 12, "   ")
+    add_ref(conn, 13, None)
+    got = skus_for_variants(conn, [11, 12, 13, 14, 11])
+    assert got == {11: "SYN-0001", 12: None, 13: None, 14: None}           # trimmed; blank, null and unknown all give None
+    assert got[11] == sku_for_variant(conn, 11) and skus_for_variants(conn, []) == {}
+
+
 def test_unknown_and_ambiguous_skus_are_refused(conn):
     add_ref(conn, 11, "SYN-0002")
     add_ref(conn, 12, "syn-0002 ")

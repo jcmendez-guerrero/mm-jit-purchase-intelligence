@@ -28,6 +28,24 @@ export interface Scenario {
   };
   result_hash?: string | null;
   created_by?: string;
+  /**
+   * Computed summary; only the changes list is described here
+   */
+  summary?: {
+    changes?: {
+      variant_id: number;
+      /**
+       * Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.
+       */
+      sku: string | null;
+      supplier_before: string | null;
+      supplier_after: string | null;
+      qty_before: number;
+      qty_after: number;
+      reasons: string[];
+    }[];
+    [k: string]: unknown;
+  };
 }
 export interface Money {
   /**

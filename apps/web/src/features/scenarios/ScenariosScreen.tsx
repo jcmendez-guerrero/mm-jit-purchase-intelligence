@@ -217,7 +217,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
               {s.changes.map((c) => (
                 <li key={c.variant_id}>
                   {t("scenarios.change_row", {
-                    variant: c.variant_id, from: supplierName(c.supplier_before), to: supplierName(c.supplier_after), qb: c.qty_before, qa: c.qty_after,
+                    sku: c.sku ?? t("dashboard.drill.no_sku"), from: supplierName(c.supplier_before), to: supplierName(c.supplier_after), qb: c.qty_before, qa: c.qty_after,
                     reasons: c.reasons.map((r) => t(reasonKey(r), { defaultValue: r })).join(", "),
                   })}
                 </li>
@@ -252,11 +252,11 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
               <h5>{r.supplier_name ?? supplierName(r.supplier_id)}</h5>
               <div className="mmi-table-wrapper">
                 <table className="mmi-table" aria-label={t("scenarios.group_lines", { name: r.supplier_name ?? supplierName(r.supplier_id) })}>
-                  <thead><tr><th>{t("common.variant")}</th><th>{t("scenarios.line.qty")}</th><th>{t("scenarios.line.unit_cost")}</th><th>{t("scenarios.line.total")}</th></tr></thead>
+                  <thead><tr><th>{t("common.sku")}</th><th>{t("scenarios.line.qty")}</th><th>{t("scenarios.line.unit_cost")}</th><th>{t("scenarios.line.total")}</th></tr></thead>
                   <tbody>
                     {r.lines.map((ln) => (
                       <tr key={ln.variant_id}>
-                        <td>#{ln.variant_id}{ln.clinical_critical ? ` · ${t("scenarios.line.critical")}` : ""}</td>
+                        <td>{ln.sku ?? t("dashboard.drill.no_sku")}{ln.clinical_critical ? ` · ${t("scenarios.line.critical")}` : ""}</td>
                         <td>{ln.qty}</td>
                         <td>{formatCurrencyEUR(ln.unit_cost)}</td>
                         <td>{formatCurrencyEUR(ln.line_total)}</td>

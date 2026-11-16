@@ -10,6 +10,10 @@ export interface ScenarioResult {
   supplier_id: string;
   lines: {
     variant_id: number;
+    /**
+     * Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.
+     */
+    sku: string | null;
     quantity: number;
     unit_cost: Money;
     discount?: Money | null;

@@ -797,7 +797,7 @@
   "scenarios.critical": "Productos clínicamente críticos en el pedido: {{ids}}",
   "scenarios.changes": "Qué cambia y por qué",
   "scenarios.changes_none": "El escenario no cambia ninguna cantidad ni proveedor.",
-  "scenarios.change_row": "Variante {{variant}}: {{from}} ({{qb}}) → {{to}} ({{qa}}) — {{reasons}}",
+  "scenarios.change_row": "{{sku}}: {{from}} ({{qb}}) → {{to}} ({{qa}}) — {{reasons}}",
   "scenarios.none": "ninguno",
   "scenarios.reason.supplier_disabled": "proveedor desactivado",
   "scenarios.reason.min_order_value_changed": "pedido mínimo modificado",

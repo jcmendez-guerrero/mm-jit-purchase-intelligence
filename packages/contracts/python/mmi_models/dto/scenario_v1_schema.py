@@ -33,6 +33,29 @@ class Status(Enum):
     promoted = 'promoted'
 
 
+class Change(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    variant_id: Annotated[int, Field(ge=1)]
+    sku: Annotated[
+        str | None,
+        Field(
+            description='Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.',
+            min_length=1,
+        ),
+    ]
+    supplier_before: str | None
+    supplier_after: str | None
+    qty_before: Annotated[int, Field(ge=0)]
+    qty_after: Annotated[int, Field(ge=0)]
+    reasons: list[str]
+
+
+class Summary(BaseModel):
+    changes: list[Change] | None = None
+
+
 class Scenario(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -47,3 +70,7 @@ class Scenario(BaseModel):
     ] = None
     result_hash: str | None = None
     created_by: str | None = None
+    summary: Annotated[
+        Summary | None,
+        Field(description='Computed summary; only the changes list is described here'),
+    ] = None

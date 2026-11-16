@@ -18,11 +18,16 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["variant_id", "quantity", "unit_cost"],
+        "required": ["variant_id", "sku", "quantity", "unit_cost"],
         "properties": {
           "variant_id": {
             "type": "integer",
             "minimum": 1
+          },
+          "sku": {
+            "type": ["string", "null"],
+            "minLength": 1,
+            "description": "Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id."
           },
           "quantity": {
             "type": "integer",

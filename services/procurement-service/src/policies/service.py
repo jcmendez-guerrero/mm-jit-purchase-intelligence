@@ -9,7 +9,7 @@ product (variant) > segment (A/B/C/critical/sparse) > global.
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -224,6 +224,16 @@ def variant_known(conn: Connection, variant_id: int) -> bool:
 def sku_for_variant(conn: Connection, variant_id: int) -> str | None:
     r = conn.execute(select(product_refs.c.sku).where(product_refs.c.variant_id == variant_id)).first()
     return None if r is None or r.sku is None else str(r.sku).strip()
+
+
+def skus_for_variants(conn: Connection, variant_ids: Iterable[int]) -> dict[int, str | None]:
+    """One query for many variants: the trimmed SKU, or None when there is no catalogue row or the SKU is empty."""
+    ids = sorted({int(v) for v in variant_ids})
+    out: dict[int, str | None] = {v: None for v in ids}
+    if ids:
+        for r in conn.execute(select(product_refs.c.variant_id, product_refs.c.sku).where(product_refs.c.variant_id.in_(ids))).all():
+            out[int(r.variant_id)] = (str(r.sku).strip() or None) if r.sku is not None else None
+    return out
 
 
 def history(conn: Connection, scope: str, key: str) -> list[dict[str, Any]]:
