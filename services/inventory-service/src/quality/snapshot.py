@@ -72,6 +72,11 @@ def refresh_flags(conn: Connection, variant_id: int, now: datetime | None = None
     return len(new)
 
 
+def _utc(moment: datetime) -> str:
+    """A stored moment as ISO text that always says UTC (SQLite hands back naive values, PostgreSQL aware ones)."""
+    return (moment if moment.tzinfo else moment.replace(tzinfo=UTC)).astimezone(UTC).isoformat()
+
+
 def _plain(value: Any) -> str:
     """A stored decimal as plain text: '90' for a whole number, '2.5' otherwise (never scientific notation)."""
     d = Decimal(value)
@@ -81,7 +86,7 @@ def _plain(value: Any) -> str:
 def list_flags(conn: Connection, variant_id: int) -> list[dict[str, Any]]:
     rows = conn.execute(select(anomaly_flags).where(anomaly_flags.c.variant_id == variant_id).order_by(anomaly_flags.c.day, anomaly_flags.c.rule_id)).all()
     return [{"day": r.day.isoformat(), "rule_id": r.rule_id, "original_value": _plain(r.original_value),
-             "decision": r.decision, "decided_by": r.decided_by, "decided_at": r.decided_at.isoformat() if r.decided_at else None, "reason_code": r.reason_code} for r in rows]
+             "decision": r.decision, "decided_by": r.decided_by, "decided_at": _utc(r.decided_at) if r.decided_at else None, "reason_code": r.reason_code} for r in rows]
 
 
 def decide(conn: Connection, variant_id: int, day: date, decision: str, reason_code: str | None, actor: str, now: datetime | None = None) -> bool:
@@ -157,4 +162,4 @@ def build_snapshot(conn: Connection, variant_id: int, start: date, end: date, no
             "reason_counts": [{"key": k, "count": v} for k, v in sorted(stored.reason_counts.items())],
             "excluded_by_type": [{"key": k, "count": v} for k, v in sorted(stored.excluded_by_type.items())], "anomaly_count": stored.anomaly_count,
             "censored_days": stored.censored_days, "origin": stored.origin, "config_version_id": stored.config_version_id, "dataset_version_id": stored.dataset_version_id,
-            "built_at": stored.built_at.isoformat()}
+            "built_at": _utc(stored.built_at)}

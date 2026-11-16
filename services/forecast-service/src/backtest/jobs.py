@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import time
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -25,6 +27,8 @@ from sqlalchemy.exc import IntegrityError
 
 from backtest.product import backtest_product
 from backtest.runner import BacktestConfig
+
+log = logging.getLogger("forecast.backtest")
 
 
 class BacktestConflict(Exception):
@@ -54,10 +58,12 @@ def _methods(engine: Engine) -> dict[int, tuple[str, str | None, str | None]]:
 def run_backtest(engine: Engine, source: Any, *, scope: str, sku: str | None, actor: str, cfg: BacktestConfig | None = None, now: datetime | None = None) -> dict[str, Any]:
     cfg = cfg or BacktestConfig()
     now = now or datetime.now(UTC)
+    clock = time.monotonic()
     try:
         export = source.fetch()
     except Exception as exc:                                           # the series could not be read: the attempt is recorded as failed and nothing else is written
         failed_id = str(uuid.uuid4())
+        log.warning("BACKTEST_JOB_FAILED job=%s scope=%s stage=series", failed_id, scope)
         with engine.begin() as c:
             c.execute(insert(backtest_jobs).values(id=failed_id, scope=scope, status="failed", requested_by=actor, started_at=now, finished_at=now))
         raise JobFailed(failed_id) from exc
@@ -73,10 +79,12 @@ def run_backtest(engine: Engine, source: Any, *, scope: str, sku: str | None, ac
     with engine.begin() as c:
         existing = c.execute(select(backtest_jobs.c.status, backtest_jobs.c.scope).where(backtest_jobs.c.id == job_id)).first()
         if existing is not None and existing.status == "completed":
+            log.info("BACKTEST_JOB_REUSED job=%s scope=%s products=%d", job_id, scope, len(series))
             return {"job_id": job_id, "status": "completed", "reused": True, "products": len(series)}
         if scope == "catalogue":
             running = c.execute(select(backtest_jobs.c.id).where(backtest_jobs.c.scope == "catalogue", backtest_jobs.c.status == "running")).scalar()
             if running is not None:
+                log.info("BACKTEST_JOB_REFUSED running=%s", running)
                 raise BacktestConflict(running)
         if existing is not None:                                       # a failed attempt of the same inputs: clear the marker and try again
             c.execute(backtest_jobs.delete().where(backtest_jobs.c.id == job_id))
@@ -102,7 +110,9 @@ def run_backtest(engine: Engine, source: Any, *, scope: str, sku: str | None, ac
             c.execute(update(backtest_jobs).where(backtest_jobs.c.id == job_id).values(status="completed", finished_at=datetime.now(UTC)))
             append(c, actor, BACKTEST_COMPLETED, "product_backtest", job_id, after={"scope": scope, "products": len(rows), "flagged": sum(1 for r in rows if not r["beats_baseline"])})
     except Exception as exc:
+        log.warning("BACKTEST_JOB_FAILED job=%s scope=%s stage=compute error=%s", job_id, scope, type(exc).__name__)
         with engine.begin() as c:
             c.execute(update(backtest_jobs).where(backtest_jobs.c.id == job_id).values(status="failed", finished_at=datetime.now(UTC)))
         raise JobFailed(job_id) from exc
+    log.info("BACKTEST_JOB_DONE job=%s scope=%s products=%d duration_ms=%d", job_id, scope, len(series), (time.monotonic() - clock) * 1000)
     return {"job_id": job_id, "status": "completed", "reused": False, "products": len(series)}

@@ -47,8 +47,8 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 - [X] T012 [P] Add the shared Spanish strings and the provenance label type (`observed`, `estimated`, `manual`) in `apps/web/src/i18n/es-ES.json` and `services/forecast-service/src/locale/es-ES.json`
 - [X] T013 Provenance guard: one function that assigns the label to every demand row exported from inventory-service to the forecast; `observed` only for ERP-collected movements, never for seed, local-export or imputed values, in `services/inventory-service/src/demand/provider.py`
 - [X] T014 [P] Security-abuse test for the provenance guard across all sources (SC-002, FR-014) in `services/inventory-service/tests/test_provenance_labels.py`
-- [ ] T014a [P] Conventions test (FR-023): timestamps stored in UTC with the original text kept, amounts as decimal strings never floats, user-facing identifiers are SKUs and no Siweb ids appear in responses, in `services/inventory-service/tests/test_conventions.py` and `services/forecast-service/tests/test_conventions.py`
-- [ ] T014b [P] Origin-mixing test: a catalogue with ERP products and feature 004 local-export products (surrogate ids from 9,000,000) never combines the two origins in snapshots, classes, backtests or portfolio counts, in `services/inventory-service/tests/test_origin_not_mixed.py`
+- [X] T014a [P] Conventions test (FR-023): timestamps stored in UTC with the original text kept, amounts as decimal strings never floats, user-facing identifiers are SKUs and no Siweb ids appear in responses, in `services/inventory-service/tests/test_conventions.py` and `services/forecast-service/tests/test_conventions.py`
+- [X] T014b [P] Origin-mixing test: a catalogue with ERP products and feature 004 local-export products (surrogate ids from 9,000,000) never combines the two origins in snapshots, classes, backtests or portfolio counts, in `services/inventory-service/tests/test_origin_not_mixed.py`
 
 **Checkpoint**: schemas, tables, thresholds, audit and provenance in place; stories can start.
 
@@ -187,11 +187,11 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 
 ## Phase 8: Polish and cross-cutting
 
-- [ ] T066 [P] Retention (FR-025): retention job that removes the four new tables' rows only after 5 years, audited with counts, plus a test that nothing is deleted or overwritten earlier, in `services/inventory-service/src/worker.py`, `services/forecast-service/src/worker.py` and `tests/test_retention_quality.py` in each service
-- [ ] T067 [P] Observability: job duration, failure and queue signals for snapshot, class and backtest jobs without secrets or personal data (principle V)
-- [ ] T068 [P] Security-abuse tests: SKU injection, oversized and malformed bodies, formula-safe exports, no free-text or tax-id fields accepted, in each service's `tests/`
-- [ ] T069 [P] Cost check: confirm no always-on resource added and scale-to-zero and job caps respected; note storage growth estimate under FR-024 in `plan.md`
-- [ ] T070 Verify that `plan.md` and `research.md` still match the clarified decisions and the choices made during implementation (they were updated before implementation; record any drift)
+- [X] T066 [P] Retention (FR-025): retention job that removes the four new tables' rows only after 5 years, audited with counts, plus a test that nothing is deleted or overwritten earlier, in `services/inventory-service/src/worker.py`, `services/forecast-service/src/worker.py` and `tests/test_retention_quality.py` in each service
+- [X] T067 [P] Observability: job duration, failure and queue signals for snapshot, class and backtest jobs without secrets or personal data (principle V)
+- [X] T068 [P] Security-abuse tests: SKU injection, oversized and malformed bodies, formula-safe exports, no free-text or tax-id fields accepted, in each service's `tests/`
+- [X] T069 [P] Cost check: confirm no always-on resource added and scale-to-zero and job caps respected; note storage growth estimate under FR-024 in `plan.md`
+- [X] T070 Verify that `plan.md` and `research.md` still match the clarified decisions and the choices made during implementation (they were updated before implementation; record any drift)
 - [ ] T071 Run `python -m gates run` from `scripts/`, the full test suites and the Playwright run; capture Spanish-UI screenshots for the PR
 - [ ] T072 Walk through every scenario in [quickstart.md](quickstart.md) and record the result
 - [ ] T073 Open one PR following `.github/pull_request_template.md` (data, security, cost, contract impact) linking MMI-4 and the Confluence page
@@ -227,7 +227,7 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 ## Phase 9: Convergence
 
 - [X] T074 After Agent 00 answers the event-design decision in `contracts/matrix-request.md`, align `plan.md` (portfolio data flow), `contracts/quality-intelligence.md` (Events), `data-model.md` and the event names in T005, T044, T060a and T060b with the chosen option, per plan: portfolio data flow (partial) DONE: the portfolio was built with a pull instead of an event, so plan.md, the contract, data-model.md and matrix-request.md were corrected to that; no Agent 00 ruling is needed for it
-- [ ] T075 Write T014a (conventions: UTC with original text, decimals, SKU-only) and T014b (no mixing of local-export and ERP origins) only after T022 to T024 exist, and move them to run right after those tasks, per FR-023 and the spec edge case on local exports (partial)
+- [X] T075 Write T014a (conventions: UTC with original text, decimals, SKU-only) and T014b (no mixing of local-export and ERP origins) only after T022 to T024 exist, and move them to run right after those tasks, per FR-023 and the spec edge case on local exports (partial)
 - [X] T076 Install the web dependencies in `apps/web` and run `npm test` and `npm run lint` so the ten new `quality.*` es-ES strings added in T012 are checked by the existing web tests, per FR-019 (partial)
 - [ ] T077 Before opening the PR, check whether feature 011's inventory migration `0008` has merged; if it has, renumber `services/inventory-service/migrations/versions/0008_quality_intelligence.py` to 0009, point `down_revision` at 0008, update `tests/test_migration_quality.py` and re-run the PostgreSQL migration test (`RUN_PG_MIGRATIONS=1 pytest infra/tests/test_migrations_postgres.py`), per T007 (partial)
 - [ ] T078 Document the additive `provenance` field of `GET /export/series` in `contracts/quality-intelligence.md` and ask Agent 00 whether this service-to-service endpoint needs a contract-matrix entry, per FR-014 (partial)

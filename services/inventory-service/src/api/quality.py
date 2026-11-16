@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import time
 from collections.abc import Callable
 from datetime import UTC, date, datetime
 from typing import Any
@@ -91,6 +92,7 @@ def build_quality_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> A
     @router.post("/quality/recompute")
     def recompute(conn: Connection = Depends(conn_dep), principal: Any = Depends(buyer_or_admin)) -> dict[str, Any]:
         """Rebuilds flags, snapshots and classes for every product. Runs inside the request for now; the same inputs give the same job id and no duplicate rows."""
+        started = time.monotonic()
         ids = [int(v) for v in conn.execute(select(stock_history.c.variant_id).where(stock_history.c.warehouse_id == ALL_WAREHOUSES).distinct()
                                             .order_by(stock_history.c.variant_id)).scalars()]
         service_ids = set(conn.execute(select(variants.c.external_id).where(variants.c.is_service.is_(True))).scalars())
@@ -114,6 +116,7 @@ def build_quality_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> A
         through = conn.execute(select(func.max(stock_history.c.day))).scalar()
         job = hashlib.sha256(f"{through}|{current_config()[1]}|{done}".encode()).hexdigest()[:16]
         audit(conn, principal.subject, CLASSES_RECOMPUTED, "product_segments", job, after={"products": done, "segments": segments, "config": current_config()[1]})
+        log.info("QUALITY_RECOMPUTE_DONE job=%s products=%d eligibility=%s duration_ms=%d", job, done, state, (time.monotonic() - started) * 1000)
         return {"job_id": job, "status": "completed", "products": done, "eligibility": state}
 
     def parse_filters(category: str | None, supplier_id: str | None, family: str | None) -> Any:
