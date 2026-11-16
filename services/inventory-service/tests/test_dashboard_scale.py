@@ -49,6 +49,9 @@ def big(engine):
         c.execute(insert(stock_snapshots), [{"variant_id": i, "warehouse_id": ALL_WAREHOUSES, "snapshot_date": TODAY, "on_hand": 5, "available": 5, "reserved": 0} for i in ids])
         c.execute(insert(demand_observations), [{"variant_id": i, "warehouse_id": 1, "day": TODAY - timedelta(days=d), "demand_qty": 1, "censored": False, "lineage": "m"}
                                                 for i in range(1, SELLERS + 1) for d in range(60)])
+    if engine.dialect.name == "postgresql":                   # after a bulk load the planner needs fresh statistics, as it gets in production from autovacuum
+        with engine.begin() as c:
+            c.exec_driver_sql("ANALYZE")
     return engine
 
 
