@@ -100,7 +100,7 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 - [X] T014 [P] Mark the MMI-12 references as resolved in `docs/architecture/integration/verification.md`, `docs/architecture/integration/feature-status.md`, `docs/architecture/integration/feature-status.json` and `specs/013-procurement-proposals-scenarios/pull-request.md`
 - [X] T015 [P] Confirm FR-007 and SC-005: the diff touches no validation, versioning, permission, audit or ERP code (review `git diff main --stat`), and that the existing viewer read-only and revision-conflict cases in `apps/web/tests/unit/SuppliersScreen.test.tsx` still pass unchanged (spec edge cases)
 - [X] T016 Confirm FR-008 and FR-009: any new user-facing text is in `apps/web/src/i18n/es-ES.json` (no hard-coded strings) and every new test uses the existing synthetic supplier ("Proveedor Sintético A") only; check SC-003 by hand with quickstart step 6 (under 1 minute, saved value equals typed value) — DONE for FR-008 and FR-009 (no locale file touched, no new user text, only the synthetic supplier). SC-003 was not timed by a person; the automated keyboard run completes the edit in about 1 s.
-- [ ] T017 Fill the PR from `.github/pull_request_template.md` (data, security, cost, contract impact: none) with the root cause and the 20-run result, and mark the finished tasks `[X]` in `specs/014-fix-supplier-terms-keyboard-edit/tasks.md`
+- [X] T017 Fill the PR from `.github/pull_request_template.md` (data, security, cost, contract impact: none) with the root cause and the 20-run result, and mark the finished tasks `[X]` in `specs/014-fix-supplier-terms-keyboard-edit/tasks.md` — DONE: `specs/014-fix-supplier-terms-keyboard-edit/pull-request.md`
 
 ---
 
@@ -134,3 +134,9 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 - [P] tasks = different files, no dependencies.
 - Commit after each task or logical group; keep the change small and test-first.
 - If T003 shows the defect is only in the test, T006 is a test-only change and T007 is skipped.
+
+---
+
+## Phase 7: Convergence
+
+- [X] T018 Add a unit case in `apps/web/tests/unit/SuppliersScreen.test.tsx` that delays `api.getSupplierTerms`, asserts the "Plazo de entrega (días)" field is disabled until it resolves, then enabled with the loaded value, per plan: Testing and FR-003 (partial) — DONE: fails without the lock, passes with it
