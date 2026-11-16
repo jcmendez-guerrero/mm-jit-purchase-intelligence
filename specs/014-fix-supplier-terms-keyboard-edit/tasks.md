@@ -140,3 +140,9 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 ## Phase 7: Convergence
 
 - [X] T018 Add a unit case in `apps/web/tests/unit/SuppliersScreen.test.tsx` that delays `api.getSupplierTerms`, asserts the "Plazo de entrega (días)" field is disabled until it resolves, then enabled with the loaded value, per plan: Testing and FR-003 (partial) — DONE: fails without the lock, passes with it
+
+---
+
+## Phase 8: Convergence
+
+- [X] T019 Replace the opening paragraph of `specs/014-fix-supplier-terms-keyboard-edit/research.md` ("Root cause is **not yet established** ...") with one that says the cause was found and points to the "Root cause" section, so the file no longer contradicts itself, per FR-004 (partial) — DONE

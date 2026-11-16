@@ -1,6 +1,6 @@
 # Research: Fix Supplier Terms Keyboard Edit
 
-Root cause is **not yet established**: dependencies are not installed in this worktree, so the check could not be run during planning. This file records what the code shows and the ordered hypotheses to test first.
+The root cause was **found during implementation** (2026-11-16) and is recorded in the last section, "Root cause": the form was editable before the saved terms loaded (hypothesis H2). The sections before it are the planning notes: what the code showed and the ordered hypotheses that were tested.
 
 ## What the code already does
 
