@@ -44,3 +44,5 @@ Compared the screens on this branch with `claude/jira-mmi-8-spec-f00d63` (PR 22,
 | `OverrideEditor.tsx` | typed id | unchanged | a SKU route for `product-suppliers` overrides |
 
 So three of the nine are blocked only by PR 22 merging; four need new `sku` fields or a SKU route. This feature does not edit the three PR 22 files, to avoid conflicts.
+
+- **Owner requests.** The four changes in services this feature does not own (data-quality items, policy history, scenario changes and lines, SKU route for overrides) are written up, schema first, in `evidence/owner-requests.md` and opened in Jira as MMI-13, MMI-14, MMI-15 and MMI-16 under MMI-1 (T067).

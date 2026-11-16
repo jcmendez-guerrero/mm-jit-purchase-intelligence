@@ -174,3 +174,9 @@
 - [ ] T064 Decide with the owner whether the catalogue uses formal or informal address, write the choice in `web/src/i18n/glossary.json` or the spec, convert `web/src/i18n/es-ES.json` to it, and add a test that flags the other form per Agent 00 comment 5 and FR-009 (partial)
 - [ ] T065 After PR 22 merges, merge `main` into this branch, resolve the conflicts in `web/src/api/client.ts`, `web/src/i18n/es-ES.json` and the policy and dashboard screens, and rerun unit, lint, build and Playwright per Agent 00 comment 6 (partial)
 - [X] T066 [P] Make closing the product detail replace the history entry (`replace: id === null`) in `web/src/app/App.tsx`, with a Playwright check that Back after closing leaves the panel per US1 and review finding 4 (partial)
+
+## Phase 14: Convergence
+
+- [X] T067 Write the four owner requests, schema first, in `evidence/owner-requests.md` (a `sku` in the data-quality items for inventory; a `sku` in the policy history for procurement or forecast; a `sku` in scenario changes and lines for procurement; a SKU route for the `product-suppliers` overrides for procurement) and open each with its owner, so T050 and T054 can proceed, per Agent 00 re-review 2 and FR-004 (contradicts)
+- [ ] T068 Ask the owner of PR 25 whether any ERP hand-off needs the "Variante (ID Siweb)" column of the proposal exports; if none does, request its removal in `services/procurement-service/src/proposals/export.py` and its locale file, record the answer in `agent-00-contract-note.md`, and close T059 per Agent 00 re-review 1 and FR-004 (contradicts)
+- [ ] T069 [P] Extend T065: when merging `main` after PR 22 and PR 25 land, also resolve the conflict in `web/src/features/proposals/ProposalsScreen.tsx` (PR 25), besides `PurchasingSection.tsx` and `web/src/i18n/es-ES.json` (PR 22), then rerun unit, lint, build and Playwright per Agent 00 re-review, merge order (partial)
