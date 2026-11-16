@@ -8,7 +8,7 @@ Existing endpoints stay as implemented in `services/procurement-service/src/api/
 |---|---|---|
 | GET | `/suppliers/{id}/terms` | history, version in force, planned versions |
 | PUT | `/suppliers/{id}/terms` | `If-Match: <version>`; 428 when missing after first save; 412 with current version on stale |
-| GET/PUT | `/product-suppliers/{variant}/{supplier}/terms` | override versions, same preconditions |
+| GET/PUT | `/product-suppliers/{sku}/{supplier}/terms` | override versions, same preconditions (by SKU since MMI-16, spec 014) |
 | POST/PATCH | `/suppliers`, `/suppliers/{id}` | PATCH needs `If-Match` |
 | POST | `/suppliers/{id}/deactivate` / `reactivate` | |
 | PUT/DELETE | `/suppliers/{id}/links/{sku}` | SKU in the path, never an ERP id |

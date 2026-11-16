@@ -18,7 +18,7 @@ const EFFECTIVE_FIELDS = ["lead_time_days", "pack_multiple", "min_qty_units", "p
 
 export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
   const { t } = useTranslation();
-  const [variant, setVariant] = useState("");
+  const [skuText, setSkuText] = useState("");
   const [view, setView] = useState<OverrideView | null>(null);
   const [form, setForm] = useState<OverrideForm>(overrideToForm(null));
   const [baseline, setBaseline] = useState<OverrideForm>(overrideToForm(null));
@@ -28,12 +28,12 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useActionNotice();
 
-  const variantId = Number(variant);
+  const sku = skuText.trim();
   const load = async () => {
     setError(null);
     setNotice(null);
     try {
-      const v = await api.getOverrideTerms(variantId, supplierId);
+      const v = await api.getOverrideTerms(sku, supplierId);
       setView(v);
       const loaded = overrideToForm(v.override);
       setForm(loaded);
@@ -66,7 +66,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
       return;
     }
     try {
-      const r = await api.putOverrideTerms(variantId, supplierId, overrideToPayload(form), view.version, keyFor(JSON.stringify([variantId, form, view.version])));
+      const r = await api.putOverrideTerms(view.sku, supplierId, overrideToPayload(form), view.version, keyFor(JSON.stringify([view.sku, form, view.version])));
       setNotice(t("suppliers.override.saved", { version: r.version }));
       await load();
     } catch (err) {
@@ -106,8 +106,8 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
       </h3>
       <p className="mmi-muted mmi-text-sm">{t("suppliers.override.help")}</p>
       <div className="mmi-cluster mmi-mb-4">
-        <FormField id="o-variant" label={t("suppliers.override.variant")} value={variant} inputMode="numeric" onChange={setVariant} />
-        <Button variant="secondary" disabled={!Number.isInteger(variantId) || variantId < 1} onClick={() => void load()}>
+        <FormField id="o-sku" label={t("suppliers.override.sku")} value={skuText} onChange={setSkuText} />
+        <Button variant="secondary" disabled={sku === ""} onClick={() => void load()}>
           {t("suppliers.override.load")}
         </Button>
       </div>

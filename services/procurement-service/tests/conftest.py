@@ -51,8 +51,8 @@ def add_supplier(c, contact_id=1, name="Proveedor Sintetico"):
     return sid
 
 
-def add_product(c, variant_id, product_id, vat=None):
-    c.execute(insert(product_refs).values(variant_id=variant_id, product_id=product_id, vat_rate=vat, vat_source="buyer" if vat is not None else None))
+def add_product(c, variant_id, product_id, vat=None, sku=None):
+    c.execute(insert(product_refs).values(variant_id=variant_id, product_id=product_id, vat_rate=vat, vat_source="buyer" if vat is not None else None, sku=sku))
 
 
 class _Validator:

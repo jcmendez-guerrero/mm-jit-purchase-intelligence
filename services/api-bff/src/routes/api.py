@@ -219,20 +219,20 @@ async def update_supplier_terms(
                                            idempotency_key=idempotency_key)
 
 
-@router.get("/product-suppliers/{variant_id}/{supplier_id}/terms")
+@router.get("/product-suppliers/{sku:path}/{supplier_id}/terms")
 async def get_override_terms(
-    variant_id: int,
+    sku: str,
     supplier_id: str,
     as_of: str | None = Query(default=None),
     session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    return await client.get_override_terms(variant_id, supplier_id, as_of=as_of, roles=session.roles)
+    return await client.get_override_terms(sku, supplier_id, as_of=as_of, roles=session.roles)
 
 
-@router.put("/product-suppliers/{variant_id}/{supplier_id}/terms")
+@router.put("/product-suppliers/{sku:path}/{supplier_id}/terms")
 async def update_override_terms(
-    variant_id: int,
+    sku: str,
     supplier_id: str,
     body: dict[str, Any],
     if_match: str | None = Header(default=None),
@@ -240,7 +240,7 @@ async def update_override_terms(
     session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> dict[str, Any]:
-    return await client.put_override_terms(variant_id=variant_id, supplier_id=supplier_id, body=body, user_id=session.user_id, roles=session.roles,
+    return await client.put_override_terms(sku=sku, supplier_id=supplier_id, body=body, user_id=session.user_id, roles=session.roles,
                                            if_match=if_match, idempotency_key=idempotency_key)
 
 

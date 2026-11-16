@@ -28,7 +28,7 @@ def test_both_saves_forward_the_key_and_a_save_without_one_forwards_none(role_st
         client = TestClient(app)
         keyed = {**headers_for("buyer-1", BUYER), "Idempotency-Key": "k-1"}
         assert client.put("/api/suppliers/s1/terms", json={"lead_time_days": 4}, headers=keyed).status_code == 200
-        assert client.put("/api/product-suppliers/1/s1/terms", json={"lead_time_days": 4}, headers=keyed).status_code == 200
+        assert client.put("/api/product-suppliers/SYN-0001/s1/terms", json={"lead_time_days": 4}, headers=keyed).status_code == 200
         assert client.put("/api/suppliers/s1/terms", json={"lead_time_days": 4}, headers=headers_for("buyer-1", BUYER)).status_code == 200
     finally:
         app.dependency_overrides.clear()
@@ -55,7 +55,7 @@ async def test_the_client_sends_the_key_next_to_if_match_as_a_header():
     client.put = AsyncMock(return_value=httpx.Response(200, json={"version": 3}, request=httpx.Request("PUT", "http://procurement/x")))
     assert await client.put_supplier_terms("s1", {}, "buyer-1", ["buyer"], if_match='"2"', idempotency_key="k-9") == {"version": 3}
     assert client.put.call_args.kwargs["extra_headers"] == {"If-Match": '"2"', "Idempotency-Key": "k-9"}
-    await client.put_override_terms(1, "s1", {}, "buyer-1", ["buyer"], idempotency_key="k-10")
+    await client.put_override_terms("SYN-0001", "s1", {}, "buyer-1", ["buyer"], idempotency_key="k-10")
     assert client.put.call_args.kwargs["extra_headers"] == {"Idempotency-Key": "k-10"}
     await client.put_supplier_terms("s1", {}, "buyer-1", ["buyer"])
     assert client.put.call_args.kwargs["extra_headers"] is None

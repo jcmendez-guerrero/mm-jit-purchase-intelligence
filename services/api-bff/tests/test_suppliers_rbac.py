@@ -88,7 +88,7 @@ def test_every_signed_in_role_can_read_terms_and_history(role_store):
         for roles in (["viewer"], BUYER, ["viewer", "approver"], ["viewer", "admin"]):
             h = headers_for("reader-1", roles)
             assert TestClient(app).get("/api/suppliers/s1/terms", headers=h).status_code == 200
-            assert TestClient(app).get("/api/product-suppliers/9001/s1/terms", headers=h).status_code == 200
+            assert TestClient(app).get("/api/product-suppliers/SYN-0001/s1/terms", headers=h).status_code == 200
         assert TestClient(app).get("/api/suppliers/s1/terms").status_code == 401
     finally:
         app.dependency_overrides.clear()
@@ -99,10 +99,10 @@ def test_override_edits_need_the_buyer_role_and_forward_the_precondition(role_st
     mock.put_override_terms.return_value = {"version": 1}
     app = app_with(mock)
     try:
-        assert TestClient(app).put("/api/product-suppliers/9001/s1/terms", json={"pack_multiple": 6}, headers=headers_for("viewer-1", ["viewer"])).status_code == 403
-        res = TestClient(app).put("/api/product-suppliers/9001/s1/terms", json={"pack_multiple": 6}, headers={**headers_for("buyer-1", BUYER), "If-Match": '"0"'})
+        assert TestClient(app).put("/api/product-suppliers/SYN-0001/s1/terms", json={"pack_multiple": 6}, headers=headers_for("viewer-1", ["viewer"])).status_code == 403
+        res = TestClient(app).put("/api/product-suppliers/SYN-0001/s1/terms", json={"pack_multiple": 6}, headers={**headers_for("buyer-1", BUYER), "If-Match": '"0"'})
     finally:
         app.dependency_overrides.clear()
     assert res.status_code == 200
     kw = mock.put_override_terms.call_args.kwargs
-    assert (kw["variant_id"], kw["supplier_id"], kw["body"], kw["if_match"]) == (9001, "s1", {"pack_multiple": 6}, '"0"')
+    assert (kw["sku"], kw["supplier_id"], kw["body"], kw["if_match"]) == ("SYN-0001", "s1", {"pack_multiple": 6}, '"0"')
