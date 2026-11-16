@@ -34,7 +34,7 @@ Screenshots in `evidence/screenshots/` (synthetic data): dashboard at 1280, 768 
 - **Audit CSV** has English headers, ISO timestamps and a comma delimiter, unlike the proposal exports (a server change, requested in the Agent 00 note).
 - **Not done in this PR:** T054 (waits for `sku` in six payloads, Agent 00), T045 (the moderated usability run needs a person; the script is in `evidence/usability.md`), T050 (SKU entry in three screens needs a lookup endpoint from Agent 00).
 - **Variant id still shown** on six screens (quality, administration policy history, safety-stock queue, demand exclusions, policy preview, scenarios) because their payloads carry only `variant_id`; they need a `sku` field (see `agent-00-contract-note.md`). A guard test stops new ones.
-- **Register:** the catalogue mixes formal and informal address; not changed.
+- **Register:** the owner chose tú (T064). The catalogue now addresses the person as tú; `register.json` records the choice and `register.test.ts` fails on usted forms. Server-built messages are not covered.
 - Two browser tests that were intermittent on the unchanged code now wait for the supplier terms to load before typing (test-only change; 100 of 100 repeated runs pass).
 - Gates `contracts`, `isolation`, `security` and `cost` pass locally with Python 3.12. The `e2e` gate's mocked browser suite passes; its live-stack journey was not run (needs the compose stack).
 

@@ -55,7 +55,7 @@ describe("QueuePanel (Spanish)", () => {
     vi.spyOn(api, "retryQueueItem").mockRejectedValue(new ApiError(403, "auth_mfa_stale"));
     render(<QueuePanel />);
     fireEvent.click(await screen.findByRole("button", { name: "Reintentar 7" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("Debe volver a verificar su segundo factor");
+    expect((await screen.findByRole("alert")).textContent).toContain("Tienes que volver a verificar tu segundo factor");
     expect(document.body.textContent).not.toContain("auth_mfa_stale");
   });
 });

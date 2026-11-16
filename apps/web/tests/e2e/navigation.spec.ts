@@ -144,7 +144,7 @@ test("a screen the server refuses mid-session explains it and offers a way forwa
   await page.route("**/api/costs", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "auth_forbidden_role" }) }));
   await page.route("**/api/cost-writes", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "auth_forbidden_role" }) }));
   await nav(page).getByRole("link", { name: "Costes y proveedores", exact: true }).click();
-  await expect(page.getByText("No tiene permiso para realizar esta acción.").first()).toBeVisible();
+  await expect(page.getByText("No tienes permiso para realizar esta acción.").first()).toBeVisible();
   await page.getByRole("link", { name: "Ir al panel de control" }).first().click();
   await expect(page).toHaveURL(/\/panel$/);
 });

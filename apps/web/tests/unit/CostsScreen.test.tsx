@@ -133,7 +133,7 @@ describe("opening cost and update request", () => {
     await waitFor(() => expect(add).toHaveBeenCalledWith({ variant_id: 1, supplier_id: "s1", amount: "1.5", includes_recargo: true }));
     fireEvent.click(screen.getByRole("button", { name: "Solicitar actualización de coste" }));
     await waitFor(() => expect(req).toHaveBeenCalledWith(10, "s1"));
-    expect((await screen.findByRole("status")).textContent).toContain("revísela y libérela más abajo");
+    expect((await screen.findByRole("status")).textContent).toContain("revísala y libérala más abajo");
   });
 
   it("says so when nothing qualifies and refuses invalid input without calling the server", async () => {

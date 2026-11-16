@@ -164,6 +164,6 @@ test("a role removed while a screen is open disappears from the menu after the s
   await page.route("**/api/costs", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "auth_forbidden_role" }) }));
   await page.route("**/api/cost-writes", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "auth_forbidden_role" }) }));
   await nav.getByRole("link", { name: "Costes y proveedores", exact: true }).click();
-  await expect(page.getByText("No tiene permiso para realizar esta acción.").first()).toBeVisible();
+  await expect(page.getByText("No tienes permiso para realizar esta acción.").first()).toBeVisible();
   await expect(nav.getByRole("link", { name: "Administración", exact: true })).toHaveCount(0);
 });

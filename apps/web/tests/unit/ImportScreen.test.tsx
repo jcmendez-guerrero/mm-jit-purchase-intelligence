@@ -239,11 +239,11 @@ describe("refused self-activation (MMI-7 T028)", () => {
   }
 
   it("tells an admin to choose a reason to self-activate, and a buyer to ask another person", async () => {
-    expect(await activateRefused(["admin"])).toContain("indique un motivo");
+    expect(await activateRefused(["admin"])).toContain("indica un motivo");
   });
 
   it("tells a buyer to ask another person", async () => {
-    expect(await activateRefused(["buyer"])).toContain("pida a otra persona");
+    expect(await activateRefused(["buyer"])).toContain("pide a otra persona");
   });
 });
 
@@ -283,6 +283,6 @@ describe("reasons are a pick-list plus a short detail (MMI-7 T078, FR-033)", () 
     vi.spyOn(api, "getSeedDatasets").mockResolvedValue({ datasets: [dataset({ version: 2 })] });
     render(<ImportScreen userRoles={["buyer"]} />);
     const select = (await screen.findByLabelText("Motivo de la reversión")) as HTMLSelectElement;
-    expect([...select.options].map((o) => o.textContent)).toEqual(["Elija un motivo", "Cifras erróneas", "Archivo equivocado", "Prueba", "Sustituido por un archivo más reciente", "Otro motivo"]);
+    expect([...select.options].map((o) => o.textContent)).toEqual(["Elige un motivo", "Cifras erróneas", "Archivo equivocado", "Prueba", "Sustituido por un archivo más reciente", "Otro motivo"]);
   });
 });

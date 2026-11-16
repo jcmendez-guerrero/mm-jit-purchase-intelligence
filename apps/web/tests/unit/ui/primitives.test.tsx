@@ -109,7 +109,7 @@ describe("ScreenState permission refusal", () => {
   it("explains the refusal with a way forward instead of a retry", () => {
     const refusal = i18n.t("errors.auth_forbidden_role");
     render(<ScreenState state="error" errorHint={refusal} onRetry={() => undefined} />);
-    expect(refusal).toContain("No tiene permiso para realizar esta acción.");
+    expect(refusal).toContain("No tienes permiso para realizar esta acción.");
     expect(screen.getByRole("alert").textContent).toContain(refusal);
     expect(screen.getByRole("link", { name: "Ir al panel de control" }).getAttribute("href")).toBe("/panel");
     expect(screen.queryByRole("button", { name: "Reintentar" })).toBeNull();

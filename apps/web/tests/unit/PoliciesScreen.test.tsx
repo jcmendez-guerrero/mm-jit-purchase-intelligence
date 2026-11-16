@@ -199,7 +199,7 @@ describe("feature 011: revisions, sources and audit", () => {
     tab(/Auditoría de reglas/);
     expect(await screen.findByText("Página 1 de 3 · 120 registros")).toBeTruthy();
     expect(audit).toHaveBeenLastCalledWith({ page: 1 });
-    expect(screen.getByText(/solo los cambios más recientes de: /).textContent).toContain("Acote las fechas");
+    expect(screen.getByText(/solo los cambios más recientes de: /).textContent).toContain("Acota las fechas");
     fireEvent.change(screen.getByLabelText("Qué cambió"), { target: { value: "budget" } });
     fireEvent.change(screen.getByLabelText("Resultado", { selector: "#audit-outcome" }), { target: { value: "refused" } });
     fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-11-01" } });
@@ -289,7 +289,7 @@ describe("safety stock section", () => {
     await screen.findByText(/Presupuesto semanal vigente/);
     tab(/Stock de seguridad/);
     fireEvent.click(await screen.findByRole("button", { name: "Aprobar" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("No puede aprobar su propia solicitud");
+    expect((await screen.findByRole("alert")).textContent).toContain("No puedes aprobar tu propia solicitud");
   });
 });
 
@@ -307,7 +307,7 @@ describe("demand and forecast sections", () => {
     fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-11-20" } });
     fireEvent.change(screen.getByLabelText("Hasta"), { target: { value: "2026-11-22" } });
     fireEvent.click(screen.getByRole("button", { name: "Añadir exclusión" }));
-    expect((await screen.findAllByRole("alert")).map((a) => a.textContent).join(" ")).toContain("Elija un motivo de la lista");     // free text is no longer accepted
+    expect((await screen.findAllByRole("alert")).map((a) => a.textContent).join(" ")).toContain("Elige un motivo de la lista");     // free text is no longer accepted
     expect(add).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "promotion" } });
     fireEvent.click(screen.getByRole("button", { name: "Añadir exclusión" }));
