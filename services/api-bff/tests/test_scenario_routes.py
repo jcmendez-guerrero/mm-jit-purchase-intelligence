@@ -48,6 +48,20 @@ def test_the_export_passes_the_file_through_and_validates_the_format(role_store)
     res = MagicMock()
     res.content, res.headers = b"a;b\r\n", {"content-type": "text/csv; charset=utf-8", "content-disposition": 'attachment; filename="escenario.csv"'}
     proc.forward_raw.return_value = res
-    ok = call("GET", "/api/scenarios/s1/export?format=csv", headers_for("v", ["viewer"]), proc)
+    ok = call("GET", "/api/scenarios/s1/export?format=csv", headers_for("b", ["viewer", "buyer"]), proc)
     assert ok.content == b"a;b\r\n" and "escenario.csv" in ok.headers["content-disposition"]
-    assert call("GET", "/api/scenarios/s1/export?format=pdf", headers_for("v", ["viewer"]), proc).status_code == 422
+    assert call("GET", "/api/scenarios/s1/export?format=pdf", headers_for("b", ["viewer", "buyer"]), proc).status_code == 422
+
+
+def test_export_roles_are_buyer_approver_and_admin_and_a_viewer_is_refused_without_reaching_the_service(role_store):
+    """T021 (FR-010, spec Q4)."""
+    proc = AsyncMock()
+    res = MagicMock()
+    res.content, res.headers = b"a;b\r\n", {"content-type": "text/csv; charset=utf-8"}
+    proc.forward_raw.return_value = res
+    for roles in (["viewer", "buyer"], ["viewer", "approver"], ["viewer", "admin"]):
+        assert call("GET", "/api/scenarios/s1/export?format=csv", headers_for("u", roles), proc).status_code == 200
+    proc.forward_raw.reset_mock()
+    denied = call("GET", "/api/scenarios/s1/export?format=csv", headers_for("v", ["viewer"]), proc)
+    assert denied.status_code == 403 and denied.json() == {"detail": "auth_forbidden_role"}
+    proc.forward_raw.assert_not_called()

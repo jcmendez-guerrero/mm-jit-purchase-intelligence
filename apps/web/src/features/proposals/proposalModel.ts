@@ -9,6 +9,13 @@ export function canSubmit(roles: string[], status: ProposalStatus): boolean {
   return roles.includes("buyer") && status === "draft";
 }
 
+/** Buyers, approvers and admins may download an approved proposal; a viewer may not (the server refuses and audits it too). */
+export const canDownload = (roles: string[]): boolean => ["buyer", "approver", "admin"].some((r) => roles.includes(r));
+
+export function canExport(roles: string[], status: ProposalStatus): boolean {
+  return (status === "approved" || status === "exported") && canDownload(roles);
+}
+
 /** Only approvers decide; an admin role alone does not approve. */
 export function canApprove(roles: string[], status: ProposalStatus): boolean {
   return roles.includes("approver") && status === "submitted";

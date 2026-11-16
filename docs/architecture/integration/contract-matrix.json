@@ -187,6 +187,17 @@
       "status": "frozen"
     },
     {
+      "name": "proposal_detail",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/proposal_detail.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "web"
+      ],
+      "status": "frozen"
+    },
+    {
       "name": "proposal_line",
       "kind": "dto",
       "version": 1,

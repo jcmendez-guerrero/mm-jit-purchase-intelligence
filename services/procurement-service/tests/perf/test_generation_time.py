@@ -48,3 +48,15 @@ def test_proposal_generation_within_time_budget():
     assert len(alloc.chosen) > 0
     # Must complete well under 120 seconds target
     assert elapsed < 120.0, f"Generation took {elapsed:.2f}s, exceeding 120s target"
+
+
+def test_a_catalogue_of_about_2000_active_skus_generates_in_under_60_seconds():
+    """T009 (SC-006): about 2,000 active synthetic SKUs, eight suppliers, minimums, thresholds and a budget."""
+    from proposals.generate import generate
+    from test_scale import catalogue
+
+    t0 = time.perf_counter()
+    d = generate(catalogue(2000), time_limit_s=30)
+    elapsed = time.perf_counter() - t0
+    assert elapsed < 60, f"generation took {elapsed:.1f}s"
+    assert len(d.lines) > 1000 and d.solver_status in ("optimal", "feasible", "greedy")
