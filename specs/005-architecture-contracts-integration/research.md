@@ -52,7 +52,7 @@ No `NEEDS CLARIFICATION` remained after the clarification session; the items bel
 
 ## R9. ADR location
 
-- **Decision**: `docs/architecture/adr/NNN-title.md` (context, decision, consequences), indexed from `implementation-plan.md`. Existing decisions already numbered there (for example ADR-006) are linked, not rewritten.
+- **Decision**: `docs/adr/NNN-title.md` (context, decision, consequences), indexed from `implementation-plan.md`. Existing decisions already numbered there (for example ADR-006) are linked, not rewritten.
 - **Alternatives**: Keep everything in `implementation-plan.md` (grows unwieldy, poor per-decision diffs).
 
 ## R10. Spanish UI demonstration

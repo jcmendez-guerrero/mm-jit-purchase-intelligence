@@ -25,3 +25,4 @@ Authoritative documents: `.specify/memory/constitution.md` (v1.3.0), `specs/001-
 - Security posture and findings go to the internal wiki, not to this repo.
 - PRs follow `.github/pull_request_template.md` (data, security, cost, contract impact).
 - Shared interfaces are frozen and versioned in `docs/architecture/integration/contract-matrix.json`; change them through Agent 00 (see the README there) and run `python -m gates run` before the PR.
+- The gateway (`services/api-bff`) does no money arithmetic (ADR-023): sums and percentages are made in the owning domain service. `test_routes_do_no_money_arithmetic` searches the route files for the plain text `Decimal`, `float(` and `round(`, so a comment with those words also fails it.
