@@ -20,9 +20,16 @@ Documents the shape the API already returns, plus the SKU:
 |-------|------|
 | `variant_id` | integer ≥ 1 |
 | `sku` | string or null |
+| `name` | string or null (optional) |
 | `supplier_before`, `supplier_after` | string or null |
 | `qty_before`, `qty_after` | integer ≥ 0 |
 | `reasons` | array of strings |
+
+## Also added (convergence, T031 and T033)
+
+- `name` (string or null, optional) next to `sku` in `lines[]` of `scenario_result.v1` and in `summary.changes[]` of `scenario.v1`.
+- `summary.infeasible` in `scenario.v1`: `over_by`, `clinical_critical_variants` (integers) and `clinical_critical_skus` (string or null, same order).
+- The `lines[]` schema keeps its legacy shape; the real read model is checked in `services/procurement-service/tests/test_scenarios_api.py` against `summary`.
 
 ## Contract tests (`packages/contracts/tests/test_mmi002_contracts.py`)
 

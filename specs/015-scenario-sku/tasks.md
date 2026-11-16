@@ -105,3 +105,7 @@ description: "Tasks for SKU in scenario changes and result lines"
 - [X] T032 Add a procurement test that validates a real `GET /scenarios/{id}` body against `packages/contracts/dto/scenario.v1.schema.json` (`summary.changes[]`), and align `packages/contracts/dto/scenario_result.v1.schema.json` `lines[]` with the real fields (`qty`, string `unit_cost`, `line_total`, `clinical_critical`) or document that it describes another shape, per FR-008 and SC-005 (partial). Done: the line schema keeps its legacy shape (removing fields is breaking) and now says so; the response is validated against `summary` instead
 - [X] T033 Make rows without a SKU distinguishable: add the product name to scenario changes and lines in the contract and `store.py`, and show it next to "Sin SKU" in `ScenariosScreen.tsx`; or, if not wanted, record the limit in `spec.md` edge cases, per FR-005 (partial). Done: `name` (optional, nullable) on changes and lines; shown next to "Sin SKU"
 - [X] T034 Move the "no SKU" text to a shared key (for example `common.no_sku`) in `apps/web/src/i18n/es-ES.json` and use it in `ScenariosScreen.tsx` and the dashboard files that use `dashboard.drill.no_sku`, per FR-012 (unrequested)
+
+## Phase 8: Convergence
+
+- [X] T035 Record the added `name` (changes and lines) and `summary.infeasible.clinical_critical_skus` in `specs/015-scenario-sku/data-model.md` and `specs/015-scenario-sku/contracts/scenario-sku.delta.md`, so the plan documents match the code and schemas (unrequested)
