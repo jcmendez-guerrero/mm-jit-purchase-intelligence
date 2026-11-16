@@ -5,7 +5,17 @@
   "description": "Why a forecast is what it is (feature 012): the model, dataset and configuration versions, the demand class and method, censored and anomalous days, provenance mix, range, confidence and eligibility. Low, expected and high are null when the product is not eligible: no forecast figure exists then.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["run_id", "sku", "model_version", "method", "method_reason_code", "provenance_mix", "eligibility", "eligibility_reason_codes", "confidence_reason_codes"],
+  "required": [
+    "run_id",
+    "sku",
+    "model_version",
+    "method",
+    "method_reason_code",
+    "provenance_mix",
+    "eligibility",
+    "eligibility_reason_codes",
+    "confidence_reason_codes"
+  ],
   "properties": {
     "run_id": { "type": "string", "format": "uuid" },
     "sku": { "type": "string", "minLength": 1, "maxLength": 60 },
@@ -31,12 +41,29 @@
         "manual": { "type": "integer", "minimum": 0 }
       }
     },
-    "low": { "type": ["string", "null"], "pattern": "^[0-9]+(\\.[0-9]{1,4})?$" },
-    "expected": { "type": ["string", "null"], "pattern": "^[0-9]+(\\.[0-9]{1,4})?$" },
-    "high": { "type": ["string", "null"], "pattern": "^[0-9]+(\\.[0-9]{1,4})?$" },
+    "low": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]+(\\.[0-9]{1,4})?$"
+    },
+    "expected": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]+(\\.[0-9]{1,4})?$"
+    },
+    "high": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]+(\\.[0-9]{1,4})?$"
+    },
     "confidence": { "enum": ["alta", "media", "baja", null] },
-    "confidence_reason_codes": { "type": "array", "items": { "type": "string", "maxLength": 40 } },
-    "eligibility": { "enum": ["eligible", "manual_review_only", "not_eligible"] },
-    "eligibility_reason_codes": { "type": "array", "items": { "type": "string", "maxLength": 40 } }
+    "confidence_reason_codes": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 40 }
+    },
+    "eligibility": {
+      "enum": ["eligible", "manual_review_only", "not_eligible"]
+    },
+    "eligibility_reason_codes": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 40 }
+    }
   }
 }

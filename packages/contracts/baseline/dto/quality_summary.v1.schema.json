@@ -5,7 +5,25 @@
   "description": "Per-product data-quality summary (feature 012): coverage, gap days, rejected and excluded movements, anomalies and stockout days. Products are identified by SKU only; reasons are codes, never free text.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["sku", "period_start", "period_end", "days_in_period", "days_with_data", "coverage_ratio", "gap_days", "rejected_count", "quarantined_count", "ambiguous_count", "reason_counts", "excluded_by_type", "anomaly_count", "censored_days", "origin", "config_version_id", "built_at"],
+  "required": [
+    "sku",
+    "period_start",
+    "period_end",
+    "days_in_period",
+    "days_with_data",
+    "coverage_ratio",
+    "gap_days",
+    "rejected_count",
+    "quarantined_count",
+    "ambiguous_count",
+    "reason_counts",
+    "excluded_by_type",
+    "anomaly_count",
+    "censored_days",
+    "origin",
+    "config_version_id",
+    "built_at"
+  ],
   "properties": {
     "sku": { "type": "string", "minLength": 1, "maxLength": 60 },
     "period_start": { "type": "string", "format": "date" },
@@ -28,8 +46,14 @@
     "rejected_count": { "type": "integer", "minimum": 0 },
     "quarantined_count": { "type": "integer", "minimum": 0 },
     "ambiguous_count": { "type": "integer", "minimum": 0 },
-    "reason_counts": { "type": "array", "items": { "$ref": "#/$defs/KeyCount" } },
-    "excluded_by_type": { "type": "array", "items": { "$ref": "#/$defs/KeyCount" } },
+    "reason_counts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/KeyCount" }
+    },
+    "excluded_by_type": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/KeyCount" }
+    },
     "anomaly_count": { "type": "integer", "minimum": 0 },
     "censored_days": { "type": "integer", "minimum": 0 },
     "origin": { "enum": ["erp", "local_export"] },

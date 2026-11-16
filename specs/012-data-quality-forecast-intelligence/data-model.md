@@ -5,6 +5,7 @@ All keys use the Siweb `variant_id` (or the reserved SKU-derived surrogate range
 ## inventory-service
 
 ### data_quality_snapshot (new)
+
 One row per variant, period and build.
 
 | Field | Notes |
@@ -22,6 +23,7 @@ One row per variant, period and build.
 Unique on (variant_id, period_start, period_end, config_version_id, input_hash). Rebuilding with identical inputs is a no-op.
 
 ### anomaly_flags (new)
+
 | Field | Notes |
 |---|---|
 | id, variant_id, day | |
@@ -34,6 +36,7 @@ Unique on (variant_id, period_start, period_end, config_version_id, input_hash).
 State: pending -> accepted | excluded; accepted <-> excluded allowed, each change audited; an `excluded` decision produces a new demand-series version.
 
 ### portfolio_aggregate (new)
+
 Precomputed per variant so the portfolio view needs no cross-service query.
 
 | Field | Notes |
@@ -47,13 +50,14 @@ Precomputed per variant so the portfolio view needs no cross-service query.
 
 Counts by any bucket always sum to the number of active products because `pending` is a bucket.
 
-
 ### product_segments (existing, extended additively)
+
 Add `config_version_id` and `method` (method name mapped to the class) so the class is reproducible and shown with its method (FR-007, FR-008).
 
 ## forecast-service
 
 ### forecast_explanations (new)
+
 One row per (run_id, variant_id).
 
 | Field | Notes |
@@ -73,6 +77,7 @@ One row per (run_id, variant_id).
 Immutable once the run is completed. A new input version yields a new run and new rows (FR-011).
 
 ### product_backtest (new)
+
 | Field | Notes |
 |---|---|
 | id, backtest_run_id, variant_id | |
@@ -86,6 +91,7 @@ Immutable once the run is completed. A new input version yields a new run and ne
 Unique on (backtest_run_id, variant_id). Never updates stored forecasts or proposals (FR-017).
 
 ### forecast_runs / forecast_values (existing)
+
 Unchanged; `forecast_runs` already holds `model_versions`, `input_hash`, `config`, `dataset_version_id`, `parameter_version_ids`.
 
 ## Retention
@@ -108,4 +114,5 @@ Unchanged; `forecast_runs` already holds `model_versions`, `input_hash`, `config
 - Free-text fields are not accepted anywhere in these tables.
 
 ## Audit events (existing mechanism, new types)
+
 `quality.anomaly_decided`, `quality.classes_recomputed`, `forecast.backtest_started`, `forecast.backtest_completed`: actor, time, versions; no free text.
