@@ -90,8 +90,9 @@ describe("ProposalsScreen", () => {
     expect((await screen.findByLabelText("Datos usados")).textContent).toContain("sin datos importados (solo ventas reales del ERP)");
   });
 
-  it("offers both the CSV and the Excel export of the proposal", async () => {
-    render(<ProposalsScreen userRoles={["viewer"]} />);
+  it("offers both the CSV and the Excel export of an approved proposal to a buyer (FR-010)", async () => {
+    vi.spyOn(api, "getProposal").mockResolvedValue(proposal({ status: "approved" }));
+    render(<ProposalsScreen userRoles={["viewer", "buyer"]} />);
     const csv = await screen.findByRole("link", { name: "Exportar CSV (formato es-ES)" });
     const xlsx = screen.getByRole("link", { name: "Exportar Excel" });
     expect(csv.getAttribute("href")).toBe("/api/proposals/p1/export?format=csv");

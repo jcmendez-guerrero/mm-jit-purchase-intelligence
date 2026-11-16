@@ -932,7 +932,7 @@ export interface SupplierGroup {
   free_delivery: boolean;
 }
 
-export type ProposalStatus = "draft" | "submitted" | "approved" | "confirmed";
+export type ProposalStatus = "draft" | "submitted" | "approved" | "exported" | "confirmed" | "superseded";
 
 export interface ProposalSummary {
   id: string;
@@ -953,6 +953,8 @@ export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
   forecast_run_id?: string | null;
   approval: { approver: string; decision: string; version: number; valid: boolean } | null;
   warnings?: string[];
+  /** Needed variants the plan could not source (FR-014): shown to the buyer, never dropped silently. */
+  review_notes?: Array<{ code: string; variant_id: number; sku: string | null; product_name: string | null }>;
   flags?: ProposalFlags | null;
 }
 

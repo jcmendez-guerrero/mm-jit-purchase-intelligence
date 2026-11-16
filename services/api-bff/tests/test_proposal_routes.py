@@ -78,3 +78,15 @@ def test_the_downstream_call_uses_the_method_procurement_exposes_for_line_edits(
 
     src = inspect.getsource(ProcurementClient.edit_proposal_line)
     assert "self.patch(" in src and "self.put(" not in src
+
+
+def test_export_roles_are_buyer_approver_and_admin_and_a_viewer_is_refused_without_reaching_the_service(role_store):
+    """T022 (FR-010, spec Q4)."""
+    mock = AsyncMock()
+    mock.export_proposal.return_value = b"a;b\r\n"
+    for roles in (BUYER, APPROVER, ["viewer", "admin"]):
+        assert call("GET", "/api/proposals/p1/export?format=csv", headers_for("u", roles), mock).status_code == 200
+    mock.export_proposal.reset_mock()
+    denied = call("GET", "/api/proposals/p1/export?format=xlsx", headers_for("v", ["viewer"]), mock)
+    assert denied.status_code == 403 and denied.json() == {"detail": "auth_forbidden_role"}
+    mock.export_proposal.assert_not_called()

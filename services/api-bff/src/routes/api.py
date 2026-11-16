@@ -25,6 +25,7 @@ from routes.rbac import require_fresh_mfa, require_roles, require_session
 logger = logging.getLogger("mmi.api_bff.routes")
 
 router = APIRouter()
+EXPORT_ROLES = ("buyer", "approver", "admin")        # FR-010: the roles that may download a proposal or a scenario file
 
 _inventory_client = InventoryClient()
 _procurement_client = ProcurementClient()
@@ -327,7 +328,7 @@ async def export_proposal(
     proposal_id: str,
     format: str = Query("csv", pattern="^(csv|xlsx)$"),
     supplier_id: str | None = Query(None),
-    session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
+    session: SessionData = Depends(require_roles(*EXPORT_ROLES)),     # FR-010: a viewer cannot export (the refusal is logged by require_roles)
     client: ProcurementClient = Depends(get_procurement_client),
 ) -> Response:
     content = await client.export_proposal(proposal_id=proposal_id, fmt=format, supplier_id=supplier_id, roles=session.roles)

@@ -28,6 +28,18 @@ class ProposalStateError(Exception):
     code = "invalid_proposal_state"
 
 
+class LineConflictError(ConcurrencyError):
+    """A line save that was based on an older version of the proposal (T010: the caller reloads; nothing is changed)."""
+
+    code = "proposal_line_conflict"
+
+
+class ProposalSupersededError(ProposalStateError):
+    """A newer proposal replaced this one (a promoted scenario); it is read-only (FR-008)."""
+
+    code = "proposal_superseded"
+
+
 class EditError(Exception):
     def __init__(self, code: str) -> None:
         super().__init__(code)
@@ -60,10 +72,12 @@ def edit_line(conn: Connection, proposal_id: str, variant_id: int, expected_vers
     p = conn.execute(select(proposals).where(proposals.c.id == proposal_id)).first()
     if p is None:
         raise ProposalStateError("unknown proposal")
+    if p.status == "superseded":
+        raise ProposalSupersededError("a superseded proposal cannot be edited")
     if p.status not in EDITABLE:
         raise ProposalStateError(f"a {p.status} proposal cannot be edited")
     if p.version != expected_version:
-        raise ConcurrencyError(f"proposal is at version {p.version}, not {expected_version}")
+        raise LineConflictError(f"proposal is at version {p.version}, not {expected_version}")
     line = conn.execute(select(proposal_lines).where(proposal_lines.c.proposal_id == proposal_id, proposal_lines.c.variant_id == variant_id)).first()
     if line is None:
         raise EditError("unknown_line")
