@@ -23,6 +23,11 @@ from sqlalchemy.engine import Connection, Engine
 _engine: Engine | None = None
 
 
+def _utc(moment: datetime) -> str:
+    """A stored moment as ISO text that always says UTC (SQLite hands back naive values, PostgreSQL aware ones)."""
+    return (moment if moment.tzinfo else moment.replace(tzinfo=UTC)).astimezone(UTC).isoformat()
+
+
 class ParameterBody(BaseModel):
     value: str
     valid_from: date | None = None
@@ -132,7 +137,7 @@ def build_router(app: FastAPI) -> APIRouter:
 
         return {"backtest_run_id": row.backtest_run_id, "sku": row.sku, "periods": row.periods, "wape": dec(row.wape), "bias": dec(row.bias), "baseline_wape": dec(row.baseline_wape),
                 "baseline_bias": dec(row.baseline_bias), "beats_baseline": bool(row.beats_baseline), "model_version": row.model_version, "dataset_version_id": row.dataset_version_id,
-                "config_version_id": row.config_version_id, "created_at": (row.created_at if row.created_at.tzinfo else row.created_at.replace(tzinfo=UTC)).astimezone(UTC).isoformat()}
+                "config_version_id": row.config_version_id, "created_at": _utc(row.created_at)}
 
     @router.get("/forecasts/variant/{variant_id}")
     def variant_forecast(variant_id: int = Path(ge=1), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

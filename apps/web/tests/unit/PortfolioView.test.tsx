@@ -97,3 +97,29 @@ describe("PortfolioView", () => {
     expect(await screen.findByRole("alert")).toBeTruthy();
   });
 });
+
+describe("PortfolioView origin", () => {
+  it("offers ERP by default and sends no origin unless the other one is chosen", async () => {
+    vi.spyOn(api, "getPortfolio").mockResolvedValue(summary());
+    render(<PortfolioView />);
+    expect((screen.getByLabelText("Origen") as HTMLSelectElement).value).toBe("");
+    expect(screen.getByRole("option", { name: "ERP" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Carga local" })).toBeTruthy();
+    load();
+    await screen.findByText("Productos activos: 7");
+    expect(api.getPortfolio).toHaveBeenCalledWith({});
+  });
+
+  it("sends the chosen origin for the counts and for the list behind a count", async () => {
+    vi.spyOn(api, "getPortfolio").mockResolvedValue(summary({ active_products: 2 }));
+    const products = vi.spyOn(api, "getPortfolioProducts").mockResolvedValue({ bucket: "eligibility", key: "pending", total: 3, skus: ["EJ-9801"] });
+    render(<PortfolioView />);
+    fireEvent.change(screen.getByLabelText("Origen"), { target: { value: "local_export" } });
+    load();
+    await screen.findByText("Productos activos: 2");
+    expect(api.getPortfolio).toHaveBeenCalledWith({ origin: "local_export" });
+    fireEvent.click(screen.getByRole("button", { name: "3 productos: ver la lista de Pendiente de previsión" }));
+    await screen.findByText("EJ-9801");
+    expect(products).toHaveBeenCalledWith("eligibility", "pending", { origin: "local_export" }, 0, 50);
+  });
+});

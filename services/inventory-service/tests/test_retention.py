@@ -63,3 +63,19 @@ def test_running_again_removes_nothing_more(conn):
     _snapshot(conn, 1, OLD)
     purge(conn, now=NOW)
     assert purge(conn, now=NOW) == {"data_quality_snapshot": 0, "anomaly_flags": 0}
+
+
+def test_a_flag_decided_within_five_years_is_kept_even_if_it_was_created_earlier(conn):
+    conn.execute(insert(anomaly_flags).values(variant_id=1, day=date(2021, 2, 1), rule_id="mad_outlier", original_value="90.0000", decision="excluded", decided_by="buyer-1",
+                                              decided_at=KEPT, created_at=OLD))
+    conn.execute(insert(anomaly_flags).values(variant_id=2, day=date(2021, 2, 1), rule_id="mad_outlier", original_value="90.0000", decision="excluded", decided_by="buyer-1",
+                                              decided_at=OLD, created_at=OLD))
+    _flag(conn, 3, OLD)                                                 # never decided: aged by its creation
+    assert purge(conn, now=NOW)["anomaly_flags"] == 2
+    assert conn.execute(select(anomaly_flags.c.variant_id)).scalars().all() == [1]
+
+
+def test_a_pass_that_removes_nothing_writes_no_audit_event(conn):
+    _snapshot(conn, 1, KEPT)
+    assert purge(conn, now=NOW) == {"data_quality_snapshot": 0, "anomaly_flags": 0}
+    assert conn.execute(select(func.count()).select_from(audit_events)).scalar() == 0

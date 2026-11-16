@@ -10,7 +10,7 @@ Delta over existing BFF/service contracts. JSON Schemas live in `packages/contra
 | `GET /quality/products/{sku}/anomalies` | Flags with decisions | day, rule_id, original_value, decision, decided_by, decided_at |
 | `GET /forecast/products/{sku}/explanation` | Explanation for the latest (or given `run_id`) forecast (FR-009..013) | versions (model, dataset, configuration), window, class (abc, xyz, pattern, intermittent), method and reason, censored and anomalous day counts, provenance mix, low/expected/high, confidence and reasons, eligibility and reasons |
 | `GET /forecast/products/{sku}/backtest` | Per-product backtest (FR-016, FR-018) | periods, wape, bias, baseline_wape, baseline_bias, beats_baseline, versions |
-| `GET /quality/portfolio` | Portfolio counts (FR-019) | counts by abc/xyz/pattern/eligibility/confidence; worst-quality list; filters `category`, `supplier`; each count carries a `drilldown` query |
+| `GET /quality/portfolio` | Portfolio counts (FR-019) | counts by abc/xyz/pattern/eligibility/confidence; worst-quality list; filters `category`, `supplier` and `origin` (`erp` by default, or `local_export`; the two origins are never summed); each count carries a `drilldown` query |
 | `GET /quality/portfolio/products` | Drill-down list | paged SKU list for a chosen bucket and filters |
 
 Every provenance-bearing value in responses carries `provenance` in {`observed`,`estimated`,`manual`}. `observed` is returned only for ERP-collected movements.

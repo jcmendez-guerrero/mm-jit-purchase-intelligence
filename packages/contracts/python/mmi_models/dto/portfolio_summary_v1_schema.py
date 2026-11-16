@@ -3,9 +3,15 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class Origin(StrEnum):
+    erp = 'erp'
+    local_export = 'local_export'
 
 
 class Filters(BaseModel):
@@ -14,6 +20,7 @@ class Filters(BaseModel):
     )
     category: Annotated[str | None, Field(max_length=120)] = None
     supplier: Annotated[str | None, Field(max_length=120)] = None
+    origin: Origin | None = None
 
 
 class WorstQualityItem(BaseModel):

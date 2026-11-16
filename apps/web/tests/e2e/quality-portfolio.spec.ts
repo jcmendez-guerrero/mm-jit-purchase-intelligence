@@ -71,4 +71,22 @@ test.describe("catalogue quality overview", () => {
     await section.getByRole("button", { name: "Ver resumen" }).click();
     await expect(section.getByRole("button", { name: "0 productos: ver la lista de Solo revisión manual" })).toBeDisabled();
   });
+
+  test("the origin selector shows the locally loaded products apart from the ERP ones", async ({ page }) => {
+    await signInAs(page, "buyer");
+    const seen = await mockPortfolio(page);
+    await page.route(/\/api\/quality\/portfolio(\?.*)?$/, (r) => {
+      const url = new URL(r.request().url());
+      seen.push(url.search);
+      return r.fulfill(json(url.searchParams.get("origin") === "local_export" ? overview(2, 2) : overview(7, 3)));
+    });
+    await page.goto("/calidad");
+    const section = page.getByRole("region", { name: "Resumen de calidad del catálogo" });
+    await section.getByRole("button", { name: "Ver resumen" }).click();
+    await expect(section.getByText("Productos activos: 7")).toBeVisible();
+    await section.getByLabel("Origen").selectOption("local_export");
+    await section.getByRole("button", { name: "Ver resumen" }).click();
+    await expect(section.getByText("Productos activos: 2")).toBeVisible();
+    expect(seen.some((q) => q.includes("origin=local_export"))).toBe(true);
+  });
 });

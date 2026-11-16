@@ -1,5 +1,7 @@
 """T051: backtest endpoints - roles, idempotency, one full-catalogue run at a time, no partial results after a failure, and the read endpoint."""
 
+from datetime import UTC, datetime, timedelta
+
 import api
 import pytest
 from db.tables import backtest_jobs, product_backtest
@@ -66,7 +68,7 @@ def test_identical_inputs_reuse_the_result_and_add_no_rows(client, engine):
 def test_a_second_full_catalogue_request_while_one_runs_is_refused_naming_the_running_job(client, engine):
     with engine.begin() as c:
         c.execute(insert(backtest_jobs).values(id="11111111-1111-1111-1111-111111111111", scope="catalogue", status="running", requested_by="buyer-9",
-                                               started_at=__import__("datetime").datetime(2026, 11, 15, tzinfo=__import__("datetime").UTC)))
+                                               started_at=datetime.now(UTC)))
     r = client.post("/forecasts/backtests", json={"scope": "catalogue"}, headers=H)
     assert r.status_code == 409 and r.json()["detail"] == "forecast_backtest_conflict" and r.json()["running_job_id"] == "11111111-1111-1111-1111-111111111111"
     assert rows(engine) == 0
@@ -75,7 +77,7 @@ def test_a_second_full_catalogue_request_while_one_runs_is_refused_naming_the_ru
 def test_a_product_backtest_is_allowed_while_a_catalogue_one_runs(client, engine):
     with engine.begin() as c:
         c.execute(insert(backtest_jobs).values(id="22222222-2222-2222-2222-222222222222", scope="catalogue", status="running", requested_by="buyer-9",
-                                               started_at=__import__("datetime").datetime(2026, 11, 15, tzinfo=__import__("datetime").UTC)))
+                                               started_at=datetime.now(UTC)))
     r = client.post("/forecasts/backtests", json={"scope": "product", "sku": "EJ-1"}, headers=H)
     assert r.status_code == 200 and r.json()["products"] == 1
 
@@ -109,3 +111,23 @@ def test_a_product_scope_needs_a_known_sku(client):
     assert client.post("/forecasts/backtests", json={"scope": "product"}, headers=H).status_code == 422
     assert client.post("/forecasts/backtests", json={"scope": "product", "sku": "NOPE"}, headers=H).json()["detail"] == "quality_product_not_found"
     assert client.post("/forecasts/backtests", json={"scope": "other"}, headers=H).status_code == 422
+
+
+def _running(engine, job_id, age_minutes):
+    with engine.begin() as c:
+        c.execute(insert(backtest_jobs).values(id=job_id, scope="catalogue", status="running", requested_by="buyer-9", started_at=datetime.now(UTC) - timedelta(minutes=age_minutes)))
+
+
+def test_a_catalogue_job_left_running_by_a_crash_is_marked_failed_and_no_longer_blocks(client, engine):
+    _running(engine, "33333333-3333-3333-3333-333333333333", 31)
+    r = client.post("/forecasts/backtests", json={"scope": "catalogue"}, headers=H)
+    assert r.status_code == 200 and rows(engine) == 5
+    with engine.connect() as c:
+        status = dict(c.execute(select(backtest_jobs.c.id, backtest_jobs.c.status)).all())
+    assert status["33333333-3333-3333-3333-333333333333"] == "failed"
+
+
+def test_a_recent_running_job_still_blocks_a_second_request(client, engine):
+    _running(engine, "44444444-4444-4444-4444-444444444444", 29)
+    r = client.post("/forecasts/backtests", json={"scope": "catalogue"}, headers=H)
+    assert r.status_code == 409 and r.json()["running_job_id"] == "44444444-4444-4444-4444-444444444444"

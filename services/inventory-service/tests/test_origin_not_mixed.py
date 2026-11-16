@@ -52,3 +52,26 @@ def test_the_series_export_never_labels_local_data_as_observed(client, engine):
     client.post("/quality/recompute", headers=auth("buyer"))
     labels = {s["variant_id"]: s["provenance"] for s in client.get("/export/series", headers=auth()).json()["series"]}
     assert labels[LOCAL_VARIANT] != "observed" and "observed" in labels.values()
+
+
+def test_portfolio_counts_never_add_the_two_origins_together(client, engine):
+    seed_case(engine, "smooth")
+    local_sku = seed_local(engine)
+    client.post("/quality/recompute", headers=auth("buyer"))
+    default = client.get("/quality/portfolio", headers=auth()).json()
+    erp = client.get("/quality/portfolio?origin=erp", headers=auth()).json()
+    local = client.get("/quality/portfolio?origin=local_export", headers=auth()).json()
+    assert default == erp and erp["active_products"] == 1 and local["active_products"] == 1
+    assert erp["filters"]["origin"] == "erp" and local["filters"]["origin"] == "local_export"
+    for view in (erp, local):
+        for dist in ("by_class", "by_eligibility", "by_confidence"):
+            assert sum(b["count"] for b in view[dist]) == view["active_products"]
+    listed = client.get("/quality/portfolio/products?bucket=eligibility&key=pending&origin=local_export", headers=auth()).json()
+    assert listed["skus"] == [local_sku]
+    assert local_sku not in client.get("/quality/portfolio/products?bucket=eligibility&key=pending", headers=auth()).json()["skus"]
+
+
+def test_an_unknown_origin_is_refused(client, engine):
+    seed_case(engine, "smooth")
+    assert client.get("/quality/portfolio?origin=seed", headers=auth()).status_code == 422
+    assert client.get("/quality/portfolio/products?bucket=class&key=AX&origin=x", headers=auth()).status_code == 422

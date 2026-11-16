@@ -33,5 +33,6 @@ def purge(conn: Connection, now: datetime | None = None, years: int = RETENTION_
         "product_backtest": conn.execute(delete(product_backtest).where(product_backtest.c.created_at < limit)).rowcount,
         "backtest_jobs": conn.execute(delete(backtest_jobs).where(backtest_jobs.c.status != "running", backtest_jobs.c.started_at < limit)).rowcount,
     }
-    audit(conn, "retention-job", RETENTION_PURGED, "retention", limit.date().isoformat(), after={"before": limit.date().isoformat(), **counts}, now=now)
+    if any(counts.values()):                                        # a pass that removed nothing leaves no audit noise
+        audit(conn, "retention-job", RETENTION_PURGED, "retention", limit.date().isoformat(), after={"before": limit.date().isoformat(), **counts}, now=now)
     return counts

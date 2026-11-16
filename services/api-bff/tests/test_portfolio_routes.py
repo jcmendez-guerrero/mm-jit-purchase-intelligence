@@ -65,3 +65,19 @@ def test_a_downstream_refusal_keeps_its_code(role_store):
     inv.forward.side_effect = httpx.HTTPStatusError("x", request=req, response=httpx.Response(422, request=req, json={"detail": "request_invalid"}))
     r = call("/api/quality/portfolio?category=Z", headers_for("u", ["viewer"]), inv)
     assert r.status_code == 422 and r.json() == {"detail": "request_invalid"}
+
+
+def test_the_origin_is_forwarded_for_the_counts_and_the_drill_down(role_store):
+    inv = AsyncMock()
+    inv.forward.return_value = BODY
+    call("/api/quality/portfolio?origin=local_export", headers_for("u", ["viewer"]), inv)
+    assert inv.forward.call_args.kwargs["params"] == {"origin": "local_export"}
+    call("/api/quality/portfolio/products?bucket=class&key=AX&origin=erp", headers_for("u", ["viewer"]), inv)
+    assert inv.forward.call_args.kwargs["params"]["origin"] == "erp"
+
+
+@pytest.mark.parametrize("path", ["/api/quality/portfolio?origin=seed", "/api/quality/portfolio/products?bucket=class&key=AX&origin=x"])
+def test_an_unknown_origin_is_refused_before_anything_downstream(role_store, path):
+    inv = AsyncMock()
+    assert call(path, headers_for("u", ["viewer"]), inv).status_code == 422
+    inv.forward.assert_not_called()

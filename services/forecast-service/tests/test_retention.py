@@ -70,3 +70,9 @@ def test_the_removal_is_audited_and_repeatable(conn):
     assert row.after["product_backtest"] == 1
     assert verify_chain(conn).ok
     assert purge(conn, now=NOW) == {"forecast_explanations": 0, "product_backtest": 0, "backtest_jobs": 0}
+
+
+def test_a_pass_that_removes_nothing_writes_no_audit_event(conn):
+    _backtest(conn, "new", KEPT)
+    assert purge(conn, now=NOW) == {"forecast_explanations": 0, "product_backtest": 0, "backtest_jobs": 0}
+    assert conn.execute(select(func.count()).select_from(audit_events)).scalar() == 0

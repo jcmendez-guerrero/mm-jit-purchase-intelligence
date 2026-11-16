@@ -23,7 +23,7 @@ def test_the_category_filter_keeps_only_that_class_and_every_distribution_still_
     body = client.get("/quality/portfolio?category=A", headers=auth()).json()
     assert body["active_products"] == len(wanted) and body["active_products"] < everything["active_products"]
     assert all(sum(b["count"] for b in body[k]) == len(wanted) for k in ("by_class", "by_eligibility", "by_confidence"))
-    assert body["filters"] == {"category": "A", "supplier": None}
+    assert body["filters"] == {"category": "A", "supplier": None, "origin": "erp"}
     listed = client.get("/quality/portfolio/products?bucket=eligibility&key=pending&category=A", headers=auth()).json()
     assert listed["total"] == len(wanted)
 

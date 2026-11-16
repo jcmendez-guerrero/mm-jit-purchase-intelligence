@@ -22,7 +22,7 @@ from dashboard.filters import FilterError, FilterSet
 from db.tables import ALL_WAREHOUSES, stock_history, variants
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel
-from quality.portfolio import BUCKETS, bucket_products, portfolio, rebuild_portfolio
+from quality.portfolio import BUCKETS, ORIGINS, bucket_products, portfolio, rebuild_portfolio
 from quality.snapshot import (
     DecisionError,
     NoFlagError,
@@ -127,17 +127,20 @@ def build_quality_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> A
 
     @router.get("/quality/portfolio")
     def portfolio_view(category: str | None = Query(default=None, max_length=12), supplier_id: str | None = Query(default=None, max_length=36),
-                       family: str | None = Query(default=None, max_length=120), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+                       family: str | None = Query(default=None, max_length=120), origin: str = Query(default="erp", max_length=12),
+                       conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         """T062: counts by demand class, eligibility and confidence for the whole catalogue or a filtered part; every count drills down to its products."""
-        return portfolio(conn, parse_filters(category, supplier_id, family))
+        if origin not in ORIGINS:
+            raise HTTPException(422, "request_invalid")
+        return portfolio(conn, parse_filters(category, supplier_id, family), origin=origin)
 
     @router.get("/quality/portfolio/products")
     def portfolio_products(bucket: str = Query(max_length=12), key: str = Query(max_length=40), category: str | None = Query(default=None, max_length=12),
                            supplier_id: str | None = Query(default=None, max_length=36), family: str | None = Query(default=None, max_length=120),
-                           limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0), conn: Connection = Depends(conn_dep),
-                           _p: Any = Depends(require())) -> dict[str, Any]:
-        if bucket not in BUCKETS:
+                           limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0), origin: str = Query(default="erp", max_length=12),
+                           conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        if bucket not in BUCKETS or origin not in ORIGINS:
             raise HTTPException(422, "request_invalid")
-        return bucket_products(conn, parse_filters(category, supplier_id, family), bucket, key, limit, offset)
+        return bucket_products(conn, parse_filters(category, supplier_id, family), bucket, key, limit, offset, origin)
 
     return router

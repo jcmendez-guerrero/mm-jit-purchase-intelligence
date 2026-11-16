@@ -232,3 +232,20 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 - [ ] T077 Before opening the PR, check whether feature 011's inventory migration `0008` has merged; if it has, renumber `services/inventory-service/migrations/versions/0008_quality_intelligence.py` to 0009, point `down_revision` at 0008, update `tests/test_migration_quality.py` and re-run the PostgreSQL migration test (`RUN_PG_MIGRATIONS=1 pytest infra/tests/test_migrations_postgres.py`), per T007 (partial)
 - [ ] T078 Document the additive `provenance` field of `GET /export/series` in `contracts/quality-intelligence.md` and ask Agent 00 whether this service-to-service endpoint needs a contract-matrix entry, per FR-014 (partial)
 - [ ] T079 Install Playwright and `ortools` in the verification environment so the `e2e` and `security` gates can run before the final `python -m gates run`, per T071 (partial)
+
+## Phase 10: Convergence
+
+- [X] T080 Schedule the two retention commands (`python -m retention` in inventory-service and forecast-service) as scale-to-zero jobs in `infra/bicep/modules/serviceJobs.bicep` (and `infra/compose.yaml` for local use), weekly, within the job caps and EUR 120 budget; confirm with Agent 00 and run `python -m gates run --gate cost`, per FR-025 and plan: cost check (partial)
+- [X] T081 Keep the origins apart in the portfolio counts: add an optional `origin` filter (`erp` or `local_export`) to `GET /quality/portfolio`, `GET /quality/portfolio/products` and the BFF/web filter, default to ERP-only counts, with a test in `services/inventory-service/tests/test_origin_not_mixed.py` that a catalogue with both origins never sums them, per FR-014 and FR-023 (partial)
+
+## Phase 11: Convergence
+
+- [X] T082 Add an "Origen" selector (ERP by default, "Carga local") to the portfolio filters in `apps/web/src/features/quality/PortfolioView.tsx` and `src/i18n/es-ES.json`, passing `origin` to the counts and the drill-down, with a unit test and a Playwright case in `apps/web/tests/e2e/quality-portfolio.spec.ts`, per FR-023 and T081 (partial)
+
+## Phase 12: Convergence
+
+- [X] T083 Free a catalogue backtest that was left `running` by a crash: before the conflict check in `services/forecast-service/src/backtest/jobs.py`, mark any `running` catalogue job older than 30 minutes as `failed`, with a test in `services/forecast-service/tests/test_backtest_jobs.py` that an old running row no longer returns 409, per FR-022 (partial)
+- [X] T084 Age anomaly flags in the retention job by the later of `created_at` and `decided_at`, so a decision taken in the last 5 years is never purged, with a test in `services/inventory-service/tests/test_retention.py`, per FR-025 (partial)
+- [X] T085 Prove the retention commands on PostgreSQL: a case in `infra/tests/test_migrations_postgres.py` (behind `RUN_PG_MIGRATIONS=1`) that inserts old rows and runs `purge` as the `inventory_svc` and `forecasting_svc` roles, confirming DELETE rights and that `python -m retention` starts, per FR-025 (partial)
+- [X] T086 Write the retention audit event only when something was removed in `services/inventory-service/src/quality/retention.py` and `services/forecast-service/src/runs/retention.py`, and update both `test_retention.py`, per FR-025 and plan: cost and storage check (partial)
+- [X] T087 Replace the inline UTC expression for `created_at` in `services/forecast-service/src/api.py` with a small local `_utc` helper like the one in inventory-service, per FR-023 (partial)

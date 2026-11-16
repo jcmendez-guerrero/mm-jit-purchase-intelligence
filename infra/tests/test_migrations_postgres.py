@@ -230,3 +230,33 @@ def test_feature_010_admin_tables_are_owned_by_the_bff_and_keep_one_live_alert_p
     for table in ("alerts", "alert_observations", "ops_snapshots", "ops_settings"):
         with pytest.raises(sa.exc.DBAPIError):                    # another service's role cannot read the BFF schema
             sql(pg_port, "procurement_svc", f"select * from bff.{table}")  # noqa: S608 - fixed table names above
+
+
+def _retention(service: str, role: str, port: int) -> subprocess.CompletedProcess:  # type: ignore[type-arg]
+    """Runs the service's own retention command the way the scheduled job does: one pass, as that service's database role."""
+    return subprocess.run([PY, "-m", "retention"], cwd=ROOT / "services" / service / "src", capture_output=True, text=True,
+                          env={**os.environ, "MMI_DATABASE_URL": url(role, port), "PYTHONPATH": f"{ROOT / 'packages/contracts/python'}:{ROOT / 'services' / service / 'src'}"})
+
+
+def test_t085_the_retention_commands_run_as_the_service_roles_and_remove_only_old_rows(pg_port):
+    """T085 (feature 012, FR-025): the service roles may delete their own derived rows, old ones go, recent ones stay, and the removal is audited."""
+    alembic("inventory-service", "inventory_svc", pg_port, "upgrade", "head")
+    alembic("forecast-service", "forecasting_svc", pg_port, "upgrade", "head")
+    snapshot = ("insert into data_quality_snapshot (variant_id, period_start, period_end, days_in_period, days_with_data, coverage_ratio, gap_days, rejected_count, quarantined_count, "
+                "ambiguous_count, reason_counts, excluded_by_type, anomaly_count, censored_days, origin, config_version_id, input_hash, built_at) "
+                "values (:v, '2020-01-01', '2020-03-31', 90, 90, 1, '[]'::json, 0, 0, 0, '{}'::json, '{}'::json, 0, 0, 'erp', 'c1', :h, :t)")
+    sql(pg_port, "inventory_svc", snapshot, {"v": 1, "h": "a" * 64, "t": "2020-01-01T00:00:00+00:00"})
+    sql(pg_port, "inventory_svc", snapshot, {"v": 2, "h": "b" * 64, "t": "2999-01-01T00:00:00+00:00"})
+    backtest = ("insert into product_backtest (backtest_run_id, variant_id, sku, periods, beats_baseline, model_version, created_at) values (:r, 1, 'EJ-1', 3, true, 'm', :t)")
+    sql(pg_port, "forecasting_svc", backtest, {"r": "old", "t": "2020-01-01T00:00:00+00:00"})
+    sql(pg_port, "forecasting_svc", backtest, {"r": "new", "t": "2999-01-01T00:00:00+00:00"})
+    for service, role in (("inventory-service", "inventory_svc"), ("forecast-service", "forecasting_svc")):
+        r = _retention(service, role, pg_port)
+        assert r.returncode == 0, r.stderr[-1500:]
+    assert [row[0] for row in sql(pg_port, "inventory_svc", "select variant_id from data_quality_snapshot").all()] == [2]
+    assert [row[0] for row in sql(pg_port, "forecasting_svc", "select backtest_run_id from product_backtest").all()] == ["new"]
+    assert sql(pg_port, "inventory_svc", "select count(*) from audit_events where action = 'quality.retention_purged'").scalar() == 1
+    assert sql(pg_port, "forecasting_svc", "select count(*) from audit_events where action = 'forecast.retention_purged'").scalar() == 1
+    for service, role in (("inventory-service", "inventory_svc"), ("forecast-service", "forecasting_svc")):    # a second pass removes nothing and adds no audit row
+        assert _retention(service, role, pg_port).returncode == 0
+    assert sql(pg_port, "inventory_svc", "select count(*) from audit_events where action = 'quality.retention_purged'").scalar() == 1

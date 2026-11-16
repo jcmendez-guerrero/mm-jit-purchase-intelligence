@@ -27,6 +27,7 @@ export const PortfolioView: React.FC = () => {
   const { t } = useTranslation();
   const [category, setCategory] = useState("");
   const [supplier, setSupplier] = useState("");
+  const [origin, setOrigin] = useState<"" | "local_export">("");              // empty means ERP; the two origins are never summed
   const [applied, setApplied] = useState<PortfolioFilters>({});
   const [data, setData] = useState<PortfolioSummary | null>(null);
   const [open, setOpen] = useState<OpenList | null>(null);
@@ -34,7 +35,7 @@ export const PortfolioView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    const filters: PortfolioFilters = { ...(category ? { category } : {}), ...(supplier.trim() ? { supplier_id: supplier.trim() } : {}) };
+    const filters: PortfolioFilters = { ...(category ? { category } : {}), ...(supplier.trim() ? { supplier_id: supplier.trim() } : {}), ...(origin ? { origin } : {}) };
     try {
       setLoading(true);
       setError(null);
@@ -103,6 +104,13 @@ export const PortfolioView: React.FC = () => {
                 {t(`quality.portfolio.category_${c.toLowerCase()}`)}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="mmi-field__label" htmlFor="portfolio-origin">
+          {t("quality.portfolio.origin")}
+          <select id="portfolio-origin" value={origin} onChange={(e) => setOrigin(e.target.value as "" | "local_export")}>
+            <option value="">{t("quality.portfolio.origin_erp")}</option>
+            <option value="local_export">{t("quality.portfolio.origin_local")}</option>
           </select>
         </label>
         <FormField id="portfolio-supplier" label={t("quality.portfolio.supplier")} value={supplier} onChange={setSupplier} maxLength={36} />

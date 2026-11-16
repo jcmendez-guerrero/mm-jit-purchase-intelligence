@@ -65,24 +65,27 @@ async def recompute(session: SessionData = Depends(require_roles(*EDIT)), inv: I
     return await inv.forward("POST", "/quality/recompute", user_id=session.user_id, roles=session.roles)
 
 
+ORIGIN = "^(erp|local_export)$"                                   # the two data origins; counts are never summed across them
+
+
 def _only_set(**values: Any) -> dict[str, Any] | None:
     return {k: v for k, v in values.items() if v is not None} or None
 
 
 @router.get("/portfolio")
 async def portfolio(category: str | None = Query(default=None, max_length=12), supplier_id: str | None = Query(default=None, max_length=36),
-                    family: str | None = Query(default=None, max_length=120), session: SessionData = Depends(require_roles(*READ)),
-                    inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+                    family: str | None = Query(default=None, max_length=120), origin: str | None = Query(default=None, pattern=ORIGIN),
+                    session: SessionData = Depends(require_roles(*READ)), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
     """T063: the catalogue-wide distribution of demand classes, eligibility and confidence. Composed and counted by inventory-service."""
-    return await inv.forward("GET", "/quality/portfolio", params=_only_set(category=category, supplier_id=supplier_id, family=family), user_id=session.user_id, roles=session.roles)
+    return await inv.forward("GET", "/quality/portfolio", params=_only_set(category=category, supplier_id=supplier_id, family=family, origin=origin), user_id=session.user_id, roles=session.roles)
 
 
 @router.get("/portfolio/products")
 async def portfolio_products(bucket: str = Query(max_length=12), key: str = Query(max_length=40), category: str | None = Query(default=None, max_length=12),
                              supplier_id: str | None = Query(default=None, max_length=36), family: str | None = Query(default=None, max_length=120),
-                             limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0), session: SessionData = Depends(require_roles(*READ)),
-                             inv: InventoryClient = Depends(get_inventory_client)) -> Any:
-    params = _only_set(bucket=bucket, key=key, category=category, supplier_id=supplier_id, family=family, limit=limit, offset=offset)
+                             limit: int = Query(default=50, ge=1, le=200), offset: int = Query(default=0, ge=0), origin: str | None = Query(default=None, pattern=ORIGIN),
+                             session: SessionData = Depends(require_roles(*READ)), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+    params = _only_set(bucket=bucket, key=key, category=category, supplier_id=supplier_id, family=family, limit=limit, offset=offset, origin=origin)
     return await inv.forward("GET", "/quality/portfolio/products", params=params, user_id=session.user_id, roles=session.roles)
 
 

@@ -176,6 +176,26 @@ services:
       inventory-service: { condition: service_healthy }
     command: ["sh", "-c", "cd /app/services/inventory-service && exec python -m worker"]
 
+  inventory-retention:                     # one pass on demand: docker compose --profile jobs run --rm inventory-retention
+    profiles: ["jobs"]
+    build: { context: .., dockerfile: services/inventory-service/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DATABASE_URL: postgresql+psycopg://inventory_svc:dev-only-local@postgres:5432/mmi
+    depends_on:
+      postgres: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/inventory-service && exec python -m retention"]
+
+  forecast-retention:                      # one pass on demand: docker compose --profile jobs run --rm forecast-retention
+    profiles: ["jobs"]
+    build: { context: .., dockerfile: services/forecast-service/Dockerfile }
+    environment:
+      MMI_ENV: dev
+      MMI_DATABASE_URL: postgresql+psycopg://forecasting_svc:dev-only-local@postgres:5432/mmi
+    depends_on:
+      postgres: { condition: service_healthy }
+    command: ["sh", "-c", "cd /app/services/forecast-service && exec python -m retention"]
+
   forecast-worker:
     build: { context: .., dockerfile: services/forecast-service/Dockerfile }
     environment:

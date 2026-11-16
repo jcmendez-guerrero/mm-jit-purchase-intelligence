@@ -20,6 +20,7 @@ from sqlalchemy.engine import Connection
 ELIGIBILITY_KEYS = ("eligible", "manual_review_only", "not_eligible", "pending")
 CONFIDENCE_KEYS = ("alta", "media", "baja", "none")
 BUCKETS = ("class", "eligibility", "confidence")
+ORIGINS = ("erp", "local_export")                                   # counts are never summed across origins (FR-014, FR-023)
 UNCLASSIFIED = "sin_clasificar"
 INTERMITTENT = frozenset({"intermittent", "lumpy"})
 SIX = Decimal("0.000001")
@@ -59,14 +60,14 @@ def _class_key(abc: str, xyz: str) -> str:
     return UNCLASSIFIED if abc == "-" else f"{abc}{xyz}"
 
 
-def _in_scope(conn: Connection, f: Filters) -> list[Any]:
+def _in_scope(conn: Connection, f: Filters, origin: str = "erp") -> list[Any]:
     scope = variant_scope(conn, f)
     rows = conn.execute(select(portfolio_aggregate, variants.c.sku).join(variants, variants.c.external_id == portfolio_aggregate.c.variant_id)).all()
-    return [r for r in rows if r.variant_id in scope]
+    return [r for r in rows if r.variant_id in scope and r.origin == origin]
 
 
-def portfolio(conn: Connection, f: Filters, worst: int = 10) -> dict[str, Any]:
-    rows = _in_scope(conn, f)
+def portfolio(conn: Connection, f: Filters, worst: int = 10, origin: str = "erp") -> dict[str, Any]:
+    rows = _in_scope(conn, f, origin)
     by_class: dict[str, int] = {}
     by_elig = dict.fromkeys(ELIGIBILITY_KEYS, 0)
     by_conf = dict.fromkeys(CONFIDENCE_KEYS, 0)
@@ -79,13 +80,13 @@ def portfolio(conn: Connection, f: Filters, worst: int = 10) -> dict[str, Any]:
         return [{"key": k, "count": n, "drilldown": f"bucket={kind}&key={k}"} for k, n in counts.items()]
 
     ranked = sorted((r for r in rows if r.coverage_ratio is not None), key=lambda r: (r.coverage_ratio, -((r.rejected_share or 0) + (r.anomaly_share or 0)), r.sku or ""))
-    return {"filters": {"category": f.category, "supplier": f.supplier_id}, "active_products": len(rows), "by_class": buckets("class", dict(sorted(by_class.items()))),
+    return {"filters": {"category": f.category, "supplier": f.supplier_id, "origin": origin}, "active_products": len(rows), "by_class": buckets("class", dict(sorted(by_class.items()))),
             "by_eligibility": buckets("eligibility", by_elig), "by_confidence": buckets("confidence", by_conf),
             "worst_quality": [{"sku": r.sku, "coverage_ratio": str(Decimal(r.coverage_ratio).quantize(SIX)), "rejected_share": None if r.rejected_share is None else str(Decimal(r.rejected_share).quantize(SIX)),
                                "anomaly_share": None if r.anomaly_share is None else str(Decimal(r.anomaly_share).quantize(SIX))} for r in ranked[:worst]]}
 
 
-def bucket_products(conn: Connection, f: Filters, bucket: str, key: str, limit: int = 50, offset: int = 0) -> dict[str, Any]:
+def bucket_products(conn: Connection, f: Filters, bucket: str, key: str, limit: int = 50, offset: int = 0, origin: str = "erp") -> dict[str, Any]:
     """The SKUs behind one count, in SKU order, paged. The same scope as ``portfolio``, so a count and its list always match."""
     if bucket == "class":
         pick = lambda r: _class_key(r.abc, r.xyz) == key  # noqa: E731
@@ -93,5 +94,5 @@ def bucket_products(conn: Connection, f: Filters, bucket: str, key: str, limit: 
         pick = lambda r: r.eligibility == key  # noqa: E731
     else:
         pick = lambda r: (r.confidence or "none") == key  # noqa: E731
-    skus = sorted(r.sku or "" for r in _in_scope(conn, f) if pick(r))
+    skus = sorted(r.sku or "" for r in _in_scope(conn, f, origin) if pick(r))
     return {"bucket": bucket, "key": key, "total": len(skus), "skus": skus[offset:offset + limit]}

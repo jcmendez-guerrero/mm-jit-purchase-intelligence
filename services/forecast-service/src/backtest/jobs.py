@@ -14,7 +14,7 @@ import json
 import logging
 import time
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from audit import BACKTEST_COMPLETED, BACKTEST_STARTED, append
@@ -29,6 +29,8 @@ from backtest.product import backtest_product
 from backtest.runner import BacktestConfig
 
 log = logging.getLogger("forecast.backtest")
+
+STALE_AFTER = timedelta(minutes=30)      # a catalogue job running longer than this is taken to have died (container killed, timeout) and is freed
 
 
 class BacktestConflict(Exception):
@@ -82,6 +84,10 @@ def run_backtest(engine: Engine, source: Any, *, scope: str, sku: str | None, ac
             log.info("BACKTEST_JOB_REUSED job=%s scope=%s products=%d", job_id, scope, len(series))
             return {"job_id": job_id, "status": "completed", "reused": True, "products": len(series)}
         if scope == "catalogue":
+            freed = c.execute(update(backtest_jobs).where(backtest_jobs.c.scope == "catalogue", backtest_jobs.c.status == "running", backtest_jobs.c.started_at < now - STALE_AFTER)
+                              .values(status="failed", finished_at=now)).rowcount
+            if freed:
+                log.warning("BACKTEST_JOB_FREED stale=%d", freed)
             running = c.execute(select(backtest_jobs.c.id).where(backtest_jobs.c.scope == "catalogue", backtest_jobs.c.status == "running")).scalar()
             if running is not None:
                 log.info("BACKTEST_JOB_REFUSED running=%s", running)

@@ -12,7 +12,8 @@
       "additionalProperties": false,
       "properties": {
         "category": { "type": ["string", "null"], "maxLength": 120 },
-        "supplier": { "type": ["string", "null"], "maxLength": 120 }
+        "supplier": { "type": ["string", "null"], "maxLength": 120 },
+        "origin": { "type": "string", "enum": ["erp", "local_export"] }
       }
     },
     "active_products": { "type": "integer", "minimum": 0 },

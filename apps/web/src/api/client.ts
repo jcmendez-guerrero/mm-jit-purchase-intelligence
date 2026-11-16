@@ -730,7 +730,7 @@ export interface PortfolioBucket {
 }
 
 export interface PortfolioSummary {
-  filters: { category: string | null; supplier: string | null };
+  filters: { category: string | null; supplier: string | null; origin?: "erp" | "local_export" };
   active_products: number;
   by_class: PortfolioBucket[];
   by_eligibility: PortfolioBucket[];
@@ -748,6 +748,7 @@ export interface PortfolioList {
 export interface PortfolioFilters {
   category?: string;
   supplier_id?: string;
+  origin?: "erp" | "local_export"; // defaults to ERP; the two origins are never summed
 }
 
 export interface BacktestJob {

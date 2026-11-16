@@ -6,7 +6,9 @@ param environmentId string
 param jobPrefix string
 param registryServer string
 param workerCron string
-@description('[{ key, dir, image, identityId, env, secrets, migrate, work }]')
+@description('Weekly, Sunday 03:00 UTC: removes derived quality records older than five years (feature 012, FR-025)')
+param retentionCron string = '0 3 * * 0'
+@description('[{ key, dir, image, identityId, env, secrets, migrate, work, retention? }]')
 param services array
 
 module migrations 'containerAppJob.bicep' = [for s in services: if (s.migrate) {
@@ -36,6 +38,23 @@ module workers 'containerAppJob.bicep' = [for s in services: if (s.work) {
     registryServer: registryServer
     cronExpression: workerCron
     command: ['sh', '-c', 'cd /app/services/${s.dir} && exec python -m worker']
+    replicaTimeoutSeconds: 600
+    secrets: s.secrets
+    env: s.env
+  }
+}]
+
+module retention 'containerAppJob.bicep' = [for s in services: if (s.?retention ?? false) {
+  name: 'job-retention-${s.key}'
+  params: {
+    name: '${jobPrefix}-ret-${s.key}'
+    location: location
+    environmentId: environmentId
+    image: s.image
+    identityId: s.identityId
+    registryServer: registryServer
+    cronExpression: retentionCron
+    command: ['sh', '-c', 'cd /app/services/${s.dir} && exec python -m retention']
     replicaTimeoutSeconds: 600
     secrets: s.secrets
     env: s.env
