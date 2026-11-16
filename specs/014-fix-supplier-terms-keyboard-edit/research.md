@@ -39,6 +39,19 @@ Root cause is **not yet established**: dependencies are not installed in this wo
 - **Decision**: Run the check at least 20 consecutive times (`--repeat-each=20`) and record the result in the PR.
 - **Rationale**: SC-001; the earlier failure was intermittent.
 
-## Root cause (to be completed)
+## Root cause (recorded 2026-11-16, T002–T003)
 
-_Not yet known. Fill in during implementation: which hypothesis held, the evidence, and whether the fix is in the screen or in the check._
+**Held: H2 (the form is re-initialised after typing). H1, H3 and H4 were not the cause.** The defect was in the screen, and it is already fixed on this branch; the work left was to prove it and to lock it in with tests.
+
+**Mechanism.** Before the saved terms arrived, the form was editable. The terms response then called `setForm(toForm(v.current))` and replaced whatever had been typed with the loaded values. A buyer who typed `7` during that window saved `3`.
+
+**Fix.** Commit `e0e8b18` (2026-11-15, "supplier terms form stays locked until the terms load") sets `readOnly = !canEdit || view === null` and keeps the loader independent of `t`. It reached `origin/main` through PR #25 but not the MMI-5 branch where the test was quarantined (`bf4a0f5`), and the local `main` ref in this clone is stale (it does not contain `e0e8b18`). The MMI-12 ticket therefore described `main` as it was before that fix.
+
+**Evidence.**
+- With the fix in place, the quarantined test passes 20 of 20 and 15 of 15 with CI settings.
+- With the lock removed (`readOnly = !canEdit`) and the test's `toHaveValue("3")` wait removed, 1 of 10 runs failed with `Expected: 7, Received: 3`, which is the ticket's symptom.
+- H1 rejected: `getByLabel("Plazo de entrega (días)")` passes in Playwright strict mode, so only one field has that label; the override editor's lead time has a different label.
+
+**A second, test-only race found while proving stability.** Under 7 parallel workers, 2–5 of 80 runs failed with "element not reachable with the keyboard" at the first `tabTo` (the supplier button), because the supplier list had not rendered yet and the 120 Tab presses ran out. Fix: wait for the button to be visible before tabbing. After it, 4 × 80 runs passed (320 of 320).
+
+**Regression tests added.** A delayed-terms case (fields disabled while loading, then a keyboard edit is kept) fails if the lock is removed; money-term cases by keyboard and mouse; unit cases for the payload and validation.
