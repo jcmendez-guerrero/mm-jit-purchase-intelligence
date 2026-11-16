@@ -34,17 +34,19 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
     };
   }, [variantId, t]);
 
+  const sku = d?.variant.sku;
   useEffect(() => {
+    if (!sku) return;                                            // the history is asked for by SKU, so it waits for the detail that carries it
     let live = true;
     setHistory(null);
     api
-      .getSegmentHistory(variantId)
+      .getSegmentHistoryBySku(sku)
       .then((h) => live && setHistory(h.history))
       .catch(() => live && setHistory([]));                      // the history is context: if it cannot be read the detail still opens
     return () => {
       live = false;
     };
-  }, [variantId]);
+  }, [sku]);
 
   useEffect(() => {
     let live = true;

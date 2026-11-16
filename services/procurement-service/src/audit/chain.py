@@ -31,7 +31,8 @@ def compute_hash(prev_hash: str, body: dict[str, Any]) -> str:
 
 
 def _aware(ts: datetime) -> datetime:
-    return ts if ts.tzinfo else ts.replace(tzinfo=UTC)
+    """Always UTC: PostgreSQL returns a stored instant in the session time zone, and the hashed text must not depend on it."""
+    return ts.astimezone(UTC) if ts.tzinfo else ts.replace(tzinfo=UTC)
 
 
 def _body(ts: datetime, actor: str, action: str, entity: str, entity_id: str, before: Any, after: Any) -> dict[str, Any]:

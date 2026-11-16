@@ -1,16 +1,30 @@
+import os
 import uuid
 from datetime import UTC, datetime
 
 import pytest
 from db.tables import metadata, product_refs, suppliers
+from mmi_common import pg_testing
 from sqlalchemy import create_engine, event, insert
 from sqlalchemy.pool import StaticPool
 
 NOW = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _drop_pg_schema():
+    yield
+    pg_testing.drop_schema()
+
+
 @pytest.fixture
 def engine():
+    url = os.environ.get("MMI_TEST_DATABASE_URL")
+    if url:                                   # a real PostgreSQL (feature 011, T077, T083, T090)
+        eng = pg_testing.pg_engine(url, metadata)
+        yield eng
+        pg_testing.clean(eng, metadata)
+        return
     eng = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
 
     @event.listens_for(eng, "connect")
@@ -22,7 +36,7 @@ def engine():
         conn.exec_driver_sql("BEGIN")
 
     metadata.create_all(eng)
-    return eng
+    yield eng
 
 
 @pytest.fixture

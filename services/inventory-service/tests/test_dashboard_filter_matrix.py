@@ -10,7 +10,7 @@ import pytest
 from dashboard.filters import FilterSet
 from dashboard.indicators import build_indicators
 from dashboard.kpis import refresh_aggregates
-from reference_dataset import NOW, TODAY, seed_reference
+from reference_dataset import NOW, TODAY, freeze_clock, seed_reference
 
 # filters -> (stock value, expiring value, demand units or None)
 MATRIX = [
@@ -29,7 +29,8 @@ MATRIX = [
 
 
 @pytest.fixture
-def seeded(engine):
+def seeded(engine, monkeypatch):
+    freeze_clock(monkeypatch)
     seed_reference(engine)
     with engine.begin() as c:
         refresh_aggregates(c, TODAY, None, NOW)

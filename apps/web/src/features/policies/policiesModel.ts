@@ -52,7 +52,7 @@ export function toPayload(f: PolicyForm): { body: Record<string, unknown> } | { 
 }
 
 export const scopeKeyValid = (scope: Scope, key: string): boolean =>
-  scope === "global" ? key === "*" : scope === "segment" ? (SEGMENT_KEYS as readonly string[]).includes(key) : /^[1-9]\d*$/.test(key);
+  scope === "global" ? key === "*" : scope === "segment" ? (SEGMENT_KEYS as readonly string[]).includes(key) : key.trim() !== "" && key.trim().length <= 60;
 
 export const canEditPolicies = (roles: string[]): boolean => roles.includes("buyer");
 export const canDecideOverrides = (roles: string[]): boolean => roles.includes("approver");

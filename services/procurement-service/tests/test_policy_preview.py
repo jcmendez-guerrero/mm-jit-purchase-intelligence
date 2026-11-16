@@ -6,12 +6,12 @@ from decimal import Decimal
 import pytest
 from api import costs, policies
 from conftest import add_supplier
-from db.tables import audit_events, policy_sets
+from db.tables import audit_events, policy_sets, product_refs
 from fastapi.testclient import TestClient
 from mmi_common.auth import AuthError, Principal
 from mmi_common.service import create_service_app
 from proposals.inputs import InputsProvider
-from sqlalchemy import func, select
+from sqlalchemy import func, insert, select
 from test_inputs import ELIGIBLE, Src, cost, fc, stock, sv
 
 D = Decimal
@@ -35,6 +35,7 @@ def api(engine):
     with engine.begin() as c:
         sa = add_supplier(c, 1, "A")
         cost(c, sa, 10, "1.00")
+        c.execute(insert(product_refs).values(variant_id=1, product_id=10, sku="SYN-0001", name="Producto sintético"))      # people use the SKU (feature 011)
     app = create_service_app("procurement-service", validator=V())
     app.include_router(costs.build_router(app))
     app.include_router(policies.build_router(app))
@@ -90,10 +91,10 @@ def test_budget_cap_and_listing(api):
 
 
 def test_stocking_and_override_endpoints_enforce_roles_and_separation(api):
-    assert api.put("/stocking/1", json={"stocking_mode": "always_stocked", "min_floor_units": 0}, headers=h("buyer")).json()["detail"] == "stocking_floor_required"
-    assert api.put("/stocking/1", json={"stocking_mode": "always_stocked", "min_floor_units": 1}, headers=h("buyer")).json() == {"revision": 1}
-    assert api.put("/stocking/1", json={"stocking_mode": "standard", "min_floor_units": 0}, headers=h("buyer")).status_code == 428
-    req = api.post("/policy-overrides", json={"variant_id": 1, "field": "safety_stock", "requested_value": 5, "reason": "proveedor poco fiable"}, headers=h("buyer"))
+    assert api.put("/stocking/SYN-0001", json={"stocking_mode": "always_stocked", "min_floor_units": 0}, headers=h("buyer")).json()["detail"] == "stocking_floor_required"
+    assert api.put("/stocking/SYN-0001", json={"stocking_mode": "always_stocked", "min_floor_units": 1}, headers=h("buyer")).json() == {"revision": 1}
+    assert api.put("/stocking/SYN-0001", json={"stocking_mode": "standard", "min_floor_units": 0}, headers=h("buyer")).status_code == 428
+    req = api.post("/policy-overrides", json={"sku": "SYN-0001", "field": "safety_stock", "requested_value": 5, "reason": "proveedor poco fiable"}, headers=h("buyer"))
     assert req.status_code == 201 and req.json()["status"] == "pending"
     rid = req.json()["id"]
     assert api.post(f"/policy-overrides/{rid}/approve", headers=h("buyer")).status_code == 403                 # not an approver
@@ -105,7 +106,7 @@ def test_stocking_and_override_endpoints_enforce_roles_and_separation(api):
 
 
 def test_the_requester_cannot_approve_their_own_request(api):
-    rid = api.post("/policy-overrides", json={"variant_id": 1, "field": "min", "requested_value": 3, "reason": "campaña de verano"}, headers=h("buyer2")).json()["id"]
+    rid = api.post("/policy-overrides", json={"sku": "SYN-0001", "field": "min", "requested_value": 3, "reason": "campaña de verano"}, headers=h("buyer2")).json()["id"]
     r = api.post(f"/policy-overrides/{rid}/approve", headers=h("buyer2"))
     assert r.status_code == 403 and r.json()["detail"] == "policy_override_self_approval"
     ok = api.post(f"/policy-overrides/{rid}/approve", headers=h("approver"))

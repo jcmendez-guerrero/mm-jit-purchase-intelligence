@@ -37,6 +37,7 @@ forecast_runs = Table(
     Column("eligible_count", Integer, nullable=False, default=0),
     Column("dataset_version_id", String(36)),                          # exact seed dataset used (MMI 002)
     Column("parameter_version_ids", JSON),                              # forecast parameter versions used
+    Column("rule_version_ids", JSON),                                   # exclusion-set and censoring-rule revisions used (feature 011)
 )
 forecast_values = Table(
     "forecast_values", metadata,

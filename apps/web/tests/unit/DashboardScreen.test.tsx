@@ -248,7 +248,7 @@ describe("DashboardScreen", () => {
   it("shows a product's category history with the reason for each change, or says there is none", async () => {
     vi.spyOn(api, "getVariant").mockResolvedValue(detail([]));
     vi.spyOn(api, "getForecastBasis").mockRejectedValue(new Error("404"));
-    const hist = vi.spyOn(api, "getSegmentHistory").mockResolvedValue({ variant_id: 7, history: [
+    const hist = vi.spyOn(api, "getSegmentHistoryBySku").mockResolvedValue({ sku: "SYN-7", history: [
       { changed_at: "2026-11-05T00:00:00Z", abc: "A", xyz: "X", pattern: "smooth", critical: true, reason_key: "criticality_changed" },
       { changed_at: "2026-10-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] });
     const first = renderScreen(<DashboardScreen />);
@@ -258,7 +258,7 @@ describe("DashboardScreen", () => {
     expect(within(panel).getByText(/ABC B · XYZ X · smooth · primera clasificación/)).toBeTruthy();
     expect(within(panel).getByText("Historial de categoría")).toBeTruthy();
     first.unmount();
-    hist.mockResolvedValue({ variant_id: 7, history: [] });
+    hist.mockResolvedValue({ sku: "SYN-7", history: [] });
     renderScreen(<DashboardScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
     expect(await screen.findByText("Todavía no hay historial de categoría.")).toBeTruthy();

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/policy_audit_page.v1",
+  "title": "PolicyAuditPage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "items",
+    "total",
+    "page",
+    "page_size",
+    "unavailable",
+    "truncated"
+  ],
+  "description": "GET /api/policy-audit (admin only): who changed which rule and who was refused, newest first. Stored payloads are whitelisted rule values and bookkeeping: no ERP id and no typed text; products appear by SKU.",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["at", "actor", "action", "entity", "entity_id", "outcome"],
+        "properties": {
+          "at": { "type": "string", "format": "date-time" },
+          "actor": { "type": "string" },
+          "action": {
+            "type": "string",
+            "description": "For example policy.saved, budget_cap.saved, stocking.saved, censoring_rule.saved, parameter.saved, access.refused"
+          },
+          "entity": { "type": "string" },
+          "entity_id": {
+            "type": "string",
+            "description": "A SKU, a rule name or a policy scope key; never an ERP id"
+          },
+          "before": { "oneOf": [{ "type": "object" }, { "type": "null" }] },
+          "after": { "oneOf": [{ "type": "object" }, { "type": "null" }] },
+          "outcome": { "enum": ["accepted", "refused"] },
+          "reason_code": {
+            "type": "string",
+            "description": "Stable refusal code when the outcome is refused"
+          }
+        }
+      }
+    },
+    "total": { "type": "integer", "minimum": 0 },
+    "page": { "type": "integer", "minimum": 1 },
+    "page_size": { "type": "integer", "minimum": 1 },
+    "unavailable": {
+      "type": "array",
+      "items": { "enum": ["procurement", "inventory", "forecast"] },
+      "description": "Sources that could not be read; the page is incomplete for them"
+    },
+    "truncated": {
+      "type": "array",
+      "items": { "enum": ["procurement", "inventory", "forecast"] },
+      "description": "Sources that returned their full row limit: older matching rows may exist, so the dates should be narrowed"
+    }
+  }
+}

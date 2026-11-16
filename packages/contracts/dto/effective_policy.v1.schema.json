@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/effective_policy.v1",
+  "title": "EffectivePolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku", "as_of", "rules"],
+  "description": "GET /api/products/{sku}/effective-policy: per rule, the value in force, where it comes from (product, segment, global or default) and its revision.",
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "source"],
+      "properties": {
+        "value": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "Decimal text; null when nothing is in force and the computed default applies"
+        },
+        "source": { "enum": ["product", "segment", "global", "default"] },
+        "key": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "The segment code, or * for global; the product's own key is never shown"
+        },
+        "revision": {
+          "oneOf": [{ "type": "integer", "minimum": 1 }, { "type": "null" }]
+        },
+        "valid_from": {
+          "oneOf": [{ "type": "string", "format": "date" }, { "type": "null" }]
+        }
+      }
+    }
+  },
+  "properties": {
+    "sku": { "type": "string" },
+    "as_of": { "type": "string", "format": "date" },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_level",
+        "safety_stock_units",
+        "min_units",
+        "max_units",
+        "replenishment_cadence_days"
+      ],
+      "properties": {
+        "service_level": { "$ref": "#/$defs/rule" },
+        "safety_stock_units": { "$ref": "#/$defs/rule" },
+        "min_units": { "$ref": "#/$defs/rule" },
+        "max_units": { "$ref": "#/$defs/rule" },
+        "replenishment_cadence_days": { "$ref": "#/$defs/rule" }
+      }
+    }
+  }
+}
