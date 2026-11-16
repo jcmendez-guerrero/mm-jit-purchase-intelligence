@@ -50,8 +50,8 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 
 > Write these first and keep the reproduced failure (T002) in view before changing the fix site.
 
-- [ ] T004 [P] [US1] Add a keyboard-only e2e case that edits the money term "Pedido mínimo" (`min_order_value`) and asserts the saved string, in `apps/web/tests/e2e/a11y-all-routes.spec.ts` (FR-006, SC-004)
-- [ ] T005 [P] [US1] Add unit cases that `toPayload` returns the typed lead time and minimum order value (including Spanish decimal input such as `12,50`) in `apps/web/tests/unit/terms-model.test.ts`
+- [ ] T004 [P] [US1] Add e2e cases in `apps/web/tests/e2e/a11y-all-routes.spec.ts` that edit the money term "Pedido mínimo (€)" (`min_order_value`, label `suppliers.f.min_order_value`) once by keyboard and once by mouse, and assert both save the same string as typed (FR-001, FR-006, SC-004)
+- [ ] T005 [P] [US1] Add unit cases in `apps/web/tests/unit/terms-model.test.ts` that `toPayload` returns the typed lead time and minimum order value (including Spanish decimal input such as `12,50`), that an invalid lead time (negative, text, decimal) is rejected by `validateTerms` and nothing is built for saving, and that a form loaded and left untouched yields the loaded values unchanged (spec edge cases)
 
 ### Implementation for User Story 1
 
@@ -98,8 +98,9 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 ## Phase 6: Polish & Cross-Cutting Concerns
 
 - [ ] T014 [P] Mark the MMI-12 references as resolved in `docs/architecture/integration/verification.md`, `docs/architecture/integration/feature-status.md`, `docs/architecture/integration/feature-status.json` and `specs/013-procurement-proposals-scenarios/pull-request.md`
-- [ ] T015 [P] Confirm FR-007 and SC-005: the diff touches no validation, versioning, permission, audit or ERP code (review `git diff main --stat`)
-- [ ] T016 Fill the PR from `.github/pull_request_template.md` (data, security, cost, contract impact: none) with the root cause and the 20-run result, and mark the finished tasks `[X]` in `specs/014-fix-supplier-terms-keyboard-edit/tasks.md`
+- [ ] T015 [P] Confirm FR-007 and SC-005: the diff touches no validation, versioning, permission, audit or ERP code (review `git diff main --stat`), and that the existing viewer read-only and revision-conflict cases in `apps/web/tests/unit/SuppliersScreen.test.tsx` still pass unchanged (spec edge cases)
+- [ ] T016 Confirm FR-008 and FR-009: any new user-facing text is in `apps/web/src/i18n/es-ES.json` (no hard-coded strings) and every new test uses the existing synthetic supplier ("Proveedor Sintético A") only; check SC-003 by hand with quickstart step 6 (under 1 minute, saved value equals typed value)
+- [ ] T017 Fill the PR from `.github/pull_request_template.md` (data, security, cost, contract impact: none) with the root cause and the 20-run result, and mark the finished tasks `[X]` in `specs/014-fix-supplier-terms-keyboard-edit/tasks.md`
 
 ---
 
