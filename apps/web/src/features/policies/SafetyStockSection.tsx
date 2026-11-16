@@ -7,6 +7,7 @@ import { canDecideOverrides, canEditPolicies } from "./policiesModel";
 import { useActionNotice } from "../../ui/NoticeProvider";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { Button } from "../../ui/Button";
+import { HelpHint } from "../../ui/HelpHint";
 import { useFieldErrors } from "../../ui/useFieldErrors";
 import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
 
@@ -129,7 +130,10 @@ export const SafetyStockSection: React.FC<Props> = ({ roles }) => {
       {error && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
 
-      <h3>{t("safety.queue")}</h3>
+      <div className="mmi-heading-with-help">
+        <h3>{t("safety.queue")}</h3>
+        <HelpHint concept="safety_stock" />
+      </div>
       {queue.length === 0 ? (
         <p>{t("safety.queue_empty")}</p>
       ) : (

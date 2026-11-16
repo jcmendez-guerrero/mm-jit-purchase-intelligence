@@ -205,3 +205,33 @@ test("a plain scroll-region table keeps its first column visible when it scrolls
   expect(Math.abs(result.offset)).toBeLessThanOrEqual(2);
   await expectNoHorizontalScroll(page);
 });
+
+/** Feature 012 (FR-014, clarification 4): the narrow window (375 px) is a supported size on every route. */
+test.describe("narrow window 375x812", () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  for (const path of ROUTES) {
+    test(`${path} does not scroll horizontally at 375 px`, async ({ page }) => {
+      await signInAs(page, "admin");
+      await open(page, path);
+      await expectNoHorizontalScroll(page);
+    });
+  }
+
+  test("the quick-jump palette traps focus and returns it to the trigger on Escape", async ({ page }) => {
+    await signInAs(page, "buyer");
+    await open(page, "/panel");
+    const trigger = page.getByRole("button", { name: "Ir a una pantalla" });
+    await trigger.click();
+    const input = page.getByPlaceholder("Escribe el nombre de una pantalla");
+    await expect(input).toBeFocused();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    // A native modal dialog keeps the page behind it inert: focus never reaches the menu, the content or the skip link.
+    expect(await page.evaluate(() => !document.querySelector("#contenido, .mmi-rail, .mmi-skip-link")?.contains(document.activeElement))).toBe(true);
+    expect(await page.evaluate(() => !document.querySelector(".mmi-rail")?.contains(document.activeElement))).toBe(true);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+});

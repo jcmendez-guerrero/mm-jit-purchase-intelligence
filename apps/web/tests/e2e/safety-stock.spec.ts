@@ -91,7 +91,7 @@ test.describe("Safety stock and always-stocked (T080)", () => {
     await page.getByRole("navigation").getByRole("link", { name: "Configuración", exact: true }).click();
     await page.getByRole("tab", { name: /Stock de seguridad/ }).click();
     await expect(page.getByText(/recomendado 2, solicitado 6/)).toBeVisible();                    // still the value it was made against
-    await expect(page.getByText("La recomendación ha cambiado desde la solicitud: era 2 y ahora es 4. Revise la solicitud antes de decidir.")).toBeVisible();
+    await expect(page.getByText("La recomendación ha cambiado desde la solicitud: era 2 y ahora es 4. Revisa la solicitud antes de decidir.")).toBeVisible();
   });
 
   test("the screen shows the value in force next to the recommendation and whether it is an approved override", async ({ page }) => {

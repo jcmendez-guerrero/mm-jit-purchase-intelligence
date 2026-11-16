@@ -144,7 +144,20 @@ test("a screen the server refuses mid-session explains it and offers a way forwa
   await page.route("**/api/costs", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "auth_forbidden_role" }) }));
   await page.route("**/api/cost-writes", (r) => r.fulfill({ status: 403, contentType: "application/json", body: JSON.stringify({ detail: "auth_forbidden_role" }) }));
   await nav(page).getByRole("link", { name: "Costes y proveedores", exact: true }).click();
-  await expect(page.getByText("No tiene permiso para realizar esta acción.").first()).toBeVisible();
+  await expect(page.getByText("No tienes permiso para realizar esta acción.").first()).toBeVisible();
   await page.getByRole("link", { name: "Ir al panel de control" }).first().click();
   await expect(page).toHaveURL(/\/panel$/);
+});
+
+test("after a screen change focus lands on the page heading (rail and quick-jump)", async ({ page }) => {
+  await signInAs(page, "buyer");
+  await page.goto("/panel");
+  await expect(page.getByRole("heading", { level: 1, name: "Panel de control" })).toBeVisible();
+  await nav(page).getByRole("link", { name: "Calidad y datos", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Calidad y datos" })).toBeFocused();
+  await page.keyboard.press("Control+k");
+  await palette(page).fill("proveedores");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/proveedores$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Proveedores" })).toBeFocused();
 });

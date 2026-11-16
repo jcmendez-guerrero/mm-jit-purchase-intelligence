@@ -23,6 +23,9 @@ import { Card } from "../../ui/Card";
 interface Props {
   selectedWarehouse?: number | undefined;
   onSelectWarehouse?: ((id: number | undefined) => void) | undefined;
+  /** The open product detail, kept in the address (?producto=) so a link or the back button returns to it (feature 012). */
+  selectedProduct?: number | null | undefined;
+  onSelectProduct?: ((id: number | null) => void) | undefined;
 }
 
 const DRILL_OF: Partial<Record<IndicatorKey, DrillRequest["kind"]>> = { stock_value: "inventory_value", coverage_days: "coverage", stockout_risk: "stockout_risk", expiry_exposure: "expiry_risk" };
@@ -37,7 +40,7 @@ const Unavailable: React.FC = () => {
   return <p role="alert">{t("dashboard.card_unavailable")}</p>;
 };
 
-export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWarehouse }) => {
+export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWarehouse, selectedProduct, onSelectProduct }) => {
   const { t } = useTranslation();
   const [data, setData] = useState<DashOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +56,9 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const setSupplier = (v: string) => setFilters({ supplier: v || undefined });
   const [drill, setDrill] = useState<{ request: DrillRequest; title: string } | null>(null);
   const [supplierOpen, setSupplierOpen] = useState<string | null>(null);
-  const [detail, setDetail] = useState<number | null>(null);
+  const [detailLocal, setDetailLocal] = useState<number | null>(null);
+  const detail = selectedProduct !== undefined ? selectedProduct : detailLocal;
+  const setDetail = onSelectProduct ?? setDetailLocal;
   const [severity, setSeverity] = useState<Severity | null>(null);
   const colors = useChartColors();
   const [animateRuler] = useState(() => !rulerPlayed);

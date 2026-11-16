@@ -17,11 +17,16 @@ import { DataTable } from "../../ui/DataTable";
 
 interface Props {
   userRoles: string[];
+  /** Show only the lines of this SKU (set when arriving from a product's detail); feature 012. */
+  skuFilter?: string | undefined;
+  onClearSku?: (() => void) | undefined;
+  /** A link back to where the person came from (for example the product detail), built by the route. */
+  backAction?: React.ReactNode;
 }
 
 const LINES_PER_PAGE = 50;
 
-export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
+export const ProposalsScreen: React.FC<Props> = ({ userRoles, skuFilter, onClearSku, backAction }) => {
   const { t } = useTranslation();
   const [list, setList] = useState<ProposalSummary[]>([]);
   const [current, setCurrent] = useState<Proposal | null>(null);
@@ -92,7 +97,8 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
     });
 
   const editable = current ? canEditLines(userRoles, current.status) : false;
-  const pagedLines = pageLineGroups(current ? groupLinesBySupplier(current.lines, current.supplier_groups) : [], linePage, LINES_PER_PAGE);
+  const shownLines = current ? (skuFilter ? current.lines.filter((l) => l.sku === skuFilter) : current.lines) : [];
+  const pagedLines = pageLineGroups(current ? groupLinesBySupplier(shownLines, current.supplier_groups) : [], linePage, LINES_PER_PAGE);
 
   return (
     <section aria-labelledby="proposals-title">
@@ -152,6 +158,16 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
               </a>
             </PageActions>
 
+            {skuFilter && (
+              <div role="status" className="mmi-notice">
+                <p>{shownLines.length === 0 ? t("proposals.filter_sku_none", { sku: skuFilter }) : t("proposals.filter_sku", { sku: skuFilter })}</p>
+                <PageActions>
+                  {backAction}
+                  {onClearSku && <Button variant="secondary" small onClick={onClearSku}>{t("proposals.filter_sku_clear")}</Button>}
+                </PageActions>
+              </div>
+            )}
+
             {current.supplier_groups.length > 0 && (
               <DataTable
                 ariaLabel={t("proposals.groups")}
@@ -195,12 +211,12 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
                   <th scope="colgroup" colSpan={6}>{g.continued ? t("proposals.group.continued", { supplier: g.name }) : g.name}</th>
                 </tr>
                 {g.lines.map((l) => {
-                  const name = l.product_name ?? `#${l.variant_id}`;
+                  const name = l.product_name ?? t("proposals.line.no_name");
                   return (
                     <React.Fragment key={l.id}>
                       <tr>
                         <td>
-                          <strong>{l.sku ?? l.variant_id}</strong> — {name}
+                          <strong>{l.sku ?? t("proposals.line.no_sku")}</strong> — {name}
                           {l.manual_override && <span role="note"> · {t("proposals.warning.manual")}</span>}
                           {l.explanation.forecast_basis === "imported_estimates" && <span role="note"> <StatusBadge domain="tag" code="estimate" /></span>}
                         </td>
