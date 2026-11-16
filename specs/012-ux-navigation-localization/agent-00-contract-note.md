@@ -46,3 +46,7 @@ Compared the screens on this branch with `claude/jira-mmi-8-spec-f00d63` (PR 22,
 So three of the nine are blocked only by PR 22 merging; four need new `sku` fields or a SKU route. This feature does not edit the three PR 22 files, to avoid conflicts.
 
 - **Owner requests.** The four changes in services this feature does not own (data-quality items, policy history, scenario changes and lines, SKU route for overrides) are written up, schema first, in `evidence/owner-requests.md` and opened in Jira as MMI-13, MMI-14, MMI-15 and MMI-16 under MMI-1 (T067).
+
+## After PR 22 merged (2026-11-16)
+
+`main` (519e7c1) was merged into this branch. Conflicts: the imports of `PurchasingSection.tsx` (kept both sides) and two places in `es-ES.json` (kept the SKU queue row and the new error keys from PR 22, kept the next step added here to `errors.import_reason_invalid`, and added a next step to `errors.sku_unknown` and `errors.exclusion_reason_invalid`). PR 22 fixed `SafetyStockSection`, `DemandSection` and `PurchasingSection`, so their entries left `variant-id-display.baseline.json`; four screens remain (MMI-13 to MMI-16). `demand.variant_n` became unused and was removed; `policies.audit.refresh` and `safety.stale` (PR 22) stay in the unused-keys baseline with a reason. PR 25 is still open, so T069 stays open for `ProposalsScreen.tsx`.

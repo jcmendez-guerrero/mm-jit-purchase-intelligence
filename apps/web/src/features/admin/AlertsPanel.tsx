@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertRow, AlertsListing, api, errorMessage, OpsThresholds } from "../../api/client";
 import { formatDateTime } from "../../i18n/formatters";
@@ -16,6 +16,8 @@ export const AlertsPanel: React.FC = () => {
   const [draft, setDraft] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [, setNotice] = useActionNotice();
+  const tRef = useRef(t);
+  tRef.current = t;                                         // the loader must not depend on `t`: a new `t` would reload and reset the thresholds being edited
 
   const load = useCallback(async () => {
     try {
@@ -24,9 +26,9 @@ export const AlertsPanel: React.FC = () => {
       setSettings(s);
       setDraft({ ...s });
     } catch (err) {
-      setError(errorMessage(err, t("common.error")));
+      setError(errorMessage(err, tRef.current("common.error")));
     }
-  }, [t]);
+  }, []);
   useEffect(() => {
     void load();
   }, [load]);

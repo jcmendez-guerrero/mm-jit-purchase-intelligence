@@ -11,6 +11,9 @@
 export interface PolicySet {
   id?: string;
   scope: "global" | "segment" | "product";
+  /**
+   * '*' for global, a segment code for segment, and the product's SKU for product scope; the ERP variant id is never used as a key in the API
+   */
   key: string;
   service_level?: number | null;
   safety_stock_units?: number | null;

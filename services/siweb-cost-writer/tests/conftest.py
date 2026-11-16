@@ -1,6 +1,9 @@
+import os
+
 import pytest
 from db.tables import metadata
 from fastapi.testclient import TestClient
+from mmi_common import pg_testing
 from siweb_mock.app import create_app
 from siweb_mock.state import TOKEN, MockConfig
 from sqlalchemy import create_engine, event
@@ -9,8 +12,20 @@ from writer.allowlist import WriterAllowlist
 from writer.client import SiwebWriterClient, StaticToken
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _drop_pg_schema():
+    yield
+    pg_testing.drop_schema()
+
+
 @pytest.fixture
 def engine():
+    url = os.environ.get("MMI_TEST_DATABASE_URL")
+    if url:                                   # a real PostgreSQL (feature 011, T086)
+        eng = pg_testing.pg_engine(url, metadata)
+        yield eng
+        pg_testing.clean(eng, metadata)
+        return
     eng = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread": False})
 
     @event.listens_for(eng, "connect")
@@ -22,7 +37,7 @@ def engine():
         conn.exec_driver_sql("BEGIN")
 
     metadata.create_all(eng)
-    return eng
+    yield eng
 
 
 class Blobs:

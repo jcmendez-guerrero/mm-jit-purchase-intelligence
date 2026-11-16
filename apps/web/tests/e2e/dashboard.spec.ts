@@ -54,7 +54,7 @@ test.describe("Dashboard (T124)", () => {
   });
 
   test("the product detail shows the category history", async ({ page }) => {
-    await page.route("**/api/segments/100/history", (r) => r.fulfill(json({ variant_id: 100, history: [{ changed_at: "2026-11-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] })));
+    await page.route("**/api/products/SYN-100/segment-history", (r) => r.fulfill(json({ sku: "SYN-100", history: [{ changed_at: "2026-11-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] })));
     await page.goto("/");
     await page.getByRole("button", { name: "Ver detalle" }).first().click();
     await expect(page.getByLabel("Detalle del producto")).toContainText("Historial de categoría");

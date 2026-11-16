@@ -14,7 +14,8 @@
       "enum": ["global", "segment", "product"]
     },
     "key": {
-      "type": "string"
+      "type": "string",
+      "description": "'*' for global, a segment code for segment, and the product's SKU for product scope; the ERP variant id is never used as a key in the API"
     },
     "service_level": {
       "oneOf": [

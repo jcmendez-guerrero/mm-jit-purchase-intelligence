@@ -172,7 +172,7 @@
 - [X] T062 [P] Add a test in `web/tests/unit/i18n-coverage.test.ts` that every literal key passed to `t(` in `web/src` exists in `web/src/i18n/es-ES.json`, now that a missing key shows a fallback instead of failing visibly per FR-007 and review finding 2 (partial)
 - [X] T063 [P] Make the loading placeholder of `web/src/features/admin/AdminStatusScreen.tsx` match the loaded height so the layout shift in `web/tests/e2e/states.spec.ts` is well under 0.1 (now about 0.094) per FR-011 and review finding 3 (partial)
 - [ ] T064 Decide with the owner whether the catalogue uses formal or informal address, write the choice in `web/src/i18n/glossary.json` or the spec, convert `web/src/i18n/es-ES.json` to it, and add a test that flags the other form per Agent 00 comment 5 and FR-009 (partial)
-- [ ] T065 After PR 22 merges, merge `main` into this branch, resolve the conflicts in `web/src/api/client.ts`, `web/src/i18n/es-ES.json` and the policy and dashboard screens, and rerun unit, lint, build and Playwright per Agent 00 comment 6 (partial)
+- [X] T065 After PR 22 merges, merge `main` into this branch, resolve the conflicts in `web/src/api/client.ts`, `web/src/i18n/es-ES.json` and the policy and dashboard screens, and rerun unit, lint, build and Playwright per Agent 00 comment 6 (partial)
 - [X] T066 [P] Make closing the product detail replace the history entry (`replace: id === null`) in `web/src/app/App.tsx`, with a Playwright check that Back after closing leaves the panel per US1 and review finding 4 (partial)
 
 ## Phase 14: Convergence

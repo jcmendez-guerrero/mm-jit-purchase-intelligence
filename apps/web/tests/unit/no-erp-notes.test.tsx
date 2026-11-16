@@ -16,8 +16,10 @@ function files(dir: string): string[] {
   });
 }
 
-/** ScenarioSummary.notes is a list of codes produced by the scenario engine, not ERP text; it is the only allowed array. */
-const ENGINE_CODES = /\bnotes\s*:\s*string\[\]/;
+/** ScenarioSummary.notes and ProposalFlags.notes are lists of codes produced by the engines, not ERP text; they are the only allowed arrays. */
+const ENGINE_CODES = /\bnotes\s*\??\s*:\s*string\[\]/;
+/** ProposalFlags.notes (read by BudgetNotice) is the same kind of list: codes such as `critical_over_budget`, not ERP text. */
+const ENGINE_CODE_READERS = new Set(["src/features/proposals/BudgetNotice.tsx"]);
 
 /** A declared field such as `notes: string` or `supplier_note?: string` (the boolean flag is allowed). */
 export const NOTE_FIELD = /\b(?:supplier_)?(?:notes?|observaciones|free_text|remarks?)\s*\??\s*:\s*(?!boolean)/;
@@ -40,7 +42,7 @@ describe("free-text ERP notes are never declared or read in the web app", () => 
 
   it("no screen or model reads a note property", () => {
     const hits = files(join(src, "features")).concat(files(join(src, "app")), files(join(src, "ui"))).flatMap((f) =>
-      readFileSync(f, "utf8").split("\n").map((l, i) => [i + 1, l] as const).filter(([, l]) => NOTE_READ.test(l)).map(([i, l]) => `${relative(webRoot, f)}:${i} ${l.trim()}`),
+      ENGINE_CODE_READERS.has(relative(webRoot, f)) ? [] : readFileSync(f, "utf8").split("\n").map((l, i) => [i + 1, l] as const).filter(([, l]) => NOTE_READ.test(l)).map(([i, l]) => `${relative(webRoot, f)}:${i} ${l.trim()}`),
     );
     expect(hits).toEqual([]);
   });

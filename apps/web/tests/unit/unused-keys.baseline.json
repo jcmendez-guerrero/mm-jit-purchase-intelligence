@@ -28,8 +28,10 @@
   "dashboard.part.proposed": "built by the server with an f-string (services/inventory-service dashboard indicators, services/api-bff routes/dashboard.py)",
   "dashboard.part.spend": "built by the server with an f-string (services/inventory-service dashboard indicators, services/api-bff routes/dashboard.py)",
   "dashboard.part.stock_at_cost": "built by the server with an f-string (services/inventory-service dashboard indicators, services/api-bff routes/dashboard.py)",
+  "policies.audit.refresh": "added by PR 22 and not referenced by the web code yet; its owner should use it or remove it",
   "risk.data_quality.missing_vat": "sent by the server: services/inventory-service/src/risk/daily.py",
   "risk.data_quality.quarantined_movements": "sent by the server: services/inventory-service/src/risk/daily.py",
   "risk.expiry.expired": "sent by the server: services/inventory-service/src/risk/daily.py",
-  "risk.expiry.near": "sent by the server: services/inventory-service/tests/test_risk.py"
+  "risk.expiry.near": "sent by the server: services/inventory-service/tests/test_risk.py",
+  "safety.stale": "added by PR 22 and not referenced by the web code yet; its owner should use it or remove it"
 }

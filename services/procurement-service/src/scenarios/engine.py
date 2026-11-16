@@ -117,7 +117,7 @@ def apply_params(base: ProposalInputs, p: ScenarioParams) -> ProposalInputs:
         terms[sid] = t if d is None else replace(t, min_order_value=t.min_order_value if d.min_order_value is None else d.min_order_value,
                                                  delivery_charge=t.delivery_charge if d.delivery_charge is None else d.delivery_charge,
                                                  free_delivery_threshold=t.free_delivery_threshold if d.free_delivery_threshold is None else d.free_delivery_threshold)
-    return replace(base, variants=tuple(variants), suppliers=terms, budget=base.budget if p.budget is None else p.budget)
+    return replace(base, variants=tuple(variants), suppliers=terms, budget=base.budget if p.budget is None else p.budget, defer_for_cap=False)       # scenarios report an unaffordable budget, they never cut lines
 
 
 def solve(inputs: ProposalInputs, time_limit_s: float = 20.0) -> Draft:
