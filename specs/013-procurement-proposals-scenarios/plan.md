@@ -2,7 +2,7 @@
 
 **Branch**: `claude/speckit-specify-jira-mmi5-d4aabd` | **Date**: 2026-11-15 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/011-procurement-proposals-scenarios/spec.md` (Jira MMI-5, Confluence 3145771)
+**Input**: Feature specification from `/specs/013-procurement-proposals-scenarios/spec.md` (Jira MMI-5, Confluence 3145771)
 
 ## Summary
 
@@ -47,7 +47,7 @@ Post-design re-check: still pass; no violation to justify.
 ### Documentation (this feature)
 
 ```text
-specs/011-procurement-proposals-scenarios/
+specs/013-procurement-proposals-scenarios/
 ├── plan.md
 ├── research.md
 ├── data-model.md

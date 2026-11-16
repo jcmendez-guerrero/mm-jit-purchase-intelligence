@@ -1,6 +1,6 @@
 # Tasks: Procurement Proposals & Scenarios (Agent 03)
 
-**Input**: Design documents in `/specs/011-procurement-proposals-scenarios/` (plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md)
+**Input**: Design documents in `/specs/013-procurement-proposals-scenarios/` (plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md)
 
 **Approach**: audit-then-close-gaps. Gaps G1 to G7 are in research.md section 2. Tests come before implementation within each story. Synthetic fixtures only (`packages/testing`). Paths are relative to the repo root; `PS` = `services/procurement-service`, `BFF` = `services/api-bff`, `WEB` = `apps/web`.
 
@@ -10,9 +10,9 @@
 
 ## Phase 1: Setup
 
-- [X] T001 Re-run the evidence inventory against current main and update the status column in `specs/011-procurement-proposals-scenarios/research.md` (execute the existing proposal, approval, scenario, allocation and export tests under `PS/tests` and `BFF/tests` and record pass/fail)
+- [X] T001 Re-run the evidence inventory against current main and update the status column in `specs/013-procurement-proposals-scenarios/research.md` (execute the existing proposal, approval, scenario, allocation and export tests under `PS/tests` and `BFF/tests` and record pass/fail)
 - [X] T002 [P] Add a synthetic 2,000-SKU catalogue builder with at least two eligible approvers to `PS/tests/builders.py` (reuse `packages/testing/src/generator`)
-- [X] T003 [P] Draft the Agent 00 note from `contracts/proposals-scenarios.delta.md` as `specs/011-procurement-proposals-scenarios/agent-00-contract-note.md` (draft only, not sent)
+- [X] T003 [P] Draft the Agent 00 note from `contracts/proposals-scenarios.delta.md` as `specs/013-procurement-proposals-scenarios/agent-00-contract-note.md` (draft only, not sent)
 
 ## Phase 2: Foundational (blocks all stories)
 
@@ -102,7 +102,7 @@
 
 - [X] T039 Run the full suites and `python -m gates run`; fix regressions
 - [ ] T040 Update `docs/architecture/integration/feature-status.json` entries for this domain with the new evidence — NOT DONE: `feature-status.json` is owned by Agent 00; evidence is in research.md section 5
-- [X] T041 Write `specs/011-procurement-proposals-scenarios/pull-request.md` following `.github/pull_request_template.md` (data, security, cost, contract impact, screenshots, known limits, links to MMI-5 and Confluence 3145771)
+- [X] T041 Write `specs/013-procurement-proposals-scenarios/pull-request.md` following `.github/pull_request_template.md` (data, security, cost, contract impact, screenshots, known limits, links to MMI-5 and Confluence 3145771)
 - [X] T042 Run the quickstart steps and tick completed tasks here
 
 ## Dependencies
@@ -129,8 +129,8 @@ MVP is the three P1 stories (Phases 3 to 5): deterministic proposals and scenari
 - [X] T047 Show the budget excess over the cap in euros on the proposal screen, read from the proposal's over-budget flag (add it to the proposal detail response in `services/procurement-service/src/api/proposals.py`, to the `Proposal` type in `apps/web/src/api/client.ts`, to `apps/web/src/features/proposals/ProposalsScreen.tsx` and the Spanish text in `apps/web/src/i18n/es-ES.json`), with a Vitest in `apps/web/tests/unit/proposals-over-budget.test.tsx` and an API assertion in `services/procurement-service/tests/test_budget_cap_explanation.py` per US4/AC1 and FR-004 (partial; T033 was ticked without this) — SUPERSEDED after merging main: the budget notice from feature 011 business policy (`BudgetNotice`, `flags.over_budget` and `flags.deferred`) shows the excess; this feature's duplicate note and top-level `over_budget` field were removed
 - [ ] T048 Run the full Spanish journey end to end against a stack that can generate a proposal (generate, open an explanation, edit a line, stale save refused, scenario and comparison, promote, submit, self-approval refused, second user approves with fresh MFA, export CSV and Excel, viewer cannot export) in `apps/web/tests/live/procurement-journey.spec.ts`, timing the path from opening a proposal to a compared scenario against the 3-minute target, per US5/AC1, FR-016 and SC-005 (partial; finishes T035) — Option A built (Agent 00 advice): the local compose stack seeds one synthetic draft (`MMI_DEMO_SEED=1`, `services/procurement-service/src/local_demo/seed.py`, local only). The live journey runs from opening the proposal: explanation, line edit, scenario compared (timed), promote, submit, creator cannot approve, approver sees the approve button. NOT ticked on purpose: generate is proven by service tests, and approve and export files are not run in the browser (an approved week would block repeat runs).
 - [X] T049 On the superseded proposal screen add a link to the newer version of the same week in `apps/web/src/features/proposals/ProposalsScreen.tsx`, with a Vitest in `apps/web/tests/unit/proposals-superseded.test.tsx`, per US2/AC6 and FR-008 (partial)
-- [ ] T050 Send `specs/011-procurement-proposals-scenarios/agent-00-contract-note.md` to Agent 00 and record the answer in `specs/011-procurement-proposals-scenarios/research.md`; do not merge the contract change before it is confirmed, per plan: Constitution IV and T003/T004 (missing)
-- [ ] T051 Hand the evidence in `specs/011-procurement-proposals-scenarios/research.md` section 5 to Agent 00 so `docs/architecture/integration/feature-status.json` is updated by its owner, per FR-001 and SC-008 (missing; finishes T040)
+- [ ] T050 Send `specs/013-procurement-proposals-scenarios/agent-00-contract-note.md` to Agent 00 and record the answer in `specs/013-procurement-proposals-scenarios/research.md`; do not merge the contract change before it is confirmed, per plan: Constitution IV and T003/T004 (missing)
+- [ ] T051 Hand the evidence in `specs/013-procurement-proposals-scenarios/research.md` section 5 to Agent 00 so `docs/architecture/integration/feature-status.json` is updated by its owner, per FR-001 and SC-008 (missing; finishes T040)
 
 ## Phase 10: Convergence
 
@@ -144,14 +144,14 @@ MVP is the three P1 stories (Phases 3 to 5): deterministic proposals and scenari
 ## Phase 11: Convergence
 
 - [X] T058 Add the new optional properties (`over_budget`, `review_notes` with `variant_id` marked "web lookups only, never displayed", and every other detail field the proposal response now returns) to `packages/contracts/dto/proposal.v1.schema.json`, refresh its baseline with `packages/contracts/tools/update_baseline.py`, regenerate `mmi_models/dto/proposal_v1_schema.py`, and add a test that a real detail response validates against the schema (`additionalProperties: false` rejects it today), then run `python -m gates run`, per Agent 00 finding 1, FR-004, FR-014 and AGENTS.md rule 9 (partial)
-- [X] T059 Record Agent 00's answer to the contract note in `specs/011-procurement-proposals-scenarios/research.md` (export routes confirmed, two error keys accepted, `review_notes` and `over_budget` accepted once T058 lands) and tick the contract checkbox in `pull-request.md` after T058, per plan: Constitution IV and T050 (partial)
+- [X] T059 Record Agent 00's answer to the contract note in `specs/013-procurement-proposals-scenarios/research.md` (export routes confirmed, two error keys accepted, `review_notes` and `over_budget` accepted once T058 lands) and tick the contract checkbox in `pull-request.md` after T058, per plan: Constitution IV and T050 (partial)
 - [X] T060 Add one line to `docs/architecture/integration/gateway-review.md` stating that proposal and scenario export is for buyer, approver and admin, a viewer is refused and the refusal is audited, per Agent 00 finding 6 and FR-010 (missing)
 - [X] T061 Open an issue for the failing `a11y-all-routes.spec.ts` "reference task 3 by keyboard" test and either fix it or quarantine it so the `e2e` gate is not red for this branch, and link the issue in `pull-request.md`, per Agent 00 finding 3 and SC-008 (partial) — DONE: issue opened as MMI-12 ([MMI-12](https://mundomascotix.atlassian.net/browse/MMI-12)); the test is quarantined with `test.fixme` until it is fixed there
-- [X] T062 Fix the Markdown lint error MD026 (trailing period in the heading at `specs/011-procurement-proposals-scenarios/tasks.md` line 7, found by the Super-linter job) by removing the period, per the CI Linting check (partial)
-- [ ] T063 Rebase on `main` once #22 and #24 are merged and resolve the semantic conflicts by hand in `apps/web/src/api/client.ts`, `services/procurement-service/src/api/proposals.py` and `apps/web/src/features/proposals/ProposalsScreen.tsx`, then re-run the procurement, gateway and web suites, per Agent 00 finding 2 (missing)
-- [ ] T064 Decide whether to rename this spec folder or `specs/011-business-policy-configuration` (#22) so spec numbers are unique, and update `.specify/feature.json` and links if renamed, per Agent 00 finding 4 (unrequested)
+- [X] T062 Fix the Markdown lint error MD026 (trailing period in the heading at `specs/013-procurement-proposals-scenarios/tasks.md` line 7, found by the Super-linter job) by removing the period, per the CI Linting check (partial)
+- [X] T063 Rebase on `main` once #22 and #24 are merged and resolve the semantic conflicts by hand in `apps/web/src/api/client.ts`, `services/procurement-service/src/api/proposals.py` and `apps/web/src/features/proposals/ProposalsScreen.tsx`, then re-run the procurement, gateway and web suites, per Agent 00 finding 2 (missing) — DONE: #22 and #24 are merged into this branch (merge commits 0b6cc66 and 4b03e82) and the conflicts are resolved
+- [X] T064 Decide whether to rename this spec folder or `specs/011-business-policy-configuration` (#22) so spec numbers are unique, and update `.specify/feature.json` and links if renamed, per Agent 00 finding 4 (unrequested) — DONE: this folder is now `specs/013-procurement-proposals-scenarios`; `.specify/feature.json` and links updated
 
 ## Phase 12: Convergence
 
 - [X] T065 Format `packages/contracts/dto/proposal_detail.v1.schema.json` with Prettier and copy it unchanged to `packages/contracts/baseline/dto/proposal_detail.v1.schema.json`, regenerate the model with `packages/contracts/tools/codegen.py`, and confirm the contracts tests and gate still pass, so the Super-linter JSON_PRETTIER job passes, per CI Linting and T058 (partial)
-- [X] T066 Link MMI-12 (the failing supplier-terms keyboard test) in `specs/011-procurement-proposals-scenarios/pull-request.md` and on the T061 line of `tasks.md`, then tick T061, per Agent 00 finding 3 and T061 (partial)
+- [X] T066 Link MMI-12 (the failing supplier-terms keyboard test) in `specs/013-procurement-proposals-scenarios/pull-request.md` and on the T061 line of `tasks.md`, then tick T061, per Agent 00 finding 3 and T061 (partial)

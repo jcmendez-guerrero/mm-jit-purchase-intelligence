@@ -1,6 +1,6 @@
 ## What and why
 
-Jira MMI-5 (Agent 03, Procurement Proposals & Scenarios), Confluence 3145771. Audit-then-close-gaps: the weekly proposal, scenarios, approval and export already existed; this change closes the gaps the audit found and proves the completion gates. Tasks: `specs/011-procurement-proposals-scenarios/tasks.md` (T001 to T046; T035 partly done and T040 not done, see Known limitations).
+Jira MMI-5 (Agent 03, Procurement Proposals & Scenarios), Confluence 3145771. Audit-then-close-gaps: the weekly proposal, scenarios, approval and export already existed; this change closes the gaps the audit found and proves the completion gates. Tasks: `specs/013-procurement-proposals-scenarios/tasks.md` (T001 to T046; T035 partly done and T040 not done, see Known limitations).
 
 - **Export roles (FR-010):** a viewer can no longer download a proposal or a scenario. The gateway gate and both service routes allow buyer, approver and admin; a refused request is audited (`proposal.refused`, `scenario.refused`). An approver without the buyer role could not export before; now allowed.
 - **Stale line saves:** a save based on an old version returns 409 `proposal_line_conflict` (audited, nothing changed). `version_conflict` is unchanged elsewhere.
