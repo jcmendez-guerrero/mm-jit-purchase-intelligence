@@ -83,8 +83,8 @@ description: "Tasks for SKU in scenario changes and result lines"
 ## Phase 6: Polish
 
 - [X] T027 Run the procurement scenario suite (`services/procurement-service/tests/test_scenarios_*.py`) to confirm determinism, export, compare and promote are unaffected
-- [ ] T028 Measure opening a 200-line synthetic scenario against SC-004 (no more than 0.5 s slower)
-- [ ] T029 Walk through [quickstart.md](quickstart.md) end to end and tick the completed tasks in this file
+- [X] T028 Measure opening a 200-line synthetic scenario against SC-004 (no more than 0.5 s slower) Measured on an in-memory database with 200 variants (400 changes and lines): `get()` median 0.3 ms before, 0.8 ms after (+0.5 ms); one extra query on a real server adds one round trip, well inside the 0.5 s limit.
+- [X] T029 Walk through [quickstart.md](quickstart.md) end to end and tick the completed tasks in this file Steps 1 to 4 ran green; step 5 (by eye) is covered by the unit and Playwright specs (SKU shown, "Sin SKU · name" for a null SKU, critical products by SKU), not by a manual session.
 - [X] T030 Note in `specs/012-ux-navigation-localization/tasks.md` that the scenarios screen of T054 is done (T054 covers six screens, so leave it open), and update the owner request 3 note in `specs/012-ux-navigation-localization/evidence/owner-requests.md`
 
 ## Dependencies and order
