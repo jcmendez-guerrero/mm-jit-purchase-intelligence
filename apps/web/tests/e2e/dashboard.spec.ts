@@ -48,34 +48,34 @@ test.describe("Dashboard (T124)", () => {
     await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ run_id: "r1", variant_id: 100, eligible: true, policy: "minmax_poisson", seed_used: true, upper_level: "0.95", horizons: [{ days: 14, mean: 21, upper: 27.5 }] })));
     await page.goto("/");
     await page.getByRole("button", { name: "Ver detalle" }).first().click();
-    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Previsión con datos importados");
+    await expect(page.getByLabel("Detalle del producto")).toContainText("Previsión con datos importados");
     await expect(page.getByRole("table", { name: "Previsión estadística (no son ventas reales)" })).toContainText("27,5");
-    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Riesgos de este producto");
+    await expect(page.getByLabel("Detalle del producto")).toContainText("Riesgos de este producto");
   });
 
   test("the product detail shows the category history", async ({ page }) => {
     await page.route("**/api/products/SYN-100/segment-history", (r) => r.fulfill(json({ sku: "SYN-100", history: [{ changed_at: "2026-11-01T00:00:00Z", abc: "B", xyz: "X", pattern: "smooth", critical: false, reason_key: "first_classification" }] })));
     await page.goto("/");
     await page.getByRole("button", { name: "Ver detalle" }).first().click();
-    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Historial de categoría");
-    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("primera clasificación");
+    await expect(page.getByLabel("Detalle del producto")).toContainText("Historial de categoría");
+    await expect(page.getByLabel("Detalle del producto")).toContainText("primera clasificación");
   });
 
   test("a product with no forecast basis shows no estimate label", async ({ page }) => {
     await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ detail: "no_forecast_run" }, 404)));
     await page.goto("/");
     await page.getByRole("button", { name: "Ver detalle" }).first().click();
-    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Previsión estadística disponible");
-    await expect(page.getByLabel("Detalle de la variante 100")).not.toContainText("Previsión con datos importados");
+    await expect(page.getByLabel("Detalle del producto")).toContainText("Previsión estadística disponible");
+    await expect(page.getByLabel("Detalle del producto")).not.toContainText("Previsión con datos importados");
   });
 
   test("drills down from an alert to the product detail and closes it", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Ver detalle" }).first().click();
-    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("SYN-100");
-    await expect(page.getByLabel("Detalle de la variante 100")).toContainText("Previsión estadística disponible");
+    await expect(page.getByLabel("Detalle del producto")).toContainText("SYN-100");
+    await expect(page.getByLabel("Detalle del producto")).toContainText("Previsión estadística disponible");
     await page.getByRole("button", { name: "Cerrar detalle" }).click();
-    await expect(page.getByLabel("Detalle de la variante 100")).toHaveCount(0);
+    await expect(page.getByLabel("Detalle del producto")).toHaveCount(0);
   });
 
   test("every KPI and chart opens the products behind it, and a product opens its detail", async ({ page }) => {
@@ -93,7 +93,7 @@ test.describe("Dashboard (T124)", () => {
     await expect(panel).toContainText("40,00");
     await expect(panel).toContainText("Mostrando 1–1 de 80 productos.");
     await panel.getByRole("button", { name: /Ver detalle SYN-100/ }).click();
-    await expect(page.getByLabel("Detalle de la variante 100")).toBeVisible();
+    await expect(page.getByLabel("Detalle del producto")).toBeVisible();
     await page.getByRole("button", { name: "Cerrar detalle" }).click();
     await page.keyboard.press("Escape");
     for (const kpi of ['Cobertura', 'Variantes con riesgo de rotura', 'Exposición a caducidad']) await page.getByLabel(kpi, { exact: true }).getByRole("button", { name: "Ver productos" }).click();

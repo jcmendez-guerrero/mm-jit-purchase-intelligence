@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { Indicator } from "../../api/client";
 import { formatCurrencyEUR, formatDate, formatDateTime, formatNumber } from "../../i18n/formatters";
 import { Button } from "../../ui/Button";
+import { HelpHint } from "../../ui/HelpHint";
 
 interface Props {
   indicator: Indicator;
@@ -26,9 +27,18 @@ export const IndicatorCard: React.FC<Props> = ({ indicator: i, period, onDrill }
 
   return (
     <article className="mmi-figure" aria-labelledby={titleId}>
-      <h3 id={titleId} className="mmi-figure__label">
-        {t(`dashboard.ind.title.${i.key}`)}
-      </h3>
+      {i.key === "coverage_days" ? (
+        <div className="mmi-heading-with-help">
+          <h3 id={titleId} className="mmi-figure__label">
+            {t(`dashboard.ind.title.${i.key}`)}
+          </h3>
+          <HelpHint concept="coverage" />
+        </div>
+      ) : (
+        <h3 id={titleId} className="mmi-figure__label">
+          {t(`dashboard.ind.title.${i.key}`)}
+        </h3>
+      )}
       {hasFigure && <p className="mmi-figure__value">{show(i.value as string)}</p>}
       {hidden && <p className="mmi-figure__value">{t("dashboard.kpi.hidden_by_role")}</p>}
       {i.state === "no_data" && <p className="mmi-figure__value">{t("dashboard.ind.state.no_data")}</p>}

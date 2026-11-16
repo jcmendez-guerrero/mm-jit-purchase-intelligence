@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, EffectivePolicy, errorMessage, PolicyDetail, PolicyPreview, PolicySummary } from "../../api/client";
-import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
+import { formatCurrencyEUR, formatDate, formatPercent } from "../../i18n/formatters";
 import { FormField } from "../../ui/FormField";
 import { canEditPolicies, emptyForm, PolicyForm, scopeKeyValid, Scope, toForm, toPayload } from "./policiesModel";
 import { useActionNotice } from "../../ui/NoticeProvider";
 import { UnsavedChangesPrompt } from "../../ui/UnsavedChangesPrompt";
 import { Button } from "../../ui/Button";
+import { HelpHint } from "../../ui/HelpHint";
 import { useFieldErrors } from "../../ui/useFieldErrors";
 import { DataTable } from "../../ui/DataTable";
 import { PageActions } from "../../ui/PageActions";
@@ -145,7 +146,10 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
   return (
     <div>
       <UnsavedChangesPrompt dirty={dirty} />
-      <h3>{t("policies.in_force")}</h3>
+      <div className="mmi-heading-with-help">
+        <h3>{t("policies.in_force")}</h3>
+        <HelpHint concept="service_level" />
+      </div>
       {policies.length === 0 ? (
         <p>{t("policies.none")}</p>
       ) : (
@@ -250,8 +254,8 @@ export const PurchasingSection: React.FC<Props> = ({ roles, policies, weeklyBudg
             rowKey={(h) => h.revision}
             columns={[
               { id: "revision", header: t("policies.history.revision"), cell: (h) => h.revision, sortValue: (h) => h.revision, align: "end" },
-              { id: "from", header: t("policies.history.from"), cell: (h) => h.valid_from, sortValue: (h) => h.valid_from },
-              { id: "level", header: t("policies.f.service_level_pct"), cell: (h) => (h.service_level === null ? "—" : `${Math.round(parseFloat(h.service_level) * 10000) / 100} %`), sortValue: (h) => (h.service_level === null ? null : Number(h.service_level)), align: "end" },
+              { id: "from", header: t("policies.history.from"), cell: (h) => formatDate(new Date(`${h.valid_from}T12:00:00`)), sortValue: (h) => h.valid_from },
+              { id: "level", header: t("policies.f.service_level_pct"), cell: (h) => (h.service_level === null ? "—" : formatPercent(h.service_level, 2, 0)), sortValue: (h) => (h.service_level === null ? null : Number(h.service_level)), align: "end" },
               { id: "min", header: t("policies.f.min_units"), cell: (h) => h.min_units ?? "—", sortValue: (h) => h.min_units ?? null, align: "end" },
               { id: "max", header: t("policies.f.max_units"), cell: (h) => h.max_units ?? "—", sortValue: (h) => h.max_units ?? null, align: "end" },
               { id: "by", header: t("policies.history.by"), cell: (h) => h.changed_by, sortValue: (h) => h.changed_by },

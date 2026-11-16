@@ -6,6 +6,8 @@ import { useActionNotice } from "../../ui/NoticeProvider";
 import { Button } from "../../ui/Button";
 import { Card as Panel } from "../../ui/Card";
 import { DataTable } from "../../ui/DataTable";
+import { ErrorState } from "../../ui/ErrorState";
+import { ScreenState } from "../../ui/ScreenState";
 
 /** Admin audit viewer: filter, verify the hash chain and export. Rows hold identifiers, codes and times only. */
 export const AuditScreen: React.FC = () => {
@@ -62,7 +64,8 @@ export const AuditScreen: React.FC = () => {
     <Panel className="mmi-mb-4" aria-label={t("admin.audit.title")}>
       <h3 id="audit-title">{t("admin.audit.title")}</h3>
       <p className="mmi-muted mmi-text-sm mmi-mt-0">{t("admin.audit.subtitle")}</p>
-      {error && <p className="mmi-error" role="alert">{error}</p>}
+      {error && (rows === null ? <ErrorState hint={error} onRetry={() => void load(filters)} /> : <p className="mmi-error" role="alert">{error}</p>)}
+      {rows === null && !error && <ScreenState state="loading" skeletonShape="table" />}
       <form onSubmit={(e) => { e.preventDefault(); void load(filters); }}>
         <label className="mmi-mr-3">{t("admin.audit.actor")} <input value={filters.actor ?? ""} onChange={set("actor")} maxLength={120} /></label>
         <label className="mmi-mr-3">{t("admin.audit.action")} <input value={filters.action ?? ""} onChange={set("action")} maxLength={40} /></label>

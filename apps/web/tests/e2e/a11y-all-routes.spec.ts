@@ -36,14 +36,24 @@ async function tabTo(page: Page, matches: (el: { name: string; tag: string }) =>
   throw new Error("element not reachable with the keyboard");
 }
 
-for (const path of ROUTES) {
-  test(`${path} has no serious or critical WCAG 2.2 AA violations (light and dark)`, async ({ page }) => {
-    await signInAs(page, "admin");
-    await page.goto(path);
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await page.waitForLoadState("networkidle");
-    await expectNoSeriousViolations(page, path);
-  });
+/** Feature 012 (FR-013, FR-014, clarification 4): desktop, tablet and narrow window, each in light and dark. */
+const SIZES = [
+  { name: "desktop 1280", width: 1280, height: 800 },
+  { name: "tablet 768", width: 768, height: 1024 },
+  { name: "narrow 375", width: 375, height: 812 },
+] as const;
+
+for (const size of SIZES) {
+  for (const path of ROUTES) {
+    test(`${path} at ${size.name} has no serious or critical WCAG 2.2 AA violations (light and dark)`, async ({ page }) => {
+      await page.setViewportSize({ width: size.width, height: size.height });
+      await signInAs(page, "admin");
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      await page.waitForLoadState("networkidle");
+      await expectNoSeriousViolations(page, `${path} @${size.width}`);
+    });
+  }
 }
 
 test("reference task 1 by keyboard: find a product at risk and open its detail", async ({ page }) => {
@@ -57,7 +67,7 @@ test("reference task 1 by keyboard: find a product at risk and open its detail",
   await expect(page.getByRole("table", { name: "Tabla de riesgos detectados" })).toBeVisible();
   await tabTo(page, (e) => e.tag === "BUTTON" && /Ver detalle/.test(e.name));
   await page.keyboard.press("Enter");
-  await expect(page.getByLabel("Detalle de la variante 100")).toBeVisible();
+  await expect(page.getByLabel("Detalle del producto")).toBeVisible();
 });
 
 test("reference task 2 by keyboard: review a draft proposal and submit it for approval", async ({ page }) => {
@@ -94,6 +104,8 @@ test.fixme("reference task 3 by keyboard: edit one supplier term and save it", a
   await page.goto("/proveedores");
   await tabTo(page, (e) => e.tag === "BUTTON" && e.name === "Proveedor Sintético A");
   await page.keyboard.press("Enter");
+  // wait for the saved terms to load: typing before that is overwritten when they arrive (an intermittent failure)
+  await expect(page.getByLabel("Plazo de entrega (días)")).toHaveValue("3");
   await tabTo(page, (e) => e.tag === "INPUT" && e.name === "Plazo de entrega (días)");
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.type("7");

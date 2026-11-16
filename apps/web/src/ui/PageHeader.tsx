@@ -10,7 +10,7 @@ interface Props {
 export const PageHeader: React.FC<Props> = ({ title, description, actions }) => (
   <header className="mmi-page-header">
     <div>
-      <h1 className="mmi-page-header__title">{title}</h1>
+      <h1 className="mmi-page-header__title" tabIndex={-1}>{title}</h1>
       {description && <p className="mmi-page-header__description">{description}</p>}
     </div>
     {actions && <div className="mmi-page-header__actions">{actions}</div>}

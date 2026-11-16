@@ -50,6 +50,17 @@ describe("purchasing section", () => {
     expect(within(screen.getByRole("table", { name: "Historial de versiones" })).getAllByRole("row")).toHaveLength(3);
   });
 
+  it("shows the history date and the service level in Spanish format, and offers help on the service level (feature 012)", async () => {
+    render(<PoliciesScreen userRoles={["viewer", "buyer"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Cargar política" }));
+    const history = within(await screen.findByRole("table", { name: "Historial de versiones" }));
+    expect(history.getByText("01/11/2026")).toBeTruthy();
+    expect(history.queryByText("2026-11-01")).toBeNull();
+    expect(history.getAllByText(/^95\s%$/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Qué significa nivel de servicio" }));
+    expect(screen.getByRole("note").textContent).toContain("Probabilidad objetivo");
+  });
+
   it("previews the effect without saving and then saves with the revision it read", async () => {
     const preview = vi.spyOn(api, "previewPolicy").mockResolvedValue({ as_of: "2026-11-09", affected_count: 1, affected: [{ sku: "SYN-0005", qty_before: 4, qty_after: 9 }], spend_before: "100.00", spend_after: "190.00", spend_delta: "90.00", saved: false, forecast_run_id: "run-1234-abcd" });
     const put = vi.spyOn(api, "putPolicy").mockResolvedValue({ revision: 3 });
@@ -188,7 +199,7 @@ describe("feature 011: revisions, sources and audit", () => {
     tab(/Auditoría de reglas/);
     expect(await screen.findByText("Página 1 de 3 · 120 registros")).toBeTruthy();
     expect(audit).toHaveBeenLastCalledWith({ page: 1 });
-    expect(screen.getByText(/solo los cambios más recientes de: /).textContent).toContain("Acote las fechas");
+    expect(screen.getByText(/solo los cambios más recientes de: /).textContent).toContain("Acota las fechas");
     fireEvent.change(screen.getByLabelText("Qué cambió"), { target: { value: "budget" } });
     fireEvent.change(screen.getByLabelText("Resultado", { selector: "#audit-outcome" }), { target: { value: "refused" } });
     fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-11-01" } });
@@ -278,7 +289,7 @@ describe("safety stock section", () => {
     await screen.findByText(/Presupuesto semanal vigente/);
     tab(/Stock de seguridad/);
     fireEvent.click(await screen.findByRole("button", { name: "Aprobar" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("No puede aprobar su propia solicitud");
+    expect((await screen.findByRole("alert")).textContent).toContain("No puedes aprobar tu propia solicitud");
   });
 });
 
@@ -296,7 +307,7 @@ describe("demand and forecast sections", () => {
     fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-11-20" } });
     fireEvent.change(screen.getByLabelText("Hasta"), { target: { value: "2026-11-22" } });
     fireEvent.click(screen.getByRole("button", { name: "Añadir exclusión" }));
-    expect((await screen.findAllByRole("alert")).map((a) => a.textContent).join(" ")).toContain("Elija un motivo de la lista");     // free text is no longer accepted
+    expect((await screen.findAllByRole("alert")).map((a) => a.textContent).join(" ")).toContain("Elige un motivo de la lista");     // free text is no longer accepted
     expect(add).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "promotion" } });
     fireEvent.click(screen.getByRole("button", { name: "Añadir exclusión" }));

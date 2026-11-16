@@ -1016,6 +1016,12 @@ export function onUnauthorized(listener: (() => void) | null): void {
   unauthorizedListener = listener;
 }
 
+let forbiddenListener: (() => void) | null = null;
+/** Called when the server refuses an action for lack of a role, so the app can re-read the person's roles (feature 012). */
+export function onForbidden(listener: (() => void) | null): void {
+  forbiddenListener = listener;
+}
+
 export function auditParams(q: AuditQuery, cursor?: string): string {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(q)) if (v) p.set(k, k === "from" || k === "to" ? new Date(v).toISOString() : v);
@@ -1046,6 +1052,7 @@ export class ApiClient {
     });
 
     if (response.status === 401 && path !== "/me" && !path.startsWith("/auth/")) unauthorizedListener?.();
+    if (response.status === 403 && path !== "/me" && !path.startsWith("/auth/")) forbiddenListener?.();
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}) as { detail?: unknown });
