@@ -8,7 +8,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from audit import append
-from db.tables import forecast_runs, forecast_values
+from db.tables import audit_events, forecast_runs, forecast_values
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Path, Query
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
@@ -86,7 +86,8 @@ def build_router(app: FastAPI) -> APIRouter:
     def runs(limit: int = 20, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         rows = conn.execute(select(forecast_runs).order_by(forecast_runs.c.started_at.desc()).limit(max(1, min(limit, 100)))).all()
         return {"runs": [{"id": r.id, "started_at": r.started_at.isoformat(), "status": r.status, "through_day": r.through_day, "total": r.total_count, "eligible": r.eligible_count,
-                          "dataset_version_id": r.dataset_version_id, "parameter_version_ids": r.parameter_version_ids} for r in rows]}
+                          "dataset_version_id": r.dataset_version_id, "parameter_version_ids": r.parameter_version_ids,
+                          "rule_version_ids": r.rule_version_ids} for r in rows]}
 
     @router.get("/parameters")
     def read_parameters(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
@@ -114,6 +115,24 @@ def build_router(app: FastAPI) -> APIRouter:
         except ParameterError as exc:
             raise HTTPException(422, error_code(exc)) from exc
         return {"key": key, "revision": rev}
+
+    @router.get("/policy-audit")
+    def policy_audit(limit: int = Query(default=100, ge=1, le=500), prefix: str = Query(default="", max_length=80, pattern="^[a-z_.,]*$"),
+                     outcome: str | None = Query(default=None, pattern="^(accepted|refused)$"), since: datetime | None = None, until: datetime | None = None,
+                     conn: Connection = Depends(conn_dep), _p: Any = Depends(require("admin"))) -> dict[str, Any]:
+        """Parameter changes for the admin audit view: who, from which value to which, when. Filters run before the row limit; only accepted changes are recorded here."""
+        if outcome == "refused" or (prefix and "parameter." not in prefix.split(",")):
+            return {"items": []}
+        q = select(audit_events).where(audit_events.c.action.like("parameter.%"))
+        if since:
+            q = q.where(audit_events.c.ts >= since)
+        if until:
+            q = q.where(audit_events.c.ts < until)
+        rows = conn.execute(q.order_by(audit_events.c.id.desc()).limit(limit)).all()
+        keep = ("value", "revision", "valid_from")
+        pick = lambda p: None if not isinstance(p, dict) else {k: p[k] for k in keep if k in p}          # noqa: E731
+        return {"items": [{"at": r.ts.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "entity_id": r.entity_id,
+                           "before": pick(r.before), "after": pick(r.after), "outcome": "accepted"} for r in rows]}
 
     @router.post("/runs", status_code=202)
     def request_run(engine: Engine = Depends(get_engine), principal: Any = Depends(require())) -> dict[str, Any]:

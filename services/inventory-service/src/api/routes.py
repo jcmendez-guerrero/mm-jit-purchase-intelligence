@@ -25,9 +25,11 @@ from db.tables import (
 from demand.rebuild import rebuild
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from mmi_common.errors import error_code
+from projections.rules import rule_versions
 from pydantic import BaseModel, Field
 from quality.review import ReviewError, decide, list_open
 from risk.daily import evaluate_risks
+from skus import SkuError, resolve_sku
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.engine import Connection, Engine
 
@@ -109,13 +111,18 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
         rebuild(conn)  # released movements enter the series immediately; ignored ones stay out
         return {"decided": n}
 
-    @router.put("/products/{product_id}/criticality")
-    def criticality(product_id: int, body: CriticalityBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
+    @router.put("/products/{sku}/criticality")
+    def criticality(sku: str, body: CriticalityBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
         try:
+            _vid, product_id, shown = resolve_sku(conn, sku)          # people use the SKU; the product id stays inside
+            if product_id is None:
+                raise SkuError("sku_unknown")
             changed = set_critical(conn, product_id, body.critical, principal.subject)
+        except SkuError as exc:
+            raise HTTPException(422, exc.code) from exc
         except CriticalityError as exc:
             raise HTTPException(404, error_code(exc)) from exc
-        return {"product_id": product_id, "clinical_critical": body.critical, "changed": changed}
+        return {"sku": shown, "clinical_critical": body.critical, "changed": changed}
 
     @router.get("/service-levels")
     def service_levels(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
@@ -141,7 +148,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
                             "reasons": [r for r in seg.reason.split(",") if r]} if seg else None,
                 "service_level": str(effective_target(conn, pid or 0, seg.abc if seg else "C", seg.pattern if seg else "intermittent", pid in crit, now)),
                 "clinical_critical": pid in crit})
-        return {"through_day": series[0].days[-1].isoformat() if series else None, "count": len(out), "series": out}
+        return {"through_day": series[0].days[-1].isoformat() if series else None, "count": len(out), "series": out, "rule_versions": rule_versions(conn)}
 
     @router.get("/export/stock")
     def export_stock(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, Proposal, ProposalSummary, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
+import { BudgetNotice } from "./BudgetNotice";
 import { VersionsUsed } from "./VersionsUsed";
 import { ProposalLineExplanation } from "./ProposalLineExplanation";
 import { canApprove, canEditLines, canExport, canSubmit, groupLinesBySupplier, pageLineGroups, parseQty } from "./proposalModel";
@@ -130,6 +131,7 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
           <div>
             <h3>{t("proposals.week", { week: current.week })}</h3>
             <VersionsUsed dataset={current.dataset_version_id} forecastRun={current.forecast_run_id} />
+            <BudgetNotice flags={current.flags} />
             <StatusBadge domain="approval" code={current.status} />
             <span className="mmi-muted"> {t("proposals.created_by", { user: current.created_by })}</span>
             {current.status === "superseded" && (
@@ -145,7 +147,6 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
                 )}
               </p>
             )}
-            {current.over_budget && Number(current.over_budget) > 0 && <p role="note">{t("proposals.over_budget", { amount: formatCurrencyEUR(current.over_budget) })}</p>}
             {current.review_notes && current.review_notes.length > 0 && (
               <div role="note">
                 <strong>{t("proposals.review_notes")}</strong>

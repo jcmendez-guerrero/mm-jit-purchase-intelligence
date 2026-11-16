@@ -20,6 +20,34 @@ class VariantId(RootModel[int]):
     root: Annotated[int, Field(ge=1)]
 
 
+class Sku(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description='What people see and type for an exclusion (null = every product); the ERP variant id stays inside the platform',
+            max_length=60,
+        ),
+    ]
+
+
+class ReasonCode(Enum):
+    promotion = 'promotion'
+    closure = 'closure'
+    supplier_outage = 'supplier_outage'
+    bulk_sale = 'bulk_sale'
+    other = 'other'
+
+
+class Detail(RootModel[str]):
+    root: Annotated[
+        str,
+        Field(
+            description='Short optional detail, shown to admins only and never written to the audit trail',
+            max_length=100,
+        ),
+    ]
+
+
 class Value(RootModel[int]):
     root: Annotated[int, Field(ge=0)]
 
@@ -33,7 +61,31 @@ class DemandRule(BaseModel):
     variant_id: VariantId | None = None
     from_day: date | None = None
     to_day: date | None = None
-    reason: Annotated[str | None, Field(max_length=500)] = None
+    reason: Annotated[
+        str | None,
+        Field(
+            description='Superseded by reason_code (feature 011): older rows may hold free text, which is never copied to the audit',
+            max_length=500,
+        ),
+    ] = None
+    sku: Annotated[
+        Sku | None,
+        Field(
+            description='What people see and type for an exclusion (null = every product); the ERP variant id stays inside the platform'
+        ),
+    ] = None
+    reason_code: Annotated[
+        ReasonCode | None,
+        Field(
+            description='Pick-list reason; the only reason text the audit trail carries'
+        ),
+    ] = None
+    detail: Annotated[
+        Detail | None,
+        Field(
+            description='Short optional detail, shown to admins only and never written to the audit trail'
+        ),
+    ] = None
     rule: str | None = None
     value: Value | None = None
     revision: Annotated[

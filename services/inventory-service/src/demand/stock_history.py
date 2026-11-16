@@ -11,7 +11,7 @@ must not be forecast.
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -32,7 +32,7 @@ def reconstruct(
     current_on_hand: Mapping[int, int],
     through_day: date,
     snapshots: Mapping[int, Mapping[date, int]] | None = None,
-    min_run: int = 1,
+    min_run: int | Callable[[int], int] = 1,
 ) -> list[HistoryRow]:
     """``movements`` must include quarantined ones: stock moved physically whatever the review outcome."""
     net: dict[int, dict[date, int]] = defaultdict(lambda: defaultdict(int))
@@ -61,14 +61,15 @@ def reconstruct(
             if snap_day in by_day and by_day[snap_day] != snap_qty:
                 ok = False
         flags = [(op <= 0 and day != first) or cl <= 0 for day, op, cl in reversed(series)]
-        if min_run > 1:                                   # short stock-outs are not treated as hidden demand (rule min_zero_stock_days)
+        run = min_run(vid) if callable(min_run) else min_run          # the rule can differ by product, segment or globally (feature 011)
+        if run > 1:                                       # short stock-outs are not treated as hidden demand (rule min_zero_stock_days)
             i = 0
             while i < len(flags):
                 if flags[i]:
                     j = i
                     while j < len(flags) and flags[j]:
                         j += 1
-                    if j - i < min_run:
+                    if j - i < run:
                         flags[i:j] = [False] * (j - i)
                     i = j
                 else:

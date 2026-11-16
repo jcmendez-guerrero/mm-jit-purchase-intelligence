@@ -105,17 +105,10 @@ class ProposalDetail(BaseModel):
     flags: Annotated[
         dict[str, Any] | None,
         Field(
-            description='Internal flags; the web app reads over_budget and review_notes instead'
+            description='Plan flags: over_budget (euros as text), notes, and deferred lines when a budget cap binds (feature 011 business policy)'
         ),
     ] = None
     approval: Approval | None = None
-    over_budget: Annotated[
-        str | None,
-        Field(
-            description='Euros by which the proposal exceeds the budget cap; 0 when within it. Decimal as string',
-            pattern='^-?[0-9]+(\\.[0-9]+)?$',
-        ),
-    ] = None
     review_notes: Annotated[
         list[ReviewNote] | None,
         Field(description='Needed products the plan could not source (FR-014)'),

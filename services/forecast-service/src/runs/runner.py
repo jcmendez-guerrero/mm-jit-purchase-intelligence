@@ -142,7 +142,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     conn.execute(insert(forecast_runs).values(
         id=run_id, started_at=started, through_day=export.get("through_day"), model_versions=model_versions(), input_hash=digest,
         config={**cfg.as_json(), **({} if seeds is None else {"seed": {"dataset_id": seeds.dataset_id, "variants_used": len(report.used), "overlap_variants": report.overlap_variants, "overlap_days": report.overlap_days, "retired_variants": len(report.retired)}})}, status="running", total_count=len(series), eligible_count=eligible,
-        parameter_version_ids=versions or None, dataset_version_id=None if seeds is None else seeds.dataset_id))
+        parameter_version_ids=versions or None, rule_version_ids=export.get("rule_versions") or None, dataset_version_id=None if seeds is None else seeds.dataset_id))
     if rows:
         conn.execute(insert(forecast_values), rows)
     _store_backtests(conn, run_id, results, adopted)

@@ -21,6 +21,7 @@ from costs.store import CostError, NewCost, add_version, confirm_jump, cost_stat
 from db.tables import erp_supplier_links, product_refs, supplier_costs, suppliers
 from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from mmi_common.errors import error_code
+from mmi_common.service import reject_nul
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
@@ -214,6 +215,7 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.post("/costs/import")
     async def import_prices(supplier_id: str = Form(), file: UploadFile = File(), conn: Connection = Depends(conn_dep),
                             principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
+        reject_nul(supplier_id, file.filename)                         # a multipart text field is not read by the shared NUL guard
         if conn.execute(select(suppliers.c.id).where(suppliers.c.id == supplier_id)).first() is None:
             raise HTTPException(422, "unknown_supplier")
         data = await file.read(price_import.MAX_BYTES + 1)

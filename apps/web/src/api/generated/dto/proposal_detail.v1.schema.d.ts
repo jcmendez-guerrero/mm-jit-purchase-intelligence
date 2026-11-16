@@ -21,7 +21,7 @@ export interface ProposalDetail {
   } | null;
   solver_status?: string | null;
   /**
-   * Internal flags; the web app reads over_budget and review_notes instead
+   * Plan flags: over_budget (euros as text), notes, and deferred lines when a budget cap binds (feature 011 business policy)
    */
   flags?: {
     [k: string]: unknown;
@@ -32,10 +32,6 @@ export interface ProposalDetail {
     version?: number;
     valid?: boolean;
   } | null;
-  /**
-   * Euros by which the proposal exceeds the budget cap; 0 when within it. Decimal as string
-   */
-  over_budget?: string;
   /**
    * Needed products the plan could not source (FR-014)
    */

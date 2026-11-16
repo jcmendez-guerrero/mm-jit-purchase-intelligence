@@ -171,5 +171,5 @@ The whole journey (generate, explain, edit, scenario, compare, promote, submit, 
 - Forecasts, policies and supplier terms are provided by other features; this feature consumes them read-only.
 - Roles, MFA and the audit trail come from the identity/administration feature (010).
 - Synthetic fixtures from `packages/testing` are sufficient; no real data is used.
-- A budget cap is a soft limit, as in the existing allocation and scenarios: the plan minimises cost, flags the excess and never cuts quantities automatically (a human decides purchases). Automatic cutting by priority is out of scope.
+- In scenarios (and in the allocator's default) a budget cap is a soft limit: the plan minimises cost, flags the excess and cuts nothing. The weekly proposal built from live inputs may instead defer non-critical needed lines when a cap binds, and lists them with the caps that bound (feature 011 business policy, owner decision 2026-11-11, shown by the budget notice); clinically critical products are never deferred. This feature does not change that rule; the excess and the deferred lines are read from the proposal's `flags`.
 - Excel and CSV remain the only export formats.

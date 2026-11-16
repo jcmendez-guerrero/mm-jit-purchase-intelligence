@@ -14,7 +14,7 @@ def test_a_generated_proposal_matches_the_schema(api):
     pid = generate(client)
     body = client.get(f"/proposals/{pid}", headers=h("buyer")).json()
     jsonschema.Draft202012Validator(SCHEMA).validate(body)
-    assert body["review_notes"] == [] and body["over_budget"] == "0"
+    assert body["review_notes"] == []
 
 
 def test_schema_rejects_an_unknown_property(api):

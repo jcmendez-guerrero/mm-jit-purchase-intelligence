@@ -20,7 +20,7 @@
     "solver_status": { "type": ["string", "null"] },
     "flags": {
       "type": ["object", "null"],
-      "description": "Internal flags; the web app reads over_budget and review_notes instead"
+      "description": "Plan flags: over_budget (euros as text), notes, and deferred lines when a budget cap binds (feature 011 business policy)"
     },
     "approval": {
       "type": ["object", "null"],
@@ -31,11 +31,6 @@
         "version": { "type": "integer" },
         "valid": { "type": "boolean" }
       }
-    },
-    "over_budget": {
-      "type": "string",
-      "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
-      "description": "Euros by which the proposal exceeds the budget cap; 0 when within it. Decimal as string"
     },
     "review_notes": {
       "type": "array",

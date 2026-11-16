@@ -102,6 +102,23 @@ def _version(if_match: str | None, current: int) -> int:
         raise HTTPException(400, "invalid_if_match") from exc
 
 
+def _flags_view(flags: Any, names: dict[int, tuple[Any, Any]], supplier_names: dict[str, Any]) -> Any:
+    """The proposal flags as people see them: a deferred line by SKU and product name (never the ERP ids), and the caps that bound by what they are, a supplier by name."""
+    if not isinstance(flags, dict) or not flags.get("deferred"):
+        return flags
+
+    def cap(raw: str) -> dict[str, Any]:
+        if raw.startswith("supplier:"):
+            return {"kind": "supplier", "supplier_name": supplier_names.get(raw.removeprefix("supplier:"))}
+        return {"kind": raw}
+
+    deferred = [{"sku": names.get(int(d["variant_id"]), (None, None))[0], "product_name": names.get(int(d["variant_id"]), (None, None))[1],
+                 "needed_qty": d.get("needed_qty"), "estimated_cost": d.get("estimated_cost"), "reason": d.get("reason"), "bound_by": [cap(b) for b in d.get("bound_by", [])]}
+                for d in flags["deferred"]]
+    notes = [n if not n.startswith("budget_bound:supplier:") else f"budget_bound:supplier:{supplier_names.get(n.removeprefix('budget_bound:supplier:'), '')}" for n in flags.get("notes", [])]
+    return {**flags, "deferred": deferred, "notes": notes}
+
+
 def _review_notes(p: Any, names: dict[int, tuple[Any, Any]]) -> list[dict[str, Any]]:
     """FR-014: the needed variants the plan could not source, with the SKU the user sees (never dropped silently)."""
     out = []
@@ -122,7 +139,7 @@ def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
     supplier_names = {r.id: r.name for r in conn.execute(select(suppliers.c.id, suppliers.c.name)).all()}
     return {
         "id": p.id, "week": p.week, "status": p.status, "version": p.version, "created_by": p.created_by, "last_edited_by": p.last_edited_by,
-        "inputs_hash": p.inputs_hash, "rule_versions": p.rule_versions, "solver_status": p.solver_status, "flags": p.flags,
+        "inputs_hash": p.inputs_hash, "rule_versions": p.rule_versions, "solver_status": p.solver_status, "flags": _flags_view(p.flags, names, supplier_names),
         "approval": None if last is None else {"approver": last.approver_id, "decision": last.decision, "version": last.proposal_version, "valid": is_approval_valid(conn, p.id)},
         "lines": [{"id": r.id, "variant_id": r.variant_id, "product_id": r.product_id, "supplier_id": r.supplier_id, "qty": r.qty,
                    "sku": names.get(r.variant_id, (None, None))[0], "product_name": names.get(r.variant_id, (None, None))[1],
@@ -130,7 +147,7 @@ def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
                    "unit_cost_with_recargo": s(r.unit_cost_with_recargo), "line_total": s(r.line_total), "forecast_or_policy": r.forecast_or_policy,
                    "safety_stock": r.safety_stock, "constraints_applied": r.constraints_applied, "risk": r.risk, "confidence": r.confidence,
                    "explanation": r.explanation, "alternatives_compared": r.alternatives_compared, "manual_override": r.manual_override, "topup": r.topup} for r in lines],
-        "review_notes": _review_notes(p, names), "over_budget": str(Decimal(str((p.flags or {}).get("over_budget") or "0"))),
+        "review_notes": _review_notes(p, names),
         "terms_version_ids": p.terms_version_ids, "policy_version_ids": p.policy_version_ids, "dataset_version_id": p.dataset_version_id, "forecast_run_id": p.forecast_run_id,
         "supplier_groups": [{"supplier_id": g.supplier_id, "supplier_name": supplier_names.get(g.supplier_id), "subtotal": s(g.subtotal),
                              "discount": s(g.discount), "delivery_charge": s(g.delivery_charge), "total_cost": s(g.total_cost),

@@ -30,6 +30,8 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
   const [notice, setNotice] = useActionNotice();
   const [conflictVersion, setConflictVersion] = useState<number | null>(null);
   const keyFor = useRef(saveKeys()).current;               // a retry of the same save reuses its key; any change gets a new one
+  const tRef = useRef(t);
+  tRef.current = t;                                         // the loader must not depend on `t`: a new `t` (resources finishing loading) would reload the form and erase what the person is typing
 
   const load = useCallback(async () => {
     try {
@@ -41,9 +43,9 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
       setFieldErrors({});
       setConflictVersion(null);
     } catch (err) {
-      setError(errorMessage(err, t("common.error")));
+      setError(errorMessage(err, tRef.current("common.error")));
     }
-  }, [supplierId, t]);
+  }, [supplierId]);
 
   useEffect(() => {
     setError(null);
@@ -52,7 +54,7 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
   }, [load]);
 
   const set = <K extends keyof TermsForm>(key: K, value: TermsForm[K]) => setForm((f) => ({ ...f, [key]: value }));
-  const readOnly = !canEdit;
+  const readOnly = !canEdit || view === null;              // until the terms arrive the fields stay locked: the response would overwrite anything typed meanwhile
   // the terms in force stop on a date and nothing is scheduled after them: warn before the day arrives
   const inForce = view?.history.find((h) => h.status === "in_force");
   const endingNotice = inForce?.valid_to && !view?.history.some((h) => h.status === "planned") ? formatDate(new Date(inForce.valid_to)) : null;
@@ -108,7 +110,7 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
       <h3 className="mmi-title-md mmi-mt-0" id="terms-title">
         {t("suppliers.editor.title", { name: supplierName })}
       </h3>
-      {readOnly && <p className="mmi-muted">{t("suppliers.editor.read_only")}</p>}
+      {!canEdit && <p className="mmi-muted">{t("suppliers.editor.read_only")}</p>}
       {error && (
         <p className="mmi-error" role="alert">
           {error}
