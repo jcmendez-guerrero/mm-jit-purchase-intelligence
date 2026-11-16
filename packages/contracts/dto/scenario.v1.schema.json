@@ -82,7 +82,15 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["variant_id", "sku", "supplier_before", "supplier_after", "qty_before", "qty_after", "reasons"],
+            "required": [
+              "variant_id",
+              "sku",
+              "supplier_before",
+              "supplier_after",
+              "qty_before",
+              "qty_after",
+              "reasons"
+            ],
             "properties": {
               "variant_id": {
                 "type": "integer",
