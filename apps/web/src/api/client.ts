@@ -396,7 +396,7 @@ export interface AdminStatus {
   freshness: StatusCard<{ stock_snapshots: { latest_day: string | null; rows: number }; movements: { rows: number; quarantined: number; latest_at: string | null }; aggregates: { refreshed_at: string | null } }>;
   import_jobs: StatusCard<{ jobs: SeedJob[] }>;
   model_runs: StatusCard<{ runs: Array<{ id: string; started_at: string; status: string; through_day: string; total: number; eligible: number; dataset_version_id: string | null }> }>;
-  policy_history: StatusCard<Array<{ id: string; status: string; variant_id: number; [k: string]: unknown }>>;
+  policy_history: StatusCard<Array<{ id: string; status: string; variant_id: number; sku: string | null; [k: string]: unknown }>>;
   role_mirror: StatusCard<{ pending: number; failed: number; sent: number; oldest_pending_seconds: number }>;
   cost: { budget_eur: number; guardrails: { min_replicas: number; max_replicas: number; job_parallelism: number } };
 }

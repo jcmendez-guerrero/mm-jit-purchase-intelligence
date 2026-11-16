@@ -63,3 +63,16 @@ def test_only_admins_see_the_status(role_store):
         i, f, p = clients()
         assert get(headers_for("u", roles), i, f, p).status_code == 403
         i.forward.assert_not_called()
+
+
+def test_policy_history_passes_the_sku_through_unchanged(role_store):
+    """MMI-14: the gateway only forwards the rows procurement resolved; a null SKU stays null and the row stays."""
+    rows = [{"id": "o1", "status": "approved", "variant_id": 9001, "sku": "SYN-9001"}, {"id": "o2", "status": "pending", "variant_id": 9002, "sku": None}]
+    body = get(admin_headers(), *clients(proc=rows)).json()
+    assert body["policy_history"]["data"] == rows
+
+
+def test_policy_history_asks_procurement_for_the_20_rows_the_screen_shows(role_store):
+    i, f, p = clients()
+    get(admin_headers(), i, f, p)
+    assert p.forward.call_args.kwargs["params"] == {"status": "all", "limit": 20}

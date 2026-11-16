@@ -52,7 +52,7 @@ async def status(session: SessionData = Depends(require_roles("admin")), inv: In
     who = {"user_id": session.user_id, "roles": session.roles}
     freshness, jobs, runs, policy, mirror = await asyncio.gather(
         _card(inv.forward("GET", "/status/sources", **who)), _card(fc.forward("GET", "/imports/jobs", **who)),
-        _card(fc.forward("GET", "/runs", params={"limit": 10}, **who)), _card(proc.forward("GET", "/policy-overrides", params={"status": "all"}, **who)),
+        _card(fc.forward("GET", "/runs", params={"limit": 10}, **who)), _card(proc.forward("GET", "/policy-overrides", params={"status": "all", "limit": 20}, **who)),
         _local(get_store().mirror_status))
     return {"freshness": freshness, "import_jobs": jobs, "model_runs": runs, "policy_history": policy, "role_mirror": mirror, "cost": cost_indicators()}
 
