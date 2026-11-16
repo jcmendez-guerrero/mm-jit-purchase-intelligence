@@ -57,6 +57,27 @@ describe("SuppliersScreen (Spanish)", () => {
     expect(document.body.textContent).toMatch(/150,00\s*€/);
   });
 
+  it("offers help on the lead time next to its field (feature 012)", async () => {
+    await open();
+    fireEvent.click(screen.getByRole("button", { name: "Qué significa plazo de entrega" }));
+    expect(screen.getByRole("note").textContent).toContain("hasta que la mercancía está disponible");
+    expect((screen.getByLabelText("Plazo de entrega (días)") as HTMLInputElement).value).toBe("3");
+  });
+
+  it("names the field and the rule, focuses the first invalid field, and clears the message once the value is corrected (feature 012)", async () => {
+    const put = vi.spyOn(api, "putSupplierTerms").mockResolvedValue({ version: 2 });
+    await open();
+    const lead = screen.getByLabelText("Plazo de entrega (días)") as HTMLInputElement;
+    fireEvent.change(lead, { target: { value: "abc" } });
+    fireEvent.change(screen.getByLabelText("Motivo del cambio"), { target: { value: "prueba" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar nueva versión" }));
+    expect(await screen.findByText("Introduce un número entero igual o mayor que cero.")).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(lead));
+    expect(put).not.toHaveBeenCalled();
+    fireEvent.change(lead, { target: { value: "7" } });
+    await waitFor(() => expect(screen.queryByText("Introduce un número entero igual o mayor que cero.")).toBeNull());
+  });
+
   it("loads the saved terms into the form and shows the version history with source badges", async () => {
     await open();
     expect((screen.getByLabelText("Plazo de entrega (días)") as HTMLInputElement).value).toBe("3");

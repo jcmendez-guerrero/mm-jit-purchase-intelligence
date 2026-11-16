@@ -38,6 +38,21 @@ export const AppShell: React.FC<Props> = ({ session, roles, sessionExpired, onLo
     wasOpen.current = drawerOpen;
   }, [drawerOpen]);
 
+  // After a screen change the heading takes focus so keyboard and screen-reader users start at the top of the new page.
+  const shownPath = React.useRef(location.pathname);
+  useEffect(() => {
+    // Compare paths, not a first-render flag: development mounts effects twice and must not steal focus on load.
+    if (shownPath.current === location.pathname) return;
+    const fromIndex = shownPath.current === "/"; // the index redirect to the default screen is not a user's screen change
+    shownPath.current = location.pathname;
+    if (fromIndex) return;
+    const id = requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLElement>("#contenido h1") ?? document.getElementById("contenido");
+      target?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [location.pathname]);
+
   useEffect(() => {
     document.title = item ? `${t(item.labelKey)} · ${t("app.title")}` : t("app.title");
   }, [item, t]);

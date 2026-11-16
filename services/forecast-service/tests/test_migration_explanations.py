@@ -1,4 +1,4 @@
-"""T009 (forecast): migration 0006 adds the explanation and per-product backtest tables and reverses cleanly."""
+"""T009 (forecast): migration 0007 adds the explanation and per-product backtest tables and reverses cleanly."""
 
 import importlib.util
 from pathlib import Path
@@ -11,8 +11,8 @@ NEW_TABLES = {"forecast_explanations", "product_backtest"}
 
 
 def _load():
-    path = Path(__file__).resolve().parents[1] / "migrations" / "versions" / "0006_explanations_backtest.py"
-    spec = importlib.util.spec_from_file_location("m0006", path)
+    path = Path(__file__).resolve().parents[1] / "migrations" / "versions" / "0007_explanations_backtest.py"
+    spec = importlib.util.spec_from_file_location("m0007", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -25,7 +25,7 @@ def _run(conn, fn):
 
 def test_revision_chain_points_at_0005():
     mod = _load()
-    assert (mod.revision, mod.down_revision) == ("0006", "0005")
+    assert (mod.revision, mod.down_revision) == ("0007", "0006")
 
 
 def test_upgrade_then_downgrade_round_trip_leaves_existing_tables_alone():

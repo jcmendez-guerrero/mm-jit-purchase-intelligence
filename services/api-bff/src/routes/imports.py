@@ -11,6 +11,7 @@ from typing import Any
 from auth.session import SessionData
 from clients.forecast import ForecastClient
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
+from mmi_common.service import reject_nul
 from routes.policies import get_forecast_client
 from routes.rbac import require_fresh_mfa, require_roles
 from upload_settings import load_limits
@@ -50,6 +51,7 @@ async def save_mapping(body: dict[str, Any], session: SessionData = Depends(requ
 @router.post("", status_code=201)
 async def upload(request: Request, file: UploadFile = File(...), name: str = Form(default=""), session: SessionData = Depends(require_roles(*EDIT)),
                  fc: ForecastClient = Depends(get_forecast_client)) -> Any:
+    reject_nul(name, file.filename)                                                                          # a multipart text field is not read by the shared NUL guard
     limits = load_limits()
     declared = request.headers.get("content-length")
     if declared is not None and declared.isdigit() and int(declared) > limits.max_bytes + 64 * 1024:       # the multipart envelope adds a little

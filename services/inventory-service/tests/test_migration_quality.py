@@ -1,4 +1,4 @@
-"""T009 (inventory): migration 0008 adds the feature 012 tables and columns, keeps old rows, and reverses cleanly."""
+"""T009 (inventory): migration 0011 adds the feature 012 tables and columns, keeps old rows, and reverses cleanly."""
 
 import importlib.util
 from pathlib import Path
@@ -12,8 +12,8 @@ NEW_COLUMNS = {"config_version_id", "method"}
 
 
 def _load():
-    path = Path(__file__).resolve().parents[1] / "migrations" / "versions" / "0008_quality_intelligence.py"
-    spec = importlib.util.spec_from_file_location("m0008", path)
+    path = Path(__file__).resolve().parents[1] / "migrations" / "versions" / "0011_quality_intelligence.py"
+    spec = importlib.util.spec_from_file_location("m0011", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -26,7 +26,7 @@ def _run(conn, fn):
 
 def test_revision_chain_points_at_0007():
     mod = _load()
-    assert (mod.revision, mod.down_revision) == ("0008", "0007")
+    assert (mod.revision, mod.down_revision) == ("0011", "0010")
 
 
 def test_upgrade_adds_tables_and_nullable_columns_and_keeps_old_rows():

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/policy_cleared.v1",
+  "title": "PolicyCleared",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["revision"],
+  "description": "DELETE /api/policies/{scope}/{key} (If-Match required): removing an override stores a new revision with every field empty, so the lower scope or the default applies again.",
+  "properties": {
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The revision created by the removal"
+    }
+  }
+}

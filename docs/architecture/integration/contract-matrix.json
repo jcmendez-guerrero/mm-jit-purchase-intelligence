@@ -1,6 +1,6 @@
 {
   "matrix_version": 1,
-  "generated_at": "2026-11-09T22:01:05Z",
+  "generated_at": "2026-11-15T15:55:06Z",
   "schema_ownership": {
     "siweb-connector": "integration",
     "inventory-service": "inventory",
@@ -80,6 +80,18 @@
       "status": "frozen"
     },
     {
+      "name": "effective_policy",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/effective_policy.v1.schema.json",
+      "owner": "agent-00",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "forecast_accuracy",
       "kind": "dto",
       "version": 1,
@@ -135,6 +147,30 @@
       "owner": "agent-00",
       "consumers": [],
       "status": "frozen"
+    },
+    {
+      "name": "policy_audit_page",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/policy_audit_page.v1.schema.json",
+      "owner": "agent-00",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "policy_cleared",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/policy_cleared.v1.schema.json",
+      "owner": "agent-00",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
     },
     {
       "name": "policy_override_request",
@@ -194,6 +230,17 @@
       "schema_path": "dto/proposal.v1.schema.json",
       "owner": "procurement-service",
       "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "proposal_detail",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/proposal_detail.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "web"
+      ],
       "status": "frozen"
     },
     {
@@ -281,6 +328,18 @@
       "owner": "forecast-service",
       "consumers": [],
       "status": "frozen"
+    },
+    {
+      "name": "segment_history",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/segment_history.v1.schema.json",
+      "owner": "agent-00",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
     },
     {
       "name": "stocking_setting",
@@ -1130,6 +1189,46 @@
       "status": "draft"
     },
     {
+      "name": "DELETE /api/policies/{scope}/{key}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/products/{sku}/segment-history",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/policy-audit",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/products/{sku}/effective-policy",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "GET /api/policy-console",
       "kind": "endpoint",
       "version": 1,
@@ -1160,7 +1259,7 @@
       "status": "draft"
     },
     {
-      "name": "GET /api/policy-overrides/recommendation/{variant_id}",
+      "name": "GET /api/policy-overrides/recommendation/{sku}",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -1220,7 +1319,7 @@
       "status": "draft"
     },
     {
-      "name": "PUT /api/products/{product_id}/criticality",
+      "name": "PUT /api/products/{sku}/criticality",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -1350,7 +1449,7 @@
       "status": "draft"
     },
     {
-      "name": "GET /api/segments/{variant_id}/history",
+      "name": "GET /api/stocking/{sku}",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -1360,17 +1459,7 @@
       "status": "draft"
     },
     {
-      "name": "GET /api/stocking/{variant_id}",
-      "kind": "endpoint",
-      "version": 1,
-      "owner": "agent-00",
-      "consumers": [
-        "web"
-      ],
-      "status": "draft"
-    },
-    {
-      "name": "PUT /api/stocking/{variant_id}",
+      "name": "PUT /api/stocking/{sku}",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",

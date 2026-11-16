@@ -80,7 +80,7 @@ describe("review of unparsed payment terms", () => {
     vi.spyOn(api, "getSupplierReviewItems").mockResolvedValue([{ id: "i1", kind: "payment_terms_unparsed", supplier_id: "a", detail: "", status: "open", created_at: "x" }]);
     render(<SupplierReview suppliers={[sup("a")]} onChanged={() => undefined} />);
     const item = (await screen.findByText("Plazo de pago no interpretado")).closest("li") as HTMLElement;
-    expect(within(item).getByText(/indique el plazo de pago en días/)).toBeTruthy();
+    expect(within(item).getByText(/indica el plazo de pago en días/)).toBeTruthy();
   });
 });
 

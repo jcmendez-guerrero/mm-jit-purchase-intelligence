@@ -35,6 +35,7 @@ test.describe("Supplier terms (T050)", () => {
     await page.goto("/");
     await page.getByRole("navigation").getByRole("link", { name: "Proveedores", exact: true }).click();
     await page.click("button:has-text('Proveedor Sintético A')");
+    await expect(page.getByLabel("Plazo de entrega (días)")).toHaveValue("3"); // typing before the terms load is overwritten
     await page.getByLabel("Plazo de entrega (días)").fill("5");
     await page.getByLabel("Motivo del cambio").fill("nuevo transportista");
     await page.click("button:has-text('Guardar nueva versión')");

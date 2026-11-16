@@ -54,6 +54,8 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | mfa_required | 403 | A recent second factor is required |
 | version_conflict | 409 | The record changed since it was read |
 | invalid_proposal_state | 409 | The proposal state does not allow this action |
+| proposal_line_conflict | 409 | The proposal line changed since it was read (reload and retry) |
+| proposal_superseded | 409 | The proposal was superseded by a newer version and cannot be changed, submitted, approved or exported |
 | invalid_quantity | 422 | A quantity must be a whole number of zero or more |
 | override_release_same_person | 403 | The admin who set an override cannot release it |
 | median_required | 409 | The released value must be the lot median or the admin override |
@@ -148,3 +150,9 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | forecast_explanation_not_available | 404 | No forecast run holds an explanation for this product yet |
 | forecast_backtest_conflict | 409 | A full-catalogue backtest is already running; the response names it |
 | quality_job_failed | 502 | A quality recompute or backtest job failed and left no partial result |
+| sku_unknown | 422 | The SKU matches no product in the loaded catalogue (feature 011) |
+| invalid_input | 422 | The request path or query holds a NUL byte, which is never valid in an id or a key (feature 011) |
+| sku_ambiguous | 422 | The SKU matches more than one product, so none is chosen (feature 011) |
+| policy_overlap | 422 | A revision of this policy or budget cap is already scheduled after the chosen date (feature 011) |
+| budget_scope_unsupported | 422 | Budget caps by product category are not applied yet; use the global cap or a supplier cap (feature 011) |
+| exclusion_reason_invalid | 422 | The exclusion reason is not in the list, or its detail is too long (feature 011) |

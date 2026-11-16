@@ -1,4 +1,5 @@
 import type { ScenarioRequest } from "../../api/client";
+import { canDownload } from "../proposals/proposalModel";
 
 export interface SupplierForm {
   disabled: boolean;
@@ -32,6 +33,9 @@ const whole = (t: string, min: number, max: number): number | null => {
 };
 
 export const canCreate = (roles: string[]): boolean => roles.includes("buyer");
+
+/** Buyers, approvers and admins may download a scenario; a viewer may not (the server refuses and audits it too). */
+export const canExportScenario = canDownload;
 
 /** The request body, or the label of the first field that is not valid. Blank fields mean "no change". */
 export function toRequest(f: ScenarioForm): { body: ScenarioRequest } | { invalid: string; supplier?: string } {

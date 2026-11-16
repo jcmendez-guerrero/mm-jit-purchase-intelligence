@@ -31,6 +31,8 @@ class LineSpec:
     fixed_supplier: str | None = None
     fixed_qty: int | None = None
     rejected: tuple[tuple[str, str], ...] = ()   # (supplier_id, reason) for offers that were not eligible
+    critical: bool = False                       # clinically critical: never deferred, whatever the budget says
+    urgency: int = 1                             # 2 when the product is out of stock: among deferrable lines the least urgent go first
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,8 @@ class Allocation:
     total_ticks: int
     over_budget_ticks: int = 0
     notes: list[str] = field(default_factory=list)
+    deferred: list[int] = field(default_factory=list)                       # variant ids of needed lines left out because a cap binds
+    supplier_over: dict[str, int] = field(default_factory=dict)             # supplier_id -> ticks over that supplier's cap
 
 
 def percent_basis_points(value: Decimal) -> int:
@@ -116,7 +120,9 @@ def build_lines(inputs: ProposalInputs) -> list[LineSpec]:
             else:
                 usable.append(o)
         if not usable:
-            if v.offers or ov.fixed_qty.get(v.variant_id):
+            # FR-014: a needed variant with no usable offer is kept (with no candidates) so it is named, never dropped silently; a stocked one is not a warning
+            fixed = ov.fixed_qty.get(v.variant_id)
+            if fixed or (v.offers and compute_target(v, min(o.lead_time_days for o in v.offers)).need > 0):
                 lines.append(LineSpec(v.variant_id, True, (), rejected=tuple(rejected)))
             continue
         fastest = min(o.lead_time_days for o in usable)
@@ -138,7 +144,8 @@ def build_lines(inputs: ProposalInputs) -> list[LineSpec]:
             preferred = o.preferred if o.preferred is not None else inputs.suppliers.get(o.supplier_id, SupplierTermsIn(o.supplier_id)).preferred
             risk -= 1 if preferred else 0          # a preferred supplier wins a tie, and only a tie (1 tick = 0.0001 EUR)
             cands.append(Cand(v.variant_id, o.supplier_id, qty, unit, unit * qty, o.lead_time_days, risk, o, tgt))
-        lines.append(LineSpec(v.variant_id, mandatory, tuple(cands), ov.fixed_supplier.get(v.variant_id), fixed_qty, tuple(rejected)))
+        urgent = 2 if cands and cands[0].target.inventory_position <= 0 else 1
+        lines.append(LineSpec(v.variant_id, mandatory, tuple(cands), ov.fixed_supplier.get(v.variant_id), fixed_qty, tuple(rejected), v.clinical_critical, urgent))
     return lines
 
 

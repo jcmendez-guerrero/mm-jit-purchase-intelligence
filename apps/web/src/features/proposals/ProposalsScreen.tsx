@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api, ApiError, Proposal, ProposalSummary, errorMessage } from "../../api/client";
 import { formatCurrencyEUR, formatDate } from "../../i18n/formatters";
+import { BudgetNotice } from "./BudgetNotice";
 import { VersionsUsed } from "./VersionsUsed";
 import { ProposalLineExplanation } from "./ProposalLineExplanation";
-import { canApprove, canEditLines, canSubmit, groupLinesBySupplier, pageLineGroups, parseQty } from "./proposalModel";
+import { canApprove, canEditLines, canExport, canSubmit, groupLinesBySupplier, pageLineGroups, parseQty } from "./proposalModel";
 import { ScreenState } from "../../ui/ScreenState";
 import { EmptyState } from "../../ui/EmptyState";
 import { StatusBadge } from "../../ui/StatusBadge";
@@ -16,11 +17,16 @@ import { DataTable } from "../../ui/DataTable";
 
 interface Props {
   userRoles: string[];
+  /** Show only the lines of this SKU (set when arriving from a product's detail); feature 012. */
+  skuFilter?: string | undefined;
+  onClearSku?: (() => void) | undefined;
+  /** A link back to where the person came from (for example the product detail), built by the route. */
+  backAction?: React.ReactNode;
 }
 
 const LINES_PER_PAGE = 50;
 
-export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
+export const ProposalsScreen: React.FC<Props> = ({ userRoles, skuFilter, onClearSku, backAction }) => {
   const { t } = useTranslation();
   const [list, setList] = useState<ProposalSummary[]>([]);
   const [current, setCurrent] = useState<Proposal | null>(null);
@@ -91,7 +97,9 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
     });
 
   const editable = current ? canEditLines(userRoles, current.status) : false;
-  const pagedLines = pageLineGroups(current ? groupLinesBySupplier(current.lines, current.supplier_groups) : [], linePage, LINES_PER_PAGE);
+  const newer = current && current.status === "superseded" ? list.find((p) => p.week === current.week && p.status !== "superseded") : undefined;
+  const shownLines = current ? (skuFilter ? current.lines.filter((l) => l.sku === skuFilter) : current.lines) : [];
+  const pagedLines = pageLineGroups(current ? groupLinesBySupplier(shownLines, current.supplier_groups) : [], linePage, LINES_PER_PAGE);
 
   return (
     <section aria-labelledby="proposals-title">
@@ -129,8 +137,32 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
           <div>
             <h3>{t("proposals.week", { week: current.week })}</h3>
             <VersionsUsed dataset={current.dataset_version_id} forecastRun={current.forecast_run_id} />
+            <BudgetNotice flags={current.flags} />
             <StatusBadge domain="approval" code={current.status} />
             <span className="mmi-muted"> {t("proposals.created_by", { user: current.created_by })}</span>
+            {current.status === "superseded" && (
+              <p role="note">
+                {t("proposals.superseded_note")}
+                {newer && (
+                  <>
+                    {" "}
+                    <Button variant="quiet" small onClick={() => void select(newer.id)}>
+                      {t("proposals.superseded_link")}
+                    </Button>
+                  </>
+                )}
+              </p>
+            )}
+            {current.review_notes && current.review_notes.length > 0 && (
+              <div role="note">
+                <strong>{t("proposals.review_notes")}</strong>
+                <ul>
+                  {current.review_notes.map((n) => (
+                    <li key={`${n.code}-${n.variant_id}`}>{t(`proposals.review_note.${n.code}`, { product: [n.sku, n.product_name].filter(Boolean).join(" — ") })}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <PageActions>
               {canSubmit(userRoles, current.status) && (
                 <Button onClick={() => setConfirming("submit")}>
@@ -142,13 +174,27 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
                   {t("proposals.approve")}
                 </Button>
               )}
-              <a href={`/api/proposals/${current.id}/export?format=csv`} download className="mmi-button mmi-button--secondary">
-                {t("proposals.export_csv")}
-              </a>
-              <a href={`/api/proposals/${current.id}/export?format=xlsx`} download className="mmi-button mmi-button--secondary">
-                {t("proposals.export_excel")}
-              </a>
+              {canExport(userRoles, current.status) && (
+                <>
+                  <a href={`/api/proposals/${current.id}/export?format=csv`} download className="mmi-button mmi-button--secondary">
+                    {t("proposals.export_csv")}
+                  </a>
+                  <a href={`/api/proposals/${current.id}/export?format=xlsx`} download className="mmi-button mmi-button--secondary">
+                    {t("proposals.export_excel")}
+                  </a>
+                </>
+              )}
             </PageActions>
+
+            {skuFilter && (
+              <div role="status" className="mmi-notice">
+                <p>{shownLines.length === 0 ? t("proposals.filter_sku_none", { sku: skuFilter }) : t("proposals.filter_sku", { sku: skuFilter })}</p>
+                <PageActions>
+                  {backAction}
+                  {onClearSku && <Button variant="secondary" small onClick={onClearSku}>{t("proposals.filter_sku_clear")}</Button>}
+                </PageActions>
+              </div>
+            )}
 
             {current.supplier_groups.length > 0 && (
               <DataTable
@@ -193,12 +239,12 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles }) => {
                   <th scope="colgroup" colSpan={6}>{g.continued ? t("proposals.group.continued", { supplier: g.name }) : g.name}</th>
                 </tr>
                 {g.lines.map((l) => {
-                  const name = l.product_name ?? `#${l.variant_id}`;
+                  const name = l.product_name ?? t("proposals.line.no_name");
                   return (
                     <React.Fragment key={l.id}>
                       <tr>
                         <td>
-                          <strong>{l.sku ?? l.variant_id}</strong> — {name}
+                          <strong>{l.sku ?? t("proposals.line.no_sku")}</strong> — {name}
                           {l.manual_override && <span role="note"> · {t("proposals.warning.manual")}</span>}
                           {l.explanation.forecast_basis === "imported_estimates" && <span role="note"> <StatusBadge domain="tag" code="estimate" /></span>}
                         </td>

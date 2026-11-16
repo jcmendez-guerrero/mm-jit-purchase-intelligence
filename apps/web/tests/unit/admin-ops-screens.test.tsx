@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AlertsListing, api, ApiError, OpsSummary, OpsThresholds } from "../../src/api/client";
 import { AlertsPanel } from "../../src/features/admin/AlertsPanel";
 import { AuditScreen } from "../../src/features/admin/AuditScreen";
 import { OpsCards } from "../../src/features/admin/OpsCards";
 import { QueuePanel } from "../../src/features/admin/QueuePanel";
-import "../../src/i18n";
+import i18n from "../../src/i18n";
 
 afterEach(() => {
   cleanup();
@@ -55,7 +55,7 @@ describe("QueuePanel (Spanish)", () => {
     vi.spyOn(api, "retryQueueItem").mockRejectedValue(new ApiError(403, "auth_mfa_stale"));
     render(<QueuePanel />);
     fireEvent.click(await screen.findByRole("button", { name: "Reintentar 7" }));
-    expect((await screen.findByRole("alert")).textContent).toContain("Debe volver a verificar su segundo factor");
+    expect((await screen.findByRole("alert")).textContent).toContain("Tienes que volver a verificar tu segundo factor");
     expect(document.body.textContent).not.toContain("auth_mfa_stale");
   });
 });
@@ -73,6 +73,20 @@ describe("AlertsPanel (Spanish)", () => {
     expect(screen.getByText(/No hay canal de correo configurado/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Reconocer/ }));
     await waitFor(() => expect(ack).toHaveBeenCalledWith(1));
+  });
+  it("keeps what is being typed when the translation function changes, and does not reload", async () => {
+    // T084: `t` gets a new identity when the language is (re)applied; the loader used to depend on it and reset the draft thresholds
+    const alerts = vi.spyOn(api, "getAlerts").mockResolvedValue(listing);
+    const settings = vi.spyOn(api, "getOpsSettings").mockResolvedValue(thresholds);
+    render(<AlertsPanel />);
+    const field = (await screen.findByLabelText(/Aviso de presupuesto/)) as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "70" } });
+    await act(async () => {
+      await i18n.changeLanguage("es-ES");
+    });
+    expect((screen.getByLabelText(/Aviso de presupuesto/) as HTMLInputElement).value).toBe("70");
+    expect(alerts).toHaveBeenCalledTimes(1);
+    expect(settings).toHaveBeenCalledTimes(1);
   });
   it("refuses inconsistent thresholds before calling the server", async () => {
     vi.spyOn(api, "getAlerts").mockResolvedValue({ ...listing, delivery_configured: true });

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { api, errorMessage, PolicyConsole } from "../../api/client";
 import { DemandSection } from "./DemandSection";
 import { ForecastSection } from "./ForecastSection";
+import { PolicyAudit } from "./PolicyAudit";
 import { PurchasingSection } from "./PurchasingSection";
 import { SafetyStockSection } from "./SafetyStockSection";
 import { Button } from "../../ui/Button";
@@ -13,8 +14,8 @@ interface Props {
   userRoles: string[];
 }
 
-type Tab = "purchasing" | "safety" | "demand" | "forecast";
-const TABS: Tab[] = ["purchasing", "safety", "demand", "forecast"];
+type Tab = "purchasing" | "safety" | "demand" | "forecast" | "audit";
+const TABS: Tab[] = ["purchasing", "safety", "demand", "forecast", "audit"];
 
 export const PoliciesScreen: React.FC<Props> = ({ userRoles }) => {
   const { t } = useTranslation();
@@ -46,7 +47,7 @@ export const PoliciesScreen: React.FC<Props> = ({ userRoles }) => {
         <div className="mmi-split mmi-split--nav">
         <div className="mmi-split__aside">
         <div role="tablist" aria-label={t("policies.title")} className="mmi-tablist">
-          {TABS.map((id) => (
+          {TABS.filter((id) => id !== "audit" || userRoles.includes("admin")).map((id) => (
             <Button key={id} role="tab" aria-selected={tab === id} variant={tab === id ? "primary" : "secondary"} onClick={() => setTab(id)}>
               {t(`policies.section.${id}`)}
             </Button>
@@ -60,7 +61,8 @@ export const PoliciesScreen: React.FC<Props> = ({ userRoles }) => {
           <div role="tabpanel">
             {tab === "purchasing" &&
               (data.purchasing.ok && data.purchasing.data ? (
-                <PurchasingSection roles={userRoles} policies={data.purchasing.data.policies} weeklyBudget={data.purchasing.data.weekly_budget} onChanged={() => void load()} />
+                <PurchasingSection roles={userRoles} policies={data.purchasing.data.policies} weeklyBudget={data.purchasing.data.weekly_budget}
+                                   weeklyBudgetRevision={data.purchasing.data.weekly_budget_revision} orphaned={data.purchasing.data.orphaned} onChanged={() => void load()} />
               ) : (
                 unavailable
               ))}
@@ -71,6 +73,7 @@ export const PoliciesScreen: React.FC<Props> = ({ userRoles }) => {
               ) : (
                 unavailable
               ))}
+            {tab === "audit" && userRoles.includes("admin") && <PolicyAudit />}
             {tab === "forecast" &&
               (data.forecast.ok && data.forecast.data ? <ForecastSection roles={userRoles} parameters={data.forecast.data.parameters} onChanged={() => void load()} /> : unavailable)}
           </div>

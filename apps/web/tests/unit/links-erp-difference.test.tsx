@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, SupplierLinkRow, SupplierSummary } from "../../src/api/client";
 import { LinksPanel } from "../../src/features/suppliers/LinksPanel";
-import "../../src/i18n";
+import i18n from "../../src/i18n";
 
 /** T034 (FR-016): a manual cost never hides the ERP cost: who set it, and the difference against the ERP value, are on screen. */
 
@@ -49,5 +49,16 @@ describe("links against the ERP cost", () => {
     expect(await screen.findByText("SYN-000001")).toBeTruthy();
     expect(screen.queryByText(/ERP 2,00/)).toBeNull();
     expect(screen.queryByText(/Igual que el ERP/)).toBeNull();
+  });
+
+  it("does not reload the links when the translation function changes", async () => {
+    // T084: a new `t` (the language is applied again) used to re-run the loader
+    const links = vi.spyOn(api, "getSupplierLinks").mockResolvedValue([link()]);
+    render(<LinksPanel supplier={sup()} canManage={false} />);
+    expect(await screen.findByText("SYN-000001")).toBeTruthy();
+    await act(async () => {
+      await i18n.changeLanguage("es-ES");
+    });
+    expect(links).toHaveBeenCalledTimes(1);
   });
 });

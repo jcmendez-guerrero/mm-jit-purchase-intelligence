@@ -1,16 +1,16 @@
 """data quality and forecast intelligence: quality snapshots, anomaly flags, portfolio aggregate, forecast inbox (feature 012).
 
 Additive only: four new tables and two nullable columns on product_segments (older rows keep NULL).
-If feature 011's own 0008 revision merges first, renumber this one to 0009 and point down_revision at it.
+Follows feature 011's 0008-0010 on main.
 
-Revision ID: 0008
+Revision ID: 0011
 """
 
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0008"
-down_revision = "0007"
+revision = "0011"
+down_revision = "0010"
 branch_labels = None
 depends_on = None
 

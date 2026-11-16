@@ -14,7 +14,7 @@ from conftest import auth
 from dashboard.filters import FilterSet
 from dashboard.indicators import build_indicators
 from dashboard.kpis import refresh_aggregates
-from reference_dataset import NOW, TODAY, seed_reference
+from reference_dataset import NOW, TODAY, freeze_clock, seed_reference
 
 SCHEMA = Path(__file__).resolve().parents[3] / "packages" / "contracts" / "dto" / "dashboard_indicators.v2.schema.json"
 KEYS = ["stock_value", "coverage_days", "demand", "forecast", "stockout_risk", "expiry_exposure", "capital_tied_up"]
@@ -35,7 +35,8 @@ def by_key(payload):
 
 
 @pytest.fixture
-def seeded(engine):
+def seeded(engine, monkeypatch):
+    freeze_clock(monkeypatch)
     seed_reference(engine)
     with engine.begin() as c:
         refresh_aggregates(c, TODAY, None, NOW)

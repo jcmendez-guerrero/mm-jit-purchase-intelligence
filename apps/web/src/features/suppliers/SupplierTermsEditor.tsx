@@ -9,6 +9,7 @@ import { useActionNotice } from "../../ui/NoticeProvider";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { Card } from "../../ui/Card";
 import { Button } from "../../ui/Button";
+import { HelpHint } from "../../ui/HelpHint";
 import { PageActions } from "../../ui/PageActions";
 import { DataTable } from "../../ui/DataTable";
 
@@ -30,6 +31,8 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
   const [notice, setNotice] = useActionNotice();
   const [conflictVersion, setConflictVersion] = useState<number | null>(null);
   const keyFor = useRef(saveKeys()).current;               // a retry of the same save reuses its key; any change gets a new one
+  const tRef = useRef(t);
+  tRef.current = t;                                         // the loader must not depend on `t`: a new `t` (resources finishing loading) would reload the form and erase what the person is typing
 
   const load = useCallback(async () => {
     try {
@@ -41,9 +44,9 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
       setFieldErrors({});
       setConflictVersion(null);
     } catch (err) {
-      setError(errorMessage(err, t("common.error")));
+      setError(errorMessage(err, tRef.current("common.error")));
     }
-  }, [supplierId, t]);
+  }, [supplierId]);
 
   useEffect(() => {
     setError(null);
@@ -52,13 +55,23 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
   }, [load]);
 
   const set = <K extends keyof TermsForm>(key: K, value: TermsForm[K]) => setForm((f) => ({ ...f, [key]: value }));
-  const readOnly = !canEdit;
+  const readOnly = !canEdit || view === null;              // until the terms arrive the fields stay locked: the response would overwrite anything typed meanwhile
   // the terms in force stop on a date and nothing is scheduled after them: warn before the day arrives
   const inForce = view?.history.find((h) => h.status === "in_force");
   const endingNotice = inForce?.valid_to && !view?.history.some((h) => h.status === "planned") ? formatDate(new Date(inForce.valid_to)) : null;
 
   const dirty = canEdit && JSON.stringify(form) !== JSON.stringify(baseline);
   const errorText = (id: string) => (fieldErrors[id] ? t(fieldErrors[id]) : undefined);
+  // A message goes away as soon as the value is corrected; new messages still appear only on leaving the field or saving.
+  useEffect(() => {
+    setFieldErrors((prev) => {
+      const ids = Object.keys(prev);
+      if (ids.length === 0) return prev;
+      const found = validateTerms(form);
+      const still = ids.filter((id) => found[id]);
+      return still.length === ids.length ? prev : Object.fromEntries(still.map((id) => [id, prev[id]!]));
+    });
+  }, [form]);
   const checkField = (id: string) => () => {
     const found = validateTerms(form)[id];
     setFieldErrors((prev) => {
@@ -108,7 +121,7 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
       <h3 className="mmi-title-md mmi-mt-0" id="terms-title">
         {t("suppliers.editor.title", { name: supplierName })}
       </h3>
-      {readOnly && <p className="mmi-muted">{t("suppliers.editor.read_only")}</p>}
+      {!canEdit && <p className="mmi-muted">{t("suppliers.editor.read_only")}</p>}
       {error && (
         <p className="mmi-error" role="alert">
           {error}
@@ -126,7 +139,10 @@ export const SupplierTermsEditor: React.FC<Props> = ({ supplierId, supplierName,
       )}
 
       <div className="mmi-cluster mmi-mb-4">
-        <FormField error={errorText("f-lead")} onBlur={checkField("f-lead")} id="f-lead" label={t("suppliers.f.lead_time_days")} value={form.lead_time_days} inputMode="numeric" disabled={readOnly} onChange={(v) => set("lead_time_days", v)} />
+        <div className="mmi-field-with-help">
+          <FormField error={errorText("f-lead")} onBlur={checkField("f-lead")} id="f-lead" label={t("suppliers.f.lead_time_days")} value={form.lead_time_days} inputMode="numeric" disabled={readOnly} onChange={(v) => set("lead_time_days", v)} />
+          <HelpHint concept="lead_time" />
+        </div>
         <FormField error={errorText("f-cutoff")} onBlur={checkField("f-cutoff")} id="f-cutoff" label={t("suppliers.f.order_cutoff_time")} value={form.order_cutoff_time} disabled={readOnly} onChange={(v) => set("order_cutoff_time", v)} />
         <FormField error={errorText("f-min")} onBlur={checkField("f-min")} id="f-min" label={t("suppliers.f.min_order_value")} value={form.min_order_value} inputMode="decimal" disabled={readOnly} onChange={(v) => set("min_order_value", v)} />
         <FormField error={errorText("f-minq")} onBlur={checkField("f-minq")} id="f-minq" label={t("suppliers.f.min_qty_for_delivery")} value={form.min_qty_for_delivery} inputMode="numeric" disabled={readOnly} onChange={(v) => set("min_qty_for_delivery", v)} />

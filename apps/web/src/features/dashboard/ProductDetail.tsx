@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { api, errorMessage, ForecastBasis, SegmentHistoryRow, VariantDetail } from "../../api/client";
 import { formatDate, formatNumber } from "../../i18n/formatters";
 import { CategoryHistory } from "../policies/CategoryHistory";
@@ -34,17 +35,19 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
     };
   }, [variantId, t]);
 
+  const sku = d?.variant.sku;
   useEffect(() => {
+    if (!sku) return;                                            // the history is asked for by SKU, so it waits for the detail that carries it
     let live = true;
     setHistory(null);
     api
-      .getSegmentHistory(variantId)
+      .getSegmentHistoryBySku(sku)
       .then((h) => live && setHistory(h.history))
       .catch(() => live && setHistory([]));                      // the history is context: if it cannot be read the detail still opens
     return () => {
       live = false;
     };
-  }, [variantId]);
+  }, [sku]);
 
   useEffect(() => {
     let live = true;
@@ -59,14 +62,19 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
   }, [variantId]);
 
   return (
-    <Card as="aside" aria-label={t("dashboard.detail.title", { id: variantId })}>
+    <Card as="aside" aria-label={t("dashboard.detail.title")}>
       <h3>
-        {t("dashboard.detail.title", { id: variantId })}
+        {t("dashboard.detail.title")}
         {d ? ` · ${d.variant.sku} · ${d.variant.name}` : ""}
       </h3>
       <Button variant="secondary" small onClick={onClose}>
         {t("dashboard.detail.close")}
       </Button>
+      {d?.variant.sku && (
+        <Link className="mmi-button mmi-button--secondary mmi-button--small" to={`/propuestas?sku=${encodeURIComponent(d.variant.sku)}&volver=${variantId}`}>
+          {t("dashboard.detail.see_in_proposals")}
+        </Link>
+      )}
       {error && <ScreenState state="error" errorHint={error} />}
       {!d && !error && <ScreenState state="loading" skeletonLines={4} />}
       {d && (

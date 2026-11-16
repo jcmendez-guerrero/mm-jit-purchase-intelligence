@@ -83,8 +83,11 @@ def save_parameter(conn: Connection, key: str, value: Any, actor: str, *, valid_
         raise ParameterConflict(cur)
     rev = cur + 1
     pid = str(uuid.uuid4())
+    last = conn.execute(select(forecast_parameters).where(forecast_parameters.c.scope == SCOPE, forecast_parameters.c.key == key)
+                        .order_by(forecast_parameters.c.revision.desc()).limit(1)).first()
+    before = None if last is None else {"value": str(last.value), "revision": int(last.revision), "valid_from": last.valid_from.isoformat()}
     conn.execute(insert(forecast_parameters).values(id=pid, scope=SCOPE, key=key, value=str(d), valid_from=start, revision=rev, changed_by=actor))
-    audit(conn, actor, "parameter.saved", "parameter", key, after={"value": str(d), "revision": rev, "valid_from": start.isoformat()}, now=now)
+    audit(conn, actor, "parameter.saved", "parameter", key, before=before, after={"value": str(d), "revision": rev, "valid_from": start.isoformat()}, now=now)
     return rev
 
 

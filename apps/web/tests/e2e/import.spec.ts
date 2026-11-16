@@ -87,7 +87,7 @@ test.describe("Predictive data import (T105)", () => {
     await expect(page.getByText(/Aceptadas: 1/)).toBeVisible();
     await page.click("button:has-text('Activar conjunto')");
     await page.getByRole("dialog").getByRole("button", { name: "Activar conjunto" }).click();
-    await expect(page.getByRole("alert").filter({ hasText: "Como administrador, indique un motivo" })).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "Como administrador, indica un motivo" })).toBeVisible();
     expect(state.activated).toHaveLength(0);
     await page.getByLabel(/Motivo de la autoactivación/).selectOption("only_person");
     await page.getByLabel(/Detalle del motivo/).first().fill("Única persona de la tienda");

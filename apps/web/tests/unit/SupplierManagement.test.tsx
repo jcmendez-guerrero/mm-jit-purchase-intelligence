@@ -74,7 +74,7 @@ describe("SupplierForm", () => {
     const create = vi.spyOn(api, "createSupplier");
     render(<SupplierForm onSaved={() => undefined} onCancel={() => undefined} />);
     fireEvent.click(screen.getByRole("button", { name: "Guardar proveedor" }));
-    expect(await screen.findByText("Indique el nombre del proveedor.")).toBeTruthy();
+    expect(await screen.findByText("Indica el nombre del proveedor.")).toBeTruthy();
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -189,15 +189,15 @@ describe("LinksPanel", () => {
     const put = vi.spyOn(api, "putSupplierLink").mockResolvedValue({ cost: "2", erp_link: "no_link", write_case: null, warnings: ["abnormal_jump"] });
     render(<LinksPanel supplier={sup()} canManage />);
     fireEvent.click(screen.getByRole("button", { name: "Guardar producto" }));
-    expect(await screen.findByText("Indique el SKU.")).toBeTruthy();
+    expect(await screen.findByText("Indica el SKU.")).toBeTruthy();
     type("SKU", "SYN-1");
     type(/Coste \(opcional\)/, "abc");
     fireEvent.click(screen.getByRole("button", { name: "Guardar producto" }));
-    expect(await screen.findByText(/Indique un coste válido/)).toBeTruthy();
+    expect(await screen.findByText(/Indica un coste válido/)).toBeTruthy();
     type(/Coste \(opcional\)/, "");
     fireEvent.click(screen.getByRole("button", { name: "Guardar producto" }));
     await waitFor(() => expect(put).toHaveBeenCalledWith("s1", "SYN-1", { includes_recargo: true, cost_source: "inventory_export" }));
-    expect(await screen.findByText(/revíselo en Costes/)).toBeTruthy();
+    expect(await screen.findByText(/revísalo en Costes/)).toBeTruthy();
   });
 
   it("removes a link only after confirming", async () => {
@@ -225,7 +225,7 @@ describe("BulkAssign", () => {
     const p = vi.spyOn(api, "previewBulkLinks");
     render(<BulkAssign supplier={sup()} onDone={() => undefined} />);
     fireEvent.click(screen.getByRole("button", { name: "Vista previa" }));
-    expect(await screen.findByText(/Indique una lista de SKU/)).toBeTruthy();
+    expect(await screen.findByText(/Indica una lista de SKU/)).toBeTruthy();
     expect(p).not.toHaveBeenCalled();
   });
 

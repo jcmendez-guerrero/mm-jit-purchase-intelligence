@@ -24,5 +24,5 @@ def test_unknown_dataset_ids_get_a_plain_refusal_on_every_dataset_route(api, bad
         res = getattr(api, method)(f"/imports/{bad_id}/{tail}", headers=h("buyer"))
         detail = res.json().get("detail")
         assert res.status_code in (404, 422), (tail, res.status_code)
-        assert detail in ("import_unknown_dataset", "Not Found") or isinstance(detail, list), (tail, detail)      # a code, or the router not matching a mangled path
+        assert detail in ("import_unknown_dataset", "Not Found", "invalid_input") or isinstance(detail, list), (tail, detail)      # a code, or the router not matching a mangled path
         assert "Traceback" not in res.text and "/etc/" not in res.text

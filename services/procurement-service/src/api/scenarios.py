@@ -7,8 +7,11 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
+from audit.chain import record_refusal
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Response
+from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
+from proposals.generate import ProposalConflictError
 from proposals.inputs import InputsUnavailableError
 from pydantic import BaseModel, Field
 from scenarios import store as sc
@@ -16,7 +19,7 @@ from scenarios.engine import ScenarioError, ScenarioParams, SupplierDelta
 from sqlalchemy.engine import Connection, Engine
 
 from api.costs import get_engine
-from api.proposals import _iso_week
+from api.proposals import EXPORT_ROLES, _iso_week
 
 CT = {"csv": "text/csv; charset=utf-8", "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}
 
@@ -92,13 +95,16 @@ def build_router(app: FastAPI) -> APIRouter:
     def promote(sid: str, body: PromoteBody | None = None, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
         try:
             return sc.promote(conn, sid, base_inputs(conn), principal.subject, (body.week if body and body.week else None) or _iso_week(datetime.now(UTC).date()))
-        except sc.ScenarioStateError as exc:
-            raise HTTPException(404 if exc.code == "unknown_scenario" else 409, error_code(exc)) from exc
+        except (sc.ScenarioStateError, ProposalConflictError) as exc:
+            raise HTTPException(404 if getattr(exc, "code", "") == "unknown_scenario" else 409, error_code(exc)) from exc
         except ScenarioError as exc:
             raise HTTPException(422, error_code(exc)) from exc
 
     @router.get("/scenarios/{sid}/export")
-    def export(sid: str, format: str = Query(pattern="^(csv|xlsx)$"), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> Response:
+    def export(sid: str, format: str = Query(pattern="^(csv|xlsx)$"), conn: Connection = Depends(conn_dep), principal: Any = Depends(require())) -> Response:
+        if not EXPORT_ROLES & set(principal.roles):      # T027 (FR-010): a viewer cannot export; the refusal is recorded and answered so it is kept
+            record_refusal(conn, principal.subject, "scenario.refused", "scenario", sid[:60], "auth_forbidden_role", 403)      # entity_id is 60 characters wide
+            return JSONResponse(status_code=403, content={"detail": "auth_forbidden_role"})
         try:
             sc.get(conn, sid)
         except sc.ScenarioStateError as exc:

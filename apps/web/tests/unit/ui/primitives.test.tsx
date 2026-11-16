@@ -8,7 +8,7 @@ import { ErrorState } from "../../../src/ui/ErrorState";
 import { PageHeader } from "../../../src/ui/PageHeader";
 import { ScreenState } from "../../../src/ui/ScreenState";
 import { Skeleton } from "../../../src/ui/Skeleton";
-import "../../../src/i18n";
+import i18n from "../../../src/i18n";
 
 /** T005 — behavioural contract of the shared primitives (contracts/ui-contracts.md §5). */
 
@@ -107,8 +107,10 @@ describe("states", () => {
 
 describe("ScreenState permission refusal", () => {
   it("explains the refusal with a way forward instead of a retry", () => {
-    render(<ScreenState state="error" errorHint="No tiene permiso para realizar esta acción." onRetry={() => undefined} />);
-    expect(screen.getByRole("alert").textContent).toContain("No tiene permiso para realizar esta acción.");
+    const refusal = i18n.t("errors.auth_forbidden_role");
+    render(<ScreenState state="error" errorHint={refusal} onRetry={() => undefined} />);
+    expect(refusal).toContain("No tienes permiso para realizar esta acción.");
+    expect(screen.getByRole("alert").textContent).toContain(refusal);
     expect(screen.getByRole("link", { name: "Ir al panel de control" }).getAttribute("href")).toBe("/panel");
     expect(screen.queryByRole("button", { name: "Reintentar" })).toBeNull();
   });

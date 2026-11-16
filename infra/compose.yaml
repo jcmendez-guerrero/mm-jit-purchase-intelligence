@@ -145,6 +145,7 @@ services:
       MMI_INVENTORY_URL: http://inventory-service:8000
       MMI_FORECAST_URL: http://forecast-service:8000
       MMI_BLOB_ROOT: /data/blobs
+      MMI_DEMO_SEED: "1"                   # local only: plan from a synthetic stock and forecast and seed one draft proposal; ignored when MMI_ENV is prod or staging
     volumes:
       - blobs:/data/blobs
     depends_on:
