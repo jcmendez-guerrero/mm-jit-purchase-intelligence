@@ -126,3 +126,10 @@ In US2: T013 and T014 in parallel; T015 in parallel with T016 (service vs web).
 
 - [X] T024 Stop the status page from doing one SKU query per history row for rows it never shows: pass `params={"status": "all", "limit": 20}` (or look up all SKUs in one query) for the `policy_history` card in `services/api-bff/src/routes/admin_status.py` and `services/procurement-service/src/api/policies.py` (`list_overrides`), keep the screen's 20-row slice in `apps/web/src/features/admin/AdminStatusScreen.tsx`, and add a gateway or procurement test that a history of more than 20 rows returns at most 20 per SC-004 and plan: R6 (partial)
 - [X] T025 Remove the wall-clock assertion from `test_a_history_of_200_rows_lists_with_a_sku_on_each` in `services/procurement-service/tests/test_policy_api_011.py` (keep the 200-row count and the SKU on each row) and drop the matching "must finish under 2 s" wording from the load check in `specs/014-policy-history-sku/quickstart.md`, so the test cannot fail on a slow CI machine per SC-004 (partial)
+
+---
+
+## Phase 9: Convergence
+
+- [X] T026 Add `"web"` to `consumers` of the `policy_override_request` entry in `docs/architecture/integration/contract-matrix.json` (hand-added consumers are kept on regeneration) and regenerate or edit `docs/architecture/integration/contract-matrix.md` to match, then run `cd scripts && python -m gates run` per FR-008 and Agent 00's review request 2 (missing)
+- [X] T027 Record Agent 00's confirmation that procurement owns the policy history row (`policy_override_request`, owner `procurement-service` in the matrix) by updating assumption A1 in `specs/014-policy-history-sku/spec.md` and decision R1 in `specs/014-policy-history-sku/research.md` from "pending confirmation" to confirmed, per spec A1 and plan: R1 (partial)

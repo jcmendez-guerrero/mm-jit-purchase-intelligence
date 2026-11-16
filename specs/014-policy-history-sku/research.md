@@ -3,7 +3,7 @@
 ## R1. Which service owns the history rows?
 
 - **Decision**: Procurement. `GET /admin/status` forwards `GET /policy-overrides?status=all` to procurement (`services/api-bff/src/routes/admin_status.py`); procurement builds the rows in `override_json` (`services/procurement-service/src/api/policies.py`).
-- **Rationale**: Resolves Jira's "procurement or forecast (owner to confirm)". Forecast is not involved.
+- **Rationale**: Resolves Jira's "procurement or forecast (owner to confirm)"; Agent 00 confirmed procurement on PR 27. Forecast is not involved.
 - **Alternatives**: Forecast (holds no override data); resolving in the gateway (breaks ADR-023 and rule 9).
 
 ## R2. Does the SKU already exist in the payload?

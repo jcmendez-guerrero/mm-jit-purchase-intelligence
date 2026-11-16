@@ -98,7 +98,7 @@ The owner of the service updates the shared contract first, so that consumers, g
 
 ## Assumptions
 
-- **A1**: The policy history is served by the procurement service (the gateway forwards `GET /policy-overrides` to it), so procurement owns the change; the Jira note says "owner to confirm", and Agent 00 confirms and registers the contract-matrix entry.
+- **A1**: The policy history is served by the procurement service (the gateway forwards `GET /policy-overrides` to it), so procurement owns the change; the Jira note said "owner to confirm"; Agent 00 confirmed on PR 27 that procurement (`policy_override_request`, owner `procurement-service` in the matrix) owns it.
 - **A2**: Procurement already keeps the SKU next to the product reference (Jira MMI-15 states this for `product_refs`), so no new synchronisation with Siweb is needed.
 - **A3**: The SKU shown is the current catalogue SKU at read time, not a snapshot taken when the override was made.
 - **A4**: Only the policy history in `GET /admin/status` is in scope. Scenario changes and lines (MMI-15) and the product-supplier terms route (MMI-16) are separate features.
