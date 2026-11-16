@@ -147,6 +147,8 @@ def generate(inputs: ProposalInputs, time_limit_s: float = 30.0, seed: int = 1) 
     greedy = allocate_greedy(inputs, lines)
     alloc: Allocation = allocate_cpsat(inputs, lines, time_limit_s, seed)
     options: list[ShortfallOption] = options_for(inputs, lines, alloc)
+    # FR-014: a needed variant with no eligible supplier has no line, so it is named here (the exact solver drops it silently); the buyer sees it in the proposal notes
+    alloc.notes.extend(sorted(f"no_eligible_supplier:{ln.variant_id}" for ln in lines if not ln.cands and f"no_eligible_supplier:{ln.variant_id}" not in alloc.notes))
     by_variant = {v.variant_id: v for v in inputs.variants}
     spec = {ln.variant_id: ln for ln in lines}
     greedy_by = {c.variant_id: c for c in greedy.chosen}

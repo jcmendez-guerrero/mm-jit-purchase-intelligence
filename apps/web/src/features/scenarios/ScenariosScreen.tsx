@@ -4,7 +4,7 @@ import { api, errorMessage, ScenarioDetail, ScenarioListItem, SupplierSummary } 
 import { formatCurrencyEUR, formatDate, formatDateTime, formatPercent } from "../../i18n/formatters";
 import { VersionsUsed } from "../proposals/VersionsUsed";
 import { FormField } from "../../ui/FormField";
-import { canCreate, constraintLabel, emptyForm, emptySupplier, reasonKey, ScenarioForm, SupplierForm, toRequest } from "./scenariosModel";
+import { canCreate, canExportScenario, constraintLabel, emptyForm, emptySupplier, reasonKey, ScenarioForm, SupplierForm, toRequest } from "./scenariosModel";
 import { EmptyState } from "../../ui/EmptyState";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { ScreenState } from "../../ui/ScreenState";
@@ -278,8 +278,12 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
 
           <div className="mmi-cluster mmi-cluster--top mmi-mt-3">
             {editable && detail.status === "ready" && <Button onClick={() => setConfirmingPromote(true)}>{t("scenarios.promote")}</Button>}
-            <a href={`/api/scenarios/${detail.id}/export?format=csv`}>{t("scenarios.export_csv")}</a>
-            <a href={`/api/scenarios/${detail.id}/export?format=xlsx`}>{t("scenarios.export_xlsx")}</a>
+            {canExportScenario(userRoles) && (
+              <>
+                <a href={`/api/scenarios/${detail.id}/export?format=csv`}>{t("scenarios.export_csv")}</a>
+                <a href={`/api/scenarios/${detail.id}/export?format=xlsx`}>{t("scenarios.export_xlsx")}</a>
+              </>
+            )}
           </div>
         </Card>
       )}

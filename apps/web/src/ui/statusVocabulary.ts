@@ -41,7 +41,9 @@ export const STATUS_VOCABULARY: Record<StatusDomain, Record<string, StatusInfo>>
     draft: s("proposals.status.draft", "neutral", "info"),
     submitted: s("proposals.status.submitted", "info", "info"),
     approved: s("proposals.status.approved", "success", "check"),
+    exported: s("proposals.status.exported", "success", "check"),
     confirmed: s("proposals.status.confirmed", "success", "check"),
+    superseded: s("proposals.status.superseded", "neutral", "close"),
   },
   import: {
     uploaded: s("imports.status.uploaded", "neutral", "info"),

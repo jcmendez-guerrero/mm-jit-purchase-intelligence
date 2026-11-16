@@ -54,6 +54,8 @@ Codes are snake_case identifiers (the repo convention enforced by `mmi_common.er
 | mfa_required | 403 | A recent second factor is required |
 | version_conflict | 409 | The record changed since it was read |
 | invalid_proposal_state | 409 | The proposal state does not allow this action |
+| proposal_line_conflict | 409 | The proposal line changed since it was read (reload and retry) |
+| proposal_superseded | 409 | The proposal was superseded by a newer version and cannot be changed, submitted, approved or exported |
 | invalid_quantity | 422 | A quantity must be a whole number of zero or more |
 | override_release_same_person | 403 | The admin who set an override cannot release it |
 | median_required | 409 | The released value must be the lot median or the admin override |
