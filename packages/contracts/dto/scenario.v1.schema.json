@@ -120,6 +120,35 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "name": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "description": "Catalogue product name at read time; lets rows without a SKU be told apart."
+              }
+            }
+          }
+        },
+        "infeasible": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "description": "Set when the budget cannot be met. People see clinical_critical_skus (same order as clinical_critical_variants, null when a SKU is unknown), never the ids.",
+          "properties": {
+            "over_by": {
+              "type": "string"
+            },
+            "clinical_critical_variants": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "clinical_critical_skus": {
+              "type": "array",
+              "items": {
+                "type": ["string", "null"],
+                "minLength": 1
               }
             }
           }

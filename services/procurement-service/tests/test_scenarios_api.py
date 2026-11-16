@@ -123,7 +123,7 @@ def test_a_scenario_stored_before_the_sku_existed_gets_it_on_read_without_changi
     after = api.get(f"/scenarios/{sid}", headers=h("viewer")).json()
     assert before["result_hash"] == after["result_hash"] and before["status"] == after["status"] == "ready"
     assert [r["order_total"] for r in before["results"]] == [r["order_total"] for r in after["results"]]
-    strip = lambda d: [{k: v for k, v in x.items() if k != "sku"} for x in d]            # noqa: E731
+    strip = lambda d: [{k: v for k, v in x.items() if k not in ("sku", "name")} for x in d]            # noqa: E731
     assert strip(before["summary"]["changes"]) == strip(after["summary"]["changes"])
     assert next(c["sku"] for c in after["summary"]["changes"] if c["variant_id"] == 1) == "SYN-0001"
     assert next(c["sku"] for c in before["summary"]["changes"] if c["variant_id"] == 1) is None
@@ -145,3 +145,45 @@ def test_an_infeasible_scenario_still_carries_a_sku_on_every_change_and_line(api
     lines, changes = _lines_and_changes(got)
     assert lines and all("sku" in x for x in (*changes, *lines))
     assert {x["sku"] for x in lines if x["variant_id"] == 1} == {"SYN-0001"}
+
+
+def test_each_change_and_line_also_carries_the_product_name_so_rows_without_a_sku_can_be_told_apart(api, engine):
+    _ref(engine, 1, "SYN-0001")
+    _ref(engine, 2, None)
+    doc = api.post("/scenarios", json=body(api.sa), headers=h(**{"Idempotency-Key": "key-sku-0004"})).json()
+    lines, changes = _lines_and_changes(api.get(f"/scenarios/{doc['id']}", headers=h("viewer")).json())
+    for x in (*changes, *lines):
+        assert x["name"] == ("Producto sintético" if x["variant_id"] in (1, 2) else None)      # variant 3 has no catalogue row
+    assert [x["sku"] for x in lines if x["variant_id"] == 2] == [None]
+
+
+def test_the_critical_products_of_an_infeasible_scenario_are_listed_by_sku_in_the_same_order(engine):
+    from scenarios.store import _with_skus
+
+    _ref(engine, 1, "SYN-0001")
+    _ref(engine, 3, "SYN-0003")
+    summary = {"changes": [], "infeasible": {"over_by": "5.00", "clinical_critical_variants": [1, 2, 3]}}
+    with engine.begin() as c:
+        out = _with_skus(c, summary, [])
+    assert out["infeasible"]["clinical_critical_skus"] == ["SYN-0001", None, "SYN-0003"]          # an unknown product stays in the list as null
+    assert out["infeasible"]["clinical_critical_variants"] == [1, 2, 3] and "clinical_critical_skus" not in summary["infeasible"]      # the stored summary is not touched
+
+
+def test_the_real_scenario_response_matches_the_shared_scenario_schema(api, engine):
+    """The summary of GET /scenarios/{id} is the contract's `summary` (changes and infeasible); every change names its SKU, even when it is null."""
+    import json
+    from pathlib import Path
+
+    from jsonschema import Draft202012Validator
+
+    schema = json.loads((Path(__file__).resolve().parents[3] / "packages/contracts/dto/scenario.v1.schema.json").read_text())
+    _ref(engine, 1, "SYN-0001")
+    validator = Draft202012Validator(schema["properties"]["summary"])
+    moved = api.post("/scenarios", json=body(api.sa), headers=h(**{"Idempotency-Key": "key-sku-0005"})).json()
+    tight = api.post("/scenarios", json={"name": "Presupuesto mínimo", "budget": "1"}, headers=h(**{"Idempotency-Key": "key-sku-0006"})).json()
+    for sid in (moved["id"], tight["id"]):
+        assert not list(validator.iter_errors(api.get(f"/scenarios/{sid}", headers=h("viewer")).json()["summary"]))
+    got = api.get(f"/scenarios/{moved['id']}", headers=h("viewer")).json()["summary"]
+    assert got["changes"] and any(c["sku"] == "SYN-0001" for c in got["changes"])               # the check ran on real changes, not an empty list
+    assert api.get(f"/scenarios/{tight['id']}", headers=h("viewer")).json()["summary"]["infeasible"]["clinical_critical_skus"] == []
+    assert "sku" in schema["properties"]["summary"]["properties"]["changes"]["items"]["required"]       # the contract still demands it

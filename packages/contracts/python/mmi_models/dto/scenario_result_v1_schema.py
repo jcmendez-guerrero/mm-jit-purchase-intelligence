@@ -24,6 +24,13 @@ class Line(BaseModel):
             min_length=1,
         ),
     ]
+    name: Annotated[
+        str | None,
+        Field(
+            description='Catalogue product name at read time; lets rows without a SKU be told apart.',
+            min_length=1,
+        ),
+    ] = None
     quantity: Annotated[int, Field(ge=0)]
     unit_cost: money_v1_schema.Money
     discount: money_v1_schema.Money | None = None
@@ -48,7 +55,12 @@ class ScenarioResult(BaseModel):
     )
     scenario_id: UUID
     supplier_id: str
-    lines: list[Line]
+    lines: Annotated[
+        list[Line],
+        Field(
+            description='Contract shape of an order line. The procurement read model GET /scenarios/{id} sends qty, line_total and clinical_critical instead of quantity, so only sku and name are shared with it; the response is checked in services/procurement-service/tests/test_scenarios_api.py.'
+        ),
+    ]
     order_total: money_v1_schema.Money
     subtotal: money_v1_schema.Money | None = None
     delivery_charge: money_v1_schema.Money | None = None

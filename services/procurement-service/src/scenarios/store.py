@@ -11,7 +11,7 @@ from typing import Any
 from audit.chain import append as audit
 from db.tables import product_refs, proposals, scenario_results, scenario_sensitivity, scenarios, suppliers
 from mmi_common.time import get_correlation_id, set_correlation_id
-from policies.service import skus_for_variants
+from policies.service import product_labels
 from proposals.export import export_csv, export_xlsx
 from proposals.generate import RULE_VERSIONS, Draft, store
 from proposals.model import ProposalInputs
@@ -122,14 +122,20 @@ def get(conn: Connection, sid: str) -> dict[str, Any]:
 
 
 def _with_skus(conn: Connection, summary: dict[str, Any] | None, results: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """People see the SKU, never the Siweb variant id: add it to every change and line at read time (one query), so older scenarios get it too and nothing stored changes."""
+    """People see the SKU (and, when it is missing, the product name), never the Siweb variant id: add them to every change and line at read time (one query),
+    so older scenarios get them too and nothing stored changes. The critical-product list of an infeasible scenario gets its SKUs the same way."""
     changes = [dict(c) for c in (summary or {}).get("changes", [])]
+    infeasible = dict(summary["infeasible"]) if summary and summary.get("infeasible") else None
     lines = [ln for r in results for ln in r["lines"]]
-    skus = skus_for_variants(conn, [x["variant_id"] for x in (*changes, *lines)])
+    critical = [] if infeasible is None else infeasible.get("clinical_critical_variants", [])
+    labels = product_labels(conn, [*(x["variant_id"] for x in (*changes, *lines)), *critical])
     for x in (*changes, *lines):
-        x["sku"] = skus[int(x["variant_id"])]
-    return {**summary, "changes": changes} if summary and "changes" in summary else summary
-
+        x.update(labels[int(x["variant_id"])])
+    if infeasible is not None:
+        infeasible["clinical_critical_skus"] = [labels[int(v)]["sku"] for v in critical]
+    if not summary:
+        return summary
+    return {**summary, **({"changes": changes} if "changes" in summary else {}), **({"infeasible": infeasible} if infeasible is not None else {})}
 
 
 def listing(conn: Connection, limit: int = 50) -> list[dict[str, Any]]:

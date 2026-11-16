@@ -15,6 +15,7 @@
     },
     "lines": {
       "type": "array",
+      "description": "Contract shape of an order line. The procurement read model GET /scenarios/{id} sends qty, line_total and clinical_critical instead of quantity, so only sku and name are shared with it; the response is checked in services/procurement-service/tests/test_scenarios_api.py.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -28,6 +29,11 @@
             "type": ["string", "null"],
             "minLength": 1,
             "description": "Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id."
+          },
+          "name": {
+            "type": ["string", "null"],
+            "minLength": 1,
+            "description": "Catalogue product name at read time; lets rows without a SKU be told apart."
           },
           "quantity": {
             "type": "integer",

@@ -43,7 +43,20 @@ export interface Scenario {
       qty_before: number;
       qty_after: number;
       reasons: string[];
+      /**
+       * Catalogue product name at read time; lets rows without a SKU be told apart.
+       */
+      name?: string | null;
     }[];
+    /**
+     * Set when the budget cannot be met. People see clinical_critical_skus (same order as clinical_critical_variants, null when a SKU is unknown), never the ids.
+     */
+    infeasible?: {
+      over_by?: string;
+      clinical_critical_variants?: number[];
+      clinical_critical_skus?: (string | null)[];
+      [k: string]: unknown;
+    } | null;
     [k: string]: unknown;
   };
 }

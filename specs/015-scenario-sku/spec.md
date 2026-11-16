@@ -72,6 +72,7 @@ The owner of the procurement service updates the shared contract first, so consu
 - A scenario with no changes: the empty state is unchanged.
 - Surrogate ids (9,000,000 range) from locally loaded UI exports: they resolve to their SKU like any other, and the surrogate id is never shown.
 - A SKU that is empty or whitespace is treated as unresolved (null), never shown as blank.
+- Rows with no SKU also carry the catalogue product name (when known) so several of them can be told apart; the "clinically critical products" line of an infeasible scenario lists SKUs, with the marker for an unknown one, never ids.
 - Exporting a scenario keeps working and is unchanged: the CSV/Excel export already carries the SKU and the ERP-facing variant id column, as in the proposal export, so it is out of scope. Comparing scenarios keeps working; identical inputs still produce the identical result hash (the SKU is presentation data and does not change the optimisation).
 
 ## Requirements *(mandatory)*

@@ -449,9 +449,9 @@ export interface ScenarioSummary {
   baseline: { total: string; over_budget: string; lines: number };
   scenario: { total: string; over_budget: string; lines: number; budget: string | null; utilisation: string | null };
   delta_total: string;
-  changes: Array<{ variant_id: number; sku: string | null; supplier_before: string | null; supplier_after: string | null; qty_before: number; qty_after: number; reasons: string[] }>;
+  changes: Array<{ variant_id: number; sku: string | null; name?: string | null; supplier_before: string | null; supplier_after: string | null; qty_before: number; qty_after: number; reasons: string[] }>;
   binding: Array<{ key: string; params: Record<string, string> }>;
-  infeasible: { over_by: string; clinical_critical_variants: number[] } | null;
+  infeasible: { over_by: string; clinical_critical_variants: number[]; clinical_critical_skus?: Array<string | null> } | null;
   notes: string[];
 }
 
@@ -467,7 +467,7 @@ export interface ScenarioDetail {
   summary: ScenarioSummary | null;
   results: Array<{ supplier_id: string; supplier_name: string | null; order_total: string; subtotal?: string | null; delivery_charge?: string | null; discount?: string | null; free_delivery?: boolean | null;
     expected_delivery: string | null; budget_utilisation: string | null;
-    lines: Array<{ variant_id: number; sku: string | null; qty: number; unit_cost: string; line_total: string; clinical_critical: boolean }> }>;
+    lines: Array<{ variant_id: number; sku: string | null; name?: string | null; qty: number; unit_cost: string; line_total: string; clinical_critical: boolean }> }>;
   sensitivity: Array<{ constraint_key: string; delta: string; cost_impact: string }>;
 }
 

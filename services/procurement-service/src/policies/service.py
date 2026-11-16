@@ -226,14 +226,18 @@ def sku_for_variant(conn: Connection, variant_id: int) -> str | None:
     return None if r is None or r.sku is None else str(r.sku).strip()
 
 
-def skus_for_variants(conn: Connection, variant_ids: Iterable[int]) -> dict[int, str | None]:
-    """One query for many variants: the trimmed SKU, or None when there is no catalogue row or the SKU is empty."""
+def product_labels(conn: Connection, variant_ids: Iterable[int]) -> dict[int, dict[str, str | None]]:
+    """One query for many variants: the trimmed SKU and product name, each None when there is no catalogue row or the value is empty."""
     ids = sorted({int(v) for v in variant_ids})
-    out: dict[int, str | None] = {v: None for v in ids}
+    out: dict[int, dict[str, str | None]] = {v: {"sku": None, "name": None} for v in ids}
     if ids:
-        for r in conn.execute(select(product_refs.c.variant_id, product_refs.c.sku).where(product_refs.c.variant_id.in_(ids))).all():
-            out[int(r.variant_id)] = (str(r.sku).strip() or None) if r.sku is not None else None
+        for r in conn.execute(select(product_refs.c.variant_id, product_refs.c.sku, product_refs.c.name).where(product_refs.c.variant_id.in_(ids))).all():
+            out[int(r.variant_id)] = {k: (str(v).strip() or None) if v is not None else None for k, v in (("sku", r.sku), ("name", r.name))}
     return out
+
+
+def skus_for_variants(conn: Connection, variant_ids: Iterable[int]) -> dict[int, str | None]:
+    return {v: lab["sku"] for v, lab in product_labels(conn, variant_ids).items()}
 
 
 def history(conn: Connection, scope: str, key: str) -> list[dict[str, Any]]:

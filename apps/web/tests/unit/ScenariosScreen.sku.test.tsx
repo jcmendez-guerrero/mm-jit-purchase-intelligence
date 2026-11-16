@@ -10,10 +10,10 @@ const detail = {
   created_at: "2026-11-16T10:00:00Z", sensitivity: [],
   summary: {
     baseline: { total: "100.00", over_budget: "0.00", lines: 2 }, scenario: { total: "102.50", over_budget: "0.00", lines: 2, budget: null, utilisation: null },
-    delta_total: "2.50", binding: [], infeasible: null, notes: [],
+    delta_total: "2.50", binding: [], infeasible: { over_by: "5.00", clinical_critical_variants: [9001, 9003], clinical_critical_skus: ["SYN-9001", null] }, notes: [],
     changes: [
       { variant_id: 9001, sku: "SYN-9001", supplier_before: "s1", supplier_after: "s2", qty_before: 12, qty_after: 12, reasons: ["supplier_disabled"] },
-      { variant_id: 9002, sku: null, supplier_before: "s1", supplier_after: "s2", qty_before: 6, qty_after: 6, reasons: ["supplier_disabled"] },
+      { variant_id: 9002, sku: null, name: "Producto sin código", supplier_before: "s1", supplier_after: "s2", qty_before: 6, qty_after: 6, reasons: ["supplier_disabled"] },
     ],
   },
   results: [{
@@ -21,7 +21,7 @@ const detail = {
     budget_utilisation: null, binding_constraints: [],
     lines: [
       { variant_id: 9001, sku: "SYN-9001", qty: 12, unit_cost: "5.0000", line_total: "60.0000", clinical_critical: false },
-      { variant_id: 9002, sku: null, qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false },
+      { variant_id: 9002, sku: null, name: "Producto sin código", qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false },
     ],
   }],
 } as unknown as ScenarioDetail;
@@ -59,8 +59,13 @@ describe("ScenariosScreen shows the SKU, never the Siweb variant id", () => {
 
   it("keeps rows with no SKU, with the Spanish marker", async () => {
     await open();
-    expect(screen.getByText(/Sin SKU: Proveedor A \(6\) → Proveedor B \(6\)/)).toBeTruthy();
-    expect(within(screen.getByRole("table", { name: /Proveedor B/ })).getByText("Sin SKU")).toBeTruthy();
+    expect(screen.getByText(/Sin SKU · Producto sin código: Proveedor A \(6\) → Proveedor B \(6\)/)).toBeTruthy();
+    expect(within(screen.getByRole("table", { name: /Proveedor B/ })).getByText("Sin SKU · Producto sin código")).toBeTruthy();
     expect(within(screen.getByRole("table", { name: /Proveedor B/ })).getAllByRole("row")).toHaveLength(3);   // header + both lines
+  });
+
+  it("lists the critical products of an infeasible scenario by SKU, not by id", async () => {
+    await open();
+    expect(screen.getByText("Productos clínicamente críticos en el pedido: SYN-9001, Sin SKU")).toBeTruthy();
   });
 });
