@@ -108,6 +108,13 @@ apps/web/tests/e2e/                               # Playwright, Spanish UI
 - Anomaly rule: the median/MAD test uses a one-unit floor on the spread so flat series do not flag every change; p95 cap and negative-quantity rules are as researched.
 - Not built yet: the history table and export column for explanations (T046), feeding `beats_baseline` into confidence (T054), and the shared-contract confirmation by Agent 00 (T004).
 
+## Time limit for long jobs (T092, 2026-11-17)
+
+Clarified decision: a recompute or backtest may finish inside the request while it takes under 20 seconds; past that it must run in the background (FR-022, SC-006). Measured at 5,000 synthetic products:
+
+- Full-catalogue backtest (all methods, including its database writes): about 3 s on SQLite and on PostgreSQL. Inside the limit.
+- Quality recompute: about 7 s on SQLite but **30 to 33 s on PostgreSQL**, over the limit and over the 30 s the gateway waits for inventory-service. The scale test is therefore marked as an expected failure on PostgreSQL (`tests/test_quality_scale.py`) until the recompute is moved to the background (T025) or its per-product queries are batched.
+
 ## Phase summary
 
 - **Phase 0** (research.md): audit of existing capability with file evidence, and decisions on anomaly rules, confidence derivation, censored-day treatment, baseline, and where each record lives.

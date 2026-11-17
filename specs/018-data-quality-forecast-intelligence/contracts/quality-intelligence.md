@@ -34,7 +34,7 @@ Viewers receive `403` with the shared Spanish error key on write endpoints. Sens
 
 - `quality.snapshot.built` (inventory-service): variant count, config and dataset versions; consumers must tolerate absence.
 - No event is needed for the portfolio. Inventory-service pulls eligibility and confidence per SKU from forecast-service's read-only `GET /forecasts/eligibility` (latest completed run) when it recomputes; a product with no value there, or no forecast run at all, is counted as `pending`. `forecast.completed` is left exactly as it is.
-- Service-to-service reads added by this feature (not gateway endpoints): `GET /forecasts/eligibility`, and the series export's additive `provenance`, `anomaly_excluded_days` and `segment.config_version_id` fields.
+- Service-to-service reads added by this feature (not gateway endpoints): `GET /forecasts/eligibility`, and the series export's additive `provenance`, `anomaly_excluded_days` and `segment.config_version_id` fields. The contract matrix lists only gateway routes (`endpoint` entries must equal the gateway's routes, pinned by `test_gateway_matrix.py` and the contracts gate) and has no kind for service-to-service reads, so neither this new read nor the older series export can be registered today. Both are described here instead; Agent 00 decides whether the matrix gets a kind for them (T078, T093). The extra fields of the series export are a compatible, additive change.
 
 ## Compatibility and governance
 

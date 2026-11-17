@@ -62,6 +62,13 @@ describe("ExplanationPanel", () => {
     expect(screen.queryByText(/Confianza baja: la línea no se sugiere/)).toBeNull();
   });
 
+  it("says in words when the method does not beat the simple baseline, and keeps the figure (T091)", async () => {
+    vi.spyOn(api, "getForecastExplanation").mockResolvedValue(explanation({ low: "8.0000", high: "19.5000", confidence: "media", confidence_reason_codes: ["no_supera_baseline"] }));
+    render(<ExplanationPanel sku="EJ-1" />);
+    expect(await screen.findByText(/Confianza media · Motivos de la confianza: no supera al método sencillo de comparación en la última prueba retrospectiva/)).toBeTruthy();
+    expect(screen.getByText("8,0 – 19,5")).toBeTruthy();
+  });
+
   it("warns that a low-confidence line is not suggested automatically, with no figure (T047)", async () => {
     vi.spyOn(api, "getForecastExplanation").mockResolvedValue(
       explanation({ eligibility: "manual_review_only", eligibility_reason_codes: ["low_confidence"], confidence: "baja", confidence_reason_codes: ["short_history", "sparse_sales", "high_variability"],

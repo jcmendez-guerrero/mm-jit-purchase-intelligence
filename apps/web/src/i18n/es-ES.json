@@ -1673,6 +1673,7 @@
   "quality.explain.confidence_reason.many_excluded_days": "muchos días excluidos por el comprador",
   "quality.explain.confidence_reason.mostly_estimated": "datos en su mayoría estimados",
   "quality.explain.confidence_reason.high_variability": "demanda muy variable",
+  "quality.explain.confidence_reason.no_supera_baseline": "no supera al método sencillo de comparación en la última prueba retrospectiva",
   "quality.explain.reason.low_confidence": "Confianza baja",
   "quality.backtest.title": "Prueba retrospectiva del método",
   "quality.backtest.hint": "Compara, sobre periodos pasados, el método de cada producto con la referencia sencilla, sin cambiar ninguna previsión ni propuesta.",

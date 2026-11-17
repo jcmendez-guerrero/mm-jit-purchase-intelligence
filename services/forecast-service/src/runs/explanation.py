@@ -12,7 +12,7 @@ import math
 from datetime import date, timedelta
 from typing import Any
 
-from runs.confidence import assess
+from runs.confidence import assess, with_baseline
 from runs.eligibility import Decision
 
 Z90 = 1.2816            # one-sided 90 % point of the normal curve: the low end of the range is the mean minus this many deviations
@@ -38,7 +38,7 @@ def _range(mean: float, plan: Any) -> tuple[float, float]:
 
 
 def explain(s: dict[str, Any], decision: Decision, policy_used: str, mean: float | None, adopted: dict[str, str], versions: dict[str, str],
-            dataset_version_id: str | None, seed_days: int = 0, plan: Any = None) -> dict[str, Any]:
+            dataset_version_id: str | None, seed_days: int = 0, plan: Any = None, beats_baseline: bool | None = None) -> dict[str, Any]:
     seg = s.get("segment") or {}
     pattern = seg.get("pattern")
     n = len(s["demand"])
@@ -50,7 +50,7 @@ def explain(s: dict[str, Any], decision: Decision, policy_used: str, mean: float
     label = s.get("provenance", "observed")           # a locally loaded or imputed series is never counted as observed
     mix = {"observed": own if label == "observed" else 0, "estimated": seed + (own if label == "estimated" else 0), "manual": own if label == "manual" else 0}
     low_confidence = "low_confidence" in decision.reasons            # published like a not-eligible product: the min/max fallback and no figure
-    confidence = assess(s, seed) if (decision.eligible or low_confidence) else None
+    confidence = with_baseline(assess(s, seed), beats_baseline) if (decision.eligible or low_confidence) else None
     eligible_figure = decision.eligible and mean is not None
     low, high = _range(mean, plan) if eligible_figure and plan is not None and mean is not None else (None, None)
     eligibility = "manual_review_only" if low_confidence else "eligible" if decision.eligible else "not_eligible"

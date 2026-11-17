@@ -18,7 +18,15 @@ from decimal import Decimal
 from typing import Any, Protocol
 
 from backtest.runner import BacktestConfig, BacktestSeries, compare, select_policies
-from db.tables import backtest_metrics, forecast_explanations, forecast_runs, forecast_values, model_registry, outbox
+from db.tables import (
+    backtest_metrics,
+    forecast_explanations,
+    forecast_runs,
+    forecast_values,
+    model_registry,
+    outbox,
+    product_backtest,
+)
 from mmi_common.bus import new_envelope
 from mmi_common.outbox import enqueue
 from mmi_common.time import get_correlation_id, set_correlation_id
@@ -121,6 +129,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     rows: list[dict[str, Any]] = []
     explanations: list[dict[str, Any]] = []
     eligible = 0
+    latest_beats = _latest_beats(conn)      # the newest per-product backtest, applied to the label at this run (FR-018); a backtest itself never edits a stored run
     for s in series:
         d = decide(s.get("segment"), adopted)
         seed_days = len(s["demand"]) - original_days.get(s["variant_id"], len(s["demand"])) if s["variant_id"] in report.used else 0
@@ -150,7 +159,8 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
                              "quantiles": {"min": fb.reorder_point, "max": fb.order_up_to}, "policy_used": FALLBACK, "eligible": False,
                              "reasons": ",".join(d.reasons), "service_level": Decimal(str(level))})
 
-        e = explain(s, d, shown_policy, first_mean, adopted, model_versions(), None if seeds is None or s["variant_id"] not in report.used else seeds.dataset_id, seed_days, first_plan)
+        e = explain(s, d, shown_policy, first_mean, adopted, model_versions(), None if seeds is None or s["variant_id"] not in report.used else seeds.dataset_id, seed_days, first_plan,
+                    beats_baseline=latest_beats.get(s["variant_id"]))
         e["history_start"], e["history_end"] = date.fromisoformat(e["history_start"]), date.fromisoformat(e["history_end"])
         explanations.append({"run_id": run_id, "variant_id": s["variant_id"], **e})
 
@@ -169,6 +179,13 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     enqueue(conn, outbox, new_envelope(EVENT_TYPE, run_id, payload, uri, cid))
     conn.execute(update(forecast_runs).where(forecast_runs.c.id == run_id).values(status="completed", finished_at=clock()))
     return RunResult(run_id, digest, False, len(series), eligible, adopted)
+
+
+def _latest_beats(conn: Connection) -> dict[int, bool]:
+    out: dict[int, bool] = {}
+    for r in conn.execute(select(product_backtest.c.variant_id, product_backtest.c.beats_baseline).order_by(product_backtest.c.created_at, product_backtest.c.id)).all():
+        out[r.variant_id] = bool(r.beats_baseline)       # the later row wins
+    return out
 
 
 def _store_backtests(conn: Connection, run_id: str, results: Any, adopted: dict[str, str]) -> None:

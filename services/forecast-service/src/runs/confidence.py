@@ -1,7 +1,9 @@
 """T044: how much to trust one product's forecast, from the quality of the history behind it (feature 018, FR-012, research R5).
 
 Pure. Six flags, each a plain, testable condition on the series; the level follows from how many are set: none is ``alta``, one or two
-``media``, three or more ``baja``. A per-product backtest result joins the rule once backtests exist (US4). The thresholds are defaults held
+``media``, three or more ``baja``. A per-product backtest result joins afterwards through ``with_baseline`` (FR-018): a method that does not beat
+the baseline drops the label one level and adds ``no_supera_baseline``. That finding changes the label shown, never eligibility, so the decision to
+publish or fall back to min/max keeps using ``assess`` alone. The thresholds are defaults held
 here because the business policy console stores none of them yet; they move there without changing the callers.
 """
 
@@ -47,3 +49,13 @@ def assess(s: dict[str, Any], seed_days: int = 0) -> Confidence:
         flags.append("high_variability")
     level = "baja" if len(flags) >= LOW_AT else "media" if flags else "alta"
     return Confidence(level, flags)
+
+
+NEXT_LOWER = {"alta": "media", "media": "baja", "baja": "baja"}
+
+
+def with_baseline(c: Confidence, beats_baseline: bool | None) -> Confidence:
+    """One level lower, with the reason, when the latest backtest says the method does not beat the baseline; unchanged when it does or there is none."""
+    if beats_baseline is not False:
+        return c
+    return Confidence(NEXT_LOWER[c.level], [*c.reasons, "no_supera_baseline"])
