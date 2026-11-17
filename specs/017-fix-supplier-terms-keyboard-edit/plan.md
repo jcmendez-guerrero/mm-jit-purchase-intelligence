@@ -2,7 +2,7 @@
 
 **Branch**: `claude/jira-spec-mmi-12-c32d10` | **Date**: 2026-11-16 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/014-fix-supplier-terms-keyboard-edit/spec.md`
+**Input**: Feature specification from `/specs/017-fix-supplier-terms-keyboard-edit/spec.md`
 
 ## Summary
 
@@ -47,7 +47,7 @@ Post-design re-check: still Pass (the design adds tests and at most a small UI s
 ### Documentation (this feature)
 
 ```text
-specs/014-fix-supplier-terms-keyboard-edit/
+specs/017-fix-supplier-terms-keyboard-edit/
 ├── plan.md
 ├── research.md
 ├── data-model.md

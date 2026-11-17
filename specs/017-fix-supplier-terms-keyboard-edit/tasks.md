@@ -5,7 +5,7 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 
 # Tasks: Fix Supplier Terms Keyboard Edit (e2e gate)
 
-**Input**: Design documents from `/specs/014-fix-supplier-terms-keyboard-edit/`
+**Input**: Design documents from `/specs/017-fix-supplier-terms-keyboard-edit/`
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, quickstart.md (no `contracts/`: no interface changes)
 
@@ -23,7 +23,7 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 
 **Purpose**: Be able to run the check locally
 
-- [X] T001 Install web dependencies and the Chromium browser for Playwright (`npm ci` and `npx playwright install chromium` in `apps/web`), as in `specs/014-fix-supplier-terms-keyboard-edit/quickstart.md`
+- [X] T001 Install web dependencies and the Chromium browser for Playwright (`npm ci` and `npx playwright install chromium` in `apps/web`), as in `specs/017-fix-supplier-terms-keyboard-edit/quickstart.md`
 
 ---
 
@@ -34,7 +34,7 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 **⚠️ CRITICAL**: No fix starts until T003 names the cause.
 
 - [X] T002 Reproduce the failure: change `test.fixme(` to `test(` on "reference task 3 by keyboard: edit one supplier term and save it" in `apps/web/tests/e2e/a11y-all-routes.spec.ts` and run it with `--trace on`; confirm it saves `lead_time_days` 3
-- [X] T003 Test hypotheses H1–H4 from `specs/014-fix-supplier-terms-keyboard-edit/research.md` in order (focused element id after `tabTo`, input value after `ControlOrMeta+a` and typing, network calls and form value before save, request body against the visible value) and write the confirmed cause, the evidence and whether the fix is in the screen or in the check under "Root cause" in `specs/014-fix-supplier-terms-keyboard-edit/research.md`
+- [X] T003 Test hypotheses H1–H4 from `specs/017-fix-supplier-terms-keyboard-edit/research.md` in order (focused element id after `tabTo`, input value after `ControlOrMeta+a` and typing, network calls and form value before save, request body against the visible value) and write the confirmed cause, the evidence and whether the fix is in the screen or in the check under "Root cause" in `specs/017-fix-supplier-terms-keyboard-edit/research.md`
 
 **Checkpoint**: Cause recorded; US1 fix site known.
 
@@ -88,7 +88,7 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 **Independent Test**: `--repeat-each=20` passes 20 of 20; `python -m gates run` shows no `e2e` failure from this check.
 
 - [X] T011 [US3] Confirm no `test.fixme` or skip remains for this check and that no comment still calls it quarantined in `apps/web/tests/e2e/a11y-all-routes.spec.ts`
-- [X] T012 [US3] Run the keyboard checks with `npx playwright test tests/e2e/a11y-all-routes.spec.ts -g "reference task 3" --repeat-each=20` from `apps/web` and record 20 of 20 in `specs/014-fix-supplier-terms-keyboard-edit/quickstart.md` under a "Results" heading
+- [X] T012 [US3] Run the keyboard checks with `npx playwright test tests/e2e/a11y-all-routes.spec.ts -g "reference task 3" --repeat-each=20` from `apps/web` and record 20 of 20 in `specs/017-fix-supplier-terms-keyboard-edit/quickstart.md` under a "Results" heading
 - [X] T013 [US3] Run `npm test` and the full `npx playwright test` in `apps/web`, then `python -m gates run` from `scripts/`, and record that the `e2e` gate no longer fails because of this check (SC-002) — DONE 2026-11-16: `npm test` 790 passed; full e2e 273 passed, 14 skipped (none for this check; the rest are env-gated); `python -m gates run --gate e2e`: no failure, reported `not_run` only because its live-stack step needs `PLAYWRIGHT_BASE_URL` (compose stack not running here).
 
 **Checkpoint**: All three stories verified.
@@ -100,7 +100,7 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 - [X] T014 [P] Mark the MMI-12 references as resolved in `docs/architecture/integration/verification.md`, `docs/architecture/integration/feature-status.md`, `docs/architecture/integration/feature-status.json` and `specs/013-procurement-proposals-scenarios/pull-request.md`
 - [X] T015 [P] Confirm FR-007 and SC-005: the diff touches no validation, versioning, permission, audit or ERP code (review `git diff main --stat`), and that the existing viewer read-only and revision-conflict cases in `apps/web/tests/unit/SuppliersScreen.test.tsx` still pass unchanged (spec edge cases)
 - [X] T016 Confirm FR-008 and FR-009: any new user-facing text is in `apps/web/src/i18n/es-ES.json` (no hard-coded strings) and every new test uses the existing synthetic supplier ("Proveedor Sintético A") only; check SC-003 by hand with quickstart step 6 (under 1 minute, saved value equals typed value) — DONE for FR-008 and FR-009 (no locale file touched, no new user text, only the synthetic supplier). SC-003 was not timed by a person; the automated keyboard run completes the edit in about 1 s.
-- [X] T017 Fill the PR from `.github/pull_request_template.md` (data, security, cost, contract impact: none) with the root cause and the 20-run result, and mark the finished tasks `[X]` in `specs/014-fix-supplier-terms-keyboard-edit/tasks.md` — DONE: `specs/014-fix-supplier-terms-keyboard-edit/pull-request.md`
+- [X] T017 Fill the PR from `.github/pull_request_template.md` (data, security, cost, contract impact: none) with the root cause and the 20-run result, and mark the finished tasks `[X]` in `specs/017-fix-supplier-terms-keyboard-edit/tasks.md` — DONE: `specs/017-fix-supplier-terms-keyboard-edit/pull-request.md`
 
 ---
 
@@ -145,11 +145,19 @@ description: "Task list for fixing the supplier terms keyboard edit (MMI-12)"
 
 ## Phase 8: Convergence
 
-- [X] T019 Replace the opening paragraph of `specs/014-fix-supplier-terms-keyboard-edit/research.md` ("Root cause is **not yet established** ...") with one that says the cause was found and points to the "Root cause" section, so the file no longer contradicts itself, per FR-004 (partial) — DONE
+- [X] T019 Replace the opening paragraph of `specs/017-fix-supplier-terms-keyboard-edit/research.md` ("Root cause is **not yet established** ...") with one that says the cause was found and points to the "Root cause" section, so the file no longer contradicts itself, per FR-004 (partial) — DONE
 
 ---
 
 ## Phase 9: Convergence
 
-- [X] T020 Update the stale numbers in the evidence notes: change "Tasks T001–T018" to "T001–T019" in `specs/014-fix-supplier-terms-keyboard-edit/pull-request.md` and "790 passed (57 files)" to "791 passed (57 files)" in `specs/014-fix-supplier-terms-keyboard-edit/quickstart.md`, per T017 and T018 (partial) — DONE
-- [X] T021 Decide whether to keep both loading-lock checks (the e2e case "fields stay locked until the saved terms load" in `apps/web/tests/e2e/a11y-all-routes.spec.ts` and the unit case in `apps/web/tests/unit/SuppliersScreen.test.tsx`): keep both and add one line to `specs/014-fix-supplier-terms-keyboard-edit/research.md` saying why (the e2e case proves the real keyboard flow after a late load, the unit case is the fast guard), or drop the e2e case if you prefer, per plan: Testing and FR-003 (unrequested) — DONE: kept both; reason added to `research.md`
+- [X] T020 Update the stale numbers in the evidence notes: change "Tasks T001–T018" to "T001–T019" in `specs/017-fix-supplier-terms-keyboard-edit/pull-request.md` and "790 passed (57 files)" to "791 passed (57 files)" in `specs/017-fix-supplier-terms-keyboard-edit/quickstart.md`, per T017 and T018 (partial) — DONE
+- [X] T021 Decide whether to keep both loading-lock checks (the e2e case "fields stay locked until the saved terms load" in `apps/web/tests/e2e/a11y-all-routes.spec.ts` and the unit case in `apps/web/tests/unit/SuppliersScreen.test.tsx`): keep both and add one line to `specs/017-fix-supplier-terms-keyboard-edit/research.md` saying why (the e2e case proves the real keyboard flow after a late load, the unit case is the fast guard), or drop the e2e case if you prefer, per plan: Testing and FR-003 (unrequested) — DONE: kept both; reason added to `research.md`
+
+---
+
+## Phase 10: Convergence
+
+- [X] T022 Renumber this spec from 014 to 017 as Agent 00 asked in its review of PR 31 (014 is also used by PR 27 and PR 30; 015 is PR 29, 016 is PR 30 after its own renumber): `git mv specs/014-fix-supplier-terms-keyboard-edit specs/017-fix-supplier-terms-keyboard-edit` and update the local `.specify/feature.json` to `specs/017-fix-supplier-terms-keyboard-edit`, per Agent 00 review of PR 31 (contradicts) — DONE
+- [X] T023 Update every reference to the old number and folder: the e2e comment "spec 014" in `apps/web/tests/e2e/a11y-all-routes.spec.ts`, the "resolved in spec 014" pointer in `specs/013-procurement-proposals-scenarios/pull-request.md`, the folder paths in `plan.md`, `pull-request.md`, `tasks.md` and `research.md`, and the line "this one is **014**" in `spec.md`; then `grep -r "014-fix-supplier\|spec 014"` must find nothing except history quoted inside task descriptions, per T022 (partial) — DONE
+- [ ] T024 After T022 and T023, run the markdown check (blank line around every list) on the renamed folder, push, update the PR 31 description from the renamed `pull-request.md` (`gh pr edit 31 --body-file`), and confirm CI is green, per Agent 00 review of PR 31 (partial)

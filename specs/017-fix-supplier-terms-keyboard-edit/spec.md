@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "implement jira spec on MMI-12" — Jira [MMI-12](https://mundomascotix.atlassian.net/browse/MMI-12) ("Fix failing e2e test: supplier terms keyboard edit saves lead time 3 instead of 7", type Error, epic MMI-1). Number 013 is the latest spec, so this one is **014**.
+**Input**: User description: "implement jira spec on MMI-12" — Jira [MMI-12](https://mundomascotix.atlassian.net/browse/MMI-12) ("Fix failing e2e test: supplier terms keyboard edit saves lead time 3 instead of 7", type Error, epic MMI-1). Numbers 014 to 016 are taken by open pull requests (27, 30 and 29), so this one is **017** (renumbered from 014 on the request of Agent 00 in its review of PR 31).
 
 ## Context
 

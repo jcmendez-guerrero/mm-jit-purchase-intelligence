@@ -91,7 +91,7 @@ test("reference task 2 by keyboard: review a draft proposal and submit it for ap
 });
 
 /**
- * Supplier terms, edited by keyboard (MMI-12, spec 014). The form is read-only until the saved terms load: typing before that was overwritten
+ * Supplier terms, edited by keyboard (MMI-12, spec 017). The form is read-only until the saved terms load: typing before that was overwritten
  * when they arrived, which saved the old value (lead time 3 instead of 7).
  */
 async function openSupplierTerms(page: Page, opts: { holdTerms?: boolean } = {}) {
