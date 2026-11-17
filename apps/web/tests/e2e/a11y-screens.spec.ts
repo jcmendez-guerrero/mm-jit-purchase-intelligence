@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { json, overview, signIn } from "./dashboard-mock";
+import { freshness, json, overview, signIn } from "./dashboard-mock";
 
 /** T171: WCAG 2 A and AA (colour contrast included) on the screens added by MMI 002. Synthetic data, mocked backends. */
 
@@ -94,5 +94,42 @@ test("dashboard trend chart with the forecast and its notes", async ({ page }) =
   await page.getByText(/Previsión para los próximos 5 días/).waitFor();
   await check(page);
   await page.getByRole("button", { name: "Ver como tabla" }).first().click();
+  await check(page);
+});
+
+
+/** Feature 014 (T061): the charts with their tables and export buttons, the trust banner, the drill-down panel with its export, and the SKU page. */
+const SKU_PAGE = {
+  sku: "SYN-001", name: "Producto sintético", stock: { on_hand: 15 }, coverage: { days: "5.00", basis: "actual_90d" }, demand: { units: 84, days: 28 }, forecast: { daily_mean: "2.00", days: 28 },
+  supplier: { id: "sup-a" }, expiry_lots: [{ batch: "L1", quantity: 10, expiry_date: "2027-12-20", band: "later" }, { batch: "L2", quantity: 5, expiry_date: "2026-11-19", band: "d0_30" }],
+  states: ["cost_estimated"], cost: { value: "40.00", estimated: true, unit_cost: "2.00" },
+};
+
+test("dashboard charts, export buttons and trust banner", async ({ page }) => {
+  await signIn(page);
+  await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview())));
+  await page.route("**/api/dashboard/freshness*", (r) => r.fulfill(json({ ...freshness({ excluded_records: 3, local_load_excluded: 2 }, "2026-10-01T08:00:00Z"), sources: freshness().sources.map((x) => ({ ...x, refreshed_at: "2026-10-01T08:00:00Z", state: "stale" })) })));
+  await page.goto("/panel");
+  await page.getByRole("heading", { name: "Valor que caduca por tramo" }).waitFor();
+  await page.getByRole("alert").filter({ hasText: "Los datos están desactualizados" }).waitFor();
+  await page.getByRole("figure", { name: "Valor que caduca por tramo" }).getByRole("button", { name: "Ver como tabla" }).click();   // the table view is scanned too
+  await check(page);
+});
+
+test("dashboard drill-down panel with export", async ({ page }) => {
+  await signIn(page);
+  await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview())));
+  await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: false, total: 1, offset: 0, sum: "40.00", rows: [{ variant_id: 1, sku: "SYN-001", name: "Producto sintético", figure: "40.00" }] })));
+  await page.goto("/panel");
+  await page.getByRole("button", { name: "Ver productos" }).first().click();
+  await page.getByRole("button", { name: "Exportar productos", exact: true }).waitFor();
+  await check(page);
+});
+
+test("SKU page", async ({ page }) => {
+  await signIn(page);
+  await page.route("**/api/dashboard/skus/SYN-001", (r) => r.fulfill(json(SKU_PAGE)));
+  await page.goto("/panel/skus/SYN-001");
+  await page.getByText("Existencias totales: 15").waitFor();
   await check(page);
 });

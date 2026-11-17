@@ -9,11 +9,14 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Protocol
+from zoneinfo import ZoneInfo
 
 from db.tables import (
     ALL_WAREHOUSES,
@@ -28,11 +31,16 @@ from db.tables import (
     variants,
     warehouses,
 )
+from mmi_common.time import ASSUMED_LOCAL_TZ
 from risk.daily import evaluate_risks
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.engine import Connection
 
 ACTUAL_DAYS = 90
+LOCAL_TZ = ZoneInfo(ASSUMED_LOCAL_TZ)
+log = logging.getLogger("mmi.inventory.dashboard")      # operational signals: counts, durations and kinds only, never a product, a filter value or a cell
+LOCAL_ID_BASE = 9_000_000                  # ids assigned to locally loaded SKUs start here (feature 004, rule 5); the same value as the loader's SURROGATE_BASE
+HISTORY_DAYS = 760                        # 25 months of daily history (feature 014): older rows are removed when a day is stored
 EXPIRY_DAYS = 60
 CATEGORIES = ("A", "B", "C", "critical")
 ZERO = Decimal(0)
@@ -78,8 +86,19 @@ class Summary:
                 "variant_count": self.variant_count}
 
 
+def data_origin(conn: Connection) -> tuple[str, int]:
+    """Where the products came from: ``("local_load", 0)`` when every product is a local load, otherwise ``("erp_sync", n)`` with ``n`` local products left out.
+    A figure is never made of both (FR-018): with both kinds present the dashboard shows the ERP ones and counts the local ones."""
+    base = variants.c.external_id
+    counts = [conn.execute(select(func.count()).select_from(variants).where(cond, variants.c.is_service.is_(False))).scalar_one() for cond in (base < LOCAL_ID_BASE, base >= LOCAL_ID_BASE)]
+    erp, local = counts
+    return ("local_load", 0) if local and not erp else ("erp_sync", int(local))
+
+
 def variant_scope(conn: Connection, f: Filters) -> set[int]:
     ids = {r.external_id for r in conn.execute(select(variants.c.external_id).where(variants.c.is_service.is_(False))).all()}
+    if data_origin(conn)[0] == "erp_sync":
+        ids = {i for i in ids if i < LOCAL_ID_BASE}                         # local loads are never added to ERP figures
     if f.family is not None:
         in_family = {r.external_id for r in conn.execute(select(variants.c.external_id).join(products, products.c.external_id == variants.c.product_id)
                                                          .where(products.c.family == f.family)).all()}
@@ -119,10 +138,16 @@ def _costs(conn: Connection) -> tuple[dict[tuple[int, str], tuple[Decimal, str]]
 
 
 def valued_lots(conn: Connection, today: date, f: Filters, scope: set[int], summary: Summary | None = None) -> Iterator[tuple[int, Decimal, bool, bool]]:
-    """(variant, value, estimated, expiring soon) for each lot in scope that has a cost. A lot with no cost at all is counted on ``summary`` (when
+    """(variant, value, estimated, expiring soon): ``valued_lots_dated`` with the expiry date reduced to the 60-day horizon the cards use."""
+    horizon = today + timedelta(days=EXPIRY_DAYS)
+    for vid, value, estimated, expiry in valued_lots_dated(conn, f, scope, summary):
+        yield vid, value, estimated, expiry is not None and expiry <= horizon
+
+
+def valued_lots_dated(conn: Connection, f: Filters, scope: set[int], summary: Summary | None = None) -> Iterator[tuple[int, Decimal, bool, date | None]]:
+    """(variant, value, estimated, expiry date) for each lot in scope that has a cost. A lot with no cost at all is counted on ``summary`` (when
     given) and skipped, never valued at zero. One calculation serves both the KPI and the drill-down, so the rows always add up to the figure."""
     by_lot, by_variant = _costs(conn)
-    horizon = today + timedelta(days=EXPIRY_DAYS)
     q = select(stock_lots).where(stock_lots.c.quantity > 0)
     if f.warehouse_id is not None:
         q = q.where(stock_lots.c.warehouse_id == f.warehouse_id)
@@ -140,7 +165,7 @@ def valued_lots(conn: Connection, today: date, f: Filters, scope: set[int], summ
         cost, supplier = found
         if f.supplier_id is not None and supplier != f.supplier_id:
             continue
-        yield lot.variant_id, cost * lot.quantity, estimated, lot.expiry_date is not None and lot.expiry_date <= horizon
+        yield lot.variant_id, cost * lot.quantity, estimated, lot.expiry_date
 
 
 def compute_summary(conn: Connection, today: date, f: Filters | None = None, forecast: ForecastMeans | None = None) -> Summary:
@@ -197,11 +222,19 @@ def _coverage(conn: Connection, today: date, f: Filters, scope: set[int], foreca
     out.coverage_days_avg = sum(days, ZERO) / len(days) if days else None
 
 
+def business_today(now: datetime | None = None) -> date:
+    """The dashboard's "today": the date in Madrid. Demand rows are keyed by the Madrid business day, so the UTC date would read the first hours of each Madrid day (and every
+    day around the two clock changes) as the day before."""
+    return (now or datetime.now(UTC)).astimezone(LOCAL_TZ).date()
+
+
 def refresh_aggregates(conn: Connection, today: date | None = None, forecast: ForecastMeans | None = None, now: datetime | None = None) -> int:
     """Stores today's figures for the company, each warehouse and each category (the worker runs this after each sync). Returns rows written."""
-    today = today or datetime.now(UTC).date()
+    started = time.monotonic()
+    today = today or business_today()
     now = now or datetime.now(UTC)
     conn.execute(delete(agg_daily_kpis).where(agg_daily_kpis.c.day == today))
+    conn.execute(delete(agg_daily_kpis).where(agg_daily_kpis.c.day < today - timedelta(days=HISTORY_DAYS)))
     conn.execute(delete(agg_abc_xyz).where(agg_abc_xyz.c.day == today))
     wh = [None, *[r.external_id for r in conn.execute(select(warehouses.c.external_id).where(warehouses.c.is_unassigned.is_(False))).all()]]
     rows = []
@@ -214,12 +247,14 @@ def refresh_aggregates(conn: Connection, today: date | None = None, forecast: Fo
     dist = abc_xyz_distribution(conn)
     if dist:
         conn.execute(insert(agg_abc_xyz), [{"day": today, **d} for d in dist])
-    return len(rows) + len(dist)
+    written = len(rows) + len(dist)
+    log.info("dashboard_refresh day=%s rows=%d seconds=%.3f", today.isoformat(), written, time.monotonic() - started)
+    return written
 
 
 def abc_xyz_distribution(conn: Connection, f: Filters | None = None) -> list[dict[str, Any]]:
     """Segments follow category, family and supplier; the segmentation is company-wide, so a warehouse or date range cannot apply (the route names them)."""
-    scope = None if f is None or (f.category, f.family, f.supplier_id) == (None, None, None) else variant_scope(conn, f)
+    scope = variant_scope(conn, f or Filters())
     out: dict[tuple[str, str], list[Any]] = {}
     for r in conn.execute(select(product_segments)).all():
         if scope is not None and r.variant_id not in scope:

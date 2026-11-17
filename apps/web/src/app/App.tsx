@@ -10,6 +10,7 @@ import { QueuePanel } from "../features/admin/QueuePanel";
 import { RolesScreen } from "../features/admin/RolesScreen";
 import { CostsScreen } from "../features/costs/CostsScreen";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
+import { SkuDetailPage } from "../features/dashboard/SkuDetailPage";
 import { ImportScreen } from "../features/imports/ImportScreen";
 import { LocalLoadScreen } from "../features/localload/LocalLoadScreen";
 import { PoliciesScreen } from "../features/policies/PoliciesScreen";
@@ -25,7 +26,7 @@ import { NotFound } from "./NotFound";
 import { DEFAULT_PATH } from "./routes";
 
 /** The selected warehouse lives in the address (?almacen=), so a link reproduces the view (FR-002). */
-const DashboardRoute: React.FC = () => {
+const DashboardRoute: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
   const [params, setParams] = useSearchParams();
   const raw = params.get("almacen");
   const warehouse = raw !== null && /^\d+$/.test(raw) ? parseInt(raw, 10) : undefined;
@@ -59,7 +60,7 @@ const DashboardRoute: React.FC = () => {
     },
     [setParams],
   );
-  return <DashboardScreen selectedWarehouse={warehouse} onSelectWarehouse={select} selectedProduct={product} onSelectProduct={selectProduct} />;
+  return <DashboardScreen selectedWarehouse={warehouse} onSelectWarehouse={select} selectedProduct={product} onSelectProduct={selectProduct} userRoles={userRoles} />;
 };
 
 /** The proposals screen, filtered to one SKU when arriving from a product's detail (?sku=), with a way back to it (?volver=). */
@@ -166,7 +167,8 @@ export const App: React.FC = () => {
     <Routes>
       <Route element={<AppShell session={session} roles={userRoles} sessionExpired={sessionExpired} onLogout={handleLogout} features={features} />}>
         <Route index element={<Navigate to={DEFAULT_PATH} replace />} />
-        <Route path="panel" element={<DashboardRoute />} />
+        <Route path="panel" element={<DashboardRoute userRoles={userRoles} />} />
+        <Route path="panel/skus/:sku" element={<SkuDetailPage />} />
         <Route path="calidad" element={<QualityScreen userRoles={userRoles} showLocalReview={features.includes("localLoad")} />} />
         <Route path="propuestas" element={<ProposalsRoute userRoles={userRoles} />} />
         <Route path="escenarios" element={<ScenariosScreen userRoles={userRoles} />} />

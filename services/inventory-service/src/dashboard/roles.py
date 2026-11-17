@@ -22,7 +22,7 @@ def hide_money(payload: dict[str, Any], roles: Iterable[str]) -> dict[str, Any]:
     return out
 
 
-MONEY_DRILL_KINDS = ("inventory_value", "abc_xyz")       # the figure of each row is an amount of money
+MONEY_DRILL_KINDS = ("inventory_value", "abc_xyz", "capital", "expiry_band")       # the figure of each row is an amount of money
 
 
 def hide_cell_values(cells: list[dict[str, Any]], roles: Iterable[str]) -> list[dict[str, Any]]:

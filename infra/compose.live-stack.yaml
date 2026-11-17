@@ -1,0 +1,7 @@
+# Local-only override for the dashboard live-stack run (feature 014). Use as
+#   docker compose -f infra/compose.yaml -f infra/compose.live-stack.yaml up --build -d postgres dev-issuer inventory-service forecast-service procurement-service api-bff web
+# It only publishes the database on the loopback address so scripts/live-stack/seed.py can load the synthetic reference dataset.
+# Never referenced by Bicep, workflows or any cloud deployment.
+services:
+  postgres:
+    ports: ["127.0.0.1:55432:5432"]

@@ -15,6 +15,10 @@ from db.tables import agg_daily_kpis, demand_observations, stock_lots, stock_mov
 from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
 
+from dashboard.kpis import data_origin
+
+REVIEW_LIST_LINK = "/calidad"
+
 DEFAULT_STALE_AFTER_HOURS = 48          # same two days the web app used as a constant
 
 
@@ -62,8 +66,17 @@ def inventory_freshness(conn: Connection, now: datetime | None = None, hours: in
         moves, moves_raw = mv.created_at_utc, mv.created_at_raw                   # UTC value plus the original string (AGENTS rule 5)
     else:
         moves, moves_raw = _midnight(conn.execute(select(func.max(demand_observations.c.day))).scalar()), None
-    out = [Freshness("inventory_snapshot", snap, "erp_sync", classify(snap, now, hours), hours),
-           Freshness("movements", moves, "erp_sync", classify(moves, now, hours), hours, moves_raw)]
+    origin = data_origin(conn)[0]                                                 # "local_load" only when every product is a local load
+    out = [Freshness("inventory_snapshot", snap, origin, classify(snap, now, hours), hours),
+           Freshness("movements", moves, origin, classify(moves, now, hours), hours, moves_raw)]
     if latest is not None:                                    # the aggregates carry the origin of what they were built from
         out.append(Freshness("aggregates", latest.refreshed_at, latest.origin, classify(latest.refreshed_at, now, hours), hours))
     return out
+
+
+def freshness_payload(conn: Connection, now: datetime | None = None) -> dict[str, object]:
+    """The freshness route (``dashboard_freshness.v1``): each source, how many malformed or ambiguous movements were held back for review, and how many local-load products
+    were left out of the ERP figures. Counts only: nothing here names a record."""
+    held = conn.execute(select(func.count()).select_from(stock_movements).where(stock_movements.c.quarantined.is_(True))).scalar_one()
+    return {"sources": [f.as_json() for f in inventory_freshness(conn, now)], "excluded_records": int(held), "local_load_excluded": data_origin(conn)[1],
+            "review_list_link": REVIEW_LIST_LINK}

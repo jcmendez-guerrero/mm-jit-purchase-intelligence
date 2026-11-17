@@ -335,3 +335,22 @@ describe("DashboardScreen when the role may not see money", () => {
     await waitFor(() => expect(spy).toHaveBeenLastCalledWith({ days: 60 }));
   });
 });
+
+describe("DashboardScreen no-match state (feature 014, T022)", () => {
+  const empty = () => overview({ indicators: indicators(Object.fromEntries(KEYS.map((k) => [k, { value: null, state: "no_data" as const }]))) });
+
+  it("explains that nothing matches the filters and offers one action that removes them", async () => {
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(empty());
+    renderScreen(<DashboardScreen />, "/?proveedor=sup-a");
+    await screen.findByText("Ningún dato coincide con los filtros");
+    fireEvent.click(screen.getByRole("button", { name: "Quitar todos los filtros" }));
+    await waitFor(() => expect(screen.queryByText("Ningún dato coincide con los filtros")).toBeNull());
+  });
+
+  it("does not claim a filter problem when nothing is filtered", async () => {
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(empty());
+    renderScreen(<DashboardScreen />);
+    await screen.findByRole("heading", { name: "Valor del stock" });
+    expect(screen.queryByText("Ningún dato coincide con los filtros")).toBeNull();
+  });
+});

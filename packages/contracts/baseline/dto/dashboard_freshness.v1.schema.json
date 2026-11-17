@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/dashboard_freshness.v1",
+  "title": "DashboardFreshness",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sources",
+    "excluded_records",
+    "local_load_excluded",
+    "review_list_link"
+  ],
+  "description": "GET /api/dashboard/freshness (feature 014): how fresh each data source is, where it came from, and how many records were left out of the figures. Same source, origin and state vocabulary as the freshness block of dashboard_indicators.v2; a failing or empty source is never shown as zero.",
+  "properties": {
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "refreshed_at",
+          "refreshed_at_original",
+          "origin",
+          "state",
+          "stale_after_hours"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "inventory_snapshot",
+              "movements",
+              "aggregates",
+              "forecast",
+              "accuracy",
+              "budget_spend"
+            ]
+          },
+          "refreshed_at": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "UTC"
+          },
+          "refreshed_at_original": {
+            "type": ["string", "null"],
+            "description": "The timestamp text exactly as the source gave it"
+          },
+          "origin": {
+            "type": "string",
+            "enum": ["erp_sync", "local_load", "forecast", "proposal"]
+          },
+          "state": {
+            "type": "string",
+            "enum": ["ok", "no_data", "stale", "error"]
+          },
+          "stale_after_hours": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "excluded_records": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Malformed or ambiguous records left out of the figures and held for review"
+    },
+    "local_load_excluded": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Locally loaded products left out of the ERP figures, which are never added to them"
+    },
+    "review_list_link": {
+      "type": "string",
+      "description": "In-app path of the review list the excluded records are linked to"
+    }
+  }
+}

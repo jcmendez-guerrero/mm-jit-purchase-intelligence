@@ -1143,3 +1143,12 @@
 .mmi-admin-status-loading {
   min-height: 70rem;
 }
+
+/* Feature 014: a notice that must be seen (stale data, newer data on offer). Colours come from the design tokens only. */
+.mmi-banner {
+  margin: 0 0 var(--mmi-space-3, 0.75rem);
+  padding: 0.5rem 0.75rem;
+  background: var(--mmi-warning-bg);
+  color: var(--mmi-warning);
+  border-left: 4px solid var(--mmi-warning);
+}

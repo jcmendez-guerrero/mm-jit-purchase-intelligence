@@ -798,7 +798,7 @@ export interface ForecastBasis {
   upper_level?: string;
 }
 
-export type DrillKind = "inventory_value" | "coverage" | "stockout_risk" | "expiry_risk" | "abc_xyz" | "trend_day";
+export type DrillKind = "inventory_value" | "coverage" | "stockout_risk" | "expiry_risk" | "abc_xyz" | "trend_day" | "demand" | "forecast" | "capital" | "expiry_band";
 
 export interface DrillRequest {
   kind: DrillKind;
@@ -813,6 +813,52 @@ export interface DrillRequest {
   offset?: number | undefined;
   sort?: "sku" | "name" | "figure" | undefined;
   order?: "asc" | "desc" | undefined;
+  band?: "expired" | "d0_30" | "d31_60" | undefined;
+  date_from?: string | undefined;
+  date_to?: string | undefined;
+}
+
+/** One chart as a table of rows (the frozen v2 `ChartSeries`). Money travels as decimal strings; a role without cost access receives no money column. */
+export interface ChartSeries {
+  key: "demand_forecast" | "abc_xyz" | "expiry_bands" | "coverage_buckets" | "capital_by_group" | "forecast_error" | "stock_value_history";
+  title_key: string;
+  summary_params?: Record<string, unknown> | undefined;
+  columns: string[];
+  rows: Array<Array<string | number | null>>;
+  range_available?: { from?: string; to?: string } | undefined;
+  state: "ok" | "no_data" | "error";
+}
+
+/** The view of the dashboard to put in a file (feature 014): the indicators, one chart, or the products behind a figure. Only roles that may see costs can export. */
+export type DashboardExportView = { kind: "cards" } | { kind: "chart"; chart: ChartSeries["key"] } | { kind: "drilldown"; drill: DrillRequest };
+
+/** How fresh each source is and what was left out of the figures (the `dashboard_freshness.v1` contract). Counts only. */
+export interface DashboardFreshness {
+  sources: Array<{
+    source: "inventory_snapshot" | "movements" | "aggregates" | "forecast" | "accuracy" | "budget_spend";
+    refreshed_at: string | null;
+    refreshed_at_original: string | null;
+    origin: "erp_sync" | "local_load" | "forecast" | "proposal";
+    state: "ok" | "no_data" | "stale" | "error";
+    stale_after_hours: number;
+  }>;
+  excluded_records: number;
+  local_load_excluded: number;
+  review_list_link: string;
+}
+
+/** One product on its own dashboard page (feature 014). Identified by SKU only; `cost` exists only when the role may see costs. */
+export interface DashboardSku {
+  sku: string;
+  name: string | null;
+  stock: { on_hand: number | null };
+  coverage: { days: string; basis: string } | null;
+  demand: { units: number; days: number };
+  forecast: { daily_mean: string; days: number } | null;
+  supplier: { id: string } | null;
+  expiry_lots: Array<{ batch: string; quantity: number; expiry_date: string | null; band: "expired" | "d0_30" | "d31_60" | "later" | "none" }>;
+  states: string[];
+  cost?: { value: string | null; estimated: boolean; unit_cost: string | null };
 }
 
 export interface DrillResponse {
@@ -1114,7 +1160,51 @@ export class ApiClient {
     if (r.offset) q.set("offset", String(r.offset));
     if (r.sort) q.set("sort", r.sort);
     if (r.sort && r.order) q.set("order", r.order);
+    if (r.band) q.set("band", r.band);
+    if (r.date_from) q.set("date_from", r.date_from);
+    if (r.date_to) q.set("date_to", r.date_to);
     return this.request<DrillResponse>(`/dashboard/drilldown?${q.toString()}`);
+  }
+
+  async getDashboardCharts(f: DashFilters, keys: ChartSeries["key"][] = []): Promise<{ charts: ChartSeries[] }> {
+    const q = new URLSearchParams();
+    if (keys.length > 0) q.set("keys", keys.join(","));
+    if (f.warehouse_id !== undefined) q.set("warehouse_id", String(f.warehouse_id));
+    if (f.category) q.set("category", f.category);
+    if (f.family) q.set("family", f.family);
+    if (f.supplier_id) q.set("supplier_id", f.supplier_id);
+    if (f.date_from) q.set("date_from", f.date_from);
+    if (f.date_to) q.set("date_to", f.date_to);
+    const qs = q.toString();
+    return this.request<{ charts: ChartSeries[] }>(`/dashboard/charts${qs ? `?${qs}` : ""}`);
+  }
+
+  async exportDashboard(view: DashboardExportView, f: DashFilters): Promise<{ blob: Blob; filename: string; rows: number }> {
+    const q = new URLSearchParams({ kind: view.kind });
+    if (view.kind === "chart") q.set("chart", view.chart);
+    if (view.kind === "drilldown") {
+      const d = view.drill;
+      q.set("drill_kind", d.kind);
+      for (const [k, v] of [["abc", d.abc], ["xyz", d.xyz], ["day", d.day], ["band", d.band], ["sort", d.sort], ["order", d.sort ? d.order : undefined]] as const) if (v) q.set(k, v);
+    }
+    const scope = view.kind === "drilldown" ? { ...f, warehouse_id: view.drill.warehouse_id ?? f.warehouse_id, category: view.drill.category ?? f.category, family: view.drill.family ?? f.family, supplier_id: view.drill.supplier_id ?? f.supplier_id } : f;
+    if (scope.warehouse_id !== undefined) q.set("warehouse_id", String(scope.warehouse_id));
+    for (const [k, v] of [["category", scope.category], ["family", scope.family], ["supplier_id", scope.supplier_id], ["date_from", f.date_from], ["date_to", f.date_to]] as const) if (v) q.set(k, v);
+    const res = await fetch(`${this.baseUrl}/dashboard/export?${q.toString()}`, { credentials: "same-origin", headers: { Accept: "text/csv" } });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+      throw new ApiError(res.status, typeof body.detail === "string" && /^[a-z][a-z0-9_:]*$/.test(body.detail) ? body.detail : "unknown");
+    }
+    const named = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "");
+    return { blob: await res.blob(), filename: named?.[1] ?? "panel.csv", rows: Number(res.headers.get("X-Export-Rows") ?? 0) };
+  }
+
+  async getDashboardFreshness(): Promise<DashboardFreshness> {
+    return this.request<DashboardFreshness>("/dashboard/freshness");
+  }
+
+  async getDashboardSku(sku: string): Promise<DashboardSku> {
+    return this.request<DashboardSku>(`/dashboard/skus/${encodeURIComponent(sku)}`);
   }
 
   async getDashboardOverview(f: DashFilters = {}): Promise<DashOverview> {

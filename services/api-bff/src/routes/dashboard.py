@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 from auth.session import SessionData
 from clients.forecast import ForecastClient
 from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from fastapi import APIRouter, Depends, Path, Query
-from routes.api import get_inventory_client, get_procurement_client
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
+from mmi_common.time import ASSUMED_LOCAL_TZ
+from routes.admin_roles import get_store
+from routes.api import EXPORT_ROLES, get_inventory_client, get_procurement_client
 from routes.policies import get_forecast_client
 from routes.rbac import require_roles
 
@@ -109,7 +112,7 @@ async def overview(
 ) -> dict[str, Any]:
     who = {"user_id": session.user_id, "roles": session.roles}
     f = {k: v for k, v in (("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id)) if v is not None}
-    today = datetime.now(UTC).date()
+    today = datetime.now(ZoneInfo(ASSUMED_LOCAL_TZ)).date()                # the business day is the Madrid date, as inventory reads it
     end = date_to or today                                              # the range rules (order, span) are the domain's; only the missing end is filled here
     window = {"date_from": (date_from or end - timedelta(days=days - 1)).isoformat(), "date_to": end.isoformat()}
     trend_range = window if (date_from or date_to) else {"days": days}
@@ -128,7 +131,7 @@ async def overview(
 
 @router.get("/drilldown")
 async def drilldown(
-    kind: str = Query(pattern="^(inventory_value|coverage|stockout_risk|expiry_risk|abc_xyz|trend_day)$"),
+    kind: str = Query(pattern="^(inventory_value|coverage|stockout_risk|expiry_risk|abc_xyz|trend_day|demand|forecast|capital|expiry_band)$"),
     abc: str | None = Query(default=None, pattern="^[ABC]$"),
     xyz: str | None = Query(default=None, pattern="^[XYZ]$"),
     day: str | None = Query(default=None, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
@@ -140,12 +143,96 @@ async def drilldown(
     offset: int | None = Query(default=None, ge=0),
     sort: str | None = Query(default=None, pattern="^(sku|name|figure)$"),
     order: str | None = Query(default=None, pattern="^(asc|desc)$"),
+    band: str | None = Query(default=None, pattern="^(expired|d0_30|d31_60)$"),
+    date_from: date | None = None,
+    date_to: date | None = None,
     session: SessionData = Depends(require_roles(*READ)),
     inv: InventoryClient = Depends(get_inventory_client),
 ) -> Any:
     """The products behind one dashboard figure. The rules live in inventory; this only checks the request shape and forwards the signed-in user."""
-    params = {k: v for k, v in (("kind", kind), ("abc", abc), ("xyz", xyz), ("day", day), ("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id), ("limit", limit), ("offset", offset), ("sort", sort), ("order", order)) if v is not None}
+    params = {k: v for k, v in (("kind", kind), ("abc", abc), ("xyz", xyz), ("day", day), ("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id), ("limit", limit), ("offset", offset), ("sort", sort), ("order", order), ("band", band), ("date_from", date_from and date_from.isoformat()), ("date_to", date_to and date_to.isoformat())) if v is not None}
     return await inv.forward("GET", "/dashboard/drilldown", params=params, user_id=session.user_id, roles=session.roles)
+
+
+@router.get("/freshness")
+async def freshness(session: SessionData = Depends(require_roles(*READ)), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+    """How fresh each source is, where it came from, and how many records were left out (counts only). A failing source is a clear error, never an empty or zero answer."""
+    try:
+        return await inv.forward("GET", "/dashboard/freshness", user_id=session.user_id, roles=session.roles)
+    except (httpx.HTTPError, RuntimeError) as exc:
+        raise HTTPException(502, "downstream_unavailable") from exc                # no downstream text reaches the user
+
+
+@router.get("/charts")
+async def charts(
+    keys: str | None = Query(default=None, pattern="^[a-z_]{1,30}(,[a-z_]{1,30}){0,9}$"),
+    date_from: date | None = None,
+    date_to: date | None = None,
+    warehouse_id: int | None = Query(default=None, ge=0),
+    category: str | None = Query(default=None, pattern="^(A|B|C|critical)$"),
+    family: str | None = Query(default=None, min_length=1, max_length=120),
+    supplier_id: str | None = Query(default=None, pattern="^[A-Za-z0-9_-]{1,36}$"),
+    session: SessionData = Depends(require_roles(*READ)),
+    inv: InventoryClient = Depends(get_inventory_client),
+) -> Any:
+    """The chart tables behind the dashboard. Inventory builds them (and leaves out money for roles without cost access); this only checks the request shape and forwards the signed-in user."""
+    raw = (("keys", keys), ("date_from", date_from and date_from.isoformat()), ("date_to", date_to and date_to.isoformat()), ("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id))
+    return await inv.forward("GET", "/dashboard/charts", params={k: v for k, v in raw if v is not None}, user_id=session.user_id, roles=session.roles)
+
+
+def _audit_export(session: SessionData, action: str, kind: str, view: str, filters: dict[str, Any], **after: Any) -> None:
+    """One entry in the hash-chained log: who, what and which filters. Never the rows."""
+    get_store().record_action(session.user_id, action, f"dashboard.export:{view}", after={"kind": kind, "view": view, "filters": filters, **after})
+
+
+@router.get("/export")
+async def export_dashboard(
+    kind: str = Query(pattern="^(cards|chart|drilldown)$"),
+    chart: str | None = Query(default=None, pattern="^[a-z_]{1,30}$"),
+    drill_kind: str | None = Query(default=None, pattern="^[a-z_]{1,20}$"),
+    abc: str | None = Query(default=None, pattern="^[ABC]$"),
+    xyz: str | None = Query(default=None, pattern="^[XYZ]$"),
+    day: str | None = Query(default=None, pattern="^\\d{4}-\\d{2}-\\d{2}$"),
+    band: str | None = Query(default=None, pattern="^(expired|d0_30|d31_60)$"),
+    sort: str | None = Query(default=None, pattern="^(sku|name|figure)$"),
+    order: str | None = Query(default=None, pattern="^(asc|desc)$"),
+    format: str = Query(default="csv", pattern="^(csv|xlsx)$"),
+    date_from: date | None = None,
+    date_to: date | None = None,
+    warehouse_id: int | None = Query(default=None, ge=0),
+    category: str | None = Query(default=None, pattern="^(A|B|C|critical)$"),
+    family: str | None = Query(default=None, min_length=1, max_length=120),
+    supplier_id: str | None = Query(default=None, pattern="^[A-Za-z0-9_-]{1,36}$"),
+    session: SessionData = Depends(require_roles(*EXPORT_ROLES)),          # a viewer is refused here, and the refusal is audited by the role check
+    inv: InventoryClient = Depends(get_inventory_client),
+) -> Response:
+    """One view of the dashboard as a file. Inventory builds it from the same code as the screen; this checks the shape, forwards the signed-in user and audits the attempt."""
+    scope = (("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id),
+             ("date_from", date_from and date_from.isoformat()), ("date_to", date_to and date_to.isoformat()))
+    own = (("kind", kind), ("chart", chart), ("drill_kind", drill_kind), ("abc", abc), ("xyz", xyz), ("day", day), ("band", band), ("sort", sort), ("order", order), *scope)
+    params = {k: v for k, v in own if v is not None}
+    filters = {k: v for k, v in scope if v is not None}
+    view = chart or drill_kind or kind
+    if format != "csv":                                                      # XLSX is not offered: the writer lives in procurement-service
+        _audit_export(session, "dashboard.export.refused", kind, view, filters, reason="format_unsupported")
+        raise HTTPException(400, "format_unsupported")
+    res = await inv.get("/dashboard/export", params=params, user_id=session.user_id, roles=session.roles)
+    if res.status_code == 413:
+        _audit_export(session, "dashboard.export.refused", kind, view, filters, reason="export_too_large")
+        raise HTTPException(413, "export_too_large")
+    if res.status_code == 422:
+        raise HTTPException(422, "request_invalid")
+    if res.status_code != 200:
+        raise HTTPException(502, "downstream_unavailable")                  # no downstream text reaches the user
+    rows = int(res.headers.get("x-export-rows", "0") or 0)
+    _audit_export(session, "dashboard.exported", kind, view, filters, rows=rows)
+    return Response(res.content, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": res.headers.get("content-disposition") or f'attachment; filename="panel-{kind}.csv"'})
+
+
+@router.get("/skus/{sku}")
+async def sku_page(sku: str = Path(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,59}$"), session: SessionData = Depends(require_roles(*READ)), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+    """One product by SKU. Inventory builds the page and leaves the cost out for roles that may not see it; this only checks the SKU shape and forwards the signed-in user."""
+    return await inv.forward("GET", f"/dashboard/skus/{sku}", user_id=session.user_id, roles=session.roles)
 
 
 @router.get("/variants/{variant_id}/forecast-basis")

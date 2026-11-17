@@ -33,6 +33,35 @@ export function overview(risks = 1, over: Record<string, unknown> = {}) {
   };
 }
 
+/** The chart tables as the BFF sends them (feature 014): a viewer gets no money column. */
+export function charts(hideMoney = false) {
+  const money = !hideMoney;
+  const cols = (c: string[]) => (money ? c : c.filter((x) => x !== "value"));
+  const row = (cells: Array<string | number>, at: number) => (money ? cells : cells.filter((_, i) => i !== at));
+  return {
+    charts: [
+      { key: "expiry_bands", title_key: "dashboard.chart.title.expiry_bands", summary_params: { horizon_days: 60 }, columns: cols(["band", "products", "value"]), state: "ok",
+        rows: [row(["expired", 0, "0.00"], 2), row(["d0_30", 1, "20.00"], 2), row(["d31_60", 1, "40.00"], 2)] },
+      { key: "coverage_buckets", title_key: "dashboard.chart.title.coverage_buckets", summary_params: {}, columns: ["bucket", "products"], state: "ok",
+        rows: [["d0_7", 2], ["d8_14", 0], ["d15_30", 0], ["d31_60", 0], ["d61_plus", 0], ["no_demand", 3]] },
+      { key: "capital_by_group", title_key: "dashboard.chart.title.capital_by_group", summary_params: { part: "stock_at_cost" }, columns: cols(["group", "products", "value"]), state: "ok",
+        rows: [row(["A", 1, "40.00"], 2), row(["B", 2, "20.00"], 2), row(["C", 1, "40.00"], 2)] },
+      { key: "stock_value_history", title_key: "dashboard.chart.title.stock_value_history", summary_params: money ? {} : { reason: "hidden_by_role" }, columns: ["day", "value"],
+        state: money ? "ok" : "no_data", rows: money ? [["2026-11-08", "90.00"], ["2026-11-09", "100.00"]] : [], range_available: { from: "2026-10-01", to: "2026-11-09" } },
+    ],
+  };
+}
+
+/** The freshness answer as the BFF sends it (feature 014): every source fresh, nothing left out. */
+export function freshness(over: Record<string, unknown> = {}, refreshedAt = `${today}T08:00:00Z`) {
+  return {
+    sources: ["inventory_snapshot", "movements"].map((source) => ({ source, refreshed_at: refreshedAt, refreshed_at_original: null, origin: "erp_sync", state: "ok", stale_after_hours: 48 })),
+    excluded_records: 0, local_load_excluded: 0, review_list_link: "/calidad", ...over,
+  };
+}
+
 export async function signIn(page: Page, roles = ["viewer", "buyer"]) {
   await page.route("**/api/me", (r) => r.fulfill(json({ user_id: "buyer-1", roles, mfa_auth_time: new Date().toISOString(), csrf_token: "csrf" })));
+  await page.route("**/api/dashboard/freshness*", (r) => r.fulfill(json(freshness())));
+  await page.route("**/api/dashboard/charts*", (r) => r.fulfill(json(charts(!roles.some((x) => ["buyer", "approver", "admin"].includes(x))))));
 }

@@ -93,3 +93,27 @@ Stock valued at lot acquisition cost plus the amount of confirmed supplier order
 ## Approval to add the v2 schema to the shared contracts (T003/T005, decided by the owner on 2026-11-09)
 
 Approved by the owner in place of Agent 00, who is to be informed (a comment on Jira MMI-3). Scope: add `dashboard_indicators.v2.schema.json` to `packages/contracts/dto` and regenerate the types; `dashboard_summary.v1.schema.json` and every other contract stay untouched; any later change to a contract of another agent needs its own approval.
+
+## Status after feature 014 (2026-11-17, MMI-11)
+
+Updated in place by the completion work; evidence and decisions are in `specs/014-dashboard-analytics-completion/closure-report.md`. Rows not listed are unchanged.
+
+| # | Capability | Status now | Evidence |
+|---|------------|------------|----------|
+| A3 | Expiring value in time bands | complete | `expiry_bands` chart and the `expiry_band` drill-down (`series.py`, `drilldown.py`); bands add up to the card |
+| A5, A9 | Spend and WAPE/bias | complete | cards in the ten indicators (PR 19); failure drills in `test_dashboard_failure_drills.py` |
+| A6-A8 | Demand, forecast and capital cards | complete | cards (PR 19) plus the `demand`, `forecast` and `capital` drill-downs |
+| A11-A14 | Filters on every figure, date range | complete | `FilterSet` on cards, charts, drill-downs and exports; `test_dashboard_filter_matrix.py` |
+| A15 | Filters in the address | complete | `useDashboardFilters.ts`; live check of `/panel?proveedor=sup-a&categoria=A` |
+| A16 | Freshness | complete | `GET /dashboard/freshness`, `TrustBanner.tsx`, newer-data notice |
+| A17 | Drill-down kinds and paging | complete except `budget` | `budget` deferred: caps and spend belong to procurement-service (owner: procurement-service with Agent 00) |
+| A18 | Products shown by SKU | complete | SKU on every row and page; the drill-down JSON still carries `variant_id` for the existing product overlay (a v2 change to remove) |
+| A22 | At least five charts | complete | six charts; the seventh v2 key, `forecast_error`, is deferred (owner: forecast-service with Agent 00) |
+| A23 | Export | complete as CSV | `export.py`, audited; XLSX not offered (owner: Agent 00 with procurement-service) |
+| A24 | Viewer receives money | fixed | money removed server-side in every route, including charts, SKU page and exports (viewer refused) |
+| A25 | Local-load origin | complete for the dashboard | surrogate ids from 9,000,000 are never added to ERP figures; labelled and counted (`data_origin`) |
+| A26 | Quarantine count | complete | `excluded_records` with a link to the review list |
+| A27 | Specs only use mocks | closed | live spec `apps/web/tests/live/dashboard.spec.ts` (6 passed on the real stack) |
+| A28 | Performance | verified | numbers in the closure report |
+| A29 | Accessibility | extended | axe scans of the charts, banner, drill-down panel and SKU page |
+| A30 | String baseline | holds | the baselines did not grow |
