@@ -1,13 +1,12 @@
 """T092 (feature 018, SC-006, FR-022): recomputing quality for 5,000 products stays inside the 20 seconds a request may take.
 
-Past that limit the recompute has to move to the background (T025); this test is the signal that tells us so.
+Past that limit the recompute has to move to the background (T025); this test is the signal that tells us so. It runs on PostgreSQL in CI, where the
+one-product-at-a-time version took 30 to 33 s; the batched rebuild (T094) takes under 4 s.
 """
 
-import os
 import time
 from datetime import date, timedelta
 
-import pytest
 from conftest import auth
 from db.tables import ALL_WAREHOUSES, demand_observations, products, stock_history, variants
 from sqlalchemy import insert
@@ -30,8 +29,6 @@ def seed(engine):
                                                 for i in ids for d in days if (d.day + i) % 3 == 0])
 
 
-@pytest.mark.xfail(bool(os.environ.get("MMI_TEST_DATABASE_URL")), strict=False,
-                   reason="measured 30-33 s on PostgreSQL (about 7 s on SQLite): over the 20 s limit and the gateway's 30 s wait, so the recompute needs T025 (background job) or batched queries")
 def test_recomputing_five_thousand_products_stays_inside_the_limit(client, engine):
     seed(engine)
     started = time.monotonic()

@@ -31,6 +31,7 @@ from quality.snapshot import (
     default_period,
     list_flags,
     needs_second_factor,
+    rebuild_snapshots,
     refresh_flags,
 )
 from sqlalchemy import func, select
@@ -99,13 +100,7 @@ def build_quality_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> A
         ids = [int(v) for v in conn.execute(select(stock_history.c.variant_id).where(stock_history.c.warehouse_id == ALL_WAREHOUSES).distinct()
                                             .order_by(stock_history.c.variant_id)).scalars()]
         service_ids = set(conn.execute(select(variants.c.external_id).where(variants.c.is_service.is_(True))).scalars())
-        done = 0
-        for vid in ids:
-            if vid in service_ids:
-                continue
-            start, end = default_period(conn, vid)
-            build_snapshot(conn, vid, start, end)
-            done += 1
+        done = rebuild_snapshots(conn, [vid for vid in ids if vid not in service_ids])        # in blocks, not one set of statements per product
         segments = compute_segments(conn)
         source, run_id, eligibility, state = getattr(app.state, "forecast_eligibility", None), None, None, "not_configured"
         if source is not None:                                              # a forecast service that is down never fails the recompute: products show as pending

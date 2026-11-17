@@ -113,7 +113,7 @@ apps/web/tests/e2e/                               # Playwright, Spanish UI
 Clarified decision: a recompute or backtest may finish inside the request while it takes under 20 seconds; past that it must run in the background (FR-022, SC-006). Measured at 5,000 synthetic products:
 
 - Full-catalogue backtest (all methods, including its database writes): about 3 s on SQLite and on PostgreSQL. Inside the limit.
-- Quality recompute: about 7 s on SQLite but **30 to 33 s on PostgreSQL**, over the limit and over the 30 s the gateway waits for inventory-service. The scale test is therefore marked as an expected failure on PostgreSQL (`tests/test_quality_scale.py`) until the recompute is moved to the background (T025) or its per-product queries are batched.
+- Quality recompute: first measured at about 7 s on SQLite but **30 to 33 s on PostgreSQL** (13 statements per product), over the limit and over the 30 s the gateway waits for inventory-service. It now reads each table once per block of 500 products and writes in bulk (T094): about 4 s on PostgreSQL for 5,000 products, with the statement count fixed per block and pinned by `test_snapshot_batch.py`. The background job (T025, T055) stays a later option, with this 20 s test as its trigger.
 
 ## Phase summary
 
