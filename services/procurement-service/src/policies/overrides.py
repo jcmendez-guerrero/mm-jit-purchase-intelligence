@@ -119,8 +119,8 @@ def effective_overrides(conn: Connection) -> dict[tuple[int, str], int]:
     return out
 
 
-def queue(conn: Connection, status: str | None = "pending") -> list[Row[Any]]:
+def queue(conn: Connection, status: str | None = "pending", limit: int | None = None) -> list[Row[Any]]:
     q = select(policy_override_requests).order_by(policy_override_requests.c.requested_at.desc())
     if status:
         q = q.where(policy_override_requests.c.status == status)
-    return list(conn.execute(q).all())
+    return list(conn.execute(q.limit(limit) if limit else q).all())

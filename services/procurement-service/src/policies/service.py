@@ -223,7 +223,7 @@ def variant_known(conn: Connection, variant_id: int) -> bool:
 
 def sku_for_variant(conn: Connection, variant_id: int) -> str | None:
     r = conn.execute(select(product_refs.c.sku).where(product_refs.c.variant_id == variant_id)).first()
-    return None if r is None or r.sku is None else str(r.sku).strip()
+    return (str(r.sku).strip() or None) if r is not None and r.sku is not None else None   # blank counts as no SKU
 
 
 def product_labels(conn: Connection, variant_ids: Iterable[int]) -> dict[int, dict[str, str | None]]:

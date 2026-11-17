@@ -5,11 +5,11 @@ from decimal import Decimal
 
 import pytest
 from api import costs, policies
-from db.tables import product_refs
+from db.tables import policy_override_requests, product_refs
 from fastapi.testclient import TestClient
 from mmi_common.auth import AuthError, Principal
 from mmi_common.service import create_service_app
-from sqlalchemy import insert
+from sqlalchemy import delete, insert
 
 ROLES = {"buyer": {"viewer", "buyer"}, "viewer": {"viewer"}, "admin": {"viewer", "buyer", "approver", "admin"}}
 
@@ -161,3 +161,46 @@ def test_the_audit_filters_run_before_the_row_limit(api):
     tomorrow = (datetime.now(UTC) + timedelta(days=1)).isoformat()
     assert api.get("/policy-audit", params={"since": tomorrow}, headers=h("admin")).json()["items"] == []
     assert api.get("/policy-audit", params={"until": tomorrow}, headers=h("admin")).json()["items"] != []
+
+
+def _request_override(api):
+    r = api.post("/policy-overrides", json={"sku": "SYN-0005", "field": "min", "requested_value": 9, "reason": "motivo sintético"}, headers=h("buyer"))
+    assert r.status_code == 201, r.text
+
+
+def test_the_override_list_carries_the_sku_of_every_row(api):
+    """MMI-14 (FR-001, FR-002): the administration history shows the SKU, never only the variant id."""
+    _request_override(api)
+    rows = api.get("/policy-overrides?status=all", headers=h("admin")).json()
+    assert [row["sku"] for row in rows] == ["SYN-0005"]
+
+
+def test_a_row_whose_product_is_gone_stays_listed_with_a_null_sku(api, engine):
+    """MMI-14 (FR-004, rule 6): history is never hidden because the catalogue no longer knows the product."""
+    _request_override(api)
+    with engine.begin() as c:
+        c.execute(delete(product_refs))
+    rows = api.get("/policy-overrides?status=all", headers=h("admin")).json()
+    assert len(rows) == 1 and rows[0]["sku"] is None
+
+
+def test_a_blank_sku_is_null_not_an_empty_string(engine):
+    from policies.service import sku_for_variant
+    with engine.begin() as c:
+        c.execute(insert(product_refs).values(variant_id=6, product_id=6, sku="   ", name="Producto sintético"))
+        assert sku_for_variant(c, 6) is None and sku_for_variant(c, 404) is None
+
+
+def test_a_history_of_200_rows_lists_with_a_sku_on_each(api, engine):
+    """MMI-14 (SC-004): one catalogue read per row stays well inside the budget for the screen's history."""
+    now = datetime.now(UTC)
+    with engine.begin() as c:
+        c.execute(insert(policy_override_requests), [
+            {"id": f"00000000-0000-0000-0000-{n:012d}", "variant_id": 5, "field": "min", "recommended_value": 1, "requested_value": 2, "reason": "motivo sintético",
+             "status": "approved", "requested_by": "user-buyer", "requested_at": now, "decided_by": "user-admin", "decided_at": now, "recommendation_changed": False}
+            for n in range(200)])
+    rows = api.get("/policy-overrides?status=all", headers=h("admin")).json()
+    assert len(rows) == 200 and all(row["sku"] == "SYN-0005" for row in rows)
+    capped = api.get("/policy-overrides?status=all&limit=20", headers=h("admin")).json()      # the status screen shows 20: no work for the rest
+    assert len(capped) == 20 and all(row["sku"] == "SYN-0005" for row in capped)
+
