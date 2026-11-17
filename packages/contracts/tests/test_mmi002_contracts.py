@@ -92,6 +92,8 @@ INVALID = [
     ("stocking_setting", {"stocking_mode": "sometimes"}),
     ("policy_override_request", {"reason": ""}),
     ("policy_override_request", {"status": "auto_approved"}),
+    ("policy_override_request", {"sku": 5}),
+    ("policy_override_request", {"sku": ""}),
     ("lot_acquisition_cost", {"source": "erp_movement_price"}),
     ("seed_dataset", {"origin": "mixed"}),
     ("seed_dataset", {"file_sha256": "short"}),
@@ -166,3 +168,15 @@ def test_forecast_completed_stays_additive():
     assert errors("events", "forecast.completed", {**old, "dataset_version_id": None}, defs_payload=True) == []
     assert errors("events", "forecast.completed", {**old, "dataset_version_id": "not-a-uuid"}, defs_payload=True) == []  # format is advisory
     assert errors("events", "forecast.completed", {**old, "parameter_version_ids": "x"}, defs_payload=True)
+
+
+@pytest.mark.parametrize("sku", ["SYN-0005", None])
+def test_policy_override_request_accepts_a_sku_or_null(sku):
+    assert errors("dto", "policy_override_request", {**VALID["policy_override_request"], "sku": sku}) == []
+
+
+def test_policy_override_request_without_sku_stays_valid_for_older_producers():
+    """MMI-14 (FR-006, FR-008): the field is additive, so a row that lacks it is accepted."""
+    assert "sku" not in VALID["policy_override_request"]
+    assert errors("dto", "policy_override_request", VALID["policy_override_request"]) == []
+
