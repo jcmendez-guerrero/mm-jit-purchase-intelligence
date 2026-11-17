@@ -319,9 +319,9 @@ def build_router(app: FastAPI) -> APIRouter:
         return {"revision": rev}
 
     @router.get("/policy-overrides")
-    def list_overrides(status: str | None = Query(default="pending", pattern="^(pending|approved|rejected|reverted|all)$"), conn: Connection = Depends(conn_dep),
-                       _p: Any = Depends(require())) -> list[dict[str, Any]]:
-        return [override_json(conn, r) for r in queue(conn, None if status == "all" else status)]
+    def list_overrides(status: str | None = Query(default="pending", pattern="^(pending|approved|rejected|reverted|all)$"), limit: int | None = Query(default=None, ge=1, le=500),
+                       conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
+        return [override_json(conn, r) for r in queue(conn, None if status == "all" else status, limit)]
 
     @router.get("/policy-overrides/recommendation/{sku}")
     def recommendation(sku: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
