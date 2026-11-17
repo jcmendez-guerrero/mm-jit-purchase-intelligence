@@ -13,6 +13,7 @@
 ### Session 2026-11-16
 
 - Q: Should `sku` always be present in a change or line, or may it be omitted? → A: Always present, `null` when unresolved; the schema marks it required and a missing field is rejected. If the frozen-baseline gate refuses a required field in v1, the contract moves to v2 (decided through Agent 00).
+- Superseded 2026-11-17 (Agent 00 review of PR 29, ADR-021): `sku` is optional and nullable in the v1 schemas, because v1 allows only added optional properties. The service still always sends it, `null` when unresolved.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -86,7 +87,7 @@ The owner of the procurement service updates the shared contract first, so consu
 - **FR-005**: Rows with a null SKU MUST still be listed, with a Spanish "not applicable" marker, so no change or line is hidden.
 - **FR-006**: The SKU MUST be resolved by the procurement service from data it already keeps; the gateway only passes the field through and does no resolution or arithmetic (ADR-023).
 - **FR-007**: Scenarios created before this change MUST show SKUs when opened, without being recomputed and without changing their result hash, totals, quantities or status.
-- **FR-008**: The JSON Schema for scenario changes and result lines MUST be updated before any code, with `sku` required and nullable (always present, `null` when unresolved), and the generated types and contract tests MUST cover a SKU, a null SKU and a missing field (rejected).
+- **FR-008**: The JSON Schema for scenario changes and result lines MUST be updated before any code, with `sku` as an optional, nullable property (ADR-021: v1 allows only added optional properties), and the generated types and contract tests MUST cover a SKU, a null SKU and an omitted `sku` (all accepted) and an empty string (rejected). The service MUST always send `sku`, `null` when unresolved.
 - **FR-009**: The scenarios entry (2 places) MUST be removed from the web variant-id baseline, and the test that scans for variant-id display MUST keep passing.
 - **FR-010**: The change MUST be additive at the payload level: consumers that ignore unknown fields keep working, and the existing variant identifier stays in the payload for API use.
 - **FR-011**: Resolving SKUs MUST NOT add a request to Siweb, store new personal or free-text data, or alter the optimisation, its inputs or its outputs other than the added field.
@@ -107,7 +108,7 @@ The owner of the procurement service updates the shared contract first, so consu
 - **SC-002**: 0 occurrences of the variant id in the rendered scenarios screen, verified by the automated display test with no remaining exception for this screen.
 - **SC-003**: 100% of changes and lines without a resolvable SKU remain visible with the "not applicable" marker; the number of rows shown equals the number of rows in the scenario.
 - **SC-004**: Opening a scenario of 200 lines takes no longer than before the change plus 0.5 seconds.
-- **SC-005**: The contract gate and all contract tests pass, including the three cases in FR-008; the result hash of an unchanged scenario is identical before and after.
+- **SC-005**: The contract gate and all contract tests pass, including the cases in FR-008; the result hash of an unchanged scenario is identical before and after.
 
 ## Assumptions
 
@@ -116,7 +117,7 @@ The owner of the procurement service updates the shared contract first, so consu
 - **A3**: The SKU shown is the current catalogue SKU at read time, not a snapshot taken when the scenario was created; this also makes older scenarios work (FR-007).
 - **A4**: Only scenario changes and result lines are in scope. The policy history (MMI-14), the product-supplier terms route (MMI-16) and the data-quality items (MMI-13) are separate features.
 - **A5**: Roles, MFA, audit behaviour and scenario computation are unchanged; the new field is read-only presentation data.
-- **A6**: The new field is required and nullable: null when unresolved, a string otherwise. If the frozen-baseline gate does not accept a required field in v1, the contract version is bumped to v2 per the integration README.
+- **A6**: The new field is optional and nullable in the schema (ADR-021) but always sent by the service: null when unresolved, a string otherwise. Baselines are refreshed in the same PR.
 - **A7**: Tests use synthetic fixtures from `packages/testing` only.
 - **A8**: The related web task (T054 of feature 012) waits for this contract and removes the baseline entry; the user-facing screen change is part of this feature's done criteria per the Jira ticket.
 - **A9**: The scenario export (CSV/Excel) is out of scope: it already has a SKU column and keeps its existing columns.

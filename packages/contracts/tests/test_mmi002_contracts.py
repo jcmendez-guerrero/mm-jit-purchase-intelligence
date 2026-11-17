@@ -75,10 +75,12 @@ VALID = {
                      {"variant_id": 9001, "sku": "SYN-0001", "supplier_before": "supplier-a", "supplier_after": "supplier-b",
                       "qty_before": 6, "qty_after": 6, "reasons": ["supplier_disabled"]},
                      {"variant_id": 9002, "sku": None, "supplier_before": None, "supplier_after": "supplier-b",
-                      "qty_before": 0, "qty_after": 3, "reasons": ["rebalanced_by_total_cost"]}]}},
+                      "qty_before": 0, "qty_after": 3, "reasons": ["rebalanced_by_total_cost"]},
+                     {"variant_id": 9003, "supplier_before": None, "supplier_after": None, "qty_before": 0, "qty_after": 1, "reasons": []}]}},
     "scenario_result": {"scenario_id": U, "supplier_id": "supplier-a", "order_total": M,
                         "lines": [{"variant_id": 9001, "sku": "SYN-0001", "quantity": 6, "unit_cost": M},
-                                  {"variant_id": 9002, "sku": None, "quantity": 2, "unit_cost": M}],
+                                  {"variant_id": 9002, "sku": None, "quantity": 2, "unit_cost": M},
+                                  {"variant_id": 9003, "quantity": 1, "unit_cost": M}],      # sku is optional in v1 (ADR-021): an older producer may omit it
                         "binding_constraints": [{"key": "min_order_value"}]},
     "scenario_sensitivity": {"scenario_id": U, "constraint_key": "min_order_value", "delta": "+10%", "cost_impact": M},
     "dashboard_summary": {"refreshed_at": "2026-11-05T10:00:00Z", "cards": [
@@ -104,9 +106,7 @@ INVALID = [
     ("seed_mapping", {"column_map": {"Notas": "notes"}}),
     ("forecast_accuracy", {"metric": "mape"}),
     ("scenario", {"status": "done"}),
-    ("scenario", {"summary": {"changes": [{"variant_id": 9001, "supplier_before": None, "supplier_after": None, "qty_before": 0, "qty_after": 1, "reasons": []}]}}),
     ("scenario", {"summary": {"changes": [{"variant_id": 9001, "sku": "", "supplier_before": None, "supplier_after": None, "qty_before": 0, "qty_after": 1, "reasons": []}]}}),
-    ("scenario_result", {"lines": [{"variant_id": 9001, "quantity": 6, "unit_cost": M}]}),
     ("scenario_result", {"lines": [{"variant_id": 9001, "sku": "", "quantity": 6, "unit_cost": M}]}),
     ("dashboard_summary", {"cards": [{"key": "pvp_total", "value": "1", "basis": "x"}]}),
 ]

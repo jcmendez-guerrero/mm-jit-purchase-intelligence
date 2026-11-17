@@ -32,3 +32,5 @@
 
 - R3 settled without v2: `python -m gates run` accepts `sku` as required in the line and change items (the gate checks required fields only at the top level of each schema), so the schemas stay at v1 and the baseline is unchanged. Agent 00 should still confirm at review.
 - Not done here: scenario list items, the "clinically critical variants" line of an infeasible scenario (`scenarios.critical` shows variant ids) and the manual checks T028 and T029. The critical line is a third place that still shows ids; it needs its own change (schema field for the SKUs, or the SKU list from procurement).
+
+- Superseded 2026-11-17 by Agent 00 review of PR 29: `sku` is optional in the v1 schemas (ADR-021), the contracts gate only compares top-level `required`, and the baselines were refreshed. The service still always sends it.

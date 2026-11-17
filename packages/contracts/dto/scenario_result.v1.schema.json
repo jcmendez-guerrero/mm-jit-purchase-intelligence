@@ -19,7 +19,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["variant_id", "sku", "quantity", "unit_cost"],
+        "required": ["variant_id", "quantity", "unit_cost"],
         "properties": {
           "variant_id": {
             "type": "integer",

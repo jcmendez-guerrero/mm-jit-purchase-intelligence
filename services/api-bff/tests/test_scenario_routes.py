@@ -75,3 +75,13 @@ def test_the_scenario_read_passes_the_sku_through_untouched_and_the_gateway_adds
     proc.forward.return_value = body
     got = call("GET", "/api/scenarios/s1", headers_for("v", ["viewer"]), proc).json()
     assert got == body
+
+
+def test_the_browser_never_receives_the_critical_variant_ids_of_an_infeasible_scenario(role_store):
+    """Rule 5 (MMI-15): procurement sends ids and SKUs; the gateway keeps the SKUs on read and on create."""
+    body = {"id": "s1", "summary": {"infeasible": {"over_by": "5.00", "clinical_critical_variants": [9001], "clinical_critical_skus": ["SYN-9001"]}}}
+    for method, path, extra in (("GET", "/api/scenarios/s1", {}), ("POST", "/api/scenarios", {"json": {"name": "x"}})):
+        proc = AsyncMock()
+        proc.forward.return_value = {**body, "summary": {"infeasible": dict(body["summary"]["infeasible"])}}
+        res = call(method, path, {**headers_for("b", BUYER), "Idempotency-Key": "abcdefgh1"}, proc, **extra).json()
+        assert res["summary"]["infeasible"] == {"over_by": "5.00", "clinical_critical_skus": ["SYN-9001"]}

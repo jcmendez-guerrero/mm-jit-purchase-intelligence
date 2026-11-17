@@ -11,7 +11,7 @@ const SUMMARY = {
   delta_total: "100.0000",
   changes: [{ variant_id: 9001, sku: "SYN-9001", supplier_before: "s1", supplier_after: "s2", qty_before: 12, qty_after: 12, reasons: ["supplier_disabled"] }],
   binding: [{ key: "min_order:s2", params: { status: "topped_up" } }],
-  infeasible: { over_by: "50.0000", clinical_critical_variants: [9001] },
+  infeasible: { over_by: "50.0000", clinical_critical_skus: ["SYN-9001"] },
   notes: [],
 };
 const DETAIL = {

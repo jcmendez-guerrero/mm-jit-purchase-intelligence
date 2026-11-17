@@ -10,7 +10,7 @@ const detail = {
   created_at: "2026-11-16T10:00:00Z", sensitivity: [],
   summary: {
     baseline: { total: "100.00", over_budget: "0.00", lines: 2 }, scenario: { total: "102.50", over_budget: "0.00", lines: 2, budget: null, utilisation: null },
-    delta_total: "2.50", binding: [], infeasible: { over_by: "5.00", clinical_critical_variants: [9001, 9003], clinical_critical_skus: ["SYN-9001", null] }, notes: [],
+    delta_total: "2.50", binding: [], infeasible: { over_by: "5.00", clinical_critical_skus: ["SYN-9001", null] }, notes: [],
     changes: [
       { variant_id: 9001, sku: "SYN-9001", supplier_before: "s1", supplier_after: "s2", qty_before: 12, qty_after: 12, reasons: ["supplier_disabled"] },
       { variant_id: 9002, sku: null, name: "Producto sin código", supplier_before: "s1", supplier_after: "s2", qty_before: 6, qty_after: 6, reasons: ["supplier_disabled"] },

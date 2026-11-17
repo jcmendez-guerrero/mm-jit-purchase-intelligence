@@ -209,7 +209,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
           {s.infeasible && (
             <div role="alert">
               <p>{t("scenarios.infeasible", { over: formatCurrencyEUR(s.infeasible.over_by) })}</p>
-              {s.infeasible.clinical_critical_variants.length > 0 && <p>{t("scenarios.critical", { ids: (s.infeasible.clinical_critical_skus ?? []).map((k) => k ?? t("common.no_sku")).join(", ") })}</p>}
+              {s.infeasible.clinical_critical_skus.length > 0 && <p>{t("scenarios.critical", { ids: s.infeasible.clinical_critical_skus.map((k) => k ?? t("common.no_sku")).join(", ") })}</p>}
             </div>
           )}
 

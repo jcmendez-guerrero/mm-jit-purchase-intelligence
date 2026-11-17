@@ -16,7 +16,7 @@ export interface ScenarioResult {
     /**
      * Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.
      */
-    sku: string | null;
+    sku?: string | null;
     /**
      * Catalogue product name at read time; lets rows without a SKU be told apart.
      */

@@ -37,7 +37,7 @@ export interface Scenario {
       /**
        * Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.
        */
-      sku: string | null;
+      sku?: string | null;
       supplier_before: string | null;
       supplier_after: string | null;
       qty_before: number;

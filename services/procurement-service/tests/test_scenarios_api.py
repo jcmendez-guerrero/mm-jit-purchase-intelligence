@@ -186,4 +186,5 @@ def test_the_real_scenario_response_matches_the_shared_scenario_schema(api, engi
     got = api.get(f"/scenarios/{moved['id']}", headers=h("viewer")).json()["summary"]
     assert got["changes"] and any(c["sku"] == "SYN-0001" for c in got["changes"])               # the check ran on real changes, not an empty list
     assert api.get(f"/scenarios/{tight['id']}", headers=h("viewer")).json()["summary"]["infeasible"]["clinical_critical_skus"] == []
-    assert "sku" in schema["properties"]["summary"]["properties"]["changes"]["items"]["required"]       # the contract still demands it
+    item = schema["properties"]["summary"]["properties"]["changes"]["items"]
+    assert "sku" in item["properties"] and "sku" not in item["required"]       # ADR-021: only added optional properties in v1; the service still always sends it

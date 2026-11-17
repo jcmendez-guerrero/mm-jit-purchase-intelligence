@@ -44,7 +44,7 @@ class Change(BaseModel):
             description='Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.',
             min_length=1,
         ),
-    ]
+    ] = None
     supplier_before: str | None
     supplier_after: str | None
     qty_before: Annotated[int, Field(ge=0)]

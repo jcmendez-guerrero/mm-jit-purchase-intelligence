@@ -451,7 +451,7 @@ export interface ScenarioSummary {
   delta_total: string;
   changes: Array<{ variant_id: number; sku: string | null; name?: string | null; supplier_before: string | null; supplier_after: string | null; qty_before: number; qty_after: number; reasons: string[] }>;
   binding: Array<{ key: string; params: Record<string, string> }>;
-  infeasible: { over_by: string; clinical_critical_variants: number[]; clinical_critical_skus?: Array<string | null> } | null;
+  infeasible: { over_by: string; clinical_critical_skus: Array<string | null> } | null;
   notes: string[];
 }
 

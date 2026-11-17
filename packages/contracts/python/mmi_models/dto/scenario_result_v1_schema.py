@@ -23,7 +23,7 @@ class Line(BaseModel):
             description='Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.',
             min_length=1,
         ),
-    ]
+    ] = None
     name: Annotated[
         str | None,
         Field(
