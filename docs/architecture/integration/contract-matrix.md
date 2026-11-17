@@ -38,6 +38,7 @@ The gateway is `services/api-bff`.
 | `policy_set` | dto | v1 | procurement-service | - | frozen |
 | `product_supplier_terms` | dto | v1 | procurement-service | - | frozen |
 | `proposal` | dto | v1 | procurement-service | - | frozen |
+| `proposal_detail` | dto | v1 | procurement-service | web | frozen |
 | `proposal_line` | dto | v1 | procurement-service | - | frozen |
 | `scenario` | dto | v1 | procurement-service | - | frozen |
 | `scenario_result` | dto | v1 | procurement-service | - | frozen |
