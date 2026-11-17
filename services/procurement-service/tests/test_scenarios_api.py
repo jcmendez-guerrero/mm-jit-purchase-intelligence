@@ -130,11 +130,11 @@ def test_a_scenario_stored_before_the_sku_existed_gets_it_on_read_without_changi
 
 
 def test_a_surrogate_id_from_a_local_load_resolves_to_its_sku_like_any_other(api, engine):
-    from policies.service import skus_for_variants
+    from policies.service import product_labels
 
     _ref(engine, 9_000_001, "SYN-9001")
     with engine.begin() as c:
-        assert skus_for_variants(c, [9_000_001]) == {9_000_001: "SYN-9001"}
+        assert product_labels(c, [9_000_001])[9_000_001]["sku"] == "SYN-9001"
 
 
 def test_an_infeasible_scenario_still_carries_a_sku_on_every_change_and_line(api, engine):

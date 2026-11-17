@@ -236,10 +236,6 @@ def product_labels(conn: Connection, variant_ids: Iterable[int]) -> dict[int, di
     return out
 
 
-def skus_for_variants(conn: Connection, variant_ids: Iterable[int]) -> dict[int, str | None]:
-    return {v: lab["sku"] for v, lab in product_labels(conn, variant_ids).items()}
-
-
 def history(conn: Connection, scope: str, key: str) -> list[dict[str, Any]]:
     rows = conn.execute(select(policy_sets).where(policy_sets.c.scope == scope, policy_sets.c.key == key).order_by(policy_sets.c.revision)).all()
     return [{"revision": r.revision, "valid_from": r.valid_from.isoformat(), "changed_by": r.changed_by,

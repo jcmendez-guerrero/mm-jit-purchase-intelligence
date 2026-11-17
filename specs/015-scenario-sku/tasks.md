@@ -109,3 +109,9 @@ description: "Tasks for SKU in scenario changes and result lines"
 ## Phase 8: Convergence
 
 - [X] T035 Record the added `name` (changes and lines) and `summary.infeasible.clinical_critical_skus` in `specs/015-scenario-sku/data-model.md` and `specs/015-scenario-sku/contracts/scenario-sku.delta.md`, so the plan documents match the code and schemas (unrequested)
+
+## Phase 9: Convergence
+
+- [X] T036 Make the scenario export reuse the SKU and name that `get()` already puts on each line: in `services/procurement-service/src/scenarios/store.py` `export_rows`, read `ln["sku"]` and `ln["name"]` and delete the `select(product_refs)` lookup; keep the export columns unchanged and cover it in `services/procurement-service/tests/test_scenarios_export.py` per plan: R1, one lookup per read (partial)
+- [X] T037 Delete the unused `skus_for_variants` from `services/procurement-service/src/policies/service.py` and point `services/procurement-service/tests/test_policy_safety_011.py` and `services/procurement-service/tests/test_scenarios_api.py` at `product_labels` (unrequested)
+- [X] T038 Reword the `lines` description in `packages/contracts/dto/scenario_result.v1.schema.json` to say only the response `summary` is validated against the schema in `services/procurement-service/tests/test_scenarios_api.py`; regenerate the models and keep Prettier clean, per FR-008 (partial)

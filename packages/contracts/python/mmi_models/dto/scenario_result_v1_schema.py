@@ -58,7 +58,7 @@ class ScenarioResult(BaseModel):
     lines: Annotated[
         list[Line],
         Field(
-            description='Contract shape of an order line. The procurement read model GET /scenarios/{id} sends qty, line_total and clinical_critical instead of quantity, so only sku and name are shared with it; the response is checked in services/procurement-service/tests/test_scenarios_api.py.'
+            description='Contract shape of an order line. The procurement read model GET /scenarios/{id} sends qty, line_total and clinical_critical instead of quantity, so only sku and name are shared with it. Only the response summary is validated against a schema, in services/procurement-service/tests/test_scenarios_api.py; the lines are checked field by field.'
         ),
     ]
     order_total: money_v1_schema.Money

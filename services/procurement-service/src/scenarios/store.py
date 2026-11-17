@@ -9,7 +9,7 @@ from decimal import Decimal
 from typing import Any
 
 from audit.chain import append as audit
-from db.tables import product_refs, proposals, scenario_results, scenario_sensitivity, scenarios, suppliers
+from db.tables import proposals, scenario_results, scenario_sensitivity, scenarios, suppliers
 from mmi_common.time import get_correlation_id, set_correlation_id
 from policies.service import product_labels
 from proposals.export import export_csv, export_xlsx
@@ -167,15 +167,13 @@ def promote(conn: Connection, sid: str, base: ProposalInputs, actor: str, week: 
 def export_rows(conn: Connection, sid: str) -> list[list[Any]]:
     """Same columns as the proposal export, so the buyer reads both the same way."""
     s = get(conn, sid)
-    ref = {r.variant_id: r for r in conn.execute(select(product_refs)).all()}
     out: list[list[Any]] = []
     for r in s["results"]:
         eta = date.fromisoformat(r["expected_delivery"]) if r["expected_delivery"] else None
         for ln in r["lines"]:
             if ln["qty"] <= 0:
                 continue
-            p = ref.get(ln["variant_id"])
-            out.append([r["supplier_name"] or r["supplier_id"], (p.sku if p else None) or "", (p.name if p else None) or "", ln["variant_id"], ln["qty"],
+            out.append([r["supplier_name"] or r["supplier_id"], ln["sku"] or "", ln["name"] or "", ln["variant_id"], ln["qty"],
                         Decimal(ln["unit_cost"]), Decimal(ln["line_total"]), eta])
     return out
 
