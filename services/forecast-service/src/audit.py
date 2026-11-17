@@ -20,7 +20,7 @@ from sqlalchemy.exc import IntegrityError
 
 GENESIS = "0" * 64
 
-# feature 012: action names for the audit chain (actor, time and versions only; never free text)
+# feature 018: action names for the audit chain (actor, time and versions only; never free text)
 BACKTEST_STARTED = "forecast.backtest_started"
 BACKTEST_COMPLETED = "forecast.backtest_completed"
 RETENTION_PURGED = "forecast.retention_purged"

@@ -1,4 +1,4 @@
-"""Retention job (T066, feature 012): removes explanations and backtest results older than five years. Run on a schedule, scale to zero.
+"""Retention job (T066, feature 018): removes explanations and backtest results older than five years. Run on a schedule, scale to zero.
 
     python -m retention          one pass, exit code 0
 """

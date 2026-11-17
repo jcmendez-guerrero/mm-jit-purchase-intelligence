@@ -1,4 +1,4 @@
-"""T017: quality summary, anomaly decisions and recompute endpoints (feature 012; roles, idempotency, audit, error codes)."""
+"""T017: quality summary, anomaly decisions and recompute endpoints (feature 018; roles, idempotency, audit, error codes)."""
 
 from datetime import date, timedelta
 
@@ -20,7 +20,7 @@ FROM, TO = "2026-01-01", "2026-04-30"          # the 120 fixture days
 
 
 def seed_case(engine, name):
-    """Loads one quality fixture (feature 012, packages/testing) into the inventory tables; returns its SKU and variant id."""
+    """Loads one quality fixture (feature 018, packages/testing) into the inventory tables; returns its SKU and variant id."""
     s = qf.build_series(name)
     vid, start = s["variant_id"], date.fromisoformat(s["start_day"])
     days = [start + timedelta(days=i) for i in range(len(s["demand"]))]

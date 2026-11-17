@@ -1,4 +1,4 @@
-"""T013: the one place that decides a demand value's provenance label (feature 012, FR-014).
+"""T013: the one place that decides a demand value's provenance label (feature 018, FR-014).
 
 Only demand collected from the ERP, under a real Siweb variant id, is ``observed``. Seed, locally loaded (feature 004,
 surrogate ids from 9,000,000), imputed and unknown origins are never ``observed``: an unknown origin fails safe to

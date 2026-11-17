@@ -1,4 +1,4 @@
-"""T066: removing this feature's derived quality records once they are five years old, never before (feature 012, FR-025).
+"""T066: removing this feature's derived quality records once they are five years old, never before (feature 018, FR-025).
 
 Only ``data_quality_snapshot`` and ``anomaly_flags`` are touched, only rows older than the retention period (a flag is as old as its latest decision), and a removal is audited with its counts.
 ERP-derived data, demand, stock and every other table are never involved. Running it again removes nothing more.

@@ -1,4 +1,4 @@
-"""T066: removing this feature's derived forecast records once they are five years old, never before (feature 012, FR-025).
+"""T066: removing this feature's derived forecast records once they are five years old, never before (feature 018, FR-025).
 
 Only ``forecast_explanations`` (aged by the start of their run), ``product_backtest`` and finished ``backtest_jobs`` are touched. Runs, forecast
 values and every other table are left alone, and the removal is audited with its counts. Running it again removes nothing more.

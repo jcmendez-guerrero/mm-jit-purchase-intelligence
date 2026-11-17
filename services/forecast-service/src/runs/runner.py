@@ -124,7 +124,7 @@ def run_forecast_conn(conn: Connection, source: SeriesSource, writer: BlobWriter
     for s in series:
         d = decide(s.get("segment"), adopted)
         seed_days = len(s["demand"]) - original_days.get(s["variant_id"], len(s["demand"])) if s["variant_id"] in report.used else 0
-        if d.eligible and assess(s, seed_days).level == "baja":      # feature 012: too little trust to publish a figure, so it goes out as min/max for the buyer to confirm
+        if d.eligible and assess(s, seed_days).level == "baja":      # feature 018: too little trust to publish a figure, so it goes out as min/max for the buyer to confirm
             d = Decision(FALLBACK, False, ("low_confidence",))
         history = prepare_history(s["demand"], s["censored"])
         level = float(s["service_level"])

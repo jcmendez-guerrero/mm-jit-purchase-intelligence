@@ -2,7 +2,7 @@
 
 **Branch**: `claude/speckit-mmi-4-spec-2232c0` | **Date**: 2026-11-13 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/012-data-quality-forecast-intelligence/spec.md`
+**Input**: Feature specification from `/specs/018-data-quality-forecast-intelligence/spec.md`
 
 ## Summary
 
@@ -47,7 +47,7 @@ No violations; Complexity Tracking is empty.
 ### Documentation (this feature)
 
 ```text
-specs/012-data-quality-forecast-intelligence/
+specs/018-data-quality-forecast-intelligence/
 ├── plan.md
 ├── research.md
 ├── data-model.md

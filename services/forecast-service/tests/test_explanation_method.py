@@ -1,4 +1,4 @@
-"""T029: the explanation of one forecast - class, method and why, eligibility, censored days, provenance (feature 012, FR-008 to FR-010, FR-013)."""
+"""T029: the explanation of one forecast - class, method and why, eligibility, censored days, provenance (feature 018, FR-008 to FR-010, FR-013)."""
 
 from policies.estimators import BASELINE
 from policies.fallback import NAME as FALLBACK

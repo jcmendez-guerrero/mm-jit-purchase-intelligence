@@ -6,7 +6,7 @@ param environmentId string
 param jobPrefix string
 param registryServer string
 param workerCron string
-@description('Weekly, Sunday 03:00 UTC: removes derived quality records older than five years (feature 012, FR-025)')
+@description('Weekly, Sunday 03:00 UTC: removes derived quality records older than five years (feature 018, FR-025)')
 param retentionCron string = '0 3 * * 0'
 @description('[{ key, dir, image, identityId, env, secrets, migrate, work, retention? }]')
 param services array

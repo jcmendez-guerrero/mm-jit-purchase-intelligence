@@ -239,7 +239,7 @@ def _retention(service: str, role: str, port: int) -> subprocess.CompletedProces
 
 
 def test_t085_the_retention_commands_run_as_the_service_roles_and_remove_only_old_rows(pg_port):
-    """T085 (feature 012, FR-025): the service roles may delete their own derived rows, old ones go, recent ones stay, and the removal is audited."""
+    """T085 (feature 018, FR-025): the service roles may delete their own derived rows, old ones go, recent ones stay, and the removal is audited."""
     alembic("inventory-service", "inventory_svc", pg_port, "upgrade", "head")
     alembic("forecast-service", "forecasting_svc", pg_port, "upgrade", "head")
     snapshot = ("insert into data_quality_snapshot (variant_id, period_start, period_end, days_in_period, days_with_data, coverage_ratio, gap_days, rejected_count, quarantined_count, "

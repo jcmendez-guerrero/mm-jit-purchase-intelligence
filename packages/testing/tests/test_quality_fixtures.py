@@ -1,4 +1,4 @@
-"""T003: the quality fixtures are synthetic, deterministic and carry the cases the feature 012 tests need."""
+"""T003: the quality fixtures are synthetic, deterministic and carry the cases the feature 018 tests need."""
 
 import quality_fixtures as qf
 

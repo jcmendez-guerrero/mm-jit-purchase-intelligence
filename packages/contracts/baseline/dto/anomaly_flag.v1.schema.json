@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mmi/dto/anomaly_flag.v1",
   "title": "AnomalyFlag",
-  "description": "A day flagged as anomalous by a deterministic rule, with the buyer's decision (feature 012). The original value is never edited. The decision request carries an enumerated reason code, never free text.",
+  "description": "A day flagged as anomalous by a deterministic rule, with the buyer's decision (feature 018). The original value is never edited. The decision request carries an enumerated reason code, never free text.",
   "type": "object",
   "additionalProperties": false,
   "required": ["sku", "day", "rule_id", "original_value", "decision"],

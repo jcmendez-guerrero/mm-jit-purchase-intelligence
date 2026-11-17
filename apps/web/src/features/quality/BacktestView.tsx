@@ -7,7 +7,7 @@ import { FormField } from "../../ui/FormField";
 import { ScreenState } from "../../ui/ScreenState";
 
 /**
- * How well the method chosen for a product would have forecast past periods, against the simple baseline (feature 012, FR-016, FR-018).
+ * How well the method chosen for a product would have forecast past periods, against the simple baseline (feature 018, FR-016, FR-018).
  * Reading a result is open to everyone; starting a run is for buyers and admins. A run never changes a forecast, proposal or stock figure.
  */
 export const BacktestView: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {

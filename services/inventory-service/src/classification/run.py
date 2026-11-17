@@ -43,7 +43,7 @@ def load_series(conn: Connection, through_day: date | None = None) -> list[Serie
     pending = set(conn.execute(select(stock_movements.c.variant_id).where(stock_movements.c.quarantined).distinct()).scalars())
     services = set(conn.execute(select(variants.c.external_id).where(variants.c.is_service.is_(True))).scalars())   # FR-036: never classified
     out: list[SeriesInput] = []
-    dropped = excluded_days(conn)               # feature 012: days a buyer excluded read as censored; demand rows stay untouched
+    dropped = excluded_days(conn)               # feature 018: days a buyer excluded read as censored; demand rows stay untouched
     for vid, per_day in hist.items():
         if vid in services:
             continue
@@ -65,7 +65,7 @@ def compute_segments(conn: Connection, cfg: ClassificationConfig | None = None, 
     abc = assign_abc({s.variant_id: series_value(s) for s in series}, cfg)
     run_id, stamp = str(uuid.uuid4()), now or utc_now()
     conn.execute(delete(product_segments))
-    config_id = version_id(cfg) if cfg is not None else current_config()[1]        # feature 012: the thresholds behind every class are recorded
+    config_id = version_id(cfg) if cfg is not None else current_config()[1]        # feature 018: the thresholds behind every class are recorded
     rows = []
     for s in series:
         seg = classify_series(s, abc[s.variant_id], cfg)

@@ -147,7 +147,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
                 "variant_id": s.variant_id, "sku": prod[s.variant_id].sku if s.variant_id in prod else None,   # additive (MMI-7): seed import resolves SKU here
                 "product_id": pid, "price": str(s.price), "start_day": s.days[0].isoformat(),
                 "demand": s.demand, "censored": s.censored,
-                "provenance": provenance("erp_sync", s.variant_id),   # feature 012: only ERP-collected demand under a real id is observed
+                "provenance": provenance("erp_sync", s.variant_id),   # feature 018: only ERP-collected demand under a real id is observed
                 "anomaly_excluded_days": len(excluded.get(s.variant_id, ())),
                 "segment": {"abc": seg.abc, "xyz": seg.xyz, "pattern": seg.pattern, "forecast_eligible": seg.forecast_eligible,
                             "reasons": [r for r in seg.reason.split(",") if r], "config_version_id": seg.config_version_id} if seg else None,

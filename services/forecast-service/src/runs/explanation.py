@@ -1,4 +1,4 @@
-"""T034: why a forecast is what it is - class, method and the reason for it, eligibility, censored days and provenance (feature 012).
+"""T034: why a forecast is what it is - class, method and the reason for it, eligibility, censored days and provenance (feature 018).
 
 Pure: it turns one series, the eligibility decision and the run's versions into the row stored in ``forecast_explanations``. The same
 input always gives the same row. A product that is not eligible gets no forecast figure, only the fallback and its reason codes.

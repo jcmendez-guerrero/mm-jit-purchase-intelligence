@@ -5,7 +5,7 @@ import { formatDate, formatNumber } from "../../i18n/formatters";
 import { ScreenState } from "../../ui/ScreenState";
 
 /**
- * Why this product's forecast is what it is (feature 012, FR-009, FR-010): the versions it came from, the demand class, the method and the
+ * Why this product's forecast is what it is (feature 018, FR-009, FR-010): the versions it came from, the demand class, the method and the
  * reason for it, eligibility, the days left out, and where the data came from. A product with no forecast shows no figure, only the fallback.
  */
 export const ExplanationPanel: React.FC<{ sku: string }> = ({ sku }) => {

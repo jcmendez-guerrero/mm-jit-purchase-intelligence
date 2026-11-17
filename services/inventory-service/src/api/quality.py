@@ -1,4 +1,4 @@
-"""T024, T025: quality summary, anomaly decisions and recompute (feature 012). Called by api-bff with a service identity.
+"""T024, T025: quality summary, anomaly decisions and recompute (feature 018). Called by api-bff with a service identity.
 
 Products are addressed by SKU; the Siweb variant id stays inside this service. Reads need any signed-in role. Anomaly decisions and
 recompute need a buyer or admin; the rule that excluding a day, or reversing an exclusion, needs a fresh second factor lives here; the BFF only reports whether the session has one (header X-Fresh-Second-Factor).

@@ -20,7 +20,7 @@ from sqlalchemy.exc import IntegrityError
 
 GENESIS = "0" * 64
 
-# feature 012: action names for the audit chain (actor, time and versions only; never free text)
+# feature 018: action names for the audit chain (actor, time and versions only; never free text)
 ANOMALY_DECIDED = "quality.anomaly_decided"
 CLASSES_RECOMPUTED = "quality.classes_recomputed"
 RETENTION_PURGED = "quality.retention_purged"

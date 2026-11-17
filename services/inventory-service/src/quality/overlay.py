@@ -1,4 +1,4 @@
-"""T023: buyer-excluded anomaly days, applied as an overlay on the demand series (feature 012, FR-004, research R3).
+"""T023: buyer-excluded anomaly days, applied as an overlay on the demand series (feature 018, FR-004, research R3).
 
 An excluded day is reported as censored in the series export, so the forecast leaves it out of what it learns from.
 The ERP-derived demand rows are never edited or deleted: removing the decision restores the day exactly.

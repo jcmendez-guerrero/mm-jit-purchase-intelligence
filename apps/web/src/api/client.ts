@@ -704,7 +704,7 @@ export function errorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-/** Per-product data-quality summary (feature 012); reasons are codes, never sentences. */
+/** Per-product data-quality summary (feature 018); reasons are codes, never sentences. */
 export interface QualitySummaryData {
   sku: string;
   period_start: string;
@@ -736,7 +736,7 @@ export interface AnomalyFlag {
   reason_code: string | null;
 }
 
-/** Why a forecast is what it is (feature 012): versions, class, method and the reason for it, eligibility, provenance. SKU only. */
+/** Why a forecast is what it is (feature 018): versions, class, method and the reason for it, eligibility, provenance. SKU only. */
 export interface ForecastExplanation {
   run_id: string;
   sku: string;
@@ -763,7 +763,7 @@ export interface ForecastExplanation {
   eligibility_reason_codes: string[];
 }
 
-/** How well one product's method would have forecast past periods against the simple baseline (feature 012). SKU only; ratios as decimal strings. */
+/** How well one product's method would have forecast past periods against the simple baseline (feature 018). SKU only; ratios as decimal strings. */
 export interface ProductBacktest {
   backtest_run_id: string;
   sku: string;
@@ -779,7 +779,7 @@ export interface ProductBacktest {
   created_at: string;
 }
 
-/** The catalogue-wide quality distribution (feature 012): every bucket total equals the active product count. SKU only. */
+/** The catalogue-wide quality distribution (feature 018): every bucket total equals the active product count. SKU only. */
 export interface PortfolioBucket {
   key: string;
   count: number;

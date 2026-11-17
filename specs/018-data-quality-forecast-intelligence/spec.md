@@ -207,7 +207,7 @@ A buyer or admin sees, across the catalogue, the distribution of ABC/XYZ classes
 ## Assumptions
 
 - Siweb360 remains the source of truth for catalogue, stock, movements and ERP costs; this feature only reads synced data and owns its own derived records.
-- The default location for this feature's new artifacts is `specs/012-data-quality-forecast-intelligence`; the Jira brief names `specs/003-agent-02`, but the repository's sequential numbering already uses 003 for another feature, so the sequential number is used and the brief's name is recorded here for traceability.
+- The default location for this feature's new artifacts is `specs/018-data-quality-forecast-intelligence`; the Jira brief names `specs/003-agent-02`, but the repository's sequential numbering already uses 003 for another feature, so the sequential number is used and the brief's name is recorded here for traceability.
 - ABC/XYZ thresholds, minimum history, confidence and eligibility thresholds and the rules for excluded movement types are configured through the business policy configuration (the policy console already on main from feature 002, and feature 011 once merged); this feature consumes them and adds defaults only where none exist.
 - Seed datasets (feature 008) and locally loaded UI exports (feature 004) already carry origin and provenance labels that this feature reuses.
 - The forecast service already provides forecast runs, eligibility and a backtest runner; the audit in FR-001 decides what is reused versus extended.

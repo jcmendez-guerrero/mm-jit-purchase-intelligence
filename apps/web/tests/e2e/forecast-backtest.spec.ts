@@ -3,7 +3,7 @@ import { json } from "./dashboard-mock";
 import { signInAs } from "./ui-helpers";
 
 /**
- * T058 (feature 012, quickstart scenario 6): start a backtest, see its status and the per-product result against the baseline, with a method that
+ * T058 (feature 018, quickstart scenario 6): start a backtest, see its status and the per-product result against the baseline, with a method that
  * does worse flagged; a second full-catalogue run while one is going is refused in Spanish. The BFF is mocked; synthetic data only.
  */
 

@@ -1,4 +1,4 @@
-"""T041: the confidence rule - flags from history sufficiency and data quality, and the level they give (feature 012, FR-012, research R5)."""
+"""T041: the confidence rule - flags from history sufficiency and data quality, and the level they give (feature 018, FR-012, research R5)."""
 
 from runs.confidence import assess
 

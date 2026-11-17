@@ -5,7 +5,7 @@ description: "Task list for Data Quality and Forecast Intelligence (Agent 02)"
 
 # Tasks: Data Quality and Forecast Intelligence (Agent 02)
 
-**Input**: Design documents from `specs/012-data-quality-forecast-intelligence/`
+**Input**: Design documents from `specs/018-data-quality-forecast-intelligence/`
 
 **Prerequisites**: [plan.md](plan.md), [spec.md](spec.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/quality-intelligence.md](contracts/quality-intelligence.md), [quickstart.md](quickstart.md)
 
@@ -27,7 +27,7 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 
 ## Phase 1: Setup
 
-- [X] T001 Run the existing suites for inventory-service and forecast-service and record the baseline pass/fail in `specs/012-data-quality-forecast-intelligence/research.md` (R1, resolves the "unverified" statuses); also confirm the Python version and frameworks in each service's project file against plan.md Technical Context
+- [X] T001 Run the existing suites for inventory-service and forecast-service and record the baseline pass/fail in `specs/018-data-quality-forecast-intelligence/research.md` (R1, resolves the "unverified" statuses); also confirm the Python version and frameworks in each service's project file against plan.md Technical Context
 - [X] T002 Read how `services/forecast-service/src/runs/runner.py` and `src/policies/base.py` use the `censored` arrays when fitting; record in research.md R4 whether censored blocks are excluded or read as zero, with file and line evidence (FR-001, FR-005)
 - [X] T003 [P] Add synthetic fixtures to `packages/testing`: smooth, intermittent, stockout-period, outlier-day, rejected-movements, seed-data and too-little-history products (done in `packages/testing/src/quality_fixtures/`, 7 tests pass); viewer and buyer users are not added here because each service's tests already provide `auth("buyer")` and `auth("viewer")` helpers
 - [ ] T004 [P] Register the feature in `docs/architecture/integration/contract-matrix.json` through Agent 00 (additive entries only) and confirm `python -m gates run` from `scripts/` passes before any schema change. STATUS: request drafted in `contracts/matrix-request.md` with an open event-design decision for Agent 00; baseline gates recorded there (contracts, isolation, cost pass). UPDATE: the five DTO schemas and the four gateway endpoints added so far are registered as `draft` entries (owner agent-02) because the contracts gate and the gateway matrix test require them; the final owners of the DTOs and gateway endpoints still wait for Agent 00; no event is needed. Mark done when Agent 00 answers.
@@ -254,4 +254,4 @@ Multi-service layout from plan.md: `services/inventory-service`, `services/forec
 
 - [X] T088 Answer Agent 00's gateway review of PR 28 (finding 1): add `docs/architecture/integration/gateway-review.md` rows for `PUT /api/quality/products/{sku}/anomalies/{day}`, `POST /api/quality/recompute` and `POST /api/forecast/backtests`; move the "accepting a day that was excluded reverses it" decision out of `services/api-bff/src/routes/quality.py` into inventory-service (it reports whether a decision reverses an exclusion, the gateway only demands the fresh second factor it is told to) or record it there as an accepted exception to ADR-023, with a test that inventory-service applies the same rule on its own; state in the review why none of the three carries an `Idempotency-Key`, per ADR-023 and plan: clarified decisions (partial)
 - [X] T089 Change the owner of the 9 new endpoint entries in `docs/architecture/integration/contract-matrix.json` from `agent-02` to `api-bff` (the gateway owns these routes) and regenerate `contract-matrix.md` with `python -m gates matrix-md`, per Agent 00 finding 2 and T004 (partial)
-- [ ] T090 Renumber this feature from 012 to 018, the next free spec number (Agent 00 finding 4): move `specs/012-data-quality-forecast-intelligence` to `specs/018-data-quality-forecast-intelligence`, update `.specify/feature.json`, the links between the spec documents and the "feature 012" mentions in code comments, tests and docs, then run the contracts, isolation and cost gates and the service suites, per plan: documentation layout (partial)
+- [X] T090 Renumber this feature from 012 to 018, the next free spec number (Agent 00 finding 4): move `specs/012-data-quality-forecast-intelligence` to `specs/018-data-quality-forecast-intelligence`, update `.specify/feature.json`, the links between the spec documents and the "feature 018" mentions in code comments, tests and docs, then run the contracts, isolation and cost gates and the service suites, per plan: documentation layout (partial)

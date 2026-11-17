@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mmi/dto/portfolio_summary.v1",
   "title": "PortfolioSummary",
-  "description": "Catalogue-wide data-quality and demand-class distribution (feature 012). Every bucket total equals the active product count: products with no forecast result yet fall in the 'pending' eligibility bucket. Each bucket carries a drill-down query.",
+  "description": "Catalogue-wide data-quality and demand-class distribution (feature 018). Every bucket total equals the active product count: products with no forecast result yet fall in the 'pending' eligibility bucket. Each bucket carries a drill-down query.",
   "type": "object",
   "additionalProperties": false,
   "required": [

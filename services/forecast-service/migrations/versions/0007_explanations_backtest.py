@@ -1,4 +1,4 @@
-"""forecast explanations and per-product backtests (feature 012).
+"""forecast explanations and per-product backtests (feature 018).
 
 Additive only: two new tables. forecast_explanations rows are immutable once their run completes.
 

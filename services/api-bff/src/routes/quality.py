@@ -1,4 +1,4 @@
-"""T026: data-quality routes (feature 012). Orchestration and access control only: every rule lives in inventory-service.
+"""T026: data-quality routes (feature 018). Orchestration and access control only: every rule lives in inventory-service.
 
 Reads are open to any signed-in role. Buyers and admins may decide anomalies and start a recompute. Excluding an anomalous day, and
 reversing an exclusion, needs a second factor authenticated within five minutes (spec FR-004); accepting a day as normal does not.

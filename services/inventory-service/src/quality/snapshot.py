@@ -1,4 +1,4 @@
-"""T022: the per-product data-quality snapshot, anomaly flags and buyer decisions (feature 012, FR-002 to FR-006).
+"""T022: the per-product data-quality snapshot, anomaly flags and buyer decisions (feature 018, FR-002 to FR-006).
 
 Everything here is derived from stored ERP data and never edits it. A snapshot is idempotent: the same inputs (coverage,
 counts, flags and their decisions, configuration version) give the same input hash and reuse the stored row.

@@ -1,4 +1,4 @@
-"""T053: how well one product's method would have forecast what really sold, against the baseline (feature 012, FR-016, FR-018).
+"""T053: how well one product's method would have forecast what really sold, against the baseline (feature 018, FR-016, FR-018).
 
 Pure. It reuses the rolling-origin windows of ``backtest.runner``: at each origin the method (and the baseline) see only the history before it
 and forecast the next ``horizon`` days; the forecast is compared with the demand that was really observed. Windows dominated by stockout days are

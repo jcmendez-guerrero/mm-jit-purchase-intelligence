@@ -158,8 +158,8 @@ product_segments = Table(
     Column("metrics", JSON, nullable=False),        # the numbers behind the labels (rationale)
     Column("computed_at", DateTime(timezone=True), nullable=False),
     Column("run_id", String(36), nullable=False),
-    Column("config_version_id", String(36)),                           # feature 012: thresholds' configuration version; NULL on older rows
-    Column("method", String(30)),                                      # feature 012: method mapped to the class; NULL on older rows
+    Column("config_version_id", String(36)),                           # feature 018: thresholds' configuration version; NULL on older rows
+    Column("method", String(30)),                                      # feature 018: method mapped to the class; NULL on older rows
 )
 service_level_config = Table(
     "service_level_config", metadata,
@@ -290,7 +290,7 @@ audit_events = Table(
 )
 
 
-# ---- feature 012: data quality and forecast intelligence (migration 0008) ----
+# ---- feature 018: data quality and forecast intelligence (migration 0008) ----
 data_quality_snapshot = Table(
     "data_quality_snapshot", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),

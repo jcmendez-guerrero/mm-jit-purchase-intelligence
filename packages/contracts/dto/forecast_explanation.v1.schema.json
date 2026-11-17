@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mmi/dto/forecast_explanation.v1",
   "title": "ForecastExplanation",
-  "description": "Why a forecast is what it is (feature 012): the model, dataset and configuration versions, the demand class and method, censored and anomalous days, provenance mix, range, confidence and eligibility. Low, expected and high are null when the product is not eligible: no forecast figure exists then.",
+  "description": "Why a forecast is what it is (feature 018): the model, dataset and configuration versions, the demand class and method, censored and anomalous days, provenance mix, range, confidence and eligibility. Low, expected and high are null when the product is not eligible: no forecast figure exists then.",
   "type": "object",
   "additionalProperties": false,
   "required": [

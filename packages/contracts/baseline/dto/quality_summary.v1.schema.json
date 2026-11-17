@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mmi/dto/quality_summary.v1",
   "title": "QualitySummary",
-  "description": "Per-product data-quality summary (feature 012): coverage, gap days, rejected and excluded movements, anomalies and stockout days. Products are identified by SKU only; reasons are codes, never free text.",
+  "description": "Per-product data-quality summary (feature 018): coverage, gap days, rejected and excluded movements, anomalies and stockout days. Products are identified by SKU only; reasons are codes, never free text.",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -1,4 +1,4 @@
-"""T049: per-product backtest on synthetic history with known error and bias, against the baseline (feature 012, FR-016, FR-018)."""
+"""T049: per-product backtest on synthetic history with known error and bias, against the baseline (feature 018, FR-016, FR-018)."""
 
 from decimal import Decimal
 

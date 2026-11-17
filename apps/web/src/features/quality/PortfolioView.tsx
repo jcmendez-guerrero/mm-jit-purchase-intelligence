@@ -20,7 +20,7 @@ interface OpenList {
 }
 
 /**
- * The whole catalogue at a glance (feature 012, FR-019, SC-007): products by demand class, by eligibility for a forecast and by confidence, plus the
+ * The whole catalogue at a glance (feature 018, FR-019, SC-007): products by demand class, by eligibility for a forecast and by confidence, plus the
  * ones with the weakest data. Every count opens the list of its products. Read-only, so every signed-in role sees it.
  */
 export const PortfolioView: React.FC = () => {

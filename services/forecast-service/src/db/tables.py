@@ -189,7 +189,7 @@ audit_events = Table(
 )
 
 
-# ---- feature 012: forecast explanations and per-product backtests (migration 0006) ----
+# ---- feature 018: forecast explanations and per-product backtests (migration 0006) ----
 forecast_explanations = Table(
     "forecast_explanations", metadata,
     Column("run_id", String(36), ForeignKey("forecast_runs.id"), primary_key=True),

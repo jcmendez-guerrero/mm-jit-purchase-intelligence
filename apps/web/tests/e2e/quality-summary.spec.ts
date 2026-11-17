@@ -3,7 +3,7 @@ import { json } from "./dashboard-mock";
 import { signInAs } from "./ui-helpers";
 
 /**
- * T028 (feature 012, quickstart scenarios 1 and 2): the per-product quality summary and the anomaly decision, in Spanish.
+ * T028 (feature 018, quickstart scenarios 1 and 2): the per-product quality summary and the anomaly decision, in Spanish.
  * The BFF is mocked in the browser; synthetic data only.
  */
 

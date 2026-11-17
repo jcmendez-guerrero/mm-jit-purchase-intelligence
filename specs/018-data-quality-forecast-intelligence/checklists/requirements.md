@@ -32,6 +32,6 @@
 ## Notes
 
 - Zero clarification markers: the Jira brief and the Confluence page leave no scope-changing ambiguity; defaults are recorded under Assumptions.
-- The brief names the directory `specs/003-agent-02`, but 003 is already taken, so `012-data-quality-forecast-intelligence` is used (recorded in Assumptions).
+- The brief names the directory `specs/003-agent-02`, but 003 is already taken, so `018-data-quality-forecast-intelligence` is used (recorded in Assumptions).
 - `.specify/feature.json` pointed at a non-existent `012-mmi-2-architecture-integration`; it now points at this feature.
 - Ready for `/speckit-clarify` (optional) or `/speckit-plan`.

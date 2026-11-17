@@ -1,4 +1,4 @@
-"""Synthetic series for the data-quality and forecast-intelligence tests (feature 012). Synthetic data only.
+"""Synthetic series for the data-quality and forecast-intelligence tests (feature 018). Synthetic data only.
 
 Each case is a plain dict in the shape of inventory-service's series export (``variant_id``, ``start_day``, ``demand``,
 ``censored``, ``price``, ``segment``, ``service_level``), built from fixed arithmetic so every run is identical.

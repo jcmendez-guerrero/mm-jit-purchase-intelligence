@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mmi/dto/product_backtest.v1",
   "title": "ProductBacktest",
-  "description": "Per-product backtest result (feature 012): method error and bias against a simple baseline over past periods, with the versions used. Immutable once stored; a backtest never changes any stored forecast, proposal, stock or ERP data.",
+  "description": "Per-product backtest result (feature 018): method error and bias against a simple baseline over past periods, with the versions used. Immutable once stored; a backtest never changes any stored forecast, proposal, stock or ERP data.",
   "type": "object",
   "additionalProperties": false,
   "required": [

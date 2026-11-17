@@ -1,4 +1,4 @@
-"""T009 (inventory): migration 0011 adds the feature 012 tables and columns, keeps old rows, and reverses cleanly."""
+"""T009 (inventory): migration 0011 adds the feature 018 tables and columns, keeps old rows, and reverses cleanly."""
 
 import importlib.util
 from pathlib import Path

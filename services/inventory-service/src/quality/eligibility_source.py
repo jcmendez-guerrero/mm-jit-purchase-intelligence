@@ -1,4 +1,4 @@
-"""T060b: eligibility and confidence of every product in forecast-service's latest run, pulled over HTTP (feature 012, US5).
+"""T060b: eligibility and confidence of every product in forecast-service's latest run, pulled over HTTP (feature 018, US5).
 
 Same pattern as the dashboard's forecast means: a read-only call with a service token, so no event and no infrastructure change is needed.
 No run yet means an empty answer and every product shows as ``pending`` in the portfolio, never as missing.

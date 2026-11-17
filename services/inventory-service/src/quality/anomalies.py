@@ -1,4 +1,4 @@
-"""T021: deterministic anomaly rules for one product's daily demand (feature 012, FR-004, research R2). Pure; no I/O.
+"""T021: deterministic anomaly rules for one product's daily demand (feature 018, FR-004, research R2). Pure; no I/O.
 
 Rules, applied to days that are not stockout-censored:
 * ``negative_qty``: a negative quantity (a net-return day); always flagged, whatever the history.

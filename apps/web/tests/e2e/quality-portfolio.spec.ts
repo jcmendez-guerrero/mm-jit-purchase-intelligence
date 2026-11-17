@@ -3,7 +3,7 @@ import { json } from "./dashboard-mock";
 import { signInAs } from "./ui-helpers";
 
 /**
- * T065 (feature 012, quickstart scenario 7): the catalogue overview shows counts by class, eligibility and confidence; every count opens its list;
+ * T065 (feature 018, quickstart scenario 7): the catalogue overview shows counts by class, eligibility and confidence; every count opens its list;
  * a filter narrows both. Read-only, so a viewer sees it. The BFF is mocked; synthetic data only.
  */
 

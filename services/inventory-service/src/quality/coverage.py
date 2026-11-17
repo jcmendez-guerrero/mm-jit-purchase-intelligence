@@ -1,4 +1,4 @@
-"""T020: historical coverage and gap days for one product over a period (feature 012, FR-002). Pure; no I/O."""
+"""T020: historical coverage and gap days for one product over a period (feature 018, FR-002). Pure; no I/O."""
 
 from __future__ import annotations
 

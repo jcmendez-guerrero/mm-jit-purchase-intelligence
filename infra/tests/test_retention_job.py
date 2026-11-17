@@ -1,4 +1,4 @@
-"""T080 (feature 012, FR-025): the retention commands run as weekly one-replica jobs for inventory and forecast only, inside the cost guardrails."""
+"""T080 (feature 018, FR-025): the retention commands run as weekly one-replica jobs for inventory and forecast only, inside the cost guardrails."""
 
 import re
 from pathlib import Path

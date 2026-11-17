@@ -1,4 +1,4 @@
-"""T054, T055: running per-product backtests as jobs (feature 012, FR-016 to FR-018, FR-022).
+"""T054, T055: running per-product backtests as jobs (feature 018, FR-016 to FR-018, FR-022).
 
 A job id is derived from the inputs (the series, each product's method, the configuration), so asking again for the same thing reuses the stored
 result and adds nothing. Only one full-catalogue job may run at a time: the running marker is committed before the work starts, so another request

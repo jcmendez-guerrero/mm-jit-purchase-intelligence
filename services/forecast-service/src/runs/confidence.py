@@ -1,4 +1,4 @@
-"""T044: how much to trust one product's forecast, from the quality of the history behind it (feature 012, FR-012, research R5).
+"""T044: how much to trust one product's forecast, from the quality of the history behind it (feature 018, FR-012, research R5).
 
 Pure. Six flags, each a plain, testable condition on the series; the level follows from how many are set: none is ``alta``, one or two
 ``media``, three or more ``baja``. A per-product backtest result joins the rule once backtests exist (US4). The thresholds are defaults held

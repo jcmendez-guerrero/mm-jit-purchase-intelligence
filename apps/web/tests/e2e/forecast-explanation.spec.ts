@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { json, overview, signIn } from "./dashboard-mock";
 
 /**
- * T040 (feature 012, quickstart scenarios 3 and 4, SC-003): from a proposal line the buyer reaches the explanation of its forecast in two clicks,
+ * T040 (feature 018, quickstart scenarios 3 and 4, SC-003): from a proposal line the buyer reaches the explanation of its forecast in two clicks,
  * in Spanish. A product with no forecast shows the fallback, no figure and the "not a forecast" label. The BFF is mocked; synthetic data only.
  */
 

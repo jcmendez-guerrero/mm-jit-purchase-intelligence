@@ -1,4 +1,4 @@
-"""data quality and forecast intelligence: quality snapshots, anomaly flags, portfolio aggregate, forecast inbox (feature 012).
+"""data quality and forecast intelligence: quality snapshots, anomaly flags, portfolio aggregate, forecast inbox (feature 018).
 
 Additive only: four new tables and two nullable columns on product_segments (older rows keep NULL).
 Follows feature 011's 0008-0010 on main.

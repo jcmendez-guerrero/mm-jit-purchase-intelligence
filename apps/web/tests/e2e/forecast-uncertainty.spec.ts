@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { json, overview, signIn } from "./dashboard-mock";
 
 /**
- * T048 (feature 012, quickstart scenario 5): a forecast shows its range and a confidence label; a low-confidence line is flagged, shows
+ * T048 (feature 018, quickstart scenario 5): a forecast shows its range and a confidence label; a low-confidence line is flagged, shows
  * the fallback and no figure, and says why. The BFF is mocked; synthetic data only.
  */
 

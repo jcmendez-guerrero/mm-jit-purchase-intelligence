@@ -65,7 +65,7 @@ async def downstream_status(_: Request, exc: httpx.HTTPStatusError) -> JSONRespo
             if isinstance(extra.get("open_lines"), int) and not isinstance(extra["open_lines"], bool):
                 body["open_lines"] = extra["open_lines"]
             if isinstance(extra.get("running_job_id"), str) and re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", extra["running_job_id"]):
-                body["running_job_id"] = extra["running_job_id"]            # feature 012: the backtest that is already running
+                body["running_job_id"] = extra["running_job_id"]            # feature 018: the backtest that is already running
         try:
             current = exc.response.json().get("current_version")
         except Exception:

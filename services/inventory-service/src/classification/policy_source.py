@@ -1,4 +1,4 @@
-"""T010a: where the classification thresholds come from, and the version id recorded with every result (feature 012, FR-007).
+"""T010a: where the classification thresholds come from, and the version id recorded with every result (feature 018, FR-007).
 
 T010 found that the business policy console on main stores none of these thresholds, so the source today is the
 ``ClassificationConfig`` defaults. The version id is a hash of the values, so any change to a threshold gives a new id and

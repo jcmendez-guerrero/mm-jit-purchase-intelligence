@@ -1,4 +1,4 @@
-"""T061: the catalogue-wide view of data quality and demand classes (feature 012, FR-019, SC-007).
+"""T061: the catalogue-wide view of data quality and demand classes (feature 018, FR-019, SC-007).
 
 ``portfolio_aggregate`` holds one row per non-service product, rebuilt in one go (derived data, never edited). Every product is in it: one with
 no class yet falls in ``sin_clasificar`` and one with no forecast result yet in the ``pending`` eligibility bucket, so every distribution adds up to
