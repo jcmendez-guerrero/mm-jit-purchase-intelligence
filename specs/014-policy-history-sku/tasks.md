@@ -144,4 +144,4 @@ In US2: T013 and T014 in parallel; T015 in parallel with T016 (service vs web).
 
 ## Phase 11: Convergence
 
-- [ ] T029 Fix the duplicated word in the test title in `apps/web/tests/unit/admin-status-policy-sku.test.tsx` (line 24: "shows each SKU and and keeps a row without SKU" becomes "shows each SKU and keeps a row without SKU") and re-run `npx vitest run tests/unit/admin-status-policy-sku.test.tsx` per Agent 00's review of head `113fe36` (partial)
+- [X] T029 Fix the duplicated word in the test title in `apps/web/tests/unit/admin-status-policy-sku.test.tsx` (line 24: "shows each SKU and and keeps a row without SKU" becomes "shows each SKU and keeps a row without SKU") and re-run `npx vitest run tests/unit/admin-status-policy-sku.test.tsx` per Agent 00's review of head `113fe36` (partial)
