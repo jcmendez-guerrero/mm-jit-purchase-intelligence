@@ -21,7 +21,7 @@ const status = (rows: AdminStatus["policy_history"]): AdminStatus => ({
 });
 
 describe("administration status: policy history", () => {
-  it("shows each SKU and and keeps a row without SKU", async () => {
+  it("shows each SKU and keeps a row without SKU", async () => {
     vi.spyOn(api, "getAdminStatus").mockResolvedValue(status({ ok: true, data: [
       { id: "o1", status: "approved", sku: "SYN-0001" },
       { id: "o2", status: "pending", sku: null },
