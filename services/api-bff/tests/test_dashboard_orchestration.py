@@ -112,15 +112,21 @@ def test_the_forecast_basis_of_a_product_is_forwarded_as_the_signed_in_user():
     fc = AsyncMock()
     fc.forward.return_value = {"variant_id": 9001, "eligible": True, "seed_used": True, "horizons": [{"days": 14, "mean": 21.0, "upper": 27.5}], "upper_level": "0.95"}
     from main import app
+    from routes.api import get_inventory_client
 
+    inventory = AsyncMock()
+    inventory.internal_id.return_value = 9001           # the catalogue owner resolves the SKU (FR-008a)
     app.dependency_overrides[get_forecast_client] = lambda: fc
+    app.dependency_overrides[get_inventory_client] = lambda: inventory
     try:
         client = TestClient(app)
-        ok = client.get("/api/dashboard/variants/9001/forecast-basis", headers=headers_for("v", ["viewer"]))
+        ok = client.get("/api/dashboard/skus/SYN-9001/forecast-basis", headers=headers_for("v", ["viewer"]))
         assert ok.status_code == 200 and ok.json()["seed_used"] is True and ok.json()["horizons"][0]["upper"] == 27.5          # the figures pass through unchanged
         assert fc.forward.call_args.args[:2] == ("GET", "/forecasts/variant/9001") and fc.forward.call_args.kwargs["user_id"] == "v"
-        assert client.get("/api/dashboard/variants/0/forecast-basis", headers=headers_for("v", ["viewer"])).status_code == 422
-        assert client.get("/api/dashboard/variants/9001/forecast-basis").status_code == 401
+        assert "variant_id" not in ok.text                                      # the id never reaches the browser
+        assert inventory.internal_id.call_args.args[0] == "SYN-9001"
+        assert client.get(f"/api/dashboard/skus/{'X' * 61}/forecast-basis", headers=headers_for("v", ["viewer"])).status_code == 422
+        assert client.get("/api/dashboard/skus/SYN-9001/forecast-basis").status_code == 401
     finally:
         app.dependency_overrides.clear()
 

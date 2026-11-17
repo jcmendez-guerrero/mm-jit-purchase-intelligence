@@ -33,6 +33,7 @@ from proposals.inputs import InputsUnavailableError
 from proposals.model import ProposalInputs
 from proposals.publisher import BlobWriter, proposal_generated
 from pydantic import BaseModel, Field
+from sku_labels import with_skus
 from sqlalchemy import select
 from sqlalchemy.engine import Connection, Engine
 from users.directory import DirectoryError, set_roles
@@ -289,7 +290,7 @@ def build_router(app: FastAPI) -> APIRouter:
 
     @router.get("/cost-writes")
     def cost_writes(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
-        return [write_json(r) for r in list_visible(conn)]
+        return with_skus(conn, [write_json(r) for r in list_visible(conn)])
 
     @router.post("/cost-writes/{request_id}/approve", status_code=202)
     def approve_cost_write(request_id: str, body: WriteApproval | None = None, conn: Connection = Depends(conn_dep),

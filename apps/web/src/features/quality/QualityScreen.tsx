@@ -68,7 +68,7 @@ export const QualityScreen: React.FC<Props> = ({ userRoles, showLocalReview = fa
 
   const columns: Column<ImportErrorItem>[] = [
     { id: "id", header: "ID", cell: (i) => `#${i.id}`, sortValue: (i) => i.id },
-    { id: "variant", header: t("common.variant"), cell: (i) => <strong>{t("quality.variant_label", { id: i.variant_id })}</strong>, sortValue: (i) => i.variant_id },
+    { id: "variant", header: t("common.variant"), cell: (i) => <strong>{i.sku ?? t("dashboard.drill.no_sku")}</strong>, sortValue: (i) => i.sku ?? "" },
     { id: "reason", header: t("quality.movement_reason"), cell: (i) => i.movement_reason_raw || "—", sortValue: (i) => i.movement_reason_raw ?? "" },
     {
       id: "codes",
@@ -108,7 +108,7 @@ export const QualityScreen: React.FC<Props> = ({ userRoles, showLocalReview = fa
         open={resolving !== null}
         tone={resolving?.decision === "ignore" ? "danger" : "default"}
         title={resolving?.decision === "ignore" ? t("quality.confirm.ignore.title") : t("quality.confirm.release.title")}
-        objectLabel={resolving ? t("quality.confirm.object", { variant: t("quality.variant_label", { id: resolving.item.variant_id }), id: resolving.item.id }) : ""}
+        objectLabel={resolving ? t("quality.confirm.object", { variant: (resolving.item.sku ?? t("dashboard.drill.no_sku")), id: resolving.item.id }) : ""}
         effect={resolving?.decision === "ignore" ? t("quality.confirm.ignore.effect") : t("quality.confirm.release.effect")}
         confirmLabel={resolving?.decision === "ignore" ? t("quality.ignore") : t("quality.release")}
         onCancel={() => setResolving(null)}

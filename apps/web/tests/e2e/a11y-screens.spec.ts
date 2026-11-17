@@ -9,14 +9,14 @@ const SUMMARY = {
   baseline: { total: "1000.0000", over_budget: "0.0000", lines: 4 },
   scenario: { total: "1100.0000", over_budget: "50.0000", lines: 4, budget: "1200.0000", utilisation: "0.9167" },
   delta_total: "100.0000",
-  changes: [{ variant_id: 9001, supplier_before: "s1", supplier_after: "s2", qty_before: 12, qty_after: 12, reasons: ["supplier_disabled"] }],
+  changes: [{ sku: "SYN-9001", supplier_before: "s1", supplier_after: "s2", qty_before: 12, qty_after: 12, reasons: ["supplier_disabled"] }],
   binding: [{ key: "min_order:s2", params: { status: "topped_up" } }],
   infeasible: { over_by: "50.0000", clinical_critical_variants: [9001] },
   notes: [],
 };
 const DETAIL = {
   id: "sc1", name: "Sin proveedor A", status: "ready", parameters: {}, result_hash: "h", created_by: "buyer-1", created_at: recent, summary: SUMMARY,
-  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "102.5000", subtotal: "108.00", delivery_charge: "4.50", discount: "10.00", free_delivery: false, expected_delivery: "2026-11-16", budget_utilisation: "0.9167", lines: [{ variant_id: 9001, qty: 12, unit_cost: "5.0000", line_total: "60.0000", clinical_critical: true }, { variant_id: 9002, qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false }] }],
+  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "102.5000", subtotal: "108.00", delivery_charge: "4.50", discount: "10.00", free_delivery: false, expected_delivery: "2026-11-16", budget_utilisation: "0.9167", lines: [{ sku: "SYN-9001", qty: 12, unit_cost: "5.0000", line_total: "60.0000", clinical_critical: true }, { sku: "SYN-9002", qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false }] }],
   sensitivity: [{ constraint_key: "budget", delta: "100.0000", cost_impact: "-20.0000" }],
 };
 
@@ -75,7 +75,7 @@ test("administration", async ({ page }) => {
 test("dashboard drill-down and supplier panels", async ({ page }) => {
   await signIn(page);
   await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview(1, { spend: { ok: true, data: { proposal_id: "p1", week: "2026-W46", status: "draft", total: "300.00", by_supplier: [{ supplier_id: "s1", supplier_name: "Proveedor Sintético A", total: "300.00" }], budget: null, over_budget: false } } }))));
-  await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: true, total: 80, rows: [{ variant_id: 100, sku: "SYN-100", name: "Variante sintética", figure: "40.00" }] })));
+  await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: true, total: 80, rows: [{ sku: "SYN-100", name: "Variante sintética", figure: "40.00" }] })));
   await page.route("**/api/suppliers/s1/terms", (r) => r.fulfill(json({ supplier_id: "s1", version: 1, history: [], current: null })));
   await page.goto("/");
   await page.getByLabel("Valor del stock").getByRole("button", { name: "Ver productos" }).click();
@@ -119,7 +119,7 @@ test("dashboard charts, export buttons and trust banner", async ({ page }) => {
 test("dashboard drill-down panel with export", async ({ page }) => {
   await signIn(page);
   await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview())));
-  await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: false, total: 1, offset: 0, sum: "40.00", rows: [{ variant_id: 1, sku: "SYN-001", name: "Producto sintético", figure: "40.00" }] })));
+  await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: false, total: 1, offset: 0, sum: "40.00", rows: [{ sku: "SYN-001", name: "Producto sintético", figure: "40.00" }] })));
   await page.goto("/panel");
   await page.getByRole("button", { name: "Ver productos" }).first().click();
   await page.getByRole("button", { name: "Exportar productos", exact: true }).waitFor();

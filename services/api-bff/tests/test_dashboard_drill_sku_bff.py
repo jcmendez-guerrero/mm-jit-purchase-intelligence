@@ -1,7 +1,20 @@
 """Feature 014 (T026, US3): the gateway checks the shape of the new drill-down kinds and the SKU route and forwards; the rules stay in inventory."""
 
+import json
+from pathlib import Path
+
+import jsonschema
 from test_dashboard_orchestration import call, inventory
 from tests_support import headers_for
+
+V2 = json.loads((Path(__file__).resolve().parents[3] / "packages" / "contracts" / "dto" / "dashboard_drilldown.v2.schema.json").read_text(encoding="utf-8"))
+
+
+def test_the_drilldown_the_browser_receives_has_no_internal_id_and_matches_the_v2_contract(role_store):
+    page = {"kind": "demand", "truncated": False, "total": 1, "offset": 0, "sum": "3.00", "rows": [{"variant_id": 7, "sku": "SYN-007", "name": "Sintético", "figure": "3.00"}]}
+    res = call("/api/dashboard/drilldown?kind=demand", headers_for("v", ["viewer"]), inventory(**{"/dashboard/drilldown": page}))
+    assert res.status_code == 200 and "variant_id" not in res.text
+    jsonschema.validate(res.json(), V2, cls=jsonschema.Draft202012Validator)
 
 
 def test_the_new_drilldown_kinds_and_their_parameters_are_forwarded(role_store):

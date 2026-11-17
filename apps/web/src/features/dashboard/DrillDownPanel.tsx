@@ -14,7 +14,7 @@ import { Card } from "../../ui/Card";
 interface Props {
   request: DrillRequest;
   title: string;
-  onOpenProduct: (variantId: number) => void;
+  onOpenProduct: (sku: string) => void;
   onClose: () => void;
   /** Offer "Exportar productos" (roles that may see costs); the date range of the screen travels with it. */
   canExport?: boolean | undefined;
@@ -73,7 +73,7 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
       id: "actions",
       header: t("common.actions"),
       cell: (r) => (
-        <Button variant="secondary" small onClick={() => onOpenProduct(r.variant_id)} aria-label={`${t("dashboard.risk_open")} ${r.sku ?? t("dashboard.drill.no_sku")}`}>
+        <Button variant="secondary" small disabled={!r.sku} onClick={() => r.sku && onOpenProduct(r.sku)} aria-label={`${t("dashboard.risk_open")} ${r.sku ?? t("dashboard.drill.no_sku")}`}>
           {t("dashboard.risk_open")}
         </Button>
       ),
@@ -124,7 +124,7 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
       {data && data.rows.length === 0 && <EmptyState title={t("dashboard.drill.empty")} hint="" />}
       {data && data.rows.length > 0 && (
         <>
-          <DataTable ariaLabel={title} columns={columns} rows={data.rows} rowKey={(r) => r.variant_id} hideToolbar />
+          <DataTable ariaLabel={title} columns={columns} rows={data.rows} rowKey={(r) => `${r.sku ?? ""}|${r.name ?? ""}|${r.figure ?? ""}`} hideToolbar />
           {data.sum != null && <p><strong>{t("dashboard.drill.total", { value: shown(data.sum) })}</strong></p>}      {/* the sum of every row, not only this page: it equals the figure it came from */}
           {data.total > data.rows.length && (
             <nav aria-label={t("dashboard.drill.pages")}>

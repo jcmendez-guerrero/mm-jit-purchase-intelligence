@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/dashboard_drilldown.v2",
+  "title": "DashboardDrilldown",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "truncated",
+    "total",
+    "offset",
+    "sum",
+    "rows"
+  ],
+  "description": "GET /api/dashboard/drilldown as the browser receives it (feature 014, FR-008a): the same page as v1 without `variant_id`; products are identified by SKU only. v1 stays the service-level shape between inventory-service and the gateway.",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "inventory_value",
+        "coverage",
+        "stockout_risk",
+        "expiry_risk",
+        "abc_xyz",
+        "trend_day",
+        "demand",
+        "forecast",
+        "capital",
+        "expiry_band"
+      ]
+    },
+    "truncated": {
+      "type": "boolean"
+    },
+    "total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "offset": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sum": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^-?\\d+(\\.\\d+)?$"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sku",
+          "name",
+          "figure"
+        ],
+        "properties": {
+          "sku": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "figure": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^-?\\d+(\\.\\d+)?$"
+          }
+        }
+      }
+    }
+  }
+}

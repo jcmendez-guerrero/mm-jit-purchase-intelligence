@@ -24,6 +24,10 @@ Out of scope: rebuilding the ten indicator cards or changing their definitions; 
 - Q: What happens to a remaining 006 requirement that cannot be delivered now? → A: It is documented with its reason, an owner and a follow-up, and shown in the closure report; it is never left silent. This is allowed only when the cause is outside this feature (for example a missing source of data).
 - Q: Does the 006 audit file get rewritten? → A: No. It is updated in place with the new status of each capability, so one audit tells the whole story.
 
+### Session 2026-11-17
+
+- Q: Should the browser-facing gateway API use only the SKU, with `variant_id` kept only between services and in machine-to-machine calls? → A: Yes (option A). Browser and gateway routes and payloads identify products by SKU only; the gateway resolves the SKU to `variant_id` for calls to services; service APIs and events keep `variant_id`. The app is not in production, so the change is made in one pass with no compatibility layer and no old routes kept.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Know exactly what is done and what is left (Priority: P1)
@@ -179,6 +183,7 @@ The owner has evidence that the dashboard works end to end on the real stack wit
 **Drill-down and SKU detail**
 
 - **FR-007**: Every indicator and chart MUST open a drill-down whose total reconciles with the figure; the missing kinds (demand, forecast, capital, budget and expiry band) MUST be added, sortable, paginated and keyboard accessible.
+- **FR-008a**: No gateway route, payload or page address used by the browser MUST carry `variant_id`; products are identified by SKU only, and the gateway resolves the SKU to `variant_id` through the synced catalogue for calls to services. Service-to-service APIs and events keep `variant_id`. No compatibility routes are kept (the app is not in production).
 - **FR-008**: A SKU detail page with its own address MUST show stock, coverage, demand, forecast, supplier and expiry lots, identified by SKU only; cost fields MUST be sent only to roles allowed to see costs.
 
 **Charts**

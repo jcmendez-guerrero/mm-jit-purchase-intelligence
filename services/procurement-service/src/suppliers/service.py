@@ -13,6 +13,7 @@ from typing import Any
 
 from audit.chain import append as audit
 from db.tables import proposal_lines, proposals, supplier_review_items, suppliers
+from sku_labels import with_skus
 from sqlalchemy import func, insert, or_, select, update
 from sqlalchemy.engine import Connection, Row
 
@@ -136,8 +137,8 @@ def deactivation_preview(conn: Connection, supplier_id: str) -> dict[str, Any]:
     q = (select(proposal_lines.c.proposal_id, proposal_lines.c.variant_id).join(proposals, proposals.c.id == proposal_lines.c.proposal_id)
          .where(proposal_lines.c.supplier_id == supplier_id, proposals.c.status.in_(OPEN_PROPOSAL_STATES)).order_by(proposal_lines.c.proposal_id, proposal_lines.c.variant_id))
     lines = conn.execute(q).all()
-    return {"open_proposal_lines": len(lines), "lines": [{"proposal_id": r.proposal_id, "variant_id": r.variant_id} for r in lines[:50]],
-            "proposals": sorted({r.proposal_id for r in lines})}
+    return with_skus(conn, {"open_proposal_lines": len(lines), "lines": [{"proposal_id": r.proposal_id, "variant_id": r.variant_id} for r in lines[:50]],
+                            "proposals": sorted({r.proposal_id for r in lines})})
 
 
 def flag_open_proposals(conn: Connection, supplier_id: str, now: datetime) -> int:

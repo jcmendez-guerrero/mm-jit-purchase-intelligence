@@ -21,6 +21,7 @@ from clients.procurement import ProcurementClient
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from routes.api import get_inventory_client, get_procurement_client
 from routes.rbac import log_refusal, require_roles
+from scrub import without_variant_ids
 
 router = APIRouter()
 _forecast = ForecastClient()
@@ -52,15 +53,6 @@ def _need_fresh_mfa(request: Request, session: SessionData) -> None:
         raise HTTPException(status_code=403, detail="auth_mfa_stale")
 
 
-def _without_variant_ids(rows: Any) -> Any:
-    """People see SKUs; the ERP variant id stays inside the platform."""
-    if isinstance(rows, list):
-        return [{k: v for k, v in r.items() if k != "variant_id"} if isinstance(r, dict) else r for r in rows]
-    if isinstance(rows, dict):
-        return {k: v for k, v in rows.items() if k != "variant_id"}
-    return rows
-
-
 def get_forecast_client() -> ForecastClient:
     return _forecast
 
@@ -85,7 +77,7 @@ async def policy_console(
     r, u = session.roles, session.user_id
     purchasing = await _section(proc.forward("GET", "/policies", user_id=u, roles=r))
     if purchasing.get("ok") and isinstance(purchasing["data"], dict):
-        purchasing["data"]["policies"] = _without_variant_ids(purchasing["data"].get("policies", []))
+        purchasing["data"]["policies"] = without_variant_ids(purchasing["data"].get("policies", []))
     return {
         "purchasing": purchasing,
         "demand": await _section(inv.forward("GET", "/demand-rules", user_id=u, roles=r)),
@@ -122,7 +114,7 @@ async def preview_policy(scope: str, key: str, body: dict[str, Any], session: Se
                          proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
     out = await proc.forward("POST", f"/policies/{scope}/{key}/preview", json=body, user_id=session.user_id, roles=session.roles)
     if isinstance(out, dict) and "affected" in out:
-        out["affected"] = _without_variant_ids(out["affected"])
+        out["affected"] = without_variant_ids(out["affected"])
     return out
 
 
@@ -187,7 +179,7 @@ async def policy_audit(
 
 @router.get("/stocking/{sku}")
 async def get_stocking(sku: str, session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return _without_variant_ids(await proc.forward("GET", f"/stocking/{sku}", user_id=session.user_id, roles=session.roles))
+    return without_variant_ids(await proc.forward("GET", f"/stocking/{sku}", user_id=session.user_id, roles=session.roles))
 
 
 @router.put("/stocking/{sku}")
@@ -198,32 +190,32 @@ async def put_stocking(sku: str, body: dict[str, Any], if_match: str | None = He
 
 @router.get("/policy-overrides")
 async def list_overrides(status: str = "pending", session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return _without_variant_ids(await proc.forward("GET", "/policy-overrides", params={"status": status}, user_id=session.user_id, roles=session.roles))
+    return without_variant_ids(await proc.forward("GET", "/policy-overrides", params={"status": status}, user_id=session.user_id, roles=session.roles))
 
 
 @router.get("/policy-overrides/recommendation/{sku}")
 async def recommendation(sku: str, session: SessionData = Depends(require_roles("viewer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return _without_variant_ids(await proc.forward("GET", f"/policy-overrides/recommendation/{sku}", user_id=session.user_id, roles=session.roles))
+    return without_variant_ids(await proc.forward("GET", f"/policy-overrides/recommendation/{sku}", user_id=session.user_id, roles=session.roles))
 
 
 @router.post("/policy-overrides", status_code=201)
 async def create_override(body: dict[str, Any], session: SessionData = Depends(require_roles("buyer")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return _without_variant_ids(await proc.forward("POST", "/policy-overrides", json=body, user_id=session.user_id, roles=session.roles))
+    return without_variant_ids(await proc.forward("POST", "/policy-overrides", json=body, user_id=session.user_id, roles=session.roles))
 
 
 @router.post("/policy-overrides/{rid}/approve")
 async def approve_override(rid: str, session: SessionData = Depends(require_roles("approver")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return _without_variant_ids(await proc.forward("POST", f"/policy-overrides/{rid}/approve", json={}, user_id=session.user_id, roles=session.roles))
+    return without_variant_ids(await proc.forward("POST", f"/policy-overrides/{rid}/approve", json={}, user_id=session.user_id, roles=session.roles))
 
 
 @router.post("/policy-overrides/{rid}/reject")
 async def reject_override(rid: str, session: SessionData = Depends(require_roles("approver")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return _without_variant_ids(await proc.forward("POST", f"/policy-overrides/{rid}/reject", json={}, user_id=session.user_id, roles=session.roles))
+    return without_variant_ids(await proc.forward("POST", f"/policy-overrides/{rid}/reject", json={}, user_id=session.user_id, roles=session.roles))
 
 
 @router.post("/policy-overrides/{rid}/revert")
 async def revert_override(rid: str, session: SessionData = Depends(require_roles("buyer", "approver")), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return _without_variant_ids(await proc.forward("POST", f"/policy-overrides/{rid}/revert", json={}, user_id=session.user_id, roles=session.roles))
+    return without_variant_ids(await proc.forward("POST", f"/policy-overrides/{rid}/revert", json={}, user_id=session.user_id, roles=session.roles))
 
 
 # ---- demand rules, criticality, category history (inventory) --------------------------------------------------------------------

@@ -18,6 +18,7 @@ from db.tables import (
     stock_snapshots,
     variants,
 )
+from skus import skus_of
 from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
 
@@ -159,4 +160,7 @@ def evaluate_risks(
             "params": {"product_name": v.name},
         })
 
+    shown = skus_of(conn, [r["variant_id"] for r in risks])           # people see the SKU (feature 014, FR-008a)
+    for r in risks:
+        r["sku"] = shown.get(int(r["variant_id"]), "")
     return risks

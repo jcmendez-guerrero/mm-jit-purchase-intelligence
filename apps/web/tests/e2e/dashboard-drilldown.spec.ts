@@ -4,7 +4,7 @@ import { json, overview, signIn } from "./dashboard-mock";
 /** T027 (US3): a figure opens the products behind it, with their total, sorting and paging; each product opens its own page by SKU, reachable by keyboard, and that page survives a reload. The services are simulated. */
 
 const sku = (n: number) => `SYN-${String(n).padStart(3, "0")}`;
-const row = (n: number) => ({ variant_id: 900000 + n, sku: sku(n), name: `Variante ${n}`, figure: "10.00" });
+const row = (n: number) => ({ sku: sku(n), name: `Variante ${n}`, figure: "10.00" });
 const SKU_PAGE = {
   sku: "SYN-001", name: "Variante 1", stock: { on_hand: 15 }, coverage: { days: "5.00", basis: "actual_90d" }, demand: { units: 84, days: 28 }, forecast: null, supplier: { id: "sup-a" },
   expiry_lots: [{ batch: "L1", quantity: 10, expiry_date: "2027-12-20", band: "later" }], states: [], cost: { value: "40.00", estimated: false, unit_cost: "2.00" },

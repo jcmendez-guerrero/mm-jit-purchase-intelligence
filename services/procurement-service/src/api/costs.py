@@ -23,6 +23,7 @@ from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Uplo
 from mmi_common.errors import error_code
 from mmi_common.service import reject_nul
 from pydantic import BaseModel, Field
+from sku_labels import with_skus
 from sqlalchemy import create_engine, select
 from sqlalchemy.engine import Connection, Engine
 from terms.service import current_terms, current_version
@@ -105,7 +106,7 @@ def build_router(app: FastAPI) -> APIRouter:
 
     @router.get("/lot-costs")
     def list_lot_costs(variant_id: int, supplier_id: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
-        return [lot_json(r) for r in latest_by_lot(conn, variant_id, supplier_id).values()]
+        return with_skus(conn, [lot_json(r) for r in latest_by_lot(conn, variant_id, supplier_id).values()])
 
     @router.post("/lot-costs", status_code=201)
     def add_lot_cost(body: LotCostEntry, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
@@ -120,7 +121,7 @@ def build_router(app: FastAPI) -> APIRouter:
                                   source=body.source, actor=principal.subject, quantity=body.quantity)
         except LotCostError as exc:
             raise HTTPException(422, exc.code) from exc
-        return lot_json(row)
+        return with_skus(conn, lot_json(row))
 
     @router.post("/cost-updates", status_code=201)
     def request_cost_update(body: CostUpdateBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:
@@ -157,7 +158,7 @@ def build_router(app: FastAPI) -> APIRouter:
         if supplier_id is not None:
             q = q.where(supplier_costs.c.supplier_id == supplier_id)
         rows = [cost_json(r, rules, now) for r in conn.execute(q).all()]
-        return [r for r in rows if r["status"] != "ok"] if only_issues else rows
+        return with_skus(conn, [r for r in rows if r["status"] != "ok"] if only_issues else rows)
 
     @router.post("/costs", status_code=201)
     def enter_cost(body: CostEntry, conn: Connection = Depends(conn_dep), principal: Any = Depends(require("buyer"))) -> dict[str, Any]:

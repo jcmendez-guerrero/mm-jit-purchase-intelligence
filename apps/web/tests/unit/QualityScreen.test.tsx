@@ -7,7 +7,7 @@ import { formatDateTime } from "../../src/i18n/formatters";
 import "../../src/i18n";
 import { confirmAction } from "./confirm";
 
-const item = { id: 7, variant_id: 42, movement_reason_raw: "Ajuste", anomaly_codes: ["negative_quantity"], created_at: "2026-11-01T10:30:00Z" };
+const item = { id: 7, sku: "SYN-042", movement_reason_raw: "Ajuste", anomaly_codes: ["negative_quantity"], created_at: "2026-11-01T10:30:00Z" };
 
 beforeEach(() => {
   vi.spyOn(api, "getImportErrors").mockResolvedValue({ count: 1, items: [item] });
@@ -28,7 +28,7 @@ describe("QualityScreen decisions", () => {
     render(<QualityScreen userRoles={["viewer", "buyer"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Descartar / Ignorar" }));
     const dialog = screen.getByRole("dialog", { name: "Ignorar el movimiento retenido" });
-    expect(dialog.textContent).toContain("Variante #42");
+    expect(dialog.textContent).toContain("SYN-042");
     expect(dialog.textContent).toContain("no se deshace desde esta pantalla");
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
     expect(spy).not.toHaveBeenCalled();

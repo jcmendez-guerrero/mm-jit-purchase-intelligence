@@ -107,7 +107,7 @@ Updated in place by the completion work; evidence and decisions are in `specs/01
 | A15 | Filters in the address | complete | `useDashboardFilters.ts`; live check of `/panel?proveedor=sup-a&categoria=A` |
 | A16 | Freshness | complete | `GET /dashboard/freshness`, `TrustBanner.tsx`, newer-data notice |
 | A17 | Drill-down kinds and paging | complete except `budget` | `budget` deferred: caps and spend belong to procurement-service (owner: procurement-service with Agent 00) |
-| A18 | Products shown by SKU | complete | SKU on every row and page; the drill-down JSON still carries `variant_id` for the existing product overlay (a v2 change to remove) |
+| A18 | Products shown by SKU | complete | SKU on every row and page; since feature 014 (FR-008a, Phase 13) the browser and gateway use the SKU only: the product overlay and its page address are keyed by SKU, the gateway removes `variant_id` from every JSON answer, the browser drill-down is `dashboard_drilldown.v2` |
 | A22 | At least five charts | complete | six charts; the seventh v2 key, `forecast_error`, is deferred (owner: forecast-service with Agent 00) |
 | A23 | Export | complete as CSV | `export.py`, audited; XLSX not offered (owner: Agent 00 with procurement-service) |
 | A24 | Viewer receives money | fixed | money removed server-side in every route, including charts, SKU page and exports (viewer refused) |

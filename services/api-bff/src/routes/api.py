@@ -16,7 +16,7 @@ from auth.session import (
 )
 from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from routes.admin_roles import has_at_least_two_eligible_approvers
@@ -25,6 +25,7 @@ from routes.rbac import require_fresh_mfa, require_roles, require_session
 logger = logging.getLogger("mmi.api_bff.routes")
 
 router = APIRouter()
+SKU_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,59}$"      # one rule for every route that takes a SKU: no `..`, no slash (httpx would collapse dot-segments)
 EXPORT_ROLES = ("buyer", "approver", "admin")        # FR-010: the roles that may download a proposal or a scenario file
 
 _inventory_client = InventoryClient()
@@ -150,13 +151,13 @@ async def get_dashboard_risks(
     return await client.get_risks(warehouse_id=warehouse_id, roles=session.roles)
 
 
-@router.get("/inventory/variants/{variant_id}")
-async def get_variant_detail(
-    variant_id: int,
+@router.get("/inventory/skus/{sku}")
+async def get_sku_detail(
+    sku: str = Path(pattern=SKU_PATTERN),
     session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
     client: InventoryClient = Depends(get_inventory_client),
 ) -> dict[str, Any]:
-    return await client.get_variant_detail(variant_id=variant_id, roles=session.roles)
+    return await client.get_sku_detail(sku, roles=session.roles)
 
 
 @router.get("/data-quality/import-errors")
@@ -220,28 +221,30 @@ async def update_supplier_terms(
                                            idempotency_key=idempotency_key)
 
 
-@router.get("/product-suppliers/{variant_id}/{supplier_id}/terms")
+@router.get("/product-suppliers/{sku}/{supplier_id}/terms")
 async def get_override_terms(
-    variant_id: int,
     supplier_id: str,
+    sku: str = Path(pattern=SKU_PATTERN),
     as_of: str | None = Query(default=None),
     session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
     client: ProcurementClient = Depends(get_procurement_client),
+    inventory: InventoryClient = Depends(get_inventory_client),
 ) -> dict[str, Any]:
-    return await client.get_override_terms(variant_id, supplier_id, as_of=as_of, roles=session.roles)
+    return await client.get_override_terms(await inventory.internal_id(sku, session.roles), supplier_id, as_of=as_of, roles=session.roles)
 
 
-@router.put("/product-suppliers/{variant_id}/{supplier_id}/terms")
+@router.put("/product-suppliers/{sku}/{supplier_id}/terms")
 async def update_override_terms(
-    variant_id: int,
     supplier_id: str,
     body: dict[str, Any],
+    sku: str = Path(pattern=SKU_PATTERN),
     if_match: str | None = Header(default=None),
     idempotency_key: str | None = Header(default=None),
     session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
+    inventory: InventoryClient = Depends(get_inventory_client),
 ) -> dict[str, Any]:
-    return await client.put_override_terms(variant_id=variant_id, supplier_id=supplier_id, body=body, user_id=session.user_id, roles=session.roles,
+    return await client.put_override_terms(variant_id=await inventory.internal_id(sku, session.roles), supplier_id=supplier_id, body=body, user_id=session.user_id, roles=session.roles,
                                            if_match=if_match, idempotency_key=idempotency_key)
 
 

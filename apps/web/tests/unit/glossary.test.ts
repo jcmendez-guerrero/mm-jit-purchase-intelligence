@@ -7,10 +7,9 @@ import glossary from "../../src/i18n/glossary.json";
 const catalogue = esJson as Record<string, string>;
 /**
  * Known gaps that cannot be closed inside this feature. A key may only leave this list.
- * suppliers.override.variant: the override screen still asks for the Siweb variant id because the gateway has no
- * SKU-to-variant lookup; adding one is a contract change for Agent 00 (see audit-inventory.md, "Journeys").
+ * None open: the override screen asks for the SKU since feature 014 (FR-008a).
  */
-const KNOWN_EXCEPTIONS: Record<string, string> = { "suppliers.override.variant": "id de variante" };
+const KNOWN_EXCEPTIONS: Record<string, string> = {};
 
 const entries = Object.entries(glossary as Record<string, { term: string; forbidden: string[] }>);
 

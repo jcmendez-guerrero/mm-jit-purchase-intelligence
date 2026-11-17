@@ -53,3 +53,9 @@ Synthetic data only. Never point these steps at a real Siweb host or load real e
 | Cost | confirm no new container, job or schedule; note in the PR cost section |
 
 Evidence for the pull request: Spanish screenshots of each scenario, test and gate output, the closure report and the cost note; the PR links MMI-3, MMI-1, PR 19 and MMI-11.
+
+
+## Scenario - SKU only at the browser (FR-008a)
+
+1. With the live stack, open the dashboard, a drill-down, a SKU page, the supplier terms, the costs, quality and admin status screens, and the proposals and scenarios screens, with the network log open.
+2. Expected: no page address, request path, query, request body or response body contains `variant_id`, and no screen shows a numeric product id; an unknown SKU shows the not-found state; events and service-to-service calls (checked in the service tests) still carry `variant_id`.

@@ -30,7 +30,7 @@ from projections.rules import rule_versions
 from pydantic import BaseModel, Field
 from quality.review import ReviewError, decide, list_open
 from risk.daily import evaluate_risks
-from skus import SkuError, resolve_sku
+from skus import SkuError, resolve_sku, skus_of
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.engine import Connection, Engine
 
@@ -64,6 +64,26 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
     @router.get("/risk")
     def list_risks(warehouse_id: int | None = None, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> list[dict[str, Any]]:
         return evaluate_risks(conn, warehouse_id=warehouse_id)
+
+    def _sku_variant(conn: Connection, sku: str) -> int:
+        try:
+            return resolve_sku(conn, sku)[0]
+        except SkuError as exc:
+            raise HTTPException(409 if exc.code == "sku_ambiguous" else 404, "sku_ambiguous" if exc.code == "sku_ambiguous" else "sku_not_found") from exc
+
+    @router.get("/skus/{sku}/variant")
+    def sku_variant(sku: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """The gateway's only way from a SKU to the internal id (machine-to-machine; the browser never sees the id)."""
+        vid = _sku_variant(conn, sku)
+        v = conn.execute(select(variants.c.sku, variants.c.name, variants.c.product_id).where(variants.c.external_id == vid)).first()
+        return {"id": vid, "product_id": None if v.product_id is None else int(v.product_id), "sku": str(v.sku).strip(), "name": v.name}
+
+    @router.get("/skus/{sku}")
+    def sku_detail_page(sku: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        out = variant_detail(_sku_variant(conn, sku), conn, _p)
+        v = out["variant"]                  # the browser's page names the product by SKU only: no variant or product id (FR-008a)
+        out["variant"] = {k: val for k, val in v.items() if k != "id"} | {"product": {"status": v["product"]["status"]}}
+        return out
 
     @router.get("/variants/{variant_id}")
     def variant_detail(variant_id: int, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
@@ -100,7 +120,7 @@ def build_router(app: FastAPI, history_days: int = 90) -> APIRouter:
     def review_list(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         items = list_open(conn)
         return {"count": len(items), "items": [
-            {"id": i.external_id, "variant_id": i.variant_id, "reason": i.reason, "quantity": i.quantity,
+            {"id": i.external_id, "variant_id": i.variant_id, "sku": skus_of(conn, [i.variant_id]).get(i.variant_id), "reason": i.reason, "quantity": i.quantity,
              "created_at": i.created_at_raw, "codes": i.codes} for i in items]}
 
     @router.post("/review/decisions")

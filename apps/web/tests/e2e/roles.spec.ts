@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { signInAs } from "./ui-helpers";
 
 const line = {
-  id: "line-1", variant_id: 101, sku: "AMX-500", product_name: "Amoxicilina", supplier_id: "supp-1", supplier_name: "Farmax", qty: 10,
+  id: "line-1", sku: "AMX-500", product_name: "Amoxicilina", supplier_id: "supp-1", supplier_name: "Farmax", qty: 10,
   unit_cost_with_recargo: "5.2600", line_total: "52.6000", risk: "low", confidence: "high", manual_override: false, topup: false, constraints_applied: [],
   explanation: {
     policy: "forecast", forecast_eligible: true, service_level: "95", horizon_days: 14, expected_demand: 8, safety_stock: 2, order_up_to: 12, reorder_point: 5, need: 10, top_up: false,

@@ -16,13 +16,15 @@ Verify-then-close-gaps: the 48 unchecked 006 tasks were classified against the c
 
 - **Role loses cost access while the screen is open:** the server refuses, and the screen drops the export buttons, closes any open drill-down, reloads without cost figures and says why. An export file also says when newer data exists than the screen was showing.
 
+- **SKU only at the browser (FR-008a, Phase 13):** no gateway route, payload or page address carries `variant_id`. The gateway looks up the internal id through inventory-service (`GET /skus/{sku}/variant`), uses it towards services, and removes `variant_id` from every JSON answer (transport filter, no business logic). Routes are now SKU-keyed (`/api/inventory/skus/{sku}`, `/api/dashboard/skus/{sku}/forecast-basis`, `/api/product-suppliers/{sku}/{supplier_id}/terms`, `sku` in cost routes and bodies); one strict SKU pattern is shared; unknown or ambiguous SKUs return `404 sku_not_found` or `409 sku_ambiguous`. Services, events, the cost writer and the connector keep `variant_id`. New browser schema `dashboard_drilldown.v2`. No compatibility routes (the app is not in production). **This touches files of other features** (costs, suppliers, scenarios, quality, proposals, admin status) because their screens and gateway routes showed or sent the id; reviewers of those areas should look at the SKU changes. Rows whose product has no SKU carry `sku_missing: true` and show the existing "Sin SKU" label; listing them in the review list is left as a follow-up (needs a new inventory route).
+
 **Defects found and fixed on the way**
 
 - The dashboard's "today" was the UTC date while demand is keyed by the Madrid day: the first hours of each Madrid day, and the two clock-change days, read as the day before. Now the Madrid date everywhere on the dashboard and in the gateway's default range. (`risk/daily.py` and `api/routes.py` still use the UTC date: outside the dashboard, noted for the inventory risk owner.)
 - The drill-down panel never showed its total and showed `capital`, `expiry_band` and `abc_xyz` amounts as bare numbers.
 - The SKU page showed a raw internal code and had invalid list markup (found by the axe scan).
 
-- **Convergence (Phase 11):** the spec was re-checked against the code and 11 gaps were recorded as T072 to T082. Closed here: the Madrid business date everywhere in the inventory service, chart edge-case tests, capital tied up in the indicators export, the newer-data note and the role-loss handling. Left open and named: the three deferrals below, opening the PR, a SKU-keyed refactor to drop `variant_id` from drill-down rows (a change across several features), and the flaky MMI-6 spec.
+- **Convergence (Phase 11):** the spec was re-checked against the code and 11 gaps were recorded as T072 to T082. Closed here: the Madrid business date everywhere in the inventory service, chart edge-case tests, capital tied up in the indicators export, the newer-data note and the role-loss handling. Left open and named: the three deferrals below, opening the PR, and the flaky MMI-6 spec (the SKU-keyed refactor was done afterwards, see above).
 
 **Deferred (reason, owner, follow-up in the closure report)**
 
@@ -34,8 +36,8 @@ Full record: [closure-report.md](closure-report.md). Screenshots (synthetic data
 
 ## Test results
 
-- Inventory service 380 passed, 2 skipped on SQLite and 381 passed on PostgreSQL (the CI mode); gateway 368 passed, 1 skipped; contracts 295 passed, 5 skipped; seed loader 4 passed.
-- Web: 828 unit tests, typecheck and lint clean; Playwright 296 passed, 15 skipped against the dev server; live config 4 journey specs passed and the 6 dashboard specs passed on a seeded stack (they skip with a reason when the reference data is not loaded).
+- Inventory service 385 passed; procurement 954 passed, 2 skipped; forecast 226 passed; gateway 375 passed, 1 skipped; contracts 298 passed; seed loader 4 passed.
+- Web: 830 unit tests, typecheck and lint clean; Playwright 296 passed, 15 skipped against the dev server; live config 7 specs passed on a seeded stack, including a network-log check that no request or answer carries `variant_id` (they skip with a reason when the reference data is not loaded).
 - Performance, 20,000 variants: slowest new operation 0.97 s (budget 2 s); browser first meaningful content about 0.3 s, filter change about 0.3 s.
 - Gates (`python -m gates run`, database and live-stack modes): contracts, isolation, integration, security and cost pass; secret scan clean. **The e2e gate is blocked**: its mocked Playwright step is intermittently red only when pointed at the real built web app, because of a spec from MMI-6 (`suppliers-terms-journey.spec.ts`, "Spanish only", 4 failures in 12 isolated runs; the spec is untouched by this change). The pipeline test passes alone (2 passed in 54 s) and the live-config step passes. Owner: supplier commercial management.
 
@@ -59,7 +61,7 @@ Full record: [closure-report.md](closure-report.md). Screenshots (synthetic data
 **Contracts**
 
 - [X] JSON Schemas first: `dashboard_sku.v1`, `dashboard_drilldown.v1`, `dashboard_freshness.v1`, `dashboard_charts.v1` added (the v1 summary and v2 indicators are unchanged, hash-pinned); baseline, generated types and contract tests updated
-- [ ] **Agent 00 review needed:** `contract-matrix.json` gained 4 `dto` entries and 4 `endpoint` entries (`/api/dashboard/` skus, charts, export, freshness; all status `draft`)
+- [ ] **Agent 00 review needed:** `contract-matrix.json` gained 5 `dto` entries (including `dashboard_drilldown` v2) and endpoint entries (`/api/dashboard/` skus, charts, export, freshness, and the renamed SKU-keyed routes); all status `draft`
 - [X] No breaking change
 
 **Quality**

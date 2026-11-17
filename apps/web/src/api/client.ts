@@ -28,7 +28,7 @@ export interface CostRecord {
   id: string;
   product_id: number;
   supplier_id: string;
-  variant_id: number | null;
+  sku?: string | null;
   version: number;
   cost_net: string | null;
   cost_with_recargo: string;
@@ -39,7 +39,7 @@ export interface CostRecord {
 }
 
 export interface CostWriteLot {
-  variant_id: number;
+  sku: string | null;
   lot: string;
   quantity: number;
   unit_cost: string;
@@ -68,7 +68,7 @@ export interface CostWriteRecord {
 }
 
 export interface LotCostCorrection {
-  variant_id: number;
+  sku: string;
   supplier_id: string;
   lot: string;
   amount: string;
@@ -78,7 +78,7 @@ export interface LotCostCorrection {
 
 export interface ImportErrorItem {
   id: number;
-  variant_id: number;
+  sku: string | null;
   movement_reason_raw?: string | null;
   anomaly_codes?: string[];
   created_at: string;
@@ -396,7 +396,7 @@ export interface AdminStatus {
   freshness: StatusCard<{ stock_snapshots: { latest_day: string | null; rows: number }; movements: { rows: number; quarantined: number; latest_at: string | null }; aggregates: { refreshed_at: string | null } }>;
   import_jobs: StatusCard<{ jobs: SeedJob[] }>;
   model_runs: StatusCard<{ runs: Array<{ id: string; started_at: string; status: string; through_day: string; total: number; eligible: number; dataset_version_id: string | null }> }>;
-  policy_history: StatusCard<Array<{ id: string; status: string; variant_id: number; [k: string]: unknown }>>;
+  policy_history: StatusCard<Array<{ id: string; status: string; sku?: string | null; [k: string]: unknown }>>;
   role_mirror: StatusCard<{ pending: number; failed: number; sent: number; oldest_pending_seconds: number }>;
   cost: { budget_eur: number; guardrails: { min_replicas: number; max_replicas: number; job_parallelism: number } };
 }
@@ -449,7 +449,7 @@ export interface ScenarioSummary {
   baseline: { total: string; over_budget: string; lines: number };
   scenario: { total: string; over_budget: string; lines: number; budget: string | null; utilisation: string | null };
   delta_total: string;
-  changes: Array<{ variant_id: number; supplier_before: string | null; supplier_after: string | null; qty_before: number; qty_after: number; reasons: string[] }>;
+  changes: Array<{ sku: string | null; supplier_before: string | null; supplier_after: string | null; qty_before: number; qty_after: number; reasons: string[] }>;
   binding: Array<{ key: string; params: Record<string, string> }>;
   infeasible: { over_by: string; clinical_critical_variants: number[] } | null;
   notes: string[];
@@ -467,7 +467,7 @@ export interface ScenarioDetail {
   summary: ScenarioSummary | null;
   results: Array<{ supplier_id: string; supplier_name: string | null; order_total: string; subtotal?: string | null; delivery_charge?: string | null; discount?: string | null; free_delivery?: boolean | null;
     expected_delivery: string | null; budget_utilisation: string | null;
-    lines: Array<{ variant_id: number; qty: number; unit_cost: string; line_total: string; clinical_critical: boolean }> }>;
+    lines: Array<{ sku: string | null; qty: number; unit_cost: string; line_total: string; clinical_critical: boolean }> }>;
   sensitivity: Array<{ constraint_key: string; delta: string; cost_impact: string }>;
 }
 
@@ -610,7 +610,7 @@ export interface LinkInputDoc {
 export interface DeactivationPreview {
   deactivated: boolean;
   open_proposal_lines: number;
-  lines: Array<{ proposal_id: string; variant_id: number }>;
+  lines: Array<{ proposal_id: string; sku: string | null }>;
 }
 
 export interface BulkPreview {
@@ -665,7 +665,7 @@ export interface EffectiveTerms {
 }
 
 export interface OverrideView {
-  variant_id: number;
+  sku?: string | null;
   supplier_id: string;
   version: number;
   override: OverrideDoc | null;
@@ -705,7 +705,7 @@ export function errorMessage(err: unknown, fallback: string): string {
 }
 
 export interface RiskItem {
-  variant_id: number;
+  sku: string;
   risk_type: "stockout" | "expiry" | "data_quality";
   explanation_key: string;
   params?: JsonRecord;
@@ -790,7 +790,7 @@ export interface DashOverview {
 
 export interface ForecastBasis {
   run_id: string;
-  variant_id: number;
+  sku?: string | null;
   eligible: boolean;
   policy: string;
   seed_used: boolean;
@@ -867,7 +867,7 @@ export interface DrillResponse {
   total: number;
   offset?: number;
   sum?: string | null;
-  rows: Array<{ variant_id: number; sku: string | null; name: string | null; figure: string | null }>;
+  rows: Array<{ sku: string | null; name: string | null; figure: string | null }>;
 }
 
 export interface DashFilters {
@@ -882,12 +882,11 @@ export interface DashFilters {
 
 export interface VariantDetail {
   variant: {
-    id: number;
     sku: string;
     name: string;
     pack_size: number;
     uom: string;
-    product: { id: number; status?: string };
+    product: { status?: string };
   };
   stock?: {
     on_hand: number;
@@ -950,7 +949,6 @@ export interface ProposalExplanation {
 
 export interface ProposalLine {
   id: string;
-  variant_id: number;
   sku: string | null;
   product_name: string | null;
   supplier_id: string;
@@ -1000,7 +998,7 @@ export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
   approval: { approver: string; decision: string; version: number; valid: boolean } | null;
   warnings?: string[];
   /** Needed variants the plan could not source (FR-014): shown to the buyer, never dropped silently. */
-  review_notes?: Array<{ code: string; variant_id: number; sku: string | null; product_name: string | null }>;
+  review_notes?: Array<{ code: string; sku: string | null; product_name: string | null }>;
   flags?: ProposalFlags | null;
 }
 
@@ -1143,8 +1141,8 @@ export class ApiClient {
     setCsrfToken(null);
   }
 
-  async getForecastBasis(variantId: number): Promise<ForecastBasis> {
-    return this.request(`/dashboard/variants/${variantId}/forecast-basis`);
+  async getForecastBasis(sku: string): Promise<ForecastBasis> {
+    return this.request(`/dashboard/skus/${encodeURIComponent(sku)}/forecast-basis`);
   }
 
   async getDrilldown(r: DrillRequest): Promise<DrillResponse> {
@@ -1226,8 +1224,8 @@ export class ApiClient {
     return this.request<RiskItem[]>(`/dashboard/risk${query}`);
   }
 
-  async getVariant(variantId: number): Promise<VariantDetail> {
-    return this.request<VariantDetail>(`/inventory/variants/${variantId}`);
+  async getVariant(sku: string): Promise<VariantDetail> {
+    return this.request<VariantDetail>(`/inventory/skus/${encodeURIComponent(sku)}`);
   }
 
   async getImportErrors(): Promise<{ count: number; items: ImportErrorItem[] }> {
@@ -1258,14 +1256,14 @@ export class ApiClient {
   }
 
   /** The buyer's opening cost for a pair whose ERP record has none. It becomes a lot entry, never a free supplier cost. */
-  async addOpeningCost(body: { variant_id: number; supplier_id: string; amount: string; includes_recargo: boolean }): Promise<JsonRecord> {
+  async addOpeningCost(body: { sku: string; supplier_id: string; amount: string; includes_recargo: boolean }): Promise<JsonRecord> {
     return this.request<JsonRecord>("/lot-costs", { method: "POST", body: JSON.stringify({ ...body, lot: "opening", source: "buyer_entry", quantity: 0 }) });
   }
 
   /** Builds the review request carrying the median of the lots in stock (or the opening entry). Nothing is sent to the ERP from here. */
-  async requestCostUpdate(productId: number, supplierId: string): Promise<{ status: string; warnings: string[]; request_id: string | null }> {
+  async requestCostUpdate(sku: string, supplierId: string): Promise<{ status: string; warnings: string[]; request_id: string | null }> {
     return this.request<{ status: string; warnings: string[]; request_id: string | null }>("/cost-updates", {
-      method: "POST", body: JSON.stringify({ product_id: productId, supplier_id: supplierId }),
+      method: "POST", body: JSON.stringify({ sku, supplier_id: supplierId }),
     });
   }
 
@@ -1684,12 +1682,12 @@ export class ApiClient {
     });
   }
 
-  async getOverrideTerms(variantId: number, supplierId: string): Promise<OverrideView> {
-    return this.request<OverrideView>(`/product-suppliers/${variantId}/${encodeURIComponent(supplierId)}/terms`);
+  async getOverrideTerms(sku: string, supplierId: string): Promise<OverrideView> {
+    return this.request<OverrideView>(`/product-suppliers/${encodeURIComponent(sku)}/${encodeURIComponent(supplierId)}/terms`);
   }
 
-  async putOverrideTerms(variantId: number, supplierId: string, payload: Record<string, unknown>, version: number, idempotencyKey?: string): Promise<{ version: number }> {
-    return this.request<{ version: number }>(`/product-suppliers/${variantId}/${encodeURIComponent(supplierId)}/terms`, {
+  async putOverrideTerms(sku: string, supplierId: string, payload: Record<string, unknown>, version: number, idempotencyKey?: string): Promise<{ version: number }> {
+    return this.request<{ version: number }>(`/product-suppliers/${encodeURIComponent(sku)}/${encodeURIComponent(supplierId)}/terms`, {
       method: "PUT",
       headers: saveHeaders(version, idempotencyKey),
       body: JSON.stringify(payload),

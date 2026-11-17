@@ -29,8 +29,8 @@ interface Props {
   selectedWarehouse?: number | undefined;
   onSelectWarehouse?: ((id: number | undefined) => void) | undefined;
   /** The open product detail, kept in the address (?producto=) so a link or the back button returns to it (feature 012). */
-  selectedProduct?: number | null | undefined;
-  onSelectProduct?: ((id: number | null) => void) | undefined;
+  selectedProduct?: string | null | undefined;
+  onSelectProduct?: ((sku: string | null) => void) | undefined;
   /** The signed-in user's roles: only those that may see costs are offered the export. */
   userRoles?: string[] | undefined;
 }
@@ -70,7 +70,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const setSupplier = (v: string) => setFilters({ supplier: v || undefined });
   const [drill, setDrill] = useState<{ request: DrillRequest; title: string } | null>(null);
   const [supplierOpen, setSupplierOpen] = useState<string | null>(null);
-  const [detailLocal, setDetailLocal] = useState<number | null>(null);
+  const [detailLocal, setDetailLocal] = useState<string | null>(null);
   const detail = selectedProduct !== undefined ? selectedProduct : detailLocal;
   const setDetail = onSelectProduct ?? setDetailLocal;
   const [severity, setSeverity] = useState<Severity | null>(null);
@@ -190,14 +190,14 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   };
 
   const riskColumns: Column<RiskItem>[] = [
-    { id: "variant", header: t("common.variant"), cell: (r) => String(r.params?.sku ?? t("dashboard.drill.no_sku")), sortValue: (r) => String(r.params?.sku ?? "") },
+    { id: "variant", header: t("common.variant"), cell: (r) => r.sku || t("dashboard.drill.no_sku"), sortValue: (r) => r.sku },
     { id: "status", header: t("common.status"), cell: (r) => <StatusBadge domain="risk" code={r.risk_type} />, sortValue: (r) => r.risk_type },
     { id: "why", header: t("proposals.explanation"), cell: (r) => String(t(r.explanation_key, r.params ?? {})) },
     {
       id: "actions",
       header: t("common.actions"),
       cell: (r) => (
-        <Button variant="secondary" small onClick={() => setDetail(r.variant_id)}>
+        <Button variant="secondary" small disabled={!r.sku} onClick={() => setDetail(r.sku)}>
           {t("dashboard.risk_open")}
         </Button>
       ),
@@ -467,13 +467,13 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
             ) : risks.length === 0 ? (
               <p>✓ {t("dashboard.no_risks")}</p>
             ) : (
-              <DataTable ariaLabel={t("a11y.risk_table")} columns={riskColumns} rows={shownRisks} rowKey={(r) => `${r.variant_id}-${r.risk_type}-${r.explanation_key}`} rowTone={riskTone} />
+              <DataTable ariaLabel={t("a11y.risk_table")} columns={riskColumns} rows={shownRisks} rowKey={(r) => `${r.sku}-${r.risk_type}-${r.explanation_key}-${JSON.stringify(r.params ?? {})}`} rowTone={riskTone} />
             )}
           </Card>
         </>
       )}
       {drill !== null && (
-        <DrillDownPanel request={drill.request} title={drill.title} onClose={() => setDrill(null)} onOpenProduct={(id) => setDetail(id)} canExport={canExport} loadedAt={trust.loadedAt} onForbidden={roleLost} range={{ date_from: filters.from, date_to: filters.to }} />
+        <DrillDownPanel request={drill.request} title={drill.title} onClose={() => setDrill(null)} onOpenProduct={(sku) => setDetail(sku)} canExport={canExport} loadedAt={trust.loadedAt} onForbidden={roleLost} range={{ date_from: filters.from, date_to: filters.to }} />
       )}
       {supplierOpen !== null && (
         <SupplierPanel
@@ -483,7 +483,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           onClose={() => setSupplierOpen(null)}
         />
       )}
-      {detail !== null && <ProductDetail variantId={detail} onClose={() => setDetail(null)} />}
+      {detail !== null && <ProductDetail sku={detail} onClose={() => setDetail(null)} />}
     </section>
   );
 };

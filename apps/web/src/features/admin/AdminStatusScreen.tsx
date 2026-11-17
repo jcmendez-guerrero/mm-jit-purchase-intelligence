@@ -127,7 +127,7 @@ export const AdminStatusScreen: React.FC = () => {
             rows={rows.slice(0, 20)}
             rowKey={(r) => r.id}
             columns={[
-              { id: "variant", header: t("admin.status.policy.variant"), cell: (r) => r.variant_id, sortValue: (r) => r.variant_id, align: "end" },
+              { id: "variant", header: t("admin.status.policy.variant"), cell: (r) => r.sku ?? "", sortValue: (r) => r.sku ?? "" },
               { id: "status", header: t("admin.status.policy.status"), cell: (r) => t(`admin.status.policy.status.${r.status}`, { defaultValue: r.status }), sortValue: (r) => r.status },
             ]}
           />

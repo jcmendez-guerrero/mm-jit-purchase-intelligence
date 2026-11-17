@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import httpx
 from fastapi.testclient import TestClient
-from routes.api import get_procurement_client
+from routes.api import get_inventory_client, get_procurement_client
 from tests_support import headers_for
 
 BUYER = ["viewer", "buyer"]
@@ -14,6 +14,9 @@ def app_with(mock):
     from main import app
 
     app.dependency_overrides[get_procurement_client] = lambda: mock
+    inventory = AsyncMock()
+    inventory.internal_id.return_value = 9001           # the catalogue owner turns the SKU into the id the services use (FR-008a)
+    app.dependency_overrides[get_inventory_client] = lambda: inventory
     return app
 
 
@@ -88,7 +91,7 @@ def test_every_signed_in_role_can_read_terms_and_history(role_store):
         for roles in (["viewer"], BUYER, ["viewer", "approver"], ["viewer", "admin"]):
             h = headers_for("reader-1", roles)
             assert TestClient(app).get("/api/suppliers/s1/terms", headers=h).status_code == 200
-            assert TestClient(app).get("/api/product-suppliers/9001/s1/terms", headers=h).status_code == 200
+            assert TestClient(app).get("/api/product-suppliers/SYN-9001/s1/terms", headers=h).status_code == 200
         assert TestClient(app).get("/api/suppliers/s1/terms").status_code == 401
     finally:
         app.dependency_overrides.clear()
@@ -99,8 +102,8 @@ def test_override_edits_need_the_buyer_role_and_forward_the_precondition(role_st
     mock.put_override_terms.return_value = {"version": 1}
     app = app_with(mock)
     try:
-        assert TestClient(app).put("/api/product-suppliers/9001/s1/terms", json={"pack_multiple": 6}, headers=headers_for("viewer-1", ["viewer"])).status_code == 403
-        res = TestClient(app).put("/api/product-suppliers/9001/s1/terms", json={"pack_multiple": 6}, headers={**headers_for("buyer-1", BUYER), "If-Match": '"0"'})
+        assert TestClient(app).put("/api/product-suppliers/SYN-9001/s1/terms", json={"pack_multiple": 6}, headers=headers_for("viewer-1", ["viewer"])).status_code == 403
+        res = TestClient(app).put("/api/product-suppliers/SYN-9001/s1/terms", json={"pack_multiple": 6}, headers={**headers_for("buyer-1", BUYER), "If-Match": '"0"'})
     finally:
         app.dependency_overrides.clear()
     assert res.status_code == 200

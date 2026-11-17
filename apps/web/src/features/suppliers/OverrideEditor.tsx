@@ -28,12 +28,12 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useActionNotice();
 
-  const variantId = Number(variant);
+  const sku = variant.trim();
   const load = async () => {
     setError(null);
     setNotice(null);
     try {
-      const v = await api.getOverrideTerms(variantId, supplierId);
+      const v = await api.getOverrideTerms(sku, supplierId);
       setView(v);
       const loaded = overrideToForm(v.override);
       setForm(loaded);
@@ -66,7 +66,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
       return;
     }
     try {
-      const r = await api.putOverrideTerms(variantId, supplierId, overrideToPayload(form), view.version, keyFor(JSON.stringify([variantId, form, view.version])));
+      const r = await api.putOverrideTerms(sku, supplierId, overrideToPayload(form), view.version, keyFor(JSON.stringify([sku, form, view.version])));
       setNotice(t("suppliers.override.saved", { version: r.version }));
       await load();
     } catch (err) {
@@ -106,8 +106,8 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
       </h3>
       <p className="mmi-muted mmi-text-sm">{t("suppliers.override.help")}</p>
       <div className="mmi-cluster mmi-mb-4">
-        <FormField id="o-variant" label={t("suppliers.override.variant")} value={variant} inputMode="numeric" onChange={setVariant} />
-        <Button variant="secondary" disabled={!Number.isInteger(variantId) || variantId < 1} onClick={() => void load()}>
+        <FormField id="o-variant" label={t("suppliers.override.variant")} value={variant} onChange={setVariant} />
+        <Button variant="secondary" disabled={sku === "" || sku.length > 60} onClick={() => void load()}>
           {t("suppliers.override.load")}
         </Button>
       </div>

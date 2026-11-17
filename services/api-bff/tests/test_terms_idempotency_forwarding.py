@@ -6,7 +6,7 @@ import httpx
 import pytest
 from clients.procurement import ProcurementClient
 from fastapi.testclient import TestClient
-from routes.api import get_procurement_client
+from routes.api import get_inventory_client, get_procurement_client
 from tests_support import headers_for
 
 BUYER = ["viewer", "buyer"]
@@ -16,6 +16,9 @@ def app_with(mock):
     from main import app
 
     app.dependency_overrides[get_procurement_client] = lambda: mock
+    inventory = AsyncMock()
+    inventory.internal_id.return_value = 9001           # the catalogue owner turns the SKU into the id the services use (FR-008a)
+    app.dependency_overrides[get_inventory_client] = lambda: inventory
     return app
 
 
@@ -28,7 +31,7 @@ def test_both_saves_forward_the_key_and_a_save_without_one_forwards_none(role_st
         client = TestClient(app)
         keyed = {**headers_for("buyer-1", BUYER), "Idempotency-Key": "k-1"}
         assert client.put("/api/suppliers/s1/terms", json={"lead_time_days": 4}, headers=keyed).status_code == 200
-        assert client.put("/api/product-suppliers/1/s1/terms", json={"lead_time_days": 4}, headers=keyed).status_code == 200
+        assert client.put("/api/product-suppliers/SYN-001/s1/terms", json={"lead_time_days": 4}, headers=keyed).status_code == 200
         assert client.put("/api/suppliers/s1/terms", json={"lead_time_days": 4}, headers=headers_for("buyer-1", BUYER)).status_code == 200
     finally:
         app.dependency_overrides.clear()

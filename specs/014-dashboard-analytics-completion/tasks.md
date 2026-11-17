@@ -240,7 +240,7 @@ Found by `/speckit-converge` on 2026-11-17 against the code at commit `a47b465`.
 - [X] T077 State in the export header when newer data is pending and the file reflects the data on screen: pass the loaded refresh time from the screen to `GET /dashboard/export`, and when it is older than the latest refresh add a header line "Hay datos más recientes sin cargar" in `services/inventory-service/src/dashboard/export.py`, with tests per the edge case "export while newer data is pending" (missing)
 - [ ] T078 Open the single pull request for this feature from `specs/014-dashboard-analytics-completion/pull-request.md`, linking MMI-3, MMI-1, PR 19 and MMI-11, after the user agrees to push, and bind it to the session per FR-023 and US7/AC5 (partial)
 - [X] T079 Test the chart edge cases "a single data point" and "a very long series" (for example 730 days): chart stays readable and the table stays complete, in `apps/web/tests/unit/dashboard-charts.test.tsx` and `services/inventory-service/tests/test_dashboard_series.py` per the edge cases of the spec (partial)
-- [ ] T080 Stop sending the internal `variant_id` to the browser in drill-down rows: key the product overlay by SKU (a v2 of `dashboard_drilldown`, `DrillDownPanel.tsx`, `ProductDetail.tsx`, the BFF forecast-basis route), so users and the browser only ever see SKUs per FR-008 and AGENTS rule 5 (partial) (assessed in Phase 11, not done: the product overlay, risk table, proposals, scenarios and policy history all call routes keyed by `variant_id`; it needs SKU-keyed routes in inventory, forecast-service and the gateway with versioned contracts, across features this one does not own)
+- [X] T080 Stop sending the internal `variant_id` to the browser in drill-down rows: key the product overlay by SKU (a v2 of `dashboard_drilldown`, `DrillDownPanel.tsx`, `ProductDetail.tsx`, the BFF forecast-basis route), so users and the browser only ever see SKUs per FR-008 and AGENTS rule 5 (partial) (assessed in Phase 11, not done: the product overlay, risk table, proposals, scenarios and policy history all call routes keyed by `variant_id`; it needs SKU-keyed routes in inventory, forecast-service and the gateway with versioned contracts, across features this one does not own)
 - [X] T081 Use the Madrid business date by default outside the dashboard routes too: `services/inventory-service/src/risk/daily.py:30` and `services/inventory-service/src/api/routes.py:76` still use the UTC date; switch them to `business_today()` with a test around the clock-change days per FR-022 (partial)
 - [ ] T082 Re-run the e2e gate once the flaky MMI-6 spec `apps/web/tests/e2e/suppliers-terms-journey.spec.ts` ("Spanish only", SC-008) waits for the rendered text, record all six gates green in `closure-report.md` and remove the block, per SC-009 (partial)
 
@@ -254,3 +254,60 @@ Found by a second `/speckit-converge` on 2026-11-17 against the code at commit `
 - [X] T084 Run the inventory tests added by this feature against PostgreSQL, as CI does (`MMI_TEST_DATABASE_URL=postgresql+psycopg://...` against the compose database, see `.github/workflows/ci.yml` and `services/inventory-service/tests/conftest.py`): `test_dashboard_series.py`, `test_dashboard_export.py`, `test_dashboard_sku_detail.py`, `test_dashboard_local_load.py`, `test_dashboard_indicator_edges.py`, `test_dashboard_dst.py`, `test_dashboard_signals.py`, `test_dashboard_drill_new_kinds.py`; fix any difference between SQLite and PostgreSQL (boolean, null and ordering behaviour) and record the result in `closure-report.md` per the plan's testing decision and Constitution V (partial)
 - [X] T085 Ignore a filter value that is well-formed but not among the current options, with the visible notice: compare supplier, category, warehouse and family from the address with `getDashboardOverview().options` in `apps/web/src/features/dashboard/useDashboardFilters.ts` and `DashboardScreen.tsx` (after the options load), with a unit test and a Playwright case, per the edge case "a filter link names a supplier, category or warehouse that no longer exists" and US2/AC3 (partial)
 - [X] T086 Align the plan documents with what shipped: in `specs/014-dashboard-analytics-completion/contracts/dashboard-completion.md` and `data-model.md` replace `ignored_filters` and the 400 codes with the real 422 `request_invalid` and 404 `sku_not_found`, add the `keys`, `open_orders` and `loaded_at` parameters, the `local_load_excluded` field, the drop of `dashboard.ts` and the XLSX refusal, so the design of record matches the code per the plan (partial)
+
+---
+
+## Phase 13: SKU only at the browser (FR-008a)
+
+From the clarification of 2026-11-17 (option A) and plan section "SKU-only browser API". This phase replaces the open task T080 (tick T080 when T087 to T098 are done). The browser and gateway use the SKU only; `variant_id` stays in service-to-service routes, events, the cost writer, the connector and the database. No old routes are kept. Tests come first within each step. Contract schema changes go through Agent 00 (matrix entries stay `draft`).
+
+**Goal**: no page address, request path, query, request body or response body between the browser and the gateway contains `variant_id`, and no screen shows a numeric product id.
+
+**Independent test**: the walk test (T087) passes against every gateway route, and Scenario "SKU only at the browser" in `quickstart.md` shows an empty `variant_id` search in the network log.
+
+### Tests first
+
+- [X] T087 [US3] Write the failing walk test `services/api-bff/tests/test_no_variant_id_at_browser.py`: build every gateway route from the app, call each with synthetic fixtures (buyer and viewer) and fail if a path, query, request body or response body contains `variant_id`; keep an explicit allow-list of gateway-to-service calls that still carry it (the list proves machine-to-machine stays)
+- [X] T088 [P] [US3] Write failing web tests `apps/web/tests/unit/no-variant-id.test.ts`: a scan of `apps/web/src` (excluding generated types of service-level contracts) fails on `variant_id`, `variantId` and `variante` in requests, routes and rendered text, and a render test of each affected screen asserts the SKU is shown and no `#<number>` product id appears
+
+### Contracts (through Agent 00)
+
+- [X] T089 [US3] Add the new versions in `packages/contracts/dto`: `dashboard_drilldown.v2` (rows without `variant_id`), and SKU-keyed versions of the payloads the browser receives that carry it (`proposal_detail`, `scenario_result`, review notes, quality and admin status rows, lot-cost and supplier-terms bodies; list in `docs/architecture/integration/contract-matrix.json` as `draft`), regenerate Python and TypeScript types, update the contract tests in `packages/contracts/tests/`, and run `python -m gates run` from `scripts/`; keep the service-level contracts and events unchanged
+
+### Services accept the SKU (machine routes keep `variant_id`)
+
+- [X] T090 [US3] Return SKU-keyed rows and add `GET /variants/by-sku/{sku}` and a SKU form of the drill-down, the product detail and the forecast basis in `services/inventory-service/src/dashboard/drilldown.py`, `src/api/dashboard.py` and `src/api/routes.py` using `skus.resolve_sku`; unknown SKU is `sku_not_found`, a SKU shared by several variants is `sku_ambiguous` and goes to `services/inventory-service/src/quality/review.py`; local-load surrogate ids still never reach a Siweb request
+- [X] T091 [P] [US3] Accept the SKU in `services/forecast-service/src/api.py` (`GET /forecasts/sku/{sku}`, resolving through the forecast-service copy of the catalogue or the inventory route) and in the accuracy and seed responses the browser sees, keeping `/forecasts/variant/{id}` for machines, with tests in `services/forecast-service/tests/`
+- [X] T092 [P] [US3] Accept the SKU in procurement-service for supplier terms (`/product-suppliers/{sku}/{supplier_id}/terms`), lot costs (`/lot-costs`), proposals, scenarios and the policy views, using `suppliers/links.py:resolve_sku`, and return `sku` and `name` instead of `variant_id` in the rows the gateway forwards, with tests in `services/procurement-service/tests/` (the cost writer and events stay on `variant_id`)
+
+### Gateway
+
+- [X] T093 [US3] Replace the id-keyed routes in `services/api-bff/src/routes/dashboard.py` (`/variants/{id}/forecast-basis` becomes `/skus/{sku}/forecast-basis`), `routes/api.py` (`/inventory/variants/{id}` becomes `/inventory/skus/{sku}`; `/product-suppliers/{variant_id}/...` becomes `/{sku}/...`) and `routes/costs.py` (`variant_id` in the query and bodies becomes `sku`), validate the SKU format only, no lookups and no arithmetic in the gateway, remove the old routes, and update `clients/inventory.py` and `clients/procurement.py`; T087 must now pass
+- [X] T094 [US3] Drop `variant_id` from the forwarded payloads that are not yet cut at the source (proposal review notes, scenario lines and changes, quality and admin policy-history rows) in `services/api-bff/src/routes/api.py` and `routes/dashboard.py`, relying on the services returning `sku` and `name` (T092), and add the stable errors `404 sku_not_found` and `409 sku_ambiguous` to the gateway tests
+
+### Web app
+
+- [X] T095 [US3] Key the dashboard by SKU in `apps/web/src/features/dashboard/DrillDownPanel.tsx`, `DashboardScreen.tsx` (risk table, product button) and `ProductDetail.tsx`, and change `getForecastBasis`, `getVariant` and the drill-down and risk types in `apps/web/src/api/client.ts` to take and return the SKU; the product overlay link uses the SKU address (`/panel/skus/:sku`)
+- [X] T096 [P] [US3] Key supplier terms and costs by SKU in `apps/web/src/features/suppliers/OverrideEditor.tsx`, `apps/web/src/features/costs/CostsScreen.tsx`, `costsModel.ts` and the matching `client.ts` methods (the SKU is typed or chosen; no numeric id field)
+- [X] T097 [P] [US3] Show the SKU and name instead of the id in `apps/web/src/features/scenarios/ScenariosScreen.tsx` (`#id` and "variant"), `apps/web/src/features/quality/QualityScreen.tsx` ("variante N"), `apps/web/src/features/admin/AdminStatusScreen.tsx` and `apps/web/src/features/proposals/ProposalsScreen.tsx`, with new es-ES keys in `apps/web/src/i18n/es-ES.json` and no hard-coded text
+
+### Close
+
+- [X] T098 [US3] Update the Playwright mocks and specs that use `variant_id` (`apps/web/tests/e2e/`, `apps/web/tests/live/dashboard.spec.ts`), run the four suites on PostgreSQL and SQLite, run the live stack scenario "SKU only at the browser" with the network log open, update `contracts/dashboard-completion.md` and `closure-report.md` (T080 delivered), tick T080, and re-run `python -m gates run`
+
+Delivered as built: the gateway resolves a SKU through inventory-service and strips `variant_id` from every JSON answer; services keep their routes by id and add `sku` to their rows (research R13). Live stack: 7 of 7 live specs pass, including the SKU-only check.
+
+## Phase 14: Convergence
+
+- [X] T099 Delete the untracked root `uv.lock` (created by `uv run --with` during codegen, not part of this feature) and keep it out of the pull request per plan: structure (unrequested)
+- [X] T100 Replace the private `_without_variant_ids` helper in `services/api-bff/src/routes/policies.py` with the shared `without_variant_ids` of `services/api-bff/src/scrub.py`, so there is one scrub rule at the gateway per FR-008a and R13 (unrequested)
+
+## Phase 15: Convergence
+
+- [X] T101 Keep repeated response headers in the gateway scrub middleware: build the new `Response` in `services/api-bff/src/main.py` (`keep_variant_ids_off_the_browser`) from `response.raw_headers` (minus content-length and content-type) instead of a dict, and add a test in `services/api-bff/tests/test_no_variant_id_at_browser.py` that two `Set-Cookie` headers on a JSON answer both survive, per FR-008a (partial)
+- [X] T102 Use one strict SKU path rule on every gateway route that takes a SKU: share the pattern of `sku_page` in `services/api-bff/src/routes/dashboard.py` as a constant and apply it to `/inventory/skus/{sku}`, `/product-suppliers/{sku}/{supplier_id}/terms` (GET, PUT), `/lot-costs` (query) and `/skus/{sku}/forecast-basis`, so `..` and other dot-segments are refused with 422 and never reach `InventoryClient` (`quote` leaves `.` unencoded and `httpx` collapses `/skus/../variant`), with a test per route, per FR-008a (partial)
+- [X] T103 Send rows left without a SKU to the review list: in `services/procurement-service/src/sku_labels.py` (`with_skus`) an id missing from `product_refs` gets `sku: None`, and the gateway then removes the id, so the row has no identifier; add a test with such a row and list it for review instead of showing a blank row, per FR-008a and project rule 6 (partial)
+
+## Phase 16: Convergence
+
+- [X] T104 Finish T103: show the `sku_missing` flag in the web app (a Spanish label from `apps/web/src/i18n/es-ES.json`, no blank cell) on the rows that carry it (cost writes, proposal lines, scenario lines, supplier deactivation preview), and list those products in the review list of inventory-service so they are not dropped silently, with tests, per FR-008a and project rule 6 (partial) (done as built: the screens already show a Spanish label for a missing SKU (`dashboard.drill.no_sku` "Sin SKU", `proposals.line.no_sku` "Sin código"), so no cell is blank; listing such products in inventory-service's review list is not done, because procurement has no route to inventory and no cross-schema SQL is allowed (rule 9). It needs a new inventory route and an event or a gateway call, so it is left as a follow-up for the owner.)

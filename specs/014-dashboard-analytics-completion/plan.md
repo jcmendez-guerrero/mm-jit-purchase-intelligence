@@ -1,6 +1,6 @@
 # Implementation Plan: Dashboard & Analytics Completion
 
-**Branch**: `claude/speckit-jira-mmi-11-93e5e3` | **Date**: 2026-11-16 | **Spec**: [spec.md](spec.md)
+**Branch**: `claude/speckit-jira-mmi-11-93e5e3` | **Date**: 2026-11-16 (updated 2026-11-17 for FR-008a) | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `/specs/014-dashboard-analytics-completion/spec.md` (Jira MMI-11, epic MMI-1; continues MMI-3 and PR 19)
 
@@ -9,6 +9,8 @@
 Finish feature 006 without redoing it. The design of 006 (plan, data model, API contract, quickstart in `specs/006-executive-dashboard-analytics/`) stays the design of record; this plan adds the order of work, the verification step and the evidence needed to close it. First a verification pass classifies the 48 unchecked 006 tasks against the code (research R1). Then the verified gaps are built in this order: filters and URL state, drill-down kinds and SKU route, analytical charts, exports, freshness and trust, live-stack evidence and gates.
 
 On this branch the inventory service already has `kpis.py`, `filters.py`, `drilldown.py`, `freshness.py`, `indicators.py` and `roles.py`, and the BFF has `/overview`, `/drilldown` and a forecast-basis route. Still missing on disk: `series.py`, `export.py`, the SKU detail route, the charts, export and freshness routes in the BFF, `apps/web/src/api/dashboard.ts`, the `charts/` folder and `scripts/live-stack/` (research R1 lists the evidence; the verification task confirms it). No new service and no new always-on resource.
+
+**Update 2026-11-17 (FR-008a, clarification "SKU only at the browser")**: the browser and gateway identify products by SKU only. `variant_id` stays between services, in events and in machine-to-machine calls. The app is not in production, so the change is made in one pass with no compatibility routes. The design is in research R12-R14, `data-model.md` (SKU key) and `contracts/dashboard-completion.md` (SKU-keyed routes); the work is the open task T080 and the tasks that `/speckit-tasks` adds for it.
 
 ## Technical Context
 
@@ -104,6 +106,14 @@ specs/014-dashboard-analytics-completion/closure-report.md  # created by the fir
 6. **Evidence** (US7): live journey, performance, axe, cost note, quickstart, gates, one PR.
 
 Stories 2 and 3 are the P1 slice and can be reviewed alone; 4 and 5 can proceed in parallel after the routes exist.
+
+## SKU-only browser API (FR-008a)
+
+1. **Inventory of surfaces** (research R12): drill-down rows and the product overlay (`/dashboard/variants/{id}/forecast-basis`, `/inventory/variants/{id}`), supplier terms (`/product-suppliers/{variant_id}/...`), costs (lot costs, opening and corrected cost), quality, admin status policy history, proposal review notes and scenario lines.
+2. **One resolver, in the owner of the catalogue** (R13): inventory-service already resolves a SKU to the internal id (`skus.resolve_sku`). Each downstream service that needs the id for a SKU-keyed request resolves it through its own copy of the catalogue or through the inventory route; the gateway only forwards the SKU and never keeps a SKU-to-id table (no business logic in the gateway).
+3. **Order**: contracts first (v2 of each payload that carries `variant_id` to the browser, through Agent 00), then services (accept the SKU), then the gateway (path and body use the SKU), then the web app, then the tests that prove the browser never receives or sends `variant_id`.
+4. **Machine-to-machine stays** (R14): events, the service-to-service API, the cost writer and the connector keep `variant_id`; a gateway test lists what stays.
+5. **Dashboard first**: the drill-down rows, the product overlay and the forecast basis (this feature's own surfaces) go first so the dashboard is complete alone; the other features' surfaces follow in the same branch, each as its own task, because their owners' files are touched (flag it in the PR).
 
 ## Complexity Tracking
 

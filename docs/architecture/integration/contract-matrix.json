@@ -62,6 +62,17 @@
       "status": "draft"
     },
     {
+      "name": "dashboard_drilldown",
+      "kind": "dto",
+      "version": 2,
+      "schema_path": "dto/dashboard_drilldown.v2.schema.json",
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "dashboard_freshness",
       "kind": "dto",
       "version": 1,
@@ -937,7 +948,7 @@
       "status": "draft"
     },
     {
-      "name": "GET /api/dashboard/variants/{variant_id}/forecast-basis",
+      "name": "GET /api/dashboard/skus/{sku}/forecast-basis",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -1127,7 +1138,7 @@
       "status": "draft"
     },
     {
-      "name": "GET /api/inventory/variants/{variant_id}",
+      "name": "GET /api/inventory/skus/{sku}",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -1327,7 +1338,7 @@
       "status": "draft"
     },
     {
-      "name": "GET /api/product-suppliers/{variant_id}/{supplier_id}/terms",
+      "name": "GET /api/product-suppliers/{sku}/{supplier_id}/terms",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -1337,7 +1348,7 @@
       "status": "draft"
     },
     {
-      "name": "PUT /api/product-suppliers/{variant_id}/{supplier_id}/terms",
+      "name": "PUT /api/product-suppliers/{sku}/{supplier_id}/terms",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",

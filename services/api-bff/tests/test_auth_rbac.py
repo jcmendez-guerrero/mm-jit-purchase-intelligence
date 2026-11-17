@@ -114,7 +114,7 @@ def test_bff_aggregation_routes():
 
     mock_inv = AsyncMock()
     mock_inv.get_risks.return_value = [{"variant_id": 1, "risk_type": "stockout", "explanation_key": "risk.stockout.imminent"}]
-    mock_inv.get_variant_detail.return_value = {"variant": {"id": 1, "sku": "AMX-500"}}
+    mock_inv.get_sku_detail.return_value = {"variant": {"id": 1, "sku": "AMX-500"}}
     mock_inv.get_review_items.return_value = {"count": 1, "items": [{"id": 10}]}
     app.dependency_overrides[get_inventory_client] = lambda: mock_inv
 
@@ -125,7 +125,7 @@ def test_bff_aggregation_routes():
         assert len(res.json()) == 1
 
         # Variant detail
-        res = client.get("/api/inventory/variants/1", headers=headers)
+        res = client.get("/api/inventory/skus/AMX-500", headers=headers)
         assert res.status_code == 200
         assert res.json()["variant"]["sku"] == "AMX-500"
 

@@ -13,7 +13,7 @@ test.describe("Dashboard export", () => {
     exports = [];
     await signIn(page);                                         // buyer and viewer
     await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview())));
-    await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: false, total: 1, offset: 0, sum: "40.00", rows: [{ variant_id: 1, sku: "SYN-001", name: "Producto sintético", figure: "40.00" }] })));
+    await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: false, total: 1, offset: 0, sum: "40.00", rows: [{ sku: "SYN-001", name: "Producto sintético", figure: "40.00" }] })));
     await page.route("**/api/dashboard/export*", (r) => {
       exports.push(new URL(r.request().url()));
       return r.fulfill(csv());

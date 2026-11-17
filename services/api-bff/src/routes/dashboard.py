@@ -15,7 +15,7 @@ from clients.procurement import ProcurementClient
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 from mmi_common.time import ASSUMED_LOCAL_TZ
 from routes.admin_roles import get_store
-from routes.api import EXPORT_ROLES, get_inventory_client, get_procurement_client
+from routes.api import EXPORT_ROLES, SKU_PATTERN, get_inventory_client, get_procurement_client
 from routes.policies import get_forecast_client
 from routes.rbac import require_roles
 
@@ -240,12 +240,13 @@ async def export_dashboard(
 
 
 @router.get("/skus/{sku}")
-async def sku_page(sku: str = Path(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,59}$"), session: SessionData = Depends(require_roles(*READ)), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
+async def sku_page(sku: str = Path(pattern=SKU_PATTERN), session: SessionData = Depends(require_roles(*READ)), inv: InventoryClient = Depends(get_inventory_client)) -> Any:
     """One product by SKU. Inventory builds the page and leaves the cost out for roles that may not see it; this only checks the SKU shape and forwards the signed-in user."""
     return await inv.forward("GET", f"/dashboard/skus/{sku}", user_id=session.user_id, roles=session.roles)
 
 
-@router.get("/variants/{variant_id}/forecast-basis")
-async def forecast_basis(variant_id: int = Path(ge=1), session: SessionData = Depends(require_roles(*READ)), fc: ForecastClient = Depends(get_forecast_client)) -> Any:
-    """Whether one product's forecast rests on imported estimates (FR-008); the answer comes from forecast-service."""
-    return await fc.forward("GET", f"/forecasts/variant/{variant_id}", user_id=session.user_id, roles=session.roles)
+@router.get("/skus/{sku}/forecast-basis")
+async def forecast_basis(sku: str = Path(pattern=SKU_PATTERN), session: SessionData = Depends(require_roles(*READ)), fc: ForecastClient = Depends(get_forecast_client),
+                         inventory: InventoryClient = Depends(get_inventory_client)) -> Any:
+    """Whether one product's forecast rests on imported estimates (FR-008); the answer comes from forecast-service, which is addressed by the internal id the catalogue owner gives for the SKU."""
+    return await fc.forward("GET", f"/forecasts/variant/{await inventory.internal_id(sku, session.roles)}", user_id=session.user_id, roles=session.roles)

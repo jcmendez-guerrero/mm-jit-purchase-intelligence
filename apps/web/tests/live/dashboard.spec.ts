@@ -85,6 +85,18 @@ test.describe("Dashboard on the live stack", () => {
     await expect(page.getByText(/Archivo descargado: \d+ filas\./)).toBeVisible();
   });
 
+  test("no request or answer between the browser and the gateway carries the internal product id (FR-008a)", async ({ page }) => {
+    await signInAs(page, "buyer-1");
+    const seen: string[] = [];
+    page.on("request", (r) => { if (r.url().includes("/api/")) seen.push(`${r.method()} ${r.url()} ${r.postData() ?? ""}`); });
+    page.on("response", async (r) => { if (r.url().includes("/api/") && (r.headers()["content-type"] ?? "").includes("json")) seen.push(`${r.url()} ${await r.text().catch(() => "")}`); });
+    await page.goto("/panel?producto=SYN-001");                       // the product page opens by SKU: its detail and forecast basis are fetched by SKU
+    await expect(page.getByLabel("Detalle del producto").getByRole("heading", { level: 3 })).toContainText("SYN-001");
+    await page.getByRole("button", { name: /Exportar indicadores/ }).waitFor();
+    expect(seen.some((l) => l.includes("/api/inventory/skus/SYN-001"))).toBe(true);
+    expect(seen.filter((l) => /variant_id|\/variants\//.test(l))).toEqual([]);
+  });
+
   test("a viewer gets no amounts and no export, and the charts carry no money column", async ({ page }) => {
     await signInAs(page, "viewer-1");
     await page.goto("/panel");

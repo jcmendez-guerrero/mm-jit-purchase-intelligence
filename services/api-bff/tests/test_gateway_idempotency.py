@@ -17,7 +17,7 @@ KEYED = {
     # MMI-6 (spec 007, FR-014): a retry of a lost-response terms save must not look like a stale revision. The procurement service stores the key
     # with the request hash and the version it created; the gateway only forwards it (tests/test_terms_idempotency_forwarding.py).
     ("/api/suppliers/{supplier_id}/terms", "PUT"),
-    ("/api/product-suppliers/{variant_id}/{supplier_id}/terms", "PUT"),
+    ("/api/product-suppliers/{sku}/{supplier_id}/terms", "PUT"),
 }
 KEY = "abcdefgh-retry-1"
 

@@ -62,3 +62,26 @@ Decision: reuse `apps/web/tests/e2e/dashboard-perf.spec.ts` and `services/api-bf
 ## R11 - Merge risk with PR 17
 
 Decision: shared files (`apps/web/src/api/client.ts`, `apps/web/src/i18n/es-ES.json`) are touched additively; if PR 17 lands first, merge `main` again before the PR and resolve conflicts (006 T098).
+
+
+## R12 - Where the browser still sees `variant_id` (FR-008a)
+
+Decision: the starting list, from a search of the web app and the gateway, is: drill-down rows (`dashboard_drilldown.v1`), the product overlay (`/dashboard/variants/{id}/forecast-basis`, `/inventory/variants/{id}`), supplier terms (`/product-suppliers/{variant_id}/{supplier}/terms`), costs (lot costs, opening and corrected cost bodies), the quality and admin status screens (shown as "variante N"), proposal review notes, scenario lines and changes (shown as `#id`), and the matching generated types. Policies already strip it (`_without_variant_ids`). The implement step re-runs the search and ticks each one.
+
+Rationale: the user wants humans and the browser on the SKU only; showing `#id` or "variante N" breaks AGENTS rule 5.
+
+Alternatives considered: only the dashboard (rejected by the clarification, option A); an optional `variant_id` field kept for machine clients on the gateway (rejected, option C).
+
+## R13 - Who resolves SKU to id
+
+Decision (as built): the catalogue owner resolves it. Inventory-service answers `GET /skus/{sku}/variant` (internal id and product id) and `GET /skus/{sku}` (the product page without any internal id); the gateway asks it once per request for the routes whose services still work by id (supplier terms, lot costs, cost updates, forecast basis) and forwards nothing else, with no cache and no arithmetic. The services keep their machine routes by `variant_id`; where a row names a product they add `sku` next to it (`procurement-service/src/sku_labels.py`, inventory risk and review rows), and the gateway removes the key `variant_id` from every JSON answer (`api-bff/src/scrub.py`, a transport filter). Unknown SKU is 404 `sku_not_found`; a SKU that matches more than one variant is 409 `sku_ambiguous`, never guessed. Local-load surrogate ids (from 9,000,000) resolve like any other but stay refused for Siweb requests (pending link).
+
+Rationale: keeps the gateway free of business logic (ADR-023) and avoids a second catalogue copy.
+
+Alternatives considered: a SKU-to-id table in the gateway (rejected: business data and staleness); one new "resolve" service (rejected: new always-on resource); SKU-keyed routes in every service (rejected for now: about 290 uses of the id inside procurement and forecast, and machine-to-machine callers need the id).
+
+## R14 - What keeps `variant_id`
+
+Decision: events, queues, service-to-service routes, the cost writer, the connector and the database keep `variant_id`; so do the service-level contracts a machine consumes. Only payloads, paths, query strings and page addresses that the browser sees change. Because nothing is in production, the old gateway routes are removed in the same change, not deprecated.
+
+Rationale: matches the clarification (machine-to-machine may need the id).

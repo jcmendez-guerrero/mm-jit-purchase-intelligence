@@ -45,14 +45,14 @@ const DashboardRoute: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
     [setParams],
   );
   const rawProduct = params.get("producto");
-  const product = rawProduct !== null && /^\d+$/.test(rawProduct) ? parseInt(rawProduct, 10) : null;
+  const product = rawProduct !== null && rawProduct.trim() !== "" && rawProduct.length <= 60 ? rawProduct : null;
   const selectProduct = useCallback(
-    (id: number | null) => {
+    (sku: string | null) => {
       setParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          if (id === null) next.delete("producto");
-          else next.set("producto", String(id));
+          if (sku === null) next.delete("producto");
+          else next.set("producto", sku);
           return next;
         },
         { replace: true },
@@ -69,8 +69,8 @@ const ProposalsRoute: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
   const [params, setParams] = useSearchParams();
   const sku = params.get("sku") || undefined;
   const back = params.get("volver");
-  const backAction = back !== null && /^\d+$/.test(back) ? (
-    <Link className="mmi-button mmi-button--secondary mmi-button--small" to={`/panel?producto=${back}`}>
+  const backAction = back !== null && back.trim() !== "" && back.length <= 60 ? (
+    <Link className="mmi-button mmi-button--secondary mmi-button--small" to={`/panel?producto=${encodeURIComponent(back)}`}>
       {t("proposals.back_to_product")}
     </Link>
   ) : undefined;

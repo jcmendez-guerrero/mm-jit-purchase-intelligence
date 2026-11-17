@@ -102,3 +102,14 @@ def test_the_charts_list_refuses_unknown_keys_states_extra_fields_and_a_missing_
         with pytest.raises(jsonschema.ValidationError):
             validate("dashboard_charts", bad)
 
+
+
+def test_the_browser_drilldown_v2_has_no_internal_id_and_otherwise_matches_v1():
+    v1, v2 = load("dashboard_drilldown"), json.loads((DTO / "dashboard_drilldown.v2.schema.json").read_text(encoding="utf-8"))
+    jsonschema.Draft202012Validator.check_schema(v2)
+    assert v2["$id"] == "mmi/dto/dashboard_drilldown.v2" and v2["properties"]["kind"] == v1["properties"]["kind"]
+    row = {"sku": "SYN-004", "name": "Sintético", "figure": "40.00"}
+    ok = {**{k: v for k, v in DRILL.items() if k != "rows"}, "rows": [row]}
+    jsonschema.validate(ok, v2, cls=jsonschema.Draft202012Validator)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate({**ok, "rows": [{**row, "variant_id": 4}]}, v2, cls=jsonschema.Draft202012Validator)

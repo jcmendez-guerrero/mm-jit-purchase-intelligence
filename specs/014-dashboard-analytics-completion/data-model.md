@@ -56,3 +56,13 @@ Per source: `source`, `origin` (`erp_sync`, `local_load`), `refreshed_at_utc`, `
 ## State transitions
 
 Closure row: `unverified` -> `completed` (found done) or `remaining` -> `delivered` or `deferred (with reason, owner, follow-up)`. No other state is allowed at close.
+
+
+## Product key at the browser (FR-008a)
+
+| Where | Key |
+|-------|-----|
+| Browser, gateway routes, page addresses, gateway payloads | `sku` (text, as in the synced catalogue) |
+| Service-to-service routes, events, database, cost writer, connector | `variant_id` (integer) |
+
+Rules: the SKU is unique among the variants a service holds; if it is not, the request is refused as ambiguous and the product goes to the review list. A SKU resolves to a surrogate id (from 9,000,000) for locally loaded data; such an id never reaches a Siweb request. Drill-down rows, review notes, scenario lines, quality and admin rows carry `sku` and `name`, not `variant_id`.

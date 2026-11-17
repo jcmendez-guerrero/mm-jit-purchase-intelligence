@@ -6,7 +6,7 @@ import { DrillDownPanel } from "../../src/features/dashboard/DrillDownPanel";
 import "../../src/i18n";
 
 const rows = (from: number, n: number): DrillResponse["rows"] =>
-  Array.from({ length: n }, (_, i) => ({ variant_id: 900000 + from + i, sku: `SYN-${String(from + i).padStart(3, "0")}`, name: `Variante ${from + i}`, figure: "10.00" }));
+  Array.from({ length: n }, (_, i) => ({ sku: `SYN-${String(from + i).padStart(3, "0")}`, name: `Variante ${from + i}`, figure: "10.00" }));
 const page = (over: Partial<DrillResponse>): DrillResponse => ({ kind: "inventory_value", truncated: false, total: 2, offset: 0, sum: "20.00", rows: rows(1, 2), ...over });
 
 afterEach(() => {
@@ -24,7 +24,7 @@ describe("drill-down shows products by SKU", () => {
   });
 
   it("says 'Sin SKU' instead of falling back to the id when a product has none", async () => {
-    vi.spyOn(api, "getDrilldown").mockResolvedValue(page({ rows: [{ variant_id: 900001, sku: null, name: "Sin código", figure: "1.00" }], total: 1 }));
+    vi.spyOn(api, "getDrilldown").mockResolvedValue(page({ rows: [{ sku: null, name: "Sin código", figure: "1.00" }], total: 1 }));
     const { container } = render(<DrillDownPanel request={{ kind: "inventory_value" }} title="Productos" onOpenProduct={() => {}} onClose={() => {}} />);
     await screen.findByText(/Sin SKU/);
     expect(container.textContent).not.toMatch(/9000\d\d/);
