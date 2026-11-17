@@ -1,4 +1,4 @@
-"""MMI-16 (spec 014): product-supplier terms are read and saved by SKU; the Siweb variant id is resolved here and never returned, audited or logged."""
+"""MMI-16 (spec 016): product-supplier terms are read and saved by SKU; the Siweb variant id is resolved here and never returned, audited or logged."""
 
 from __future__ import annotations
 

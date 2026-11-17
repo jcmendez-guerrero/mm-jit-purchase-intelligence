@@ -1,6 +1,6 @@
 # Tasks: SKU Route for Product-Supplier Terms
 
-**Input**: `specs/014-sku-override-terms-route/` (spec.md, plan.md, research.md, data-model.md, contracts/, quickstart.md)
+**Input**: `specs/016-sku-override-terms-route/` (spec.md, plan.md, research.md, data-model.md, contracts/, quickstart.md)
 
 **Prerequisites**: plan.md, spec.md. Tests come before implementation (project rule); all fixtures synthetic (`packages/testing`), never a real Siweb host.
 
@@ -8,10 +8,10 @@
 
 ## Phase 1: Setup (contract first, rule 9)
 
-- [X] T001 Copy `specs/014-sku-override-terms-route/contracts/override_terms_view.v1.schema.json` to `packages/contracts/dto/override_terms_view.v1.schema.json` (check the `$ref`s and `required` against `OverrideView` in `apps/web/src/api/client.ts`)
+- [X] T001 Copy `specs/016-sku-override-terms-route/contracts/override_terms_view.v1.schema.json` to `packages/contracts/dto/override_terms_view.v1.schema.json` (check the `$ref`s and `required` against `OverrideView` in `apps/web/src/api/client.ts`)
 - [X] T002 Update the baseline and regenerate types with `packages/contracts/tools/update_baseline.py` and `packages/contracts/tools/codegen.py` (outputs: `packages/contracts/baseline/dto/override_terms_view.v1.schema.json`, `packages/contracts/python/mmi_models/dto/`, `apps/web/src/api/generated/dto/`)
 - [X] T003 [P] Contract test in `packages/contracts/tests/test_override_terms_view.py`: a synthetic view validates; a body with `variant_id` is rejected (`additionalProperties: false`)
-- [X] T004 Rename the two matrix entries in `docs/architecture/integration/contract-matrix.json` to `GET` and `PUT /api/product-suppliers/{sku}/{supplier_id}/terms` (consumer `web`, status `draft`) and write `specs/014-sku-override-terms-route/agent-00-contract-note.md` (breaking rename; only consumer is the web app, changed in the same PR; new schema `override_terms_view.v1`)
+- [X] T004 Rename the two matrix entries in `docs/architecture/integration/contract-matrix.json` to `GET` and `PUT /api/product-suppliers/{sku}/{supplier_id}/terms` (consumer `web`, status `draft`) and write `specs/016-sku-override-terms-route/agent-00-contract-note.md` (breaking rename; only consumer is the web app, changed in the same PR; new schema `override_terms_view.v1`)
 - [X] T005 Check whether the project publishes a generated API description (OpenAPI file or a test that snapshots it; none was found while planning): if one exists, update it for the renamed routes and cover it in a test; if not, record "none" in `agent-00-contract-note.md` (spec FR-007)
 
 **Checkpoint**: `python -m gates run` from `scripts/` passes.
@@ -29,8 +29,8 @@
 
 **Independent Test**: read a synthetic SKU; compare with the stored terms; unknown and ambiguous SKUs are refused.
 
-- [X] T008 [P] [US1] Procurement tests in `services/procurement-service/tests/test_terms_sku_014.py`: GET by SKU returns the stored terms with `sku` and no `variant_id` key anywhere; `as_of` works and a bad `as_of` gives 400 `request_invalid`; a SKU with spaces, an encoded slash, accents and different case resolves exactly; unknown, empty and ambiguous SKU give 422 `sku_unknown` / `sku_ambiguous`; a local-load surrogate-id product (9,000,000 range) resolves and its id is not returned; a supplier with no terms gives today's empty view; the answer validates against `override_terms_view.v1`; captured logs of the request (caplog) hold no variant id
-- [X] T009 [P] [US1] Gateway tests in `services/api-bff/tests/test_terms_sku_014.py`: viewer, buyer, approver and admin may read; no session is refused; the request is forwarded with identity and roles; procurement's 422 codes pass through; a NUL byte in the SKU gives 422 `invalid_input` before the service is called
+- [X] T008 [P] [US1] Procurement tests in `services/procurement-service/tests/test_terms_sku_016.py`: GET by SKU returns the stored terms with `sku` and no `variant_id` key anywhere; `as_of` works and a bad `as_of` gives 400 `request_invalid`; a SKU with spaces, an encoded slash, accents and different case resolves exactly; unknown, empty and ambiguous SKU give 422 `sku_unknown` / `sku_ambiguous`; a local-load surrogate-id product (9,000,000 range) resolves and its id is not returned; a supplier with no terms gives today's empty view; the answer validates against `override_terms_view.v1`; captured logs of the request (caplog) hold no variant id
+- [X] T009 [P] [US1] Gateway tests in `services/api-bff/tests/test_terms_sku_016.py`: viewer, buyer, approver and admin may read; no session is refused; the request is forwarded with identity and roles; procurement's 422 codes pass through; a NUL byte in the SKU gives 422 `invalid_input` before the service is called
 - [X] T010 [US1] Change the GET in `services/procurement-service/src/api/terms.py` to `/product-suppliers/{sku}/{supplier_id}/terms`: resolve with `variant_for_sku` (from `policies.service`), map `PolicyError` to 422 with `error_code(exc)`, keep the rest of the logic, answer with `sku` (the trimmed request SKU) instead of `variant_id`
 - [X] T011 [US1] Change `get_override_terms` in `services/api-bff/src/clients/procurement.py` to take a SKU (percent-encoded with `quote(..., safe='')`) and the GET route in `services/api-bff/src/routes/api.py` to `/product-suppliers/{sku}/{supplier_id}/terms` with the same roles; no money arithmetic and no `Decimal`, `float(` or `round(` in comments
 
@@ -42,8 +42,8 @@
 
 **Independent Test**: save by SKU with current and stale versions; replay a key; read it back.
 
-- [X] T012 [P] [US2] Procurement tests in `services/procurement-service/tests/test_terms_sku_014.py`: PUT by SKU stores the terms and answers `{version}`; terms saved before the change (stored by variant id) are returned by SKU and the next save continues their version; stale `If-Match` gives 412 with `current_version`, missing gives 428; the same `Idempotency-Key` replays with `Idempotent-Replay: true`; non-buyer gets 403 `auth_forbidden_role`; unknown or ambiguous SKU stores nothing and writes no change event; both the saved and the refused audit entries have entity id `<sku>:<supplier>` and no variant id; captured logs hold no variant id
-- [X] T013 [P] [US2] Gateway tests in `services/api-bff/tests/test_terms_sku_014.py`: only buyer may save; `If-Match` and `Idempotency-Key` are forwarded; the "only the recorded routes declare an Idempotency-Key" test (`services/api-bff/tests/test_gateway_idempotency.py`) and `test_terms_idempotency_forwarding.py` use the SKU path
+- [X] T012 [P] [US2] Procurement tests in `services/procurement-service/tests/test_terms_sku_016.py`: PUT by SKU stores the terms and answers `{version}`; terms saved before the change (stored by variant id) are returned by SKU and the next save continues their version; stale `If-Match` gives 412 with `current_version`, missing gives 428; the same `Idempotency-Key` replays with `Idempotent-Replay: true`; non-buyer gets 403 `auth_forbidden_role`; unknown or ambiguous SKU stores nothing and writes no change event; both the saved and the refused audit entries have entity id `<sku>:<supplier>` and no variant id; captured logs hold no variant id
+- [X] T013 [P] [US2] Gateway tests in `services/api-bff/tests/test_terms_sku_016.py`: only buyer may save; `If-Match` and `Idempotency-Key` are forwarded; the "only the recorded routes declare an Idempotency-Key" test (`services/api-bff/tests/test_gateway_idempotency.py`) and `test_terms_idempotency_forwarding.py` use the SKU path
 - [X] T014 [US2] Change the PUT in `services/procurement-service/src/api/terms.py` to `/product-suppliers/{sku}/{supplier_id}/terms`: resolve the SKU first, keep the idempotency scope `product_supplier_terms` and target `variant_id:supplier_id`, pass `audit_label=f"{sku}:{supplier_id}"` to `save_override` (T006), keep the change event key by variant id
 - [X] T015 [US2] Change `put_override_terms` in `services/api-bff/src/clients/procurement.py` and the PUT route in `services/api-bff/src/routes/api.py` to the SKU (buyer role; `If-Match` and `Idempotency-Key` forwarded)
 
@@ -55,7 +55,7 @@
 
 **Independent Test**: the old path is unknown; a buyer reads and saves terms on the screen with a synthetic SKU; an unknown SKU shows the Spanish message.
 
-- [X] T016 [US3] Update the existing tests that call the variant-id path to the SKU path: `services/procurement-service/tests/test_terms_api.py`, `test_terms_roles.py`, `test_terms_events.py`, `test_terms_idempotency.py`, `test_terms_refusal_audit.py`; `services/api-bff/tests/test_suppliers_rbac.py`, `test_gateway_idempotency.py`, `test_terms_idempotency_forwarding.py`; and add a test in `services/api-bff/tests/test_terms_sku_014.py` that `GET`/`PUT /api/product-suppliers/{numeric id}/{supplier}/terms` no longer answers as a variant route (a numeric value is just a SKU and gives `sku_unknown` unless a product has that SKU)
+- [X] T016 [US3] Update the existing tests that call the variant-id path to the SKU path: `services/procurement-service/tests/test_terms_api.py`, `test_terms_roles.py`, `test_terms_events.py`, `test_terms_idempotency.py`, `test_terms_refusal_audit.py`; `services/api-bff/tests/test_suppliers_rbac.py`, `test_gateway_idempotency.py`, `test_terms_idempotency_forwarding.py`; and add a test in `services/api-bff/tests/test_terms_sku_016.py` that `GET`/`PUT /api/product-suppliers/{numeric id}/{supplier}/terms` no longer answers as a variant route (a numeric value is just a SKU and gives `sku_unknown` unless a product has that SKU)
 - [X] T017 [P] [US3] Web unit and e2e tests first: update `apps/web/tests/e2e/suppliers-terms-journey.spec.ts` and `suppliers-manage.spec.ts` so the buyer types a SKU and sees the Spanish `sku_unknown` message for an unknown one; confirm `apps/web/tests/unit/glossary.test.ts` and the variant-id display check fail while the exception entries are still there
 - [X] T018 [US3] Delete the variant-id routes from `services/procurement-service/src/api/terms.py` (nothing may be left that takes `variant_id` in the path) and from `services/api-bff/src/routes/api.py` and `src/clients/procurement.py`
 - [X] T019 [US3] In `apps/web/src/api/client.ts` change `getOverrideTerms` and `putOverrideTerms` to take a SKU (`/product-suppliers/${encodeURIComponent(sku)}/${encodeURIComponent(supplierId)}/terms`) and `OverrideView` to carry `sku` instead of `variant_id` (use the generated type from T002 if the file imports generated types)
@@ -67,8 +67,8 @@
 ## Phase 6: Polish & cross-cutting
 
 - [X] T022 [P] Confirm `errors.sku_unknown` and `errors.sku_ambiguous` exist in `apps/web/src/i18n/es-ES.json` and `packages/contracts/errors/error_codes.json` (both already do; add nothing unless a test shows a gap)
-- [X] T023 Run the suites and the gate: `pytest` in `services/procurement-service`, `services/api-bff` and `packages/contracts`, the web unit tests, the suppliers e2e specs, then `python -m gates run` from `scripts/`; follow `specs/014-sku-override-terms-route/quickstart.md`
-- [X] T024 Fill `.github/pull_request_template.md` (data: synthetic only; security: roles unchanged; cost: none; contract impact: two routes renamed, one new schema, old path removed) in `specs/014-sku-override-terms-route/pull-request.md`
+- [X] T023 Run the suites and the gate: `pytest` in `services/procurement-service`, `services/api-bff` and `packages/contracts`, the web unit tests, the suppliers e2e specs, then `python -m gates run` from `scripts/`; follow `specs/016-sku-override-terms-route/quickstart.md`
+- [X] T024 Fill `.github/pull_request_template.md` (data: synthetic only; security: roles unchanged; cost: none; contract impact: two routes renamed, one new schema, old path removed) in `specs/016-sku-override-terms-route/pull-request.md`
 
 ## Dependencies & order
 
@@ -86,8 +86,8 @@
 
 ## Phase 7: Convergence
 
-- [X] T025 Settle the SKU-with-slash edge case: either make `/product-suppliers/{sku:path}/{supplier_id}/terms` accept a slash in `services/procurement-service/src/api/terms.py` and `services/api-bff/src/routes/api.py` (the gateway client already encodes it as `%2F`), or change the edge-case line in `specs/014-sku-override-terms-route/spec.md` to say a SKU containing `/` is not supported on SKU routes; add a synthetic accented SKU (for example `SYN-ÁÑO-1`) to `services/procurement-service/tests/test_terms_sku_014.py` and `services/api-bff/tests/test_terms_sku_014.py` per spec edge case "SKU with spaces, slashes, accents" (partial)
-- [X] T026 Add a SKU step to `apps/web/tests/e2e/suppliers-terms-journey.spec.ts`: a buyer types a SKU in "SKU del producto", loads the terms, and sees the Spanish `sku_unknown` message when the mocked route answers 422; run the supplier e2e specs where Playwright is installed and record the result in `specs/014-sku-override-terms-route/pull-request.md` per US3/AC2-AC3 and SC-001 (partial)
+- [X] T025 Settle the SKU-with-slash edge case: either make `/product-suppliers/{sku:path}/{supplier_id}/terms` accept a slash in `services/procurement-service/src/api/terms.py` and `services/api-bff/src/routes/api.py` (the gateway client already encodes it as `%2F`), or change the edge-case line in `specs/016-sku-override-terms-route/spec.md` to say a SKU containing `/` is not supported on SKU routes; add a synthetic accented SKU (for example `SYN-ÁÑO-1`) to `services/procurement-service/tests/test_terms_sku_016.py` and `services/api-bff/tests/test_terms_sku_016.py` per spec edge case "SKU with spaces, slashes, accents" (partial)
+- [X] T026 Add a SKU step to `apps/web/tests/e2e/suppliers-terms-journey.spec.ts`: a buyer types a SKU in "SKU del producto", loads the terms, and sees the Spanish `sku_unknown` message when the mocked route answers 422; run the supplier e2e specs where Playwright is installed and record the result in `specs/016-sku-override-terms-route/pull-request.md` per US3/AC2-AC3 and SC-001 (partial)
 
 ## Phase 8: Convergence
 
@@ -95,9 +95,14 @@
 
 ## Phase 9: Convergence
 
-- [X] T028 Keep the supplier id whole in the audit entity id: build the label as `f"{sku.strip()[:23]}:{supplier_id}"` in `services/procurement-service/src/api/terms.py` (the `audit_label` passed to `save_override`) and in `_target` in `services/procurement-service/src/api/refusals.py`, because `audit_events.entity_id` holds 60 characters and the supplier id uses 37; add a test with a 40-character SKU to `services/procurement-service/tests/test_terms_sku_014.py` and `test_terms_refusal_audit.py` that checks the full supplier id is in both the saved and the refused entry per FR-002 (partial)
+- [X] T028 Keep the supplier id whole in the audit entity id: build the label as `f"{sku.strip()[:23]}:{supplier_id}"` in `services/procurement-service/src/api/terms.py` (the `audit_label` passed to `save_override`) and in `_target` in `services/procurement-service/src/api/refusals.py`, because `audit_events.entity_id` holds 60 characters and the supplier id uses 37; add a test with a 40-character SKU to `services/procurement-service/tests/test_terms_sku_016.py` and `test_terms_refusal_audit.py` that checks the full supplier id is in both the saved and the refused entry per FR-002 (partial)
 - [X] T029 Remove the empty `KNOWN_EXCEPTIONS` object, its outdated comment and the test "known exceptions still exist" from `apps/web/tests/unit/glossary.test.ts`; the remaining glossary test still checks every catalogue value per plan: lean (unrequested)
 
 ## Phase 10: Convergence
 
 - [X] T030 Hide the loaded terms and the save button when the typed SKU no longer matches the loaded one: in `apps/web/src/features/suppliers/OverrideEditor.tsx` render the result block only when `view && view.sku === sku` (the server echoes the trimmed SKU), and add a unit test to `apps/web/tests/unit/SuppliersScreen.test.tsx` that loads a SKU, changes the SKU box and checks the form and "Guardar excepción" are gone until the buyer loads again per US3/AC2 and SC-001 (partial)
+
+## Phase 11: Convergence
+
+- [X] T031 Set the owner of the `override_terms_view` entry in `docs/architecture/integration/contract-matrix.json` to `procurement-service` (status stays `draft`), regenerate `docs/architecture/integration/contract-matrix.md` with `python -m gates matrix-md` from `scripts/`, and note the owner in `specs/016-sku-override-terms-route/agent-00-contract-note.md`, per Agent 00 review request 1 on PR 30 and FR-007 (partial)
+- [X] T032 Renumber this feature from 014 to 016: `git mv specs/014-sku-override-terms-route specs/016-sku-override-terms-route`; update `.specify/feature.json`; replace the number in `spec.md` (the Input line says "so this spec is **014**" and "013 is reserved elsewhere"), `plan.md`, `quickstart.md`, `pull-request.md`, `agent-00-contract-note.md` and `tasks.md`; update the references in `specs/007-supplier-commercial-management/contracts/supplier-terms-api.md`, `specs/012-ux-navigation-localization/agent-00-contract-note.md`, `specs/012-ux-navigation-localization/evidence/owner-requests.md` and `specs/012-ux-navigation-localization/tasks.md`; rename `services/procurement-service/tests/test_terms_sku_014.py` and `services/api-bff/tests/test_terms_sku_014.py` to `..._016.py` and fix the "spec 014" docstrings in them and in `packages/contracts/tests/test_override_terms_view.py`; run both service test suites and `python -m gates run --gate contracts`, per Agent 00 review request 2 on PR 30 (partial)

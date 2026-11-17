@@ -1,4 +1,4 @@
-# Note for Agent 00: contract changes in spec 014 (MMI-16, SKU route for product-supplier terms)
+# Note for Agent 00: contract changes in spec 016 (MMI-16, SKU route for product-supplier terms)
 
 ## Gateway endpoints (`docs/architecture/integration/contract-matrix.json`, status `draft`)
 
@@ -11,7 +11,7 @@ The only consumer is the web app, changed in the same PR (override screen only).
 
 ## Schemas
 
-- New `packages/contracts/dto/override_terms_view.v1.schema.json` (answer of the GET; `sku` instead of `variant_id`, `additionalProperties: false`), with baseline, generated Python model and TypeScript type and a matrix entry (`draft`). The save still answers `{version}`.
+- New `packages/contracts/dto/override_terms_view.v1.schema.json` (answer of the GET; `sku` instead of `variant_id`, `additionalProperties: false`), with baseline, generated Python model and TypeScript type and a matrix entry (`draft`, owner `procurement-service`, as Agent 00 asked; it becomes `frozen` when this merges). The save still answers `{version}`.
 - Error keys: unchanged. `sku_unknown` and `sku_ambiguous` already exist in `packages/contracts/errors/error_codes.json` and `apps/web/src/i18n/es-ES.json`.
 
 ## Behaviour

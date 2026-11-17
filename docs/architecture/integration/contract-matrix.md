@@ -31,7 +31,7 @@ The gateway is `services/api-bff`.
 | `load_result` | dto | v1 | agent-00 | - | frozen |
 | `lot_acquisition_cost` | dto | v1 | procurement-service | - | frozen |
 | `money` | dto | v1 | agent-00 | - | frozen |
-| `override_terms_view` | dto | v1 | agent-00 | api-bff, web | draft |
+| `override_terms_view` | dto | v1 | procurement-service | api-bff, web | draft |
 | `policy_audit_page` | dto | v1 | agent-00 | api-bff, web | draft |
 | `policy_cleared` | dto | v1 | agent-00 | api-bff, web | draft |
 | `policy_override_request` | dto | v1 | procurement-service | - | frozen |

@@ -1,4 +1,4 @@
-"""MMI-16 (spec 014): the product-supplier terms are read and saved at /api/product-suppliers/{sku}/{supplier_id}/terms; the variant-id path is gone."""
+"""MMI-16 (spec 016): the product-supplier terms are read and saved at /api/product-suppliers/{sku}/{supplier_id}/terms; the variant-id path is gone."""
 
 from unittest.mock import AsyncMock
 

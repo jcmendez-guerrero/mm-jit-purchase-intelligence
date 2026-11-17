@@ -1,6 +1,6 @@
-# SKU route for the product-supplier terms (MMI-16, spec 014)
+# SKU route for the product-supplier terms (MMI-16, spec 016)
 
-Jira: [MMI-16](https://mundomascotix.atlassian.net/browse/MMI-16). Spec: `specs/014-sku-override-terms-route/`. Request 4 of `specs/012-ux-navigation-localization/evidence/owner-requests.md`.
+Jira: [MMI-16](https://mundomascotix.atlassian.net/browse/MMI-16). Spec: `specs/016-sku-override-terms-route/`. Request 4 of `specs/012-ux-navigation-localization/evidence/owner-requests.md`.
 
 ## What and why
 
@@ -37,7 +37,7 @@ Project rule 5: people see and enter the SKU; Siweb ids stay inside the platform
 
 **Quality**
 
-- [X] New tests: `services/procurement-service/tests/test_terms_sku_014.py`, `services/api-bff/tests/test_terms_sku_014.py`, `packages/contracts/tests/test_override_terms_view.py`, web unit tests; older tests moved to the SKU path
+- [X] New tests: `services/procurement-service/tests/test_terms_sku_016.py`, `services/api-bff/tests/test_terms_sku_016.py`, `packages/contracts/tests/test_override_terms_view.py`, web unit tests; older tests moved to the SKU path
 - [X] Spanish text via translation keys
 
 ## Not covered here

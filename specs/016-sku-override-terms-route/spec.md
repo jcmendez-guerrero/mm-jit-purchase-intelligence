@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "implement spec for MMI-16" — Jira MMI-16 ("SKU route for the product-supplier overrides, so people stop typing the Siweb variant id", epic MMI-1, labels agent-08, mmi-012, rule-5, sku) and request 4 in `specs/012-ux-navigation-localization/evidence/owner-requests.md`. Numbers 010 to 012 are taken, 013 is reserved elsewhere, so this spec is **014**.
+**Input**: User description: "implement spec for MMI-16" — Jira MMI-16 ("SKU route for the product-supplier overrides, so people stop typing the Siweb variant id", epic MMI-1, labels agent-08, mmi-012, rule-5, sku) and request 4 in `specs/012-ux-navigation-localization/evidence/owner-requests.md`. Numbers 010 to 015 are taken or reserved elsewhere (014 by PRs 27 and 31, 015 by PR 29), so this spec is **016**.
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 **Branch**: `claude/mmi-16-spec-implement-139980` | **Date**: 2026-11-16 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `specs/014-sku-override-terms-route/spec.md` (Jira MMI-16)
+**Input**: Feature specification from `specs/016-sku-override-terms-route/spec.md` (Jira MMI-16)
 
 ## Summary
 
@@ -39,7 +39,7 @@ No violations; Complexity Tracking not needed. Re-checked after design: unchange
 ### Documentation (this feature)
 
 ```text
-specs/014-sku-override-terms-route/
+specs/016-sku-override-terms-route/
 ├── plan.md
 ├── research.md
 ├── data-model.md
@@ -64,12 +64,12 @@ services/procurement-service/
 ├── src/api/terms.py                              # routes now take the SKU; old variant-id routes deleted
 ├── src/terms/overrides.py                        # save_override takes an optional audit label (the SKU)
 ├── src/api/refusals.py                           # refusal target uses the SKU
-└── tests/test_terms_sku_014.py                   # new
+└── tests/test_terms_sku_016.py                   # new
 
 services/api-bff/
 ├── src/routes/api.py                             # the two routes now take the SKU
 ├── src/clients/procurement.py                    # the two calls now take the SKU
-└── tests/test_terms_sku_014.py                   # new; plus update old tests, matrix and idempotency-recorded-routes tests
+└── tests/test_terms_sku_016.py                   # new; plus update old tests, matrix and idempotency-recorded-routes tests
 
 apps/web/
 ├── src/api/client.ts                             # getOverrideTerms / putOverrideTerms take a SKU; OverrideView has sku
@@ -79,7 +79,7 @@ apps/web/
 └── tests/e2e/suppliers-*.spec.ts                 # follow the SKU
 
 docs/architecture/integration/contract-matrix.json   # two entries renamed to {sku} (via Agent 00 note)
-specs/014-…/agent-00-contract-note.md                # note for Agent 00
+specs/016-…/agent-00-contract-note.md                # note for Agent 00
 packages/contracts/errors/ , apps/web/src/i18n/es-ES.json   # unchanged: sku_unknown, sku_ambiguous already exist
 ```
 

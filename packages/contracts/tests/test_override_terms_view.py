@@ -1,4 +1,4 @@
-"""MMI-16 (spec 014): override_terms_view is addressed by SKU and can never carry the Siweb variant id (synthetic payloads only)."""
+"""MMI-16 (spec 016): override_terms_view is addressed by SKU and can never carry the Siweb variant id (synthetic payloads only)."""
 
 import json
 from pathlib import Path

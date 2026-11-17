@@ -129,7 +129,7 @@
       "kind": "dto",
       "version": 1,
       "schema_path": "dto/override_terms_view.v1.schema.json",
-      "owner": "agent-00",
+      "owner": "procurement-service",
       "consumers": [
         "api-bff",
         "web"
