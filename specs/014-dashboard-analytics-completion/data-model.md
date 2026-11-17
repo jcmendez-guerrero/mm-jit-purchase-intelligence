@@ -12,7 +12,7 @@ Additions and clarifications on top of `specs/006-executive-dashboard-analytics/
 | category | `A`, `B`, `C`, `critical` |
 | family | exact family name, 1-120 characters |
 
-Invalid values are ignored with a notice entry `ignored_filters: [{name, reason}]` in the response, shown by the UI. The same set is encoded in the page address.
+An invalid value (wrong format) is refused by the server with 422 `request_invalid`. The web app never sends one: it drops a badly formed value, and also a well-formed one that is not among the current options (a supplier, category, family or warehouse that no longer exists), from the address and shows a Spanish notice; nothing is guessed. The same set is encoded in the page address.
 
 ## DrillDownKind (extended)
 
@@ -43,11 +43,11 @@ Row: `sku`, `name`, `figure` (Decimal as string), optional `cost` fields (cost r
 
 ## ExportRequest and ExportFile
 
-Request: `kind` (`cards`, `chart`, `drilldown`), `format` (`csv`, `xlsx` where supported), the filter set, kind parameters. File: header block (filters, period, freshness, generation time UTC and Madrid), rows identical to the screen, no notes, tax ids or internal ids. Refusal reasons: `role_not_allowed`, `export_too_large`, `format_unsupported`. Each attempt writes an audit entry: actor, kind, filters, outcome, time; no row content.
+Request: `kind` (`cards`, `chart`, `drilldown`), `format` (`csv` only; `xlsx` is refused with `format_unsupported`), the filter set, kind parameters, and two optional values the screen or the gateway adds: `loaded_at` (when the screen loaded its data, so the header can say newer data exists) and `open_orders` (procurement's open orders, passed on by the gateway as text, so the cards file can include capital tied up). File: header block (filters, period, freshness, generation time UTC and Madrid), rows identical to the screen, no notes, tax ids or internal ids. Refusal reasons: `role_not_allowed`, `export_too_large`, `format_unsupported`. Each attempt writes an audit entry: actor, kind, filters, outcome, time; no row content.
 
 ## FreshnessStatus
 
-Per source: `source`, `origin` (`erp_sync`, `local_load`), `refreshed_at_utc`, `refreshed_at_original`, `state` (`ok`, `no_data`, `stale`, `error`), `stale_after`. Plus `excluded_records` (count) and `review_list_link`.
+Per source: `source`, `origin` (`erp_sync`, `local_load`), `refreshed_at_utc`, `refreshed_at_original`, `state` (`ok`, `no_data`, `stale`, `error`), `stale_after`. Plus `excluded_records` (malformed or ambiguous movements held for review), `local_load_excluded` (locally loaded products left out of the ERP figures) and `review_list_link`.
 
 ## ClosureReport (document)
 

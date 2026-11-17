@@ -82,7 +82,7 @@ services/api-bff/
 └── tests/                    # read-only, export audit, failure drills, indicators degrade
 
 apps/web/src/
-├── api/dashboard.ts          # new typed module (does not grow client.ts)
+├── api/client.ts             # not a new dashboard.ts: `ApiClient.request` is private, so the dashboard calls (SKU, charts, freshness, export) are methods here (closure report, T005)
 ├── features/dashboard/       # filters notice, SKU detail page, charts/, export actions, banner, newer-data notice
 └── i18n/es-ES.json           # additive `dashboard.*` keys only
 
@@ -97,7 +97,7 @@ specs/014-dashboard-analytics-completion/closure-report.md  # created by the fir
 ## Phases and order
 
 1. **Verify** (US1): classify the unchecked 006 tasks; produce the closure report; tick what is already done.
-2. **Foundations**: `dashboard.ts` API module, live-stack seed loader (needed by later evidence), contract schemas through Agent 00.
+2. **Foundations**: the dashboard calls in `client.ts`, live-stack seed loader (needed by later evidence), contract schemas through Agent 00.
 3. **Filters and URL state** (US2), then **drill-down and SKU route** (US3).
 4. **Charts** (US4) and **export** (US5), which share the series and the filter set.
 5. **Freshness and trust** (US6).

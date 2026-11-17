@@ -38,6 +38,18 @@
       "status": "frozen"
     },
     {
+      "name": "dashboard_charts",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/dashboard_charts.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "dashboard_drilldown",
       "kind": "dto",
       "version": 1,

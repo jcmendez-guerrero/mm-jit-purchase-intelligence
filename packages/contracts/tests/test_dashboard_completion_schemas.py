@@ -32,7 +32,7 @@ FRESH = {"sources": [{"source": "inventory_snapshot", "refreshed_at": "2026-11-0
          "excluded_records": 2, "local_load_excluded": 1, "review_list_link": "/calidad"}
 
 
-@pytest.mark.parametrize("name", ["dashboard_sku", "dashboard_drilldown", "dashboard_freshness"])
+@pytest.mark.parametrize("name", ["dashboard_sku", "dashboard_drilldown", "dashboard_freshness", "dashboard_charts"])
 def test_each_schema_is_valid_and_has_its_own_id(name):
     jsonschema.Draft202012Validator.check_schema(load(name))
     assert load(name)["$id"] == f"mmi/dto/{name}.v1"
@@ -78,3 +78,27 @@ def test_freshness_uses_the_indicator_vocabulary_and_refuses_the_old_one():
         validate("dashboard_freshness", {**FRESH, "excluded_records": -1})
     with pytest.raises(jsonschema.ValidationError):
         validate("dashboard_freshness", {k: v for k, v in FRESH.items() if k != "local_load_excluded"})
+
+
+CHARTS = {"charts": [
+    {"key": "expiry_bands", "title_key": "dashboard.chart.title.expiry_bands", "summary_params": {"horizon_days": 60}, "columns": ["band", "products", "value"], "rows": [["expired", 0, "0.00"], ["d0_30", 1, "20.00"]], "state": "ok"},
+    {"key": "stock_value_history", "title_key": "dashboard.chart.title.stock_value_history", "summary_params": {"reason": "range_outside_history"}, "columns": ["day", "value"], "rows": [],
+     "range_available": {"from": "2026-10-01", "to": "2026-11-09"}, "state": "no_data"},
+    {"key": "coverage_buckets", "title_key": "dashboard.chart.title.coverage_buckets", "columns": [], "rows": [], "state": "error"},
+]}
+
+
+def test_the_charts_list_accepts_ok_no_data_and_error_charts_and_every_v2_chart_key():
+    validate("dashboard_charts", CHARTS)
+    v2 = json.loads((DTO / "dashboard_indicators.v2.schema.json").read_text(encoding="utf-8"))["$defs"]["ChartSeries"]
+    assert load("dashboard_charts")["properties"]["charts"]["items"]["properties"]["key"]["enum"] == v2["properties"]["key"]["enum"]      # no parallel vocabulary
+    assert load("dashboard_charts")["properties"]["charts"]["items"]["properties"]["state"]["enum"] == v2["properties"]["state"]["enum"]
+
+
+def test_the_charts_list_refuses_unknown_keys_states_extra_fields_and_a_missing_list():
+    chart = CHARTS["charts"][0]
+    for bad in ({"charts": [{**chart, "key": "budget"}]}, {"charts": [{**chart, "state": "unsupported"}]}, {"charts": [{**chart, "variant_id": 1}]},
+                {"charts": [{k: v for k, v in chart.items() if k != "rows"}]}, {"items": []}, {"charts": [{**chart, "range_available": {"until": "2026-11-09"}}]}):
+        with pytest.raises(jsonschema.ValidationError):
+            validate("dashboard_charts", bad)
+

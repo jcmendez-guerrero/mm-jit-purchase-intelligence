@@ -34,8 +34,8 @@ Full record: [closure-report.md](closure-report.md). Screenshots (synthetic data
 
 ## Test results
 
-- Inventory service 380 passed, 2 skipped; gateway 368 passed, 1 skipped; contracts 290 passed, 5 skipped; seed loader 4 passed.
-- Web: 825 unit tests, typecheck and lint clean; Playwright 295 passed, 15 skipped against the dev server; live config 4 journey specs passed and the 6 dashboard specs passed on a seeded stack (they skip with a reason when the reference data is not loaded).
+- Inventory service 380 passed, 2 skipped on SQLite and 381 passed on PostgreSQL (the CI mode); gateway 368 passed, 1 skipped; contracts 295 passed, 5 skipped; seed loader 4 passed.
+- Web: 828 unit tests, typecheck and lint clean; Playwright 296 passed, 15 skipped against the dev server; live config 4 journey specs passed and the 6 dashboard specs passed on a seeded stack (they skip with a reason when the reference data is not loaded).
 - Performance, 20,000 variants: slowest new operation 0.97 s (budget 2 s); browser first meaningful content about 0.3 s, filter change about 0.3 s.
 - Gates (`python -m gates run`, database and live-stack modes): contracts, isolation, integration, security and cost pass; secret scan clean. **The e2e gate is blocked**: its mocked Playwright step is intermittently red only when pointed at the real built web app, because of a spec from MMI-6 (`suppliers-terms-journey.spec.ts`, "Spanish only", 4 failures in 12 isolated runs; the spec is untouched by this change). The pipeline test passes alone (2 passed in 54 s) and the live-config step passes. Owner: supplier commercial management.
 
@@ -58,8 +58,8 @@ Full record: [closure-report.md](closure-report.md). Screenshots (synthetic data
 
 **Contracts**
 
-- [X] JSON Schemas first: `dashboard_sku.v1`, `dashboard_drilldown.v1`, `dashboard_freshness.v1` added (the v1 summary and v2 indicators are unchanged, hash-pinned); baseline, generated types and contract tests updated
-- [ ] **Agent 00 review needed:** `contract-matrix.json` gained 3 `dto` entries and 4 `endpoint` entries (`/api/dashboard/` skus, charts, export, freshness; all status `draft`)
+- [X] JSON Schemas first: `dashboard_sku.v1`, `dashboard_drilldown.v1`, `dashboard_freshness.v1`, `dashboard_charts.v1` added (the v1 summary and v2 indicators are unchanged, hash-pinned); baseline, generated types and contract tests updated
+- [ ] **Agent 00 review needed:** `contract-matrix.json` gained 4 `dto` entries and 4 `endpoint` entries (`/api/dashboard/` skus, charts, export, freshness; all status `draft`)
 - [X] No breaking change
 
 **Quality**

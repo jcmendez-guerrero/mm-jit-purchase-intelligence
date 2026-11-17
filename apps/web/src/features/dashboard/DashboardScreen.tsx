@@ -19,7 +19,7 @@ import { ChartWithTable } from "./ChartWithTable";
 import { ageInDays, DEFAULT_DAYS, forecastStats, mergeTrend, noFilterMatches, periodFor, severitySplitIsReliable, stockoutSeverityCounts, trendStats } from "./dashboardModel";
 import { DrillDownPanel } from "./DrillDownPanel";
 import { IndicatorCard } from "./IndicatorCard";
-import { useDashboardFilters } from "./useDashboardFilters";
+import { PARAM, useDashboardFilters } from "./useDashboardFilters";
 import { ProductDetail } from "./ProductDetail";
 import { SupplierPanel } from "./SupplierPanel";
 import { Button } from "../../ui/Button";
@@ -111,6 +111,36 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
     void load();
   }, [load]);
 
+  // A well-formed value that is not among the current options (a supplier or category that no longer exists) is not guessed at: it is dropped from the address and reported.
+  const [droppedUnknown, setDroppedUnknown] = useState<string[]>([]);
+  useEffect(() => {
+    if (!data) return;
+    const names: string[] = [];
+    const o = data.options.ok ? data.options.data : undefined;                   // a list that failed to load proves nothing about a value
+    const known = data.suppliers.ok ? data.suppliers.data : undefined;
+    const patch: Partial<typeof filters> = {};
+    if (o && o.categories.length > 0 && category && !o.categories.some((c) => c.id === category)) {
+      patch.category = undefined;
+      names.push(PARAM.category);
+    }
+    if (o && o.family_available && (o.families ?? []).length > 0 && family && !(o.families ?? []).some((f) => f.id === family)) {
+      patch.family = undefined;
+      names.push(PARAM.family);
+    }
+    if (known && known.length > 0 && supplier && !known.some((s) => s.id === supplier)) {
+      patch.supplier = undefined;
+      names.push(PARAM.supplier);
+    }
+    if (o && o.warehouses.length > 0 && warehouse !== undefined && !o.warehouses.some((w) => w.id === warehouse)) {
+      names.push(PARAM.warehouse);
+      setWarehouse(undefined);
+      onSelectWarehouse?.(undefined);
+    }
+    if (names.length === 0) return;
+    if (Object.keys(patch).length > 0) setFilters(patch);
+    setDroppedUnknown((prev) => [...new Set([...prev, ...names])]);
+  // runs when a response arrives, with the values that request used
+  }, [data]);
   const trust = useNewerDataNotice(data);                 // asks, once a minute, whether newer data exists; the figures change only when the user accepts
   const moneyHidden = (data?.indicators ?? []).some((i) => i.state === "hidden_by_role");                       // the server says this role no longer sees costs
   const canExport = exportRole && !forbidden && !moneyHidden;
@@ -154,6 +184,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   if (filters.from) chips.push({ key: "from", name: t("dashboard.filter.from"), label: nameOf("dashboard.filter.from", formatDate(`${filters.from}T12:00:00`)), onRemove: () => setFilters({ from: undefined }) });
   if (filters.to) chips.push({ key: "to", name: t("dashboard.filter.to"), label: nameOf("dashboard.filter.to", formatDate(`${filters.to}T12:00:00`)), onRemove: () => setFilters({ to: undefined }) });
   const clearFilters = () => {
+    setDroppedUnknown([]);
     pickWarehouse("all");
     clearAddressFilters();
   };
@@ -244,7 +275,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
       </FilterBar>
       <TrustBanner freshness={trust.freshness} newer={trust.newer} onRefresh={() => void load()} />
       {forbidden && <p className="mmi-banner" role="alert">{t("dashboard.export.role_lost")}</p>}
-      {ignored.length > 0 && <p role="note">{t("dashboard.filter.ignored", { names: ignored.join(", ") })}</p>}
+      {[...ignored, ...droppedUnknown].length > 0 && <p role="note">{t("dashboard.filter.ignored", { names: [...ignored, ...droppedUnknown].join(", ") })}</p>}
       {warehouse !== undefined && <p role="note">{t("dashboard.warehouse_informational")}</p>}
       {opts && !opts.family_available && <p className="mmi-muted">{t("dashboard.family_pending")}</p>}
       {s && (

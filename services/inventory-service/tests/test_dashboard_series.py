@@ -21,6 +21,7 @@ from sqlalchemy import insert, select
 
 V2 = json.loads((Path(__file__).resolve().parents[3] / "packages" / "contracts" / "dto" / "dashboard_indicators.v2.schema.json").read_text(encoding="utf-8"))
 D = Decimal
+CHARTS_SCHEMA = json.loads((Path(__file__).resolve().parents[3] / "packages" / "contracts" / "dto" / "dashboard_charts.v1.schema.json").read_text(encoding="utf-8"))
 
 
 class Means:
@@ -152,6 +153,8 @@ def test_the_retention_keeps_25_months_of_daily_history(engine):
 def test_the_route_serves_the_charts_a_bad_key_is_refused_and_one_failure_does_not_stop_the_others(client, seeded, monkeypatch):
     ok = client.get("/dashboard/charts", params={"keys": "expiry_bands,coverage_buckets"}, headers=auth("buyer")).json()
     assert [c["key"] for c in ok["charts"]] == ["expiry_bands", "coverage_buckets"]
+    jsonschema.validate(ok, CHARTS_SCHEMA, cls=jsonschema.Draft202012Validator)                                   # the real response matches its contract
+    jsonschema.validate(client.get("/dashboard/charts", headers=auth("viewer")).json(), CHARTS_SCHEMA, cls=jsonschema.Draft202012Validator)
     assert client.get("/dashboard/charts", params={"keys": "nope"}, headers=auth("buyer")).status_code == 422
     assert client.get("/dashboard/charts", headers=auth("buyer")).status_code == 200                       # no keys: all charts
 

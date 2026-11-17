@@ -341,7 +341,7 @@ describe("DashboardScreen no-match state (feature 014, T022)", () => {
 
   it("explains that nothing matches the filters and offers one action that removes them", async () => {
     vi.spyOn(api, "getDashboardOverview").mockResolvedValue(empty());
-    renderScreen(<DashboardScreen />, "/?proveedor=sup-a");
+    renderScreen(<DashboardScreen />, "/?proveedor=s1");
     await screen.findByText("Ningún dato coincide con los filtros");
     fireEvent.click(screen.getByRole("button", { name: "Quitar todos los filtros" }));
     await waitFor(() => expect(screen.queryByText("Ningún dato coincide con los filtros")).toBeNull());
@@ -352,5 +352,32 @@ describe("DashboardScreen no-match state (feature 014, T022)", () => {
     renderScreen(<DashboardScreen />);
     await screen.findByRole("heading", { name: "Valor del stock" });
     expect(screen.queryByText("Ningún dato coincide con los filtros")).toBeNull();
+  });
+});
+
+describe("DashboardScreen unknown filter values (feature 014, T085)", () => {
+  it("drops a well-formed value that is not among the current options, says so, and asks again without it", async () => {
+    const spy = vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview());
+    renderScreen(<DashboardScreen />, "/?proveedor=ghost&categoria=B");
+    await screen.findByText(/Se han ignorado filtros no válidos de la dirección: (categoria, proveedor|proveedor, categoria)/);
+    await waitFor(() => {
+      const last = spy.mock.calls[spy.mock.calls.length - 1]![0]!;
+      expect([last.supplier_id, last.category, last.family]).toEqual([undefined, undefined, undefined]);        // nothing is guessed: the unknown values are not sent
+    });
+  });
+
+  it("keeps a value that is among the options", async () => {
+    const spy = vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview());
+    renderScreen(<DashboardScreen />, "/?proveedor=s1&categoria=A");
+    await screen.findByRole("heading", { name: "Valor del stock" });
+    expect(screen.queryByText(/Se han ignorado filtros no válidos/)).toBeNull();
+    expect(spy.mock.calls[spy.mock.calls.length - 1]![0]).toMatchObject({ supplier_id: "s1", category: "A" });
+  });
+
+  it("does not drop anything when the options could not be loaded", async () => {
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview({ options: { ok: false, error: "downstream_unavailable" }, suppliers: { ok: false, error: "downstream_unavailable" } }));
+    renderScreen(<DashboardScreen />, "/?proveedor=ghost&categoria=B");
+    await screen.findByRole("heading", { name: "Valor del stock" });
+    expect(screen.queryByText(/Se han ignorado filtros no válidos/)).toBeNull();                              // a failed option list proves nothing about a value
   });
 });
