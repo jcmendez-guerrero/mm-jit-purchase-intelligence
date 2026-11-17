@@ -178,7 +178,9 @@
       "version": 1,
       "schema_path": "dto/policy_override_request.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [],
+      "consumers": [
+        "web"
+      ],
       "status": "frozen"
     },
     {
