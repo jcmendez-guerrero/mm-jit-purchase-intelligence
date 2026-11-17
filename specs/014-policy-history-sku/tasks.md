@@ -139,3 +139,9 @@ In US2: T013 and T014 in parallel; T015 in parallel with T016 (service vs web).
 ## Phase 10: Convergence
 
 - [X] T028 Stop sending the variant id to the browser in the status page: wrap the `policy_history` card in `_without_variant_ids` (from `services/api-bff/src/routes/policies.py`) in `services/api-bff/src/routes/admin_status.py`, drop `variant_id` from the `policy_history` row type in `apps/web/src/api/client.ts`, add a gateway test in `services/api-bff/tests/test_admin_status.py` that no row in the card has `variant_id`, and amend FR-008 in `specs/014-policy-history-sku/spec.md` (the variant id stays in the service-to-service payload only) per project rule 5 and data-model "never shown to people" (partial)
+
+---
+
+## Phase 11: Convergence
+
+- [ ] T029 Fix the duplicated word in the test title in `apps/web/tests/unit/admin-status-policy-sku.test.tsx` (line 24: "shows each SKU and and keeps a row without SKU" becomes "shows each SKU and keeps a row without SKU") and re-run `npx vitest run tests/unit/admin-status-policy-sku.test.tsx` per Agent 00's review of head `113fe36` (partial)
