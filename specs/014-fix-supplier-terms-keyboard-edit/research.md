@@ -48,6 +48,7 @@ The root cause was **found during implementation** (2026-11-16) and is recorded 
 **Fix.** Commit `e0e8b18` (2026-11-15, "supplier terms form stays locked until the terms load") sets `readOnly = !canEdit || view === null` and keeps the loader independent of `t`. It reached `origin/main` through PR #25 but not the MMI-5 branch where the test was quarantined (`bf4a0f5`), and the local `main` ref in this clone is stale (it does not contain `e0e8b18`). The MMI-12 ticket therefore described `main` as it was before that fix.
 
 **Evidence.**
+
 - With the fix in place, the quarantined test passes 20 of 20 and 15 of 15 with CI settings.
 - With the lock removed (`readOnly = !canEdit`) and the test's `toHaveValue("3")` wait removed, 1 of 10 runs failed with `Expected: 7, Received: 3`, which is the ticket's symptom.
 - H1 rejected: `getByLabel("Plazo de entrega (días)")` passes in Playwright strict mode, so only one field has that label; the override editor's lead time has a different label.
