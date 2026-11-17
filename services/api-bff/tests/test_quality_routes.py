@@ -61,34 +61,48 @@ def test_viewers_and_approvers_cannot_decide_or_recompute(role_store):
         inv.forward.assert_not_called()
 
 
-def test_excluding_a_day_needs_a_fresh_second_factor_before_anything_downstream_runs(role_store):
-    inv = inventory()
-    r = call("PUT", "/api/quality/products/EJ-9104/anomalies/2026-03-12", headers_for("u", BUYER, mfa_age_seconds=301), inv, json={"decision": "excluded", "reason_code": "data_error"})
-    assert r.status_code == 403 and r.json() == {"detail": "auth_mfa_stale"}
-    inv.forward.assert_not_called()
+URL = "/api/quality/products/EJ-9104/anomalies/2026-03-12"
 
 
-def test_excluding_with_a_fresh_second_factor_is_forwarded_for_buyers_and_admins(role_store):
-    for roles in (BUYER, ADMIN):
+def refusing_inventory():
+    """Inventory-service refuses like the real one when it was not told the session has a fresh second factor."""
+    inv = AsyncMock()
+    req = httpx.Request("PUT", "http://x")
+
+    async def forward(method, path, **kw):
+        if method == "PUT" and (kw.get("extra_headers") or {}).get("X-Fresh-Second-Factor") != "true":
+            raise httpx.HTTPStatusError("x", request=req, response=httpx.Response(403, request=req, json={"detail": "auth_mfa_stale"}))
+        return OK
+
+    inv.forward.side_effect = forward
+    return inv
+
+
+def test_the_gateway_only_reports_whether_the_session_has_a_fresh_second_factor(role_store):
+    for age, expected in ((10, "true"), (301, "false")):
         inv = inventory()
-        r = call("PUT", "/api/quality/products/EJ-9104/anomalies/2026-03-12", headers_for("u", roles, mfa_age_seconds=10), inv, json={"decision": "excluded", "reason_code": "data_error"})
-        assert r.status_code == 200 and len(puts(inv)) == 1
+        call("PUT", URL, headers_for("u", BUYER, mfa_age_seconds=age), inv, json={"decision": "excluded", "reason_code": "data_error"})
+        assert len(puts(inv)) == 1 and puts(inv)[0].kwargs["extra_headers"] == {"X-Fresh-Second-Factor": expected}
         assert puts(inv)[0].kwargs["json"] == {"decision": "excluded", "reason_code": "data_error"}
 
 
-def test_accepting_a_pending_day_needs_no_second_factor(role_store):
-    inv = inventory(current=[{"day": "2026-03-12", "decision": "pending"}])
-    r = call("PUT", "/api/quality/products/EJ-9104/anomalies/2026-03-12", headers_for("u", BUYER, mfa_age_seconds=9999), inv, json={"decision": "accepted"})
-    assert r.status_code == 200 and len(puts(inv)) == 1
+def test_the_gateway_takes_no_domain_decision_and_never_reads_the_anomaly_state(role_store):
+    for decision in ("excluded", "accepted"):
+        inv = inventory(current=[{"day": "2026-03-12", "decision": "excluded"}])
+        call("PUT", URL, headers_for("u", BUYER, mfa_age_seconds=5), inv, json={"decision": decision})
+        assert [c.args[0] for c in inv.forward.call_args_list] == ["PUT"]
 
 
-def test_reversing_an_exclusion_needs_a_fresh_second_factor(role_store):
-    stale = inventory(current=[{"day": "2026-03-12", "decision": "excluded"}])
-    r = call("PUT", "/api/quality/products/EJ-9104/anomalies/2026-03-12", headers_for("u", BUYER, mfa_age_seconds=301), stale, json={"decision": "accepted"})
-    assert r.status_code == 403 and r.json() == {"detail": "auth_mfa_stale"} and puts(stale) == []
-    fresh = inventory(current=[{"day": "2026-03-12", "decision": "excluded"}])
-    assert call("PUT", "/api/quality/products/EJ-9104/anomalies/2026-03-12", headers_for("u", BUYER, mfa_age_seconds=5), fresh, json={"decision": "accepted"}).status_code == 200
-    assert len(puts(fresh)) == 1
+def test_a_refusal_from_inventory_for_a_stale_second_factor_keeps_its_code(role_store):
+    for decision in ("excluded", "accepted"):
+        r = call("PUT", URL, headers_for("u", BUYER, mfa_age_seconds=301), refusing_inventory(), json={"decision": decision, "reason_code": "data_error"})
+        assert r.status_code == 403 and r.json() == {"detail": "auth_mfa_stale"}
+
+
+def test_with_a_fresh_second_factor_buyers_and_admins_are_accepted(role_store):
+    for roles in (BUYER, ADMIN):
+        r = call("PUT", URL, headers_for("u", roles, mfa_age_seconds=10), refusing_inventory(), json={"decision": "excluded", "reason_code": "data_error"})
+        assert r.status_code == 200
 
 
 def test_a_bad_day_is_refused_before_the_downstream_call(role_store):

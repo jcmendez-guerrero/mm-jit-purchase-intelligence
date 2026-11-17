@@ -1,7 +1,7 @@
 """T024, T025: quality summary, anomaly decisions and recompute (feature 012). Called by api-bff with a service identity.
 
 Products are addressed by SKU; the Siweb variant id stays inside this service. Reads need any signed-in role. Anomaly decisions and
-recompute need a buyer or admin; the fresh second-factor check for excluding a day is enforced by the BFF, which forwards the call.
+recompute need a buyer or admin; the rule that excluding a day, or reversing an exclusion, needs a fresh second factor lives here; the BFF only reports whether the session has one (header X-Fresh-Second-Factor).
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from classification.policy_source import current_config
 from classification.run import compute_segments
 from dashboard.filters import FilterError, FilterSet
 from db.tables import ALL_WAREHOUSES, stock_history, variants
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel
 from quality.portfolio import BUCKETS, ORIGINS, bucket_products, portfolio, rebuild_portfolio
 from quality.snapshot import (
@@ -30,6 +30,7 @@ from quality.snapshot import (
     decide,
     default_period,
     list_flags,
+    needs_second_factor,
     refresh_flags,
 )
 from sqlalchemy import func, select
@@ -77,9 +78,11 @@ def build_quality_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> A
         return {"sku": sku, "anomalies": [{"sku": sku, **f} for f in list_flags(conn, vid)]}
 
     @router.put("/quality/products/{sku}/anomalies/{day}")
-    def put_decision(sku: str, day: date, body: DecisionBody, conn: Connection = Depends(conn_dep),
-                     principal: Any = Depends(buyer_or_admin)) -> dict[str, Any]:
+    def put_decision(sku: str, day: date, body: DecisionBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(buyer_or_admin),
+                     fresh_second_factor: str | None = Header(default=None, alias="X-Fresh-Second-Factor")) -> dict[str, Any]:
         vid = resolve(conn, sku)
+        if needs_second_factor(conn, vid, day, body.decision) and fresh_second_factor != "true":   # the gateway only reports whether the session has a recent check
+            raise HTTPException(403, "auth_mfa_stale")
         refresh_flags(conn, vid)
         try:
             changed = decide(conn, vid, day, body.decision, body.reason_code, principal.subject)

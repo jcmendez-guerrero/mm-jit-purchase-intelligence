@@ -28,7 +28,8 @@ def test_a_malformed_day_is_a_validation_error(client, engine, day):
 @pytest.mark.parametrize("body", [{}, {"decision": 5}, {"decision": "x" * 10000}, {"decision": "excluded", "reason_code": "r" * 5000}, ["not", "an", "object"]])
 def test_malformed_or_oversized_decision_bodies_are_refused_without_a_server_error(client, engine, body):
     sku, _ = seed_case(engine, "smooth")
-    assert client.put(f"/quality/products/{sku}/anomalies/2026-01-02", json=body, headers=auth("buyer")).status_code in (404, 422)
+    headers = {**auth("buyer"), "X-Fresh-Second-Factor": "true"}                  # past the second-factor rule, so the body itself is what gets refused
+    assert client.put(f"/quality/products/{sku}/anomalies/2026-01-02", json=body, headers=headers).status_code in (404, 422)
 
 
 def test_unparseable_json_is_a_validation_error(client, engine):

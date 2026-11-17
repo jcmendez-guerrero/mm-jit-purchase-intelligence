@@ -23,7 +23,7 @@ def test_an_excluded_day_reads_as_censored_while_the_demand_rows_stay_untouched(
     assert before["censored"][DAY_INDEX] is False
 
     url = f"/quality/products/{sku}/anomalies/2026-03-12"
-    assert client.put(url, json={"decision": "excluded", "reason_code": "data_error"}, headers=auth("buyer")).json()["changed"] is True
+    assert client.put(url, json={"decision": "excluded", "reason_code": "data_error"}, headers={**auth("buyer"), "X-Fresh-Second-Factor": "true"}).json()["changed"] is True
     after = export_for(client, vid)
     assert after["censored"][DAY_INDEX] is True and after["demand"][DAY_INDEX] == before["demand"][DAY_INDEX] == 90     # the original value is still reported
     assert sum(after["censored"]) == sum(before["censored"]) + 1
@@ -35,8 +35,8 @@ def test_accepting_or_reverting_restores_the_day_exactly(client, engine):
     sku, vid = seed_case(engine, "outlier")
     before = export_for(client, vid)
     url = f"/quality/products/{sku}/anomalies/2026-03-12"
-    client.put(url, json={"decision": "excluded"}, headers=auth("buyer"))
-    client.put(url, json={"decision": "accepted"}, headers=auth("buyer"))
+    client.put(url, json={"decision": "excluded"}, headers={**auth("buyer"), "X-Fresh-Second-Factor": "true"})
+    client.put(url, json={"decision": "accepted"}, headers={**auth("buyer"), "X-Fresh-Second-Factor": "true"})        # reversing an exclusion needs the second factor
     assert export_for(client, vid) == before
 
 
@@ -44,5 +44,5 @@ def test_other_products_are_not_affected(client, engine):
     sku, _ = seed_case(engine, "outlier")
     _, smooth_vid = seed_case(engine, "smooth")
     other_before = export_for(client, smooth_vid)
-    client.put(f"/quality/products/{sku}/anomalies/2026-03-12", json={"decision": "excluded"}, headers=auth("buyer"))
+    client.put(f"/quality/products/{sku}/anomalies/2026-03-12", json={"decision": "excluded"}, headers={**auth("buyer"), "X-Fresh-Second-Factor": "true"})
     assert export_for(client, smooth_vid) == other_before

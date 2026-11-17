@@ -1662,7 +1662,7 @@
       "name": "GET /api/quality/products/{sku}",
       "kind": "endpoint",
       "version": 1,
-      "owner": "agent-02",
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],
@@ -1672,7 +1672,7 @@
       "name": "GET /api/quality/products/{sku}/anomalies",
       "kind": "endpoint",
       "version": 1,
-      "owner": "agent-02",
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],
@@ -1682,7 +1682,7 @@
       "name": "PUT /api/quality/products/{sku}/anomalies/{day}",
       "kind": "endpoint",
       "version": 1,
-      "owner": "agent-02",
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],
@@ -1692,7 +1692,7 @@
       "name": "POST /api/quality/recompute",
       "kind": "endpoint",
       "version": 1,
-      "owner": "agent-02",
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],
@@ -1702,7 +1702,7 @@
       "name": "GET /api/forecast/products/{sku}/explanation",
       "kind": "endpoint",
       "version": 1,
-      "owner": "agent-02",
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],
@@ -1712,7 +1712,7 @@
       "name": "POST /api/forecast/backtests",
       "kind": "endpoint",
       "version": 1,
-      "owner": "agent-02",
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],
@@ -1722,7 +1722,7 @@
       "name": "GET /api/forecast/products/{sku}/backtest",
       "kind": "endpoint",
       "version": 1,
-      "owner": "agent-02",
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],
@@ -1732,7 +1732,7 @@
       "name": "GET /api/quality/portfolio",
       "kind": "endpoint",
       "version": 1,
-      "owner": "agent-02",
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],
@@ -1742,7 +1742,7 @@
       "name": "GET /api/quality/portfolio/products",
       "kind": "endpoint",
       "version": 1,
-      "owner": "agent-02",
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],

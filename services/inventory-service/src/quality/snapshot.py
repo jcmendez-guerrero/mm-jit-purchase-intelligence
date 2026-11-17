@@ -89,6 +89,13 @@ def list_flags(conn: Connection, variant_id: int) -> list[dict[str, Any]]:
              "decision": r.decision, "decided_by": r.decided_by, "decided_at": _utc(r.decided_at) if r.decided_at else None, "reason_code": r.reason_code} for r in rows]
 
 
+def needs_second_factor(conn: Connection, variant_id: int, day: date, decision: str) -> bool:
+    """Excluding a day, and reversing an exclusion (accepting a day that was excluded), are the changes that need a recent second-factor check (FR-004)."""
+    if decision == "excluded":
+        return True
+    return conn.execute(select(anomaly_flags.c.id).where(anomaly_flags.c.variant_id == variant_id, anomaly_flags.c.day == day, anomaly_flags.c.decision == "excluded").limit(1)).first() is not None
+
+
 def decide(conn: Connection, variant_id: int, day: date, decision: str, reason_code: str | None, actor: str, now: datetime | None = None) -> bool:
     """Sets the decision on every flag of that day. Returns False when nothing changed (idempotent), True otherwise."""
     if decision not in DECISIONS or (reason_code is not None and reason_code not in REASON_CODES):

@@ -77,10 +77,10 @@ def test_decisions_need_a_buyer_or_admin_and_are_idempotent_and_audited(client, 
     sku, _ = seed_case(engine, "outlier")
     url = f"/quality/products/{sku}/anomalies/2026-03-12"
     assert client.put(url, json={"decision": "excluded"}, headers=auth("viewer")).status_code == 403
-    first = client.put(url, json={"decision": "excluded", "reason_code": "data_error"}, headers=auth("buyer")).json()
-    again = client.put(url, json={"decision": "excluded", "reason_code": "data_error"}, headers=auth("buyer")).json()
+    first = client.put(url, json={"decision": "excluded", "reason_code": "data_error"}, headers={**auth("buyer"), "X-Fresh-Second-Factor": "true"}).json()
+    again = client.put(url, json={"decision": "excluded", "reason_code": "data_error"}, headers={**auth("buyer"), "X-Fresh-Second-Factor": "true"}).json()
     assert first["changed"] is True and again["changed"] is False
-    assert client.put(url, json={"decision": "accepted"}, headers=auth("admin")).json()["changed"] is True
+    assert client.put(url, json={"decision": "accepted"}, headers={**auth("admin"), "X-Fresh-Second-Factor": "true"}).json()["changed"] is True
     with engine.begin() as c:
         assert c.execute(select(func.count()).select_from(audit_events)).scalar() == 2          # only real changes are audited
         assert verify_chain(c).ok
@@ -92,8 +92,8 @@ def test_bad_decisions_reasons_and_days_are_refused_with_codes(client, engine):
     sku, _ = seed_case(engine, "outlier")
     url = f"/quality/products/{sku}/anomalies/2026-03-12"
     assert client.put(url, json={"decision": "deleted"}, headers=auth("buyer")).json()["detail"] == "quality_decision_invalid"
-    assert client.put(url, json={"decision": "excluded", "reason_code": "free text here"}, headers=auth("buyer")).json()["detail"] == "quality_decision_invalid"
-    assert client.put(f"/quality/products/{sku}/anomalies/2026-02-01", json={"decision": "excluded"}, headers=auth("buyer")).json()["detail"] == "quality_anomaly_not_found"
+    assert client.put(url, json={"decision": "excluded", "reason_code": "free text here"}, headers={**auth("buyer"), "X-Fresh-Second-Factor": "true"}).json()["detail"] == "quality_decision_invalid"
+    assert client.put(f"/quality/products/{sku}/anomalies/2026-02-01", json={"decision": "excluded"}, headers={**auth("buyer"), "X-Fresh-Second-Factor": "true"}).json()["detail"] == "quality_anomaly_not_found"
 
 
 def test_recompute_is_restricted_idempotent_and_does_not_duplicate_snapshots(client, engine):

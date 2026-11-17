@@ -13,11 +13,11 @@ from urllib.parse import quote
 from auth.session import SessionData
 from clients.forecast import ForecastClient
 from clients.inventory import InventoryClient
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from routes.api import get_inventory_client
 from routes.policies import get_forecast_client
-from routes.rbac import log_refusal, require_roles
+from routes.rbac import require_roles
 
 router = APIRouter(prefix="/quality", tags=["quality"])
 forecast_router = APIRouter(prefix="/forecast", tags=["quality"])
@@ -48,16 +48,11 @@ async def anomalies(sku: str, session: SessionData = Depends(require_roles(*READ
 
 
 @router.put("/products/{sku}/anomalies/{day}")
-async def decide_anomaly(sku: str, day: date, body: DecisionBody, request: Request, session: SessionData = Depends(require_roles(*EDIT)),
+async def decide_anomaly(sku: str, day: date, body: DecisionBody, session: SessionData = Depends(require_roles(*EDIT)),
                          inv: InventoryClient = Depends(get_inventory_client)) -> Any:
-    needs_second_factor = body.decision == "excluded"
-    if not needs_second_factor and body.decision == "accepted":
-        current = await inv.forward("GET", f"{_base(sku)}/anomalies", user_id=session.user_id, roles=session.roles)      # accepting a day that was excluded reverses it
-        needs_second_factor = any(a.get("day") == day.isoformat() and a.get("decision") == "excluded" for a in current.get("anomalies", []))
-    if needs_second_factor and not session.is_mfa_fresh(max_age_seconds=MFA_MAX_AGE):
-        log_refusal(request, session.user_id, session.roles, [], "forbidden_mfa_stale")
-        raise HTTPException(status_code=403, detail="auth_mfa_stale")
-    return await inv.forward("PUT", f"{_base(sku)}/anomalies/{day.isoformat()}", json=body.model_dump(), user_id=session.user_id, roles=session.roles)
+    fresh = session.is_mfa_fresh(max_age_seconds=MFA_MAX_AGE)      # inventory-service decides which decisions need it; the gateway only reports the fact
+    return await inv.forward("PUT", f"{_base(sku)}/anomalies/{day.isoformat()}", json=body.model_dump(), user_id=session.user_id, roles=session.roles,
+                             extra_headers={"X-Fresh-Second-Factor": "true" if fresh else "false"})
 
 
 @router.post("/recompute")
