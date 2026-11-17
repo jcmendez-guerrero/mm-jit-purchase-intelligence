@@ -11,6 +11,10 @@
 export interface PolicyOverrideRequest {
   id?: string;
   variant_id: number;
+  /**
+   * Current catalogue SKU of the product the request is about; null when the product is unknown or has no SKU. People see and type this; variant_id is for service calls only
+   */
+  sku?: string | null;
   field: "safety_stock" | "min" | "max";
   recommended_value: number;
   requested_value: number;

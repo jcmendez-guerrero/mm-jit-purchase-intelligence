@@ -4,6 +4,7 @@ The inputs provider, user directory and blob writer are created at startup from 
 import, so tests and tools can import this module freely). Without configuration the proposal endpoints answer 503.
 """
 
+import logging
 import os
 from decimal import Decimal
 from pathlib import Path
@@ -59,6 +60,15 @@ def configure() -> None:
         app.state.inputs_provider = InputsProvider(
             HttpJsonSource(os.environ["MMI_INVENTORY_URL"].rstrip("/") + "/export/stock", token_for("api://mmi-inventory-service")),
             HttpJsonSource(os.environ["MMI_FORECAST_URL"].rstrip("/") + "/forecasts/latest", token_for("api://mmi-forecast-service")), Decimal(budget) if budget else None)
+
+    from local_demo import seed as demo
+
+    if demo.enabled():            # local compose only: plan from a synthetic stock and forecast and seed one draft proposal (MMI_DEMO_SEED=1, never prod/staging)
+        app.state.inputs_provider = demo.provider()
+        try:
+            demo.seed(get_engine())
+        except Exception:
+            logging.getLogger(__name__).exception("demo_seed_failed")
 
 
 app.router.on_startup.append(configure)

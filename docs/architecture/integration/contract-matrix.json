@@ -166,7 +166,9 @@
       "version": 1,
       "schema_path": "dto/policy_override_request.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [],
+      "consumers": [
+        "web"
+      ],
       "status": "frozen"
     },
     {
@@ -194,6 +196,17 @@
       "schema_path": "dto/proposal.v1.schema.json",
       "owner": "procurement-service",
       "consumers": [],
+      "status": "frozen"
+    },
+    {
+      "name": "proposal_detail",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/proposal_detail.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "web"
+      ],
       "status": "frozen"
     },
     {

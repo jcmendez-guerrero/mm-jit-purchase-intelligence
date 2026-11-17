@@ -396,7 +396,7 @@ export interface AdminStatus {
   freshness: StatusCard<{ stock_snapshots: { latest_day: string | null; rows: number }; movements: { rows: number; quarantined: number; latest_at: string | null }; aggregates: { refreshed_at: string | null } }>;
   import_jobs: StatusCard<{ jobs: SeedJob[] }>;
   model_runs: StatusCard<{ runs: Array<{ id: string; started_at: string; status: string; through_day: string; total: number; eligible: number; dataset_version_id: string | null }> }>;
-  policy_history: StatusCard<Array<{ id: string; status: string; variant_id: number; [k: string]: unknown }>>;
+  policy_history: StatusCard<Array<{ id: string; status: string; sku: string | null; [k: string]: unknown }>>;
   role_mirror: StatusCard<{ pending: number; failed: number; sent: number; oldest_pending_seconds: number }>;
   cost: { budget_eur: number; guardrails: { min_replicas: number; max_replicas: number; job_parallelism: number } };
 }
@@ -932,7 +932,7 @@ export interface SupplierGroup {
   free_delivery: boolean;
 }
 
-export type ProposalStatus = "draft" | "submitted" | "approved" | "confirmed";
+export type ProposalStatus = "draft" | "submitted" | "approved" | "exported" | "confirmed" | "superseded";
 
 export interface ProposalSummary {
   id: string;
@@ -953,6 +953,8 @@ export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
   forecast_run_id?: string | null;
   approval: { approver: string; decision: string; version: number; valid: boolean } | null;
   warnings?: string[];
+  /** Needed variants the plan could not source (FR-014): shown to the buyer, never dropped silently. */
+  review_notes?: Array<{ code: string; variant_id: number; sku: string | null; product_name: string | null }>;
   flags?: ProposalFlags | null;
 }
 

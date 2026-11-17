@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Any, Protocol
 
 from approvals.workflow import ApprovalError, UserDirectory, decide, is_approval_valid, submit
+from audit.chain import record_refusal
 from costs.margin import evaluate
 from costs.writes import (
     WriteError,
@@ -21,10 +22,11 @@ from costs.writes import (
 )
 from db.tables import approvals, product_refs, proposal_lines, proposals, supplier_order_groups, suppliers
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Response
+from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
 from mmi_common.time import get_correlation_id, set_correlation_id
 from orders.confirm import ConfirmLine, OrderError, confirm_order
-from proposals.edit import ConcurrencyError, EditError, ProposalStateError, edit_line
+from proposals.edit import ConcurrencyError, EditError, LineConflictError, ProposalStateError, edit_line
 from proposals.export import ExportError, export_proposal
 from proposals.generate import ProposalConflictError, generate, store
 from proposals.inputs import InputsUnavailableError
@@ -76,6 +78,9 @@ class WriteApproval(BaseModel):
     acknowledge_variant_conflict: bool = False
 
 
+EXPORT_ROLES = frozenset({"buyer", "approver", "admin"})
+
+
 def _iso_week(d: date) -> str:
     y, w, _ = d.isocalendar()
     return f"{y}-W{w:02d}"
@@ -114,6 +119,17 @@ def _flags_view(flags: Any, names: dict[int, tuple[Any, Any]], supplier_names: d
     return {**flags, "deferred": deferred, "notes": notes}
 
 
+def _review_notes(p: Any, names: dict[int, tuple[Any, Any]]) -> list[dict[str, Any]]:
+    """FR-014: the needed variants the plan could not source, with the SKU the user sees (never dropped silently)."""
+    out = []
+    for n in (p.flags or {}).get("notes") or []:
+        if isinstance(n, str) and n.startswith("no_eligible_supplier:") and n.split(":", 1)[1].isdigit():
+            vid = int(n.split(":", 1)[1])
+            sku, name = names.get(vid, (None, None))
+            out.append({"code": "no_eligible_supplier", "variant_id": vid, "sku": sku, "product_name": name})
+    return out
+
+
 def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
     lines = conn.execute(select(proposal_lines).where(proposal_lines.c.proposal_id == p.id).order_by(proposal_lines.c.variant_id)).all()
     groups = conn.execute(select(supplier_order_groups).where(supplier_order_groups.c.proposal_id == p.id).order_by(supplier_order_groups.c.supplier_id)).all()
@@ -131,6 +147,7 @@ def proposal_json(conn: Connection, p: Any) -> dict[str, Any]:
                    "unit_cost_with_recargo": s(r.unit_cost_with_recargo), "line_total": s(r.line_total), "forecast_or_policy": r.forecast_or_policy,
                    "safety_stock": r.safety_stock, "constraints_applied": r.constraints_applied, "risk": r.risk, "confidence": r.confidence,
                    "explanation": r.explanation, "alternatives_compared": r.alternatives_compared, "manual_override": r.manual_override, "topup": r.topup} for r in lines],
+        "review_notes": _review_notes(p, names),
         "terms_version_ids": p.terms_version_ids, "policy_version_ids": p.policy_version_ids, "dataset_version_id": p.dataset_version_id, "forecast_run_id": p.forecast_run_id,
         "supplier_groups": [{"supplier_id": g.supplier_id, "supplier_name": supplier_names.get(g.supplier_id), "subtotal": s(g.subtotal),
                              "discount": s(g.discount), "delivery_charge": s(g.delivery_charge), "total_cost": s(g.total_cost),
@@ -188,9 +205,10 @@ def build_router(app: FastAPI) -> APIRouter:
             raise HTTPException(404, "unknown_line")
         try:
             res = edit_line(conn, proposal_id, line.variant_id, _version(if_match, p.version), principal.subject, qty=body.qty, supplier_id=body.supplier_id)
-        except ConcurrencyError as exc:
-            raise HTTPException(409, error_code(exc)) from exc
-        except ProposalStateError as exc:
+        except LineConflictError as exc:                 # T008: recorded and answered (not raised), so the refusal survives the request's transaction
+            record_refusal(conn, principal.subject, "proposal.refused", "proposal", proposal_id, error_code(exc), 409)
+            return JSONResponse(status_code=409, content={"detail": error_code(exc)})
+        except (ConcurrencyError, ProposalStateError) as exc:
             raise HTTPException(409, error_code(exc)) from exc
         except EditError as exc:
             raise HTTPException(422, exc.code) from exc
@@ -226,11 +244,14 @@ def build_router(app: FastAPI) -> APIRouter:
 
     @router.get("/proposals/{proposal_id}/export")
     def export(proposal_id: str, format: str = Query(pattern="^(csv|xlsx)$"), supplier_id: str | None = None, conn: Connection = Depends(conn_dep),
-              principal: Any = Depends(require("buyer"))) -> Response:
+              principal: Any = Depends(require())) -> Response:
+        if not EXPORT_ROLES & set(principal.roles):      # T026 (FR-010): a viewer cannot export; the refusal is recorded and answered so it is kept
+            record_refusal(conn, principal.subject, "proposal.refused", "proposal", proposal_id[:60], "auth_forbidden_role", 403)      # entity_id is 60 characters wide
+            return JSONResponse(status_code=403, content={"detail": "auth_forbidden_role"})
         try:
             data = export_proposal(conn, proposal_id, format, principal.subject, supplier_id)
         except ExportError as exc:
-            raise HTTPException(409 if exc.code == "proposal_not_approved" else 404, exc.code) from exc
+            raise HTTPException(409 if exc.code in ("proposal_not_approved", "proposal_superseded") else 404, exc.code) from exc
         media = "text/csv; charset=utf-8" if format == "csv" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="pedido-{proposal_id[:8]}.{format}"'})
 

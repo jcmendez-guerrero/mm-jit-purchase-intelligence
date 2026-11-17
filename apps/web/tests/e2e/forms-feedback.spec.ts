@@ -273,7 +273,7 @@ test("each screen's primary action sits in the page header", async ({ page }) =>
   await page.route("**/api/proposals/prop-1", (r) => r.fulfill(json({ ...summary, last_edited_by: null, terms_version_ids: null, approval: null, supplier_groups: [], lines: [] })));
   await page.goto("/propuestas");
   await expect(header.getByRole("button", { name: "Enviar a aprobación" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "Exportar CSV (formato es-ES)" })).toBeVisible();
+  await expect(header.getByRole("link", { name: "Exportar CSV (formato es-ES)" })).toHaveCount(0);      // FR-010: a draft is not exported; the links appear once it is approved (proposals-export.spec.ts)
 
   await page.route("**/api/scenarios", (r) => r.fulfill(json({ scenarios: [] })));
   await page.route("**/api/suppliers", (r) => r.fulfill(json([{ id: "s1", name: "Proveedor Sintético A", terms, version: 1 }])));
