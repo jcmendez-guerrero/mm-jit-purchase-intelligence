@@ -118,7 +118,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
       )}
       {notice && <p role="status">{notice}</p>}
 
-      {view && (
+      {view && view.sku === sku && (            // the result belongs to the SKU it was loaded for; a different SKU in the box hides it until it is loaded
         <>
           {view.effective.flags.includes("no_supplier_terms") && <p>{t("suppliers.override.no_supplier_terms")}</p>}
           <h4>{t("suppliers.override.effective")}</h4>

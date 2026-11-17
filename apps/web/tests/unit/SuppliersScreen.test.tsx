@@ -178,6 +178,19 @@ describe("SuppliersScreen (Spanish)", () => {
     expect(load.disabled).toBe(false);
   });
 
+  it("hides the loaded terms and the save button as soon as the SKU box no longer matches them", async () => {
+    await open();
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: "SYN-0001" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ver condiciones aplicadas" }));
+    await screen.findByRole("table", { name: "Condiciones aplicadas a un producto" });
+    expect(screen.getByRole("button", { name: "Guardar excepción" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: "SYN-0002" } });
+    expect(screen.queryByRole("table", { name: "Condiciones aplicadas a un producto" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Guardar excepción" })).toBeNull();
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: " SYN-0001 " } });
+    expect(screen.getByRole("button", { name: "Guardar excepción" })).toBeTruthy();   // typing the loaded SKU again (trimmed) shows it again
+  });
+
   it("shows the Spanish message for an unknown or ambiguous SKU, never the code", async () => {
     vi.spyOn(api, "getOverrideTerms").mockRejectedValueOnce(new ApiError(422, "sku_unknown")).mockRejectedValueOnce(new ApiError(422, "sku_ambiguous"));
     await open();

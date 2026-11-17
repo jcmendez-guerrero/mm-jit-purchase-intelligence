@@ -97,3 +97,7 @@
 
 - [X] T028 Keep the supplier id whole in the audit entity id: build the label as `f"{sku.strip()[:23]}:{supplier_id}"` in `services/procurement-service/src/api/terms.py` (the `audit_label` passed to `save_override`) and in `_target` in `services/procurement-service/src/api/refusals.py`, because `audit_events.entity_id` holds 60 characters and the supplier id uses 37; add a test with a 40-character SKU to `services/procurement-service/tests/test_terms_sku_014.py` and `test_terms_refusal_audit.py` that checks the full supplier id is in both the saved and the refused entry per FR-002 (partial)
 - [X] T029 Remove the empty `KNOWN_EXCEPTIONS` object, its outdated comment and the test "known exceptions still exist" from `apps/web/tests/unit/glossary.test.ts`; the remaining glossary test still checks every catalogue value per plan: lean (unrequested)
+
+## Phase 10: Convergence
+
+- [X] T030 Hide the loaded terms and the save button when the typed SKU no longer matches the loaded one: in `apps/web/src/features/suppliers/OverrideEditor.tsx` render the result block only when `view && view.sku === sku` (the server echoes the trimmed SKU), and add a unit test to `apps/web/tests/unit/SuppliersScreen.test.tsx` that loads a SKU, changes the SKU box and checks the form and "Guardar excepción" are gone until the buyer loads again per US3/AC2 and SC-001 (partial)
