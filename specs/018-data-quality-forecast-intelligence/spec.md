@@ -26,6 +26,13 @@ Related features this one builds on and must not duplicate: 001 (forecast and pr
 - Q: Who may start a full-catalogue backtest, and how often? → A: Buyers and admins may start any backtest, but only one full-catalogue backtest may run at a time; a second request is refused with a Spanish message naming the running one, and an identical request reuses the existing result.
 - Q: How long are forecast explanations, quality snapshots, anomaly decisions and backtest results kept? → A: 5 years in full detail, to align with the owner's regulatory data-storage requirement; nothing is dropped earlier.
 
+### Session 2026-11-17
+
+- Q: Must full-catalogue recompute and backtests run as true background jobs, or may they finish inside the request for now? → A: They may finish inside the request while a run takes under 20 seconds; a run beyond that MUST move to the background with visible status. The limit and the trigger are measured, not assumed.
+- Q: Do the two service-to-service reads this feature adds need a contract-matrix entry? → A: Only the new read of forecast eligibility between services is registered, as `draft`; the extra fields added to the existing demand-series read are described in this feature's contract as a compatible change, and the integration owner (Agent 00) decides whether that older read gets an entry.
+- Q: When a product's method does not beat the baseline in its latest backtest, what changes besides the flag? → A: Its confidence drops one level (alta to media, media to baja) with the reason `no_supera_baseline`; its eligibility does not change, so a human still decides.
+- Q: Where must the provenance label of each demand value be visible? → A: On every series the series export carries between services, and as the per-product provenance mix in the forecast explanation. No day-by-day history table and no new export column are built in this feature.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Know how trustworthy a product's history is (Priority: P1)
@@ -121,7 +128,7 @@ A buyer or admin sees, across the catalogue, the distribution of ABC/XYZ classes
 - Data loaded locally from UI exports (feature 004) has surrogate ids and must never be mixed with ERP-collected data in classes, backtests or counts.
 - Class thresholds or policies change between two forecast runs: older forecasts keep their original configuration version and remain explainable.
 - Two users trigger the same backtest or recomputation: idempotent, one result set per input version.
-- Very large catalogues: classification and backtests run in the background with visible status and never block screens.
+- Very large catalogues: classification and backtests finish inside the request while they take under 20 seconds; beyond that they run in the background with visible status and never block screens.
 - Timestamps in other zones or formats: stored as UTC plus the original text.
 
 ## Requirements *(mandatory)*
@@ -153,19 +160,19 @@ A buyer or admin sees, across the catalogue, the distribution of ABC/XYZ classes
 
 **Uncertainty, confidence and eligibility**
 
-- **FR-012**: Every forecast MUST show a range (low, expected, high) and a confidence label, derived from history quality and, where available, backtest accuracy; the derivation rule MUST be documented and testable.
+- **FR-012**: Every forecast MUST show a range (low, expected, high) and a confidence label, derived from history quality and, where available, backtest accuracy (FR-018); the derivation rule MUST be documented and testable.
 - **FR-013**: The system MUST mark each product eligible, manual-review-only or not eligible, with a Spanish reason, based on history sufficiency, quality and confidence thresholds from policy; not-eligible products MUST get no forecast figure and manual-review-only products MUST NOT be auto-suggested. For both, and for low-confidence products, the proposal line MUST show the conservative min/max quantity labelled in Spanish as "not a forecast", with the reason, for the buyer to confirm or edit.
 
 **Provenance and no false observed sales**
 
-- **FR-014**: Every demand value shown or exported MUST carry one provenance label (observed, estimated, manual); only movements collected from the ERP MAY be labelled observed, and seed (feature 008), local-export (feature 004) and imputed values MUST never be presented as observed sales.
+- **FR-014**: Every demand series exported between services MUST carry one provenance label (observed, estimated, manual), and the forecast explanation MUST show the per-product provenance mix; this feature builds no day-by-day history table and no new export column; only movements collected from the ERP MAY be labelled observed, and seed (feature 008), local-export (feature 004) and imputed values MUST never be presented as observed sales.
 - **FR-015**: Any estimated or imputed value (none is created for censored days in this feature, but seed data already is) MUST be stored apart from ERP-derived demand so that removing them leaves ERP-derived data exactly as it was, and MUST NOT be written to the ERP.
 
 **Backtesting**
 
 - **FR-016**: The system MUST run backtests of the chosen method over past periods and report error, bias and comparison with a simple baseline per product, category and catalogue, recording the periods, dataset and configuration versions used.
 - **FR-017**: A backtest MUST NOT change any stored forecast, proposal, stock figure or ERP data; results are stored as their own versioned records.
-- **FR-018**: The system MUST flag products where the method does not beat the baseline and feed that finding into confidence and eligibility.
+- **FR-018**: The system MUST flag products where the method does not beat the baseline in their latest backtest and feed that finding into confidence: the confidence label drops one level (alta to media, media to baja) with the reason `no_supera_baseline`. Eligibility is not changed by this finding; a human decides what to do with the flag.
 
 **Views, access and audit**
 
@@ -175,7 +182,7 @@ A buyer or admin sees, across the catalogue, the distribution of ABC/XYZ classes
 
 **Operation**
 
-- **FR-022**: Long-running computations (classification, backtests over the full catalogue) MUST run in the background with visible status, retry on failure without partial results, and be idempotent when repeated. At most one full-catalogue backtest MAY run at a time; a second request MUST be refused with a Spanish message that identifies the running one, and a request with identical inputs MUST return the existing result instead of a new run.
+- **FR-022**: Long-running computations (classification, backtests over the full catalogue) MUST finish within 20 seconds inside the request or else run in the background with visible status, retry on failure without partial results, and be idempotent when repeated. At most one full-catalogue backtest MAY run at a time; a second request MUST be refused with a Spanish message that identifies the running one, and a request with identical inputs MUST return the existing result instead of a new run.
 - **FR-023**: All timestamps MUST be stored in UTC with the original text preserved; all amounts MUST be exact decimals; products MUST be keyed by the ERP variant identifier while users see and supply SKUs only.
 - **FR-024**: The feature MUST NOT introduce always-on analytics services or cross-service database access, and MUST stay within the shared monthly cost target.
 - **FR-025**: Forecast explanations, data-quality snapshots, anomaly decisions and backtest results MUST be retained in full detail for 5 years and MUST NOT be deleted or overwritten earlier; after 5 years they MAY be removed by a documented, audited retention job. Storage growth from this retention MUST fit within the cost target in FR-024.
@@ -199,7 +206,7 @@ A buyer or admin sees, across the catalogue, the distribution of ABC/XYZ classes
 - **SC-003**: A buyer can find why a product has a given forecast, class, confidence and eligibility in under 1 minute starting from the proposal line.
 - **SC-004**: 100% of rejected or ambiguous movements in a test set appear in the quarantine/review list with a Spanish reason; none is dropped silently or counted as demand.
 - **SC-005**: Recomputing any forecast with unchanged inputs yields an identical result in 100% of test cases.
-- **SC-006**: For a synthetic catalogue of 5,000 products, the portfolio view loads within 3 seconds and a full-catalogue backtest completes in the background within 15 minutes, with status visible throughout.
+- **SC-006**: For a synthetic catalogue of 5,000 products, the portfolio view loads within 3 seconds and a full-catalogue backtest completes in under 20 seconds inside the request; a run that would exceed 20 seconds, or 15 minutes in total, runs in the background with status visible throughout.
 - **SC-007**: Counts by class and eligibility in the portfolio view equal the number of active products in 100% of test cases, and each count opens the matching product list.
 - **SC-008**: Backtest runs leave stored forecasts, proposals, stock and ERP data byte-for-byte unchanged in 100% of test cases.
 - **SC-009**: The demonstration shows the complete flow (quality summary, class and method, range and confidence, backtest) in the Spanish UI backed by the real API, with automated tests passing on synthetic fixtures only.
@@ -211,6 +218,6 @@ A buyer or admin sees, across the catalogue, the distribution of ABC/XYZ classes
 - ABC/XYZ thresholds, minimum history, confidence and eligibility thresholds and the rules for excluded movement types are configured through the business policy configuration (the policy console already on main from feature 002, and feature 011 once merged); this feature consumes them and adds defaults only where none exist.
 - Seed datasets (feature 008) and locally loaded UI exports (feature 004) already carry origin and provenance labels that this feature reuses.
 - The forecast service already provides forecast runs, eligibility and a backtest runner; the audit in FR-001 decides what is reused versus extended.
-- Shared contracts (events, schemas) that must change are negotiated through the integration owner (Agent 00); this spec assumes only additive changes.
+- Shared contracts (events, schemas) that must change are negotiated through the integration owner (Agent 00); this spec assumes only additive changes. New service-to-service reads are registered in the contract matrix as `draft`; additive fields on an endpoint that has no entry yet are documented in this feature's contract and left to Agent 00 to register.
 - Only synthetic fixtures are used in tests and demos; real exports stay local and are never committed.
 - No production deployment, merge to main, or ERP write is part of this feature; humans continue to decide all purchases.
