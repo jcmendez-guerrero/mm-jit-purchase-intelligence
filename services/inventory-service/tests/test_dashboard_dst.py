@@ -68,3 +68,22 @@ def test_the_stock_snapshot_of_the_change_day_is_the_one_used_that_day_and_not_t
             {"variant_id": 1, "warehouse_id": 1, "snapshot_date": change_day, "on_hand": 5, "available": 5, "reserved": 0}]))
     with engine.connect() as c:
         assert _on_hand(c, change_day, 1) == {1: 5} and _on_hand(c, change_day - timedelta(days=1), 1) == {1: 3}
+
+
+def test_the_risk_evaluation_and_the_variant_history_default_to_the_madrid_day_not_the_utc_day(engine, monkeypatch):
+    """T081 (feature 014): outside the dashboard routes the default "today" is the Madrid business day too (FR-022)."""
+    from reference_dataset import seed_reference
+    from risk.daily import evaluate_risks
+
+    seed_reference(engine)
+    monkeypatch.setattr("risk.daily.business_today", lambda: date(2026, 11, 9))
+    with engine.connect() as c:
+        assert evaluate_risks(c) == evaluate_risks(c, as_of=date(2026, 11, 9))            # no as_of: the Madrid day, the one the helper returns
+
+
+def test_every_default_today_in_the_inventory_service_comes_from_the_one_helper():
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[1] / "src"
+    offenders = [str(p.relative_to(src)) for p in src.rglob("*.py") if "datetime.now(UTC).date()" in p.read_text(encoding="utf-8")]
+    assert offenders == []

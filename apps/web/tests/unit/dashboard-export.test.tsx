@@ -35,7 +35,7 @@ describe("export button", () => {
     fireEvent.click(screen.getByRole("button", { name: "Exportar indicadores" }));
     await screen.findByText("Archivo descargado: 6 filas.");
     expect(downloads).toEqual(["panel-cards-20261109.csv"]);
-    expect(spy).toHaveBeenCalledWith({ kind: "cards" }, { supplier_id: "sup-a" });
+    expect(spy).toHaveBeenCalledWith({ kind: "cards" }, { supplier_id: "sup-a" }, undefined);
   });
 
   it("says the file is being prepared and blocks a second click meanwhile", async () => {
@@ -47,6 +47,28 @@ describe("export button", () => {
     expect((screen.getByRole("button", { name: "Exportar indicadores" }) as HTMLButtonElement).disabled).toBe(true);
     finish({ blob: new Blob(["x"]), filename: "a.csv", rows: 1 });
     await screen.findByText("Archivo descargado: 1 filas.");
+  });
+
+  it("passes the time the screen loaded its data, so the file can say when newer data exists (T077)", async () => {
+    const spy = vi.spyOn(api, "exportDashboard").mockResolvedValue({ blob: new Blob(["x"]), filename: "a.csv", rows: 1 });
+    render(<ExportButton view={{ kind: "cards" }} filters={{}} label="Exportar indicadores" loadedAt="2026-11-09T08:00:00Z" />);
+    fireEvent.click(screen.getByRole("button", { name: "Exportar indicadores" }));
+    await screen.findByText("Archivo descargado: 1 filas.");
+    expect(spy).toHaveBeenCalledWith({ kind: "cards" }, {}, "2026-11-09T08:00:00Z");
+  });
+
+  it("tells the screen when the server says the role may no longer export, and only then (T076)", async () => {
+    const forbidden = vi.fn();
+    const spy = vi.spyOn(api, "exportDashboard");
+    render(<ExportButton view={{ kind: "cards" }} filters={{}} label="Exportar indicadores" onForbidden={forbidden} />);
+    spy.mockRejectedValue(new ApiError(413, "export_too_large"));
+    fireEvent.click(screen.getByRole("button", { name: "Exportar indicadores" }));
+    await screen.findByText(/demasiado grande/);
+    expect(forbidden).not.toHaveBeenCalled();
+    spy.mockRejectedValue(new ApiError(403, "auth_forbidden_role"));
+    fireEvent.click(screen.getByRole("button", { name: "Exportar indicadores" }));
+    await screen.findByText("Tu rol no puede exportar datos.");
+    expect(forbidden).toHaveBeenCalledTimes(1);
   });
 
   it.each([

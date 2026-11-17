@@ -13,21 +13,25 @@ interface Props {
   onDrillBand: (band: "expired" | "d0_30" | "d31_60") => void;
   /** Offer "Exportar" under each chart (roles that may see costs). */
   canExport?: boolean | undefined;
+  loadedAt?: string | null | undefined;
+  onForbidden?: (() => void) | undefined;
+  /** Changes when the charts must be asked for again with the same filters (for example after the role lost cost access). */
+  version?: number | undefined;
 }
 
 /** Loads the chart tables for the dashboard filters on their own, so a slow or failing chart never holds back the cards. */
-export const ChartsSection: React.FC<Props> = ({ filters, onDrillBand, canExport }) => {
+export const ChartsSection: React.FC<Props> = ({ filters, onDrillBand, canExport, loadedAt, onForbidden, version }) => {
   const { t } = useTranslation();
   const [charts, setCharts] = useState<ChartSeries[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const key = JSON.stringify(filters);
+  const key = JSON.stringify([filters, version ?? 0]);
 
   const load = useCallback(() => {
     let live = true;
     setCharts(null);
     setError(null);
     api
-      .getDashboardCharts(JSON.parse(key) as DashFilters, SECTION_KEYS)
+      .getDashboardCharts((JSON.parse(key) as [DashFilters, number])[0], SECTION_KEYS)
       .then((r) => live && setCharts(r.charts))
       .catch((err) => live && setError(errorMessage(err, t("dashboard.chart.error"))));
     return () => {
@@ -45,7 +49,7 @@ export const ChartsSection: React.FC<Props> = ({ filters, onDrillBand, canExport
         <React.Fragment key={c.key}>
           <AnalyticChart chart={c} onRetry={() => void load()} onDrillBand={onDrillBand} />
           {canExport && c.state === "ok" && (
-            <ExportButton view={{ kind: "chart", chart: c.key }} filters={filters} label={t("dashboard.export.action")} ariaLabel={t("dashboard.export.chart", { title: t(`dashboard.chart.title.${c.key}`) })} />
+            <ExportButton view={{ kind: "chart", chart: c.key }} filters={filters} loadedAt={loadedAt} onForbidden={onForbidden} label={t("dashboard.export.action")} ariaLabel={t("dashboard.export.chart", { title: t(`dashboard.chart.title.${c.key}`) })} />
           )}
         </React.Fragment>
       ))}

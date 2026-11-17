@@ -6,9 +6,10 @@ Outputs items adhering to the RiskList schema for the Spanish dashboard.
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any
 
+from businessday import business_today
 from db.tables import (
     ALL_WAREHOUSES,
     products,
@@ -27,7 +28,7 @@ def evaluate_risks(
     as_of: date | None = None,
     expiry_horizon_days: int = 60,
 ) -> list[dict[str, Any]]:
-    today = as_of or datetime.now(UTC).date()
+    today = as_of or business_today()
     risks: list[dict[str, Any]] = []
 
     # 1. Stockout evaluation

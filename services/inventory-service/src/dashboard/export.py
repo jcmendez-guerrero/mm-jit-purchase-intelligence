@@ -15,6 +15,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
+from businessday import LOCAL_TZ
 from sqlalchemy.engine import Connection
 
 from dashboard.drilldown import KINDS as DRILL_KINDS
@@ -22,7 +23,7 @@ from dashboard.drilldown import drilldown
 from dashboard.filters import FilterSet
 from dashboard.freshness import inventory_freshness
 from dashboard.indicators import build_indicators
-from dashboard.kpis import LOCAL_TZ, ForecastMeans
+from dashboard.kpis import ForecastMeans
 from dashboard.series import BUILDERS, build_charts
 
 MAX_ROWS = 5000
@@ -46,7 +47,7 @@ COLUMN = {"band": "Tramo", "bucket": "Cobertura", "group": "Grupo", "products": 
           "forecast_mean": "Previsión (media)", "forecast_upper": "Previsión (límite superior)"}
 CELL = {"expired": "Caducado", "d0_30": "0 a 30 días", "d31_60": "31 a 60 días", "d0_7": "Hasta 7 días", "d8_14": "8 a 14 días", "d15_30": "15 a 30 días",
         "d61_plus": "Más de 60 días", "no_demand": "Sin demanda", "none": "Sin clasificar"}
-INDICATORS = {"stock_value": "Valor del stock", "coverage_days": "Cobertura", "demand": "Demanda", "forecast": "Previsión", "stockout_risk": "Riesgo de rotura",
+INDICATORS = {"capital_tied_up": "Capital inmovilizado", "stock_value": "Valor del stock", "coverage_days": "Cobertura", "demand": "Demanda", "forecast": "Previsión", "stockout_risk": "Riesgo de rotura",
               "expiry_exposure": "Exposición a caducidad"}
 UNITS = {"EUR": "EUR", "days": "días", "units": "unidades", "count": "productos", "percent": "%"}
 STATES = {"ok": "Correcto", "no_data": "Sin datos", "stale": "Desactualizado", "error": "Error", "hidden_by_role": "Oculto por rol"}
@@ -98,11 +99,14 @@ def _header(conn: Connection, title: str, fs: FilterSet, now: datetime) -> list[
             ("Generado (UTC)", now.astimezone(UTC).isoformat(timespec="seconds")), ("Generado (Madrid)", now.astimezone(LOCAL_TZ).strftime("%Y-%m-%d %H:%M"))]
 
 
-def _cards(conn: Connection, today: date, fs: FilterSet, forecast: ForecastMeans | None, now: datetime) -> Export:
-    payload = build_indicators(conn, today, fs, forecast, ["buyer"], None, now)
-    rows = [[INDICATORS[i["key"]], i["value"], UNITS.get(i["unit"], i["unit"]), STATES.get(i["state"], i["state"])] for i in payload["indicators"] if i["key"] in INDICATORS]
+def _cards(conn: Connection, today: date, fs: FilterSet, forecast: ForecastMeans | None, now: datetime, open_orders: Decimal | None = None) -> Export:
+    payload = build_indicators(conn, today, fs, forecast, ["buyer"], open_orders, now)
+    # Capital needs procurement's open orders: without them the row is left out (never half a total) and named in the header.
+    rows = [[INDICATORS[i["key"]], i["value"], UNITS.get(i["unit"], i["unit"]), STATES.get(i["state"], i["state"])] for i in payload["indicators"]
+            if i["key"] in INDICATORS and (i["key"] != "capital_tied_up" or open_orders is not None)]
+    outside = "presupuesto de compras y error de previsión" if open_orders is not None else "capital inmovilizado, presupuesto de compras y error de previsión"
     return Export("Indicadores del panel", [("Indicador", False), ("Valor", True), ("Unidad", False), ("Estado", False)], rows,
-                  notes=[("Fuera de este archivo", "Capital inmovilizado, presupuesto de compras y error de previsión: dependen de compras y de previsión")])
+                  notes=[("Fuera de este archivo", f"{outside[0].upper()}{outside[1:]}: dependen de compras y de previsión")])
 
 
 def _chart(conn: Connection, key: str, today: date, fs: FilterSet, forecast: ForecastMeans | None) -> Export:
@@ -143,11 +147,11 @@ def _drill(conn: Connection, kind: str, today: date, fs: FilterSet, forecast: Fo
 
 
 def build_export(conn: Connection, kind: str, today: date, fs: FilterSet, forecast: ForecastMeans | None, *, chart: str | None = None,
-                 drill_kind: str | None = None, params: dict[str, Any] | None = None, now: datetime | None = None) -> Export:
+                 drill_kind: str | None = None, params: dict[str, Any] | None = None, now: datetime | None = None, open_orders: Decimal | None = None, loaded_at: datetime | None = None) -> Export:
     """The file content for one view of the dashboard. Raises ``ExportRequestInvalid`` for an unknown view and ``ExportTooLarge`` above the row limit."""
     now = now or datetime.now(UTC)
     if kind == "cards":
-        out = _cards(conn, today, fs, forecast, now)
+        out = _cards(conn, today, fs, forecast, now, open_orders)
     elif kind == "chart":
         if chart not in BUILDERS:
             raise ExportRequestInvalid()
@@ -159,6 +163,11 @@ def build_export(conn: Connection, kind: str, today: date, fs: FilterSet, foreca
     if len(out.rows) > MAX_ROWS:
         raise ExportTooLarge()
     out.header = _header(conn, out.title, fs, now)
+    if loaded_at is not None:                                       # the file always holds the latest data; say so when the screen was showing older data
+        aware = lambda t: t.replace(tzinfo=UTC) if t.tzinfo is None else t      # noqa: E731 - sources give naive and aware times alike
+        latest = max((aware(f.refreshed_at) for f in inventory_freshness(conn, now) if f.refreshed_at is not None), default=None)
+        if latest is not None and latest > aware(loaded_at):
+            out.notes.append(("Aviso", "El archivo contiene datos más recientes que los que se veían en pantalla al exportar"))
     return out
 
 

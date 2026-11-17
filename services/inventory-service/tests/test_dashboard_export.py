@@ -134,3 +134,29 @@ def test_a_result_above_the_limit_is_refused_not_cut_off(client, seeded, monkeyp
 
 def test_two_exports_of_the_same_view_have_the_same_rows(client, seeded):
     assert split(parse(export(client)))[2:] == split(parse(export(client)))[2:]
+
+
+def test_the_cards_export_adds_capital_tied_up_when_the_open_orders_are_given_and_leaves_it_out_when_they_are_not(client, seeded):
+    """T075 (feature 014): capital is the stock at cost plus the open orders (FR-025); the open orders belong to procurement and are passed in."""
+    head, _columns, data, _total = split(parse(export(client, kind="cards", open_orders="30.00")))
+    capital = next(r for r in data if r[0] == "Capital inmovilizado")
+    assert capital[1:] == ["130,00", "EUR", "Correcto"] and len(data) == 7                  # 100.00 of stock plus 30.00 of open orders
+    assert any(r[0] == "Fuera de este archivo" and "Capital" not in r[1] for r in head)
+    _head, _cols, without, _t = split(parse(export(client, kind="cards")))
+    assert not any(r[0] == "Capital inmovilizado" for r in without)                          # no amount from procurement: no capital row, never half a total
+
+
+def test_a_bad_open_orders_amount_is_refused(client, seeded):
+    assert export(client, kind="cards", open_orders="12,5").status_code == 422
+
+
+def test_the_header_says_so_when_newer_data_exists_than_the_screen_was_showing(client, seeded):
+    """T077 (feature 014): the file always holds the latest data; when the screen was older the header says so."""
+    old = export(client, loaded_at="2026-11-01T00:00:00Z")
+    head, _cols, _data, _total = split(parse(old))
+    assert any(r[0] == "Aviso" and "más recientes" in r[1] for r in head)
+    for same in ("2026-11-09T08:00:00Z", "2026-12-01T00:00:00Z"):                           # the refresh time of the seed, or later
+        head, _c, _d, _t = split(parse(export(client, loaded_at=same)))
+        assert not any(r[0] == "Aviso" for r in head), same
+    assert not any(r[0] == "Aviso" for r in split(parse(export(client)))[0])                  # nothing said when the screen did not tell its load time
+    assert export(client, loaded_at="yesterday").status_code == 422

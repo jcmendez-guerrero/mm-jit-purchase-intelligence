@@ -197,6 +197,7 @@ async def export_dashboard(
     sort: str | None = Query(default=None, pattern="^(sku|name|figure)$"),
     order: str | None = Query(default=None, pattern="^(asc|desc)$"),
     format: str = Query(default="csv", pattern="^(csv|xlsx)$"),
+    loaded_at: datetime | None = None,                                       # when the screen loaded its data: passed on, not a filter
     date_from: date | None = None,
     date_to: date | None = None,
     warehouse_id: int | None = Query(default=None, ge=0),
@@ -205,17 +206,26 @@ async def export_dashboard(
     supplier_id: str | None = Query(default=None, pattern="^[A-Za-z0-9_-]{1,36}$"),
     session: SessionData = Depends(require_roles(*EXPORT_ROLES)),          # a viewer is refused here, and the refusal is audited by the role check
     inv: InventoryClient = Depends(get_inventory_client),
+    proc: ProcurementClient = Depends(get_procurement_client),
 ) -> Response:
     """One view of the dashboard as a file. Inventory builds it from the same code as the screen; this checks the shape, forwards the signed-in user and audits the attempt."""
     scope = (("warehouse_id", warehouse_id), ("category", category), ("family", family), ("supplier_id", supplier_id),
              ("date_from", date_from and date_from.isoformat()), ("date_to", date_to and date_to.isoformat()))
-    own = (("kind", kind), ("chart", chart), ("drill_kind", drill_kind), ("abc", abc), ("xyz", xyz), ("day", day), ("band", band), ("sort", sort), ("order", order), *scope)
+    own = (("kind", kind), ("chart", chart), ("drill_kind", drill_kind), ("abc", abc), ("xyz", xyz), ("day", day), ("band", band), ("sort", sort), ("order", order), ("loaded_at", loaded_at and loaded_at.isoformat()), *scope)
     params = {k: v for k, v in own if v is not None}
     filters = {k: v for k, v in scope if v is not None}
     view = chart or drill_kind or kind
     if format != "csv":                                                      # XLSX is not offered: the writer lives in procurement-service
         _audit_export(session, "dashboard.export.refused", kind, view, filters, reason="format_unsupported")
         raise HTTPException(400, "format_unsupported")
+    if kind == "cards":                                                      # capital needs the open orders procurement owns: passed on as the text it came as, summed in inventory
+        try:
+            spend = await proc.forward("GET", "/summary/spend", user_id=session.user_id, roles=session.roles)
+        except (httpx.HTTPError, RuntimeError):
+            spend = None
+        amount = spend.get("open_orders") if isinstance(spend, dict) else None
+        if isinstance(amount, str):
+            params["open_orders"] = amount
     res = await inv.get("/dashboard/export", params=params, user_id=session.user_id, roles=session.roles)
     if res.status_code == 413:
         _audit_export(session, "dashboard.export.refused", kind, view, filters, reason="export_too_large")

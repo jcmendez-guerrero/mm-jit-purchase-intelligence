@@ -16,8 +16,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Protocol
-from zoneinfo import ZoneInfo
 
+from businessday import business_today
 from db.tables import (
     ALL_WAREHOUSES,
     agg_abc_xyz,
@@ -31,13 +31,11 @@ from db.tables import (
     variants,
     warehouses,
 )
-from mmi_common.time import ASSUMED_LOCAL_TZ
 from risk.daily import evaluate_risks
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.engine import Connection
 
 ACTUAL_DAYS = 90
-LOCAL_TZ = ZoneInfo(ASSUMED_LOCAL_TZ)
 log = logging.getLogger("mmi.inventory.dashboard")      # operational signals: counts, durations and kinds only, never a product, a filter value or a cell
 LOCAL_ID_BASE = 9_000_000                  # ids assigned to locally loaded SKUs start here (feature 004, rule 5); the same value as the loader's SURROGATE_BASE
 HISTORY_DAYS = 760                        # 25 months of daily history (feature 014): older rows are removed when a day is stored
@@ -220,12 +218,6 @@ def _coverage(conn: Connection, today: date, f: Filters, scope: set[int], foreca
         out.basis[basis] += 1
     days = [d for d, _b in per.values()]
     out.coverage_days_avg = sum(days, ZERO) / len(days) if days else None
-
-
-def business_today(now: datetime | None = None) -> date:
-    """The dashboard's "today": the date in Madrid. Demand rows are keyed by the Madrid business day, so the UTC date would read the first hours of each Madrid day (and every
-    day around the two clock changes) as the day before."""
-    return (now or datetime.now(UTC)).astimezone(LOCAL_TZ).date()
 
 
 def refresh_aggregates(conn: Connection, today: date | None = None, forecast: ForecastMeans | None = None, now: datetime | None = None) -> int:

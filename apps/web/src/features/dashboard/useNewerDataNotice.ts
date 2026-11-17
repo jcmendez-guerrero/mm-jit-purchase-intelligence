@@ -11,11 +11,13 @@ export function latestRefresh(f: DashboardFreshness): string | null {
 
 /**
  * Tells the screen when data newer than what it shows exists, without ever changing what it shows: the figures move only when the user accepts and the screen reloads.
- * `loadedKey` changes whenever the screen has loaded its figures; the newest refresh seen right then becomes the baseline. A failing poll is ignored (the last answer stays).
+ * `loadedKey` changes whenever the screen has loaded its figures; the newest refresh seen right then becomes the baseline (`loadedAt`, also given to an export so its header can say when
+ * the screen was older than the data). A failing poll is ignored (the last answer stays).
  */
-export function useNewerDataNotice(loadedKey: unknown, pollMs: number = NEWER_DATA_POLL_MS): { freshness: DashboardFreshness | null; newer: boolean } {
+export function useNewerDataNotice(loadedKey: unknown, pollMs: number = NEWER_DATA_POLL_MS): { freshness: DashboardFreshness | null; newer: boolean; loadedAt: string | null } {
   const [freshness, setFreshness] = useState<DashboardFreshness | null>(null);
   const [newer, setNewer] = useState(false);
+  const [loadedAt, setLoadedAt] = useState<string | null>(null);
   const baseline = useRef<{ at: string | null } | null>(null);
 
   const poll = useCallback(() => {
@@ -24,7 +26,10 @@ export function useNewerDataNotice(loadedKey: unknown, pollMs: number = NEWER_DA
       .then((f) => {
         setFreshness(f);
         const latest = latestRefresh(f);
-        if (baseline.current === null) baseline.current = { at: latest };
+        if (baseline.current === null) {
+          baseline.current = { at: latest };
+          setLoadedAt(latest);
+        }
         else if (latest !== null && (baseline.current.at === null || latest > baseline.current.at)) setNewer(true);
       })
       .catch(() => undefined);
@@ -33,10 +38,11 @@ export function useNewerDataNotice(loadedKey: unknown, pollMs: number = NEWER_DA
   useEffect(() => {
     baseline.current = null;                       // the screen just loaded: what it shows is what exists now
     setNewer(false);
+    setLoadedAt(null);
     poll();
     const id = window.setInterval(poll, pollMs);
     return () => window.clearInterval(id);
   }, [loadedKey, poll, pollMs]);
 
-  return { freshness, newer };
+  return { freshness, newer, loadedAt };
 }

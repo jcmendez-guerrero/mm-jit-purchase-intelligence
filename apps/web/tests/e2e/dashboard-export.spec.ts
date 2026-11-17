@@ -69,4 +69,22 @@ test.describe("Dashboard export", () => {
     await expect(page.getByRole("heading", { name: "Valor que caduca por tramo" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Exportar/ })).toHaveCount(0);
   });
+
+  test("when the role loses cost access the server refuses, the export buttons and every cost figure go, and nothing stale stays (T076)", async ({ page }) => {
+    const { indicators } = await import("./dashboard-mock");
+    let revoked = false;
+    await page.unroute("**/api/dashboard/overview*");
+    await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview(1, { indicators: indicators(revoked) }))));
+    await page.unroute("**/api/dashboard/export*");
+    await page.route("**/api/dashboard/export*", (r) => {
+      revoked = true;                                                    // from now on the services see a viewer
+      return r.fulfill(json({ detail: "auth_forbidden_role" }, 403));
+    });
+    await page.goto("/panel");
+    await expect(page.getByLabel("Valor del stock")).toContainText("1.234,50");
+    await page.getByRole("button", { name: "Exportar indicadores" }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Tu rol ya no puede ver los importes ni exportar datos" })).toBeVisible();     // the user is told why the buttons went
+    await expect(page.getByRole("button", { name: /Exportar/ })).toHaveCount(0);
+    await expect(page.getByLabel("Valor del stock")).not.toContainText("1.234,50");              // the figures were asked for again: no stale copy of a cost figure
+  });
 });

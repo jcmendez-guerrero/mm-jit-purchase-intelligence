@@ -12,17 +12,21 @@ interface Props {
   filters: DashFilters;
   label: string;
   ariaLabel?: string | undefined;
+  /** The refresh time the screen was showing when it loaded: the file's header says so when newer data exists. */
+  loadedAt?: string | null | undefined;
+  /** The server refused because the role may no longer export (it lost cost access while the screen was open). */
+  onForbidden?: (() => void) | undefined;
 }
 
 /** Downloads one view of the dashboard as CSV and says, in a status message, what happened: preparing, done with the row count, or the reason it was refused. */
-export const ExportButton: React.FC<Props> = ({ view, filters, label, ariaLabel }) => {
+export const ExportButton: React.FC<Props> = ({ view, filters, label, ariaLabel, loadedAt, onForbidden }) => {
   const { t } = useTranslation();
   const [state, setState] = useState<{ kind: "idle" } | { kind: "working" } | { kind: "done"; rows: number } | { kind: "error"; code: string }>({ kind: "idle" });
 
   const run = async () => {
     setState({ kind: "working" });
     try {
-      const { blob, filename, rows } = await api.exportDashboard(view, filters);
+      const { blob, filename, rows } = await api.exportDashboard(view, filters, loadedAt);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -32,6 +36,7 @@ export const ExportButton: React.FC<Props> = ({ view, filters, label, ariaLabel 
       setState({ kind: "done", rows });
     } catch (err) {
       setState({ kind: "error", code: err instanceof ApiError ? err.code : "default" });
+      if (err instanceof ApiError && err.status === 403) onForbidden?.();
     }
   };
 

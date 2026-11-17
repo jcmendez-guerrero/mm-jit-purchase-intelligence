@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -135,6 +135,7 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
                     band: str | None = Query(default=None, max_length=10), sort: str | None = Query(default=None, max_length=10), order: str | None = Query(default=None, max_length=4),
                     format: str = Query(default="csv", max_length=8), date_from: date | None = None, date_to: date | None = None, warehouse_id: int | None = None,
                     category: str | None = None, family: str | None = None, supplier_id: str | None = None,
+                    open_orders: str | None = Query(default=None, pattern=r"^\d{1,12}(\.\d{1,2})?$"), loaded_at: datetime | None = None,
                     conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> Response:
         """One view of the dashboard as a CSV file: the rows and totals of the screen with a header block. Only roles that may see costs; above the row limit it is refused, never cut."""
         if not can_see_money(_p.roles):                       # the file carries amounts: the roles that may see costs only (a viewer is refused)
@@ -144,7 +145,8 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
         today = business_today()
         try:
             fs = FilterSet.parse(today, date_from, date_to, warehouse_id, supplier_id, category, family)
-            made = build_export(conn, kind, today, fs, means(), chart=chart, drill_kind=drill_kind, params={"abc": abc, "xyz": xyz, "day": day, "band": band, "sort": sort, "order": order})
+            made = build_export(conn, kind, today, fs, means(), chart=chart, drill_kind=drill_kind, params={"abc": abc, "xyz": xyz, "day": day, "band": band, "sort": sort, "order": order},
+                               open_orders=None if open_orders is None else Decimal(open_orders), loaded_at=loaded_at)
         except ExportTooLarge as exc:
             log.warning("dashboard_export_refused kind=%s reason=%s", kind, exc.code)
             raise HTTPException(413, exc.code) from exc

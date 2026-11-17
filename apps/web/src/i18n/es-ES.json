@@ -754,6 +754,7 @@
   "dashboard.export.cards": "Exportar indicadores",
   "dashboard.export.chart": "Exportar {{title}}",
   "dashboard.export.drill": "Exportar productos",
+  "dashboard.export.role_lost": "Tu rol ya no puede ver los importes ni exportar datos. Se han vuelto a cargar las cifras sin ellos.",
   "dashboard.export.working": "Preparando el archivo…",
   "dashboard.export.done": "Archivo descargado: {{rows}} filas.",
   "dashboard.export.error.default": "No se ha podido preparar el archivo. Inténtalo de nuevo.",

@@ -26,10 +26,11 @@ afterEach(() => {
 /** A stand-in for the screen: the "figures" are whatever was loaded last, and only the button reloads them. */
 const Harness: React.FC<{ onReload: () => void }> = ({ onReload }) => {
   const [loaded, setLoaded] = React.useState(1);
-  const { newer } = useNewerDataNotice(loaded);
+  const { newer, loadedAt } = useNewerDataNotice(loaded);
   return (
     <div>
       <p data-testid="figures">figures v{loaded}</p>
+      <p data-testid="loaded-at">{loadedAt ?? "none"}</p>
       {newer && (
         <button
           onClick={() => {
@@ -64,6 +65,7 @@ describe("newer data notice", () => {
       await vi.advanceTimersByTimeAsync(NEWER_DATA_POLL_MS);
     });
     expect(screen.queryByRole("button", { name: "Actualizar" })).toBeNull();                       // nothing newer yet
+    expect(screen.getByTestId("loaded-at").textContent).toBe("2026-11-09T08:00:00Z");                // the time the screen's data was current, for an export's header
 
     spy.mockResolvedValue(fresh("2026-11-09T09:00:00Z"));
     await act(async () => {
@@ -79,6 +81,7 @@ describe("newer data notice", () => {
     });
     expect(screen.getByTestId("figures").textContent).toBe("figures v2");
     expect(screen.queryByRole("button", { name: "Actualizar" })).toBeNull();                       // the new baseline is what was just loaded
+    expect(screen.getByTestId("loaded-at").textContent).toBe("2026-11-09T09:00:00Z");
   });
 
   it("ignores a failing poll and keeps asking", async () => {

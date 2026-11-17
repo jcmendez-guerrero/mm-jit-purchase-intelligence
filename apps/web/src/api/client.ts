@@ -1179,8 +1179,9 @@ export class ApiClient {
     return this.request<{ charts: ChartSeries[] }>(`/dashboard/charts${qs ? `?${qs}` : ""}`);
   }
 
-  async exportDashboard(view: DashboardExportView, f: DashFilters): Promise<{ blob: Blob; filename: string; rows: number }> {
+  async exportDashboard(view: DashboardExportView, f: DashFilters, loadedAt?: string | null): Promise<{ blob: Blob; filename: string; rows: number }> {
     const q = new URLSearchParams({ kind: view.kind });
+    if (loadedAt) q.set("loaded_at", loadedAt);                       // when the screen loaded its data: the file says so if newer data exists
     if (view.kind === "chart") q.set("chart", view.chart);
     if (view.kind === "drilldown") {
       const d = view.drill;

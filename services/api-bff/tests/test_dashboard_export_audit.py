@@ -84,3 +84,29 @@ def test_a_double_click_is_two_independent_requests_each_audited_once(role_store
     for _ in range(2):
         assert call("/api/dashboard/export?kind=cards", headers_for("buyer-7", ["buyer"]), inv).status_code == 200
     assert len(entries("dashboard.exported")) == 2
+
+
+def test_the_cards_export_passes_procurements_open_orders_to_inventory_as_plain_text_and_still_works_without_it(role_store):
+    """T075 (feature 014): the gateway forwards the amount; the sum is made in inventory (no arithmetic here)."""
+    inv = inventory_returning(ok())
+    proc = AsyncMock(forward=AsyncMock(return_value={"total": "0.00", "open_orders": "30.00", "by_supplier": []}))
+    assert call("/api/dashboard/export?kind=cards", headers_for("buyer-7", ["buyer"]), inv, proc).status_code == 200
+    assert inv.get.call_args.kwargs["params"]["open_orders"] == "30.00"
+    assert proc.forward.call_args.args[:2] == ("GET", "/summary/spend")
+    for failing in (AsyncMock(side_effect=httpx.ConnectError("down")), AsyncMock(return_value=[])):
+        inv2 = inventory_returning(ok())
+        assert call("/api/dashboard/export?kind=cards", headers_for("buyer-7", ["buyer"]), inv2, AsyncMock(forward=failing)).status_code == 200
+        assert "open_orders" not in inv2.get.call_args.kwargs["params"]                  # no amount from procurement: the file simply has no capital row
+    inv3 = inventory_returning(ok())
+    call("/api/dashboard/export?kind=drilldown&drill_kind=inventory_value", headers_for("buyer-7", ["buyer"]), inv3, proc)
+    assert "open_orders" not in inv3.get.call_args.kwargs["params"]                      # only the indicators file needs it
+
+
+def test_the_time_the_screen_loaded_its_data_is_forwarded_and_a_bad_one_is_refused(role_store):
+    """T077 (feature 014): the gateway only passes it on; it is not a filter and not part of the audit entry."""
+    inv = inventory_returning(ok())
+    assert call("/api/dashboard/export?kind=drilldown&drill_kind=inventory_value&loaded_at=2026-11-01T00:00:00Z", headers_for("buyer-7", ["buyer"]), inv).status_code == 200
+    assert inv.get.call_args.kwargs["params"]["loaded_at"].startswith("2026-11-01T00:00:00")
+    [entry] = entries("dashboard.exported")
+    assert "loaded_at" not in str(entry.after)
+    assert call("/api/dashboard/export?kind=cards&loaded_at=yesterday", headers_for("buyer-7", ["buyer"]), inv).status_code == 422

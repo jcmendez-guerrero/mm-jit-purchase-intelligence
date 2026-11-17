@@ -165,3 +165,14 @@ def test_the_route_serves_the_charts_a_bad_key_is_refused_and_one_failure_does_n
 def test_a_viewer_gets_no_money_from_the_route(client, seeded):
     body = client.get("/dashboard/charts", headers=auth("viewer")).json()
     assert "40.00" not in json.dumps(body)
+
+
+def test_a_single_day_of_history_is_one_row_and_a_730_day_range_keeps_every_stored_day(seeded):
+    """T079 (feature 014): the edge cases "a single data point" and "a very long series"."""
+    one = charts(seeded, ["stock_value_history"], filters=fs(date_from=TODAY - timedelta(days=6)))["stock_value_history"]
+    assert [r[0] for r in one["rows"]] == [TODAY.isoformat()] and one["state"] == "ok"          # only today is stored: one point, not a padded week
+    with seeded.begin() as c:
+        c.execute(insert(agg_daily_kpis), [{"day": TODAY - timedelta(days=i), "warehouse_id": None, "category_id": None, "inventory_value": D(i), "refreshed_at": NOW} for i in range(1, 730)])
+    long = charts(seeded, ["stock_value_history"], filters=fs(date_from=TODAY - timedelta(days=729)))["stock_value_history"]
+    assert len(long["rows"]) == 730 and long["rows"][0][0] < long["rows"][-1][0]                  # complete and in order
+    assert long["range_available"]["from"] == (TODAY - timedelta(days=729)).isoformat()

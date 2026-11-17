@@ -79,7 +79,9 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   useEffect(() => {
     rulerPlayed = true;
   }, []);
-  const canExport = canExportDashboard(userRoles);
+  const exportRole = canExportDashboard(userRoles);
+  const [forbidden, setForbidden] = useState(false);                  // the server refused an export: the role lost cost access while the screen was open
+  const [chartsVersion, setChartsVersion] = useState(0);
   const scopeFilters = { warehouse_id: warehouse, category: category || undefined, family: family || undefined, supplier_id: supplier || undefined, date_from: filters.from, date_to: filters.to };
   const scope = { warehouse_id: warehouse, category: category || undefined, family: family || undefined, supplier_id: supplier || undefined };
   const openDrill = (request: Omit<DrillRequest, "warehouse_id" | "category" | "family" | "supplier_id">, title: string) => {
@@ -110,6 +112,17 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   }, [load]);
 
   const trust = useNewerDataNotice(data);                 // asks, once a minute, whether newer data exists; the figures change only when the user accepts
+  const moneyHidden = (data?.indicators ?? []).some((i) => i.state === "hidden_by_role");                       // the server says this role no longer sees costs
+  const canExport = exportRole && !forbidden && !moneyHidden;
+  const roleLost = () => {                                                                                      // no stale copy of a cost figure stays on screen
+    setForbidden(true);
+    setDrill(null);
+    setChartsVersion((v) => v + 1);
+    void load();
+  };
+  useEffect(() => {
+    if (moneyHidden) setDrill(null);                                                                            // a drill-down opened with cost figures is closed when the role loses them
+  }, [moneyHidden]);
 
   const pickWarehouse = (v: string) => {
     const id = v === "all" ? undefined : parseInt(v, 10);
@@ -230,6 +243,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
         </div>
       </FilterBar>
       <TrustBanner freshness={trust.freshness} newer={trust.newer} onRefresh={() => void load()} />
+      {forbidden && <p className="mmi-banner" role="alert">{t("dashboard.export.role_lost")}</p>}
       {ignored.length > 0 && <p role="note">{t("dashboard.filter.ignored", { names: ignored.join(", ") })}</p>}
       {warehouse !== undefined && <p role="note">{t("dashboard.warehouse_informational")}</p>}
       {opts && !opts.family_available && <p className="mmi-muted">{t("dashboard.family_pending")}</p>}
@@ -258,7 +272,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           {noFilterMatches(indicators, chips.length) && (
             <EmptyState title={t("dashboard.filter.no_match_title")} hint={t("dashboard.filter.no_match_hint")} actionLabel={t("dashboard.filter.no_match_action")} onAction={clearFilters} />
           )}
-          {canExport && <ExportButton view={{ kind: "cards" }} filters={scopeFilters} label={t("dashboard.export.cards")} />}
+          {canExport && <ExportButton view={{ kind: "cards" }} filters={scopeFilters} loadedAt={trust.loadedAt} onForbidden={roleLost} label={t("dashboard.export.cards")} />}
           <div className="mmi-figures">
             {indicators.map((i) => {
               const kind = DRILL_OF[i.key];
@@ -409,6 +423,9 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           <ChartsSection
             filters={scopeFilters}
             canExport={canExport}
+            loadedAt={trust.loadedAt}
+            onForbidden={roleLost}
+            version={chartsVersion}
             onDrillBand={(band) => openDrill({ kind: "expiry_band", band }, t("dashboard.drill.title.expiry_band"))}
           />
 
@@ -425,7 +442,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
         </>
       )}
       {drill !== null && (
-        <DrillDownPanel request={drill.request} title={drill.title} onClose={() => setDrill(null)} onOpenProduct={(id) => setDetail(id)} canExport={canExport} range={{ date_from: filters.from, date_to: filters.to }} />
+        <DrillDownPanel request={drill.request} title={drill.title} onClose={() => setDrill(null)} onOpenProduct={(id) => setDetail(id)} canExport={canExport} loadedAt={trust.loadedAt} onForbidden={roleLost} range={{ date_from: filters.from, date_to: filters.to }} />
       )}
       {supplierOpen !== null && (
         <SupplierPanel

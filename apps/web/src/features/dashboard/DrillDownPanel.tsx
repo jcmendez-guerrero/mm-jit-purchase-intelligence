@@ -19,6 +19,8 @@ interface Props {
   /** Offer "Exportar productos" (roles that may see costs); the date range of the screen travels with it. */
   canExport?: boolean | undefined;
   range?: Pick<DashFilters, "date_from" | "date_to"> | undefined;
+  loadedAt?: string | null | undefined;
+  onForbidden?: (() => void) | undefined;
 }
 
 const PAGE_SIZE = 50;
@@ -26,7 +28,7 @@ const PAGE_SIZE = 50;
 const MONEY_KINDS: readonly DrillRequest["kind"][] = ["inventory_value", "abc_xyz", "capital", "expiry_band"];
 
 /** The products behind one dashboard figure (FR-007). Each row opens the product detail; the list says when it was cut. */
-export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct, onClose, canExport, range }) => {
+export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct, onClose, canExport, range, loadedAt, onForbidden }) => {
   const { t } = useTranslation();
   const inRouter = useInRouterContext();                 // the panel is also rendered alone in tests; outside a router the link is a plain anchor
   const [data, setData] = useState<DrillResponse | null>(null);
@@ -98,6 +100,8 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
         <ExportButton
           view={{ kind: "drilldown", drill: { ...request, ...(sort ? { sort, order: desc ? "desc" : "asc" } : {}) } }}
           filters={range ?? {}}
+          loadedAt={loadedAt}
+          onForbidden={onForbidden}
           label={t("dashboard.export.drill")}
         />
       )}

@@ -90,6 +90,23 @@ describe("AnalyticChart", () => {
   });
 });
 
+describe("AnalyticChart edge cases (T079)", () => {
+  const days = (n: number) => Array.from({ length: n }, (_, i) => [new Date(Date.UTC(2025, 0, 1 + i)).toISOString().slice(0, 10), `${100 + i}.00`]);
+
+  it("draws a single data point and its table has exactly that row", () => {
+    render(<AnalyticChart chart={history({ rows: [["2026-11-09", "100.00"]] })} onRetry={() => {}} />);
+    expect(screen.getByRole("heading", { name: "Evolución del inventario valorado" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ver como tabla" }));
+    expect(within(screen.getByRole("table")).getAllByRole("row")).toHaveLength(2);                  // header and the one row
+  });
+
+  it("keeps every row of a 730-day series in the table, and a summary names the largest", () => {
+    render(<AnalyticChart chart={history({ rows: days(730) })} onRetry={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ver como tabla" }));
+    expect(within(screen.getByRole("table")).getAllByRole("row")).toHaveLength(731);
+  });
+});
+
 describe("ChartsSection", () => {
   const filters = { warehouse_id: 2, supplier_id: "sup-a", date_from: "2026-09-11" };
 
