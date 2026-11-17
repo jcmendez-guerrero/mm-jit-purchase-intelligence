@@ -24,6 +24,7 @@ GENESIS = "0" * 64
 ANOMALY_DECIDED = "quality.anomaly_decided"
 CLASSES_RECOMPUTED = "quality.classes_recomputed"
 RETENTION_PURGED = "quality.retention_purged"
+ANOMALY_REFUSED = "quality.anomaly_refused"           # a decision that needed a fresh second factor and did not have one
 
 
 def _canonical(body: dict[str, Any]) -> str:

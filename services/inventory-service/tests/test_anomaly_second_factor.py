@@ -41,3 +41,31 @@ def test_reversing_an_exclusion_needs_a_fresh_second_factor_in_the_service_too(c
     r = put(client, sku, "accepted", STALE)
     assert r.status_code == 403 and r.json()["detail"] == "auth_mfa_stale" and decisions(client, sku) == {"excluded"}
     assert put(client, sku, "accepted", FRESH).status_code == 200 and decisions(client, sku) == {"accepted"}
+
+
+def _refusals(engine):
+    from audit import verify_chain
+    from db.tables import audit_events
+    from sqlalchemy import select
+
+    with engine.connect() as c:
+        rows = c.execute(select(audit_events).where(audit_events.c.action == "quality.anomaly_refused").order_by(audit_events.c.id)).all()
+        return rows, verify_chain(c).ok
+
+
+def test_a_refused_second_factor_attempt_is_audited_without_free_text(client, engine):
+    sku, _ = seed_case(engine, "outlier")
+    assert put(client, sku, "excluded", STALE).status_code == 403
+    rows, chain_ok = _refusals(engine)
+    assert len(rows) == 1 and chain_ok
+    assert rows[0].actor == "buyer-test" or rows[0].actor
+    assert rows[0].entity == "anomaly_flags" and rows[0].after == {"decision": "excluded", "reason": "mfa_stale"}
+    assert put(client, sku, "excluded").status_code == 403                    # each attempt leaves its own record
+    assert len(_refusals(engine)[0]) == 2
+
+
+def test_allowed_and_accepted_decisions_leave_no_refusal_record(client, engine):
+    sku, _ = seed_case(engine, "outlier")
+    assert put(client, sku, "accepted").status_code == 200
+    assert put(client, sku, "excluded", FRESH).status_code == 200
+    assert _refusals(engine)[0] == []

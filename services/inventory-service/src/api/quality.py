@@ -14,13 +14,14 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 import httpx
-from audit import CLASSES_RECOMPUTED
+from audit import ANOMALY_REFUSED, CLASSES_RECOMPUTED
 from audit import append as audit
 from classification.policy_source import current_config
 from classification.run import compute_segments
 from dashboard.filters import FilterError, FilterSet
 from db.tables import ALL_WAREHOUSES, stock_history, variants
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from quality.portfolio import BUCKETS, ORIGINS, bucket_products, portfolio, rebuild_portfolio
 from quality.snapshot import (
@@ -80,10 +81,11 @@ def build_quality_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> A
 
     @router.put("/quality/products/{sku}/anomalies/{day}")
     def put_decision(sku: str, day: date, body: DecisionBody, conn: Connection = Depends(conn_dep), principal: Any = Depends(buyer_or_admin),
-                     fresh_second_factor: str | None = Header(default=None, alias="X-Fresh-Second-Factor")) -> dict[str, Any]:
+                     fresh_second_factor: str | None = Header(default=None, alias="X-Fresh-Second-Factor")) -> Any:
         vid = resolve(conn, sku)
         if needs_second_factor(conn, vid, day, body.decision) and fresh_second_factor != "true":   # the gateway only reports whether the session has a recent check
-            raise HTTPException(403, "auth_mfa_stale")
+            audit(conn, principal.subject, ANOMALY_REFUSED, "anomaly_flags", f"{vid}:{day.isoformat()}", after={"decision": body.decision, "reason": "mfa_stale"})
+            return JSONResponse(status_code=403, content={"detail": "auth_mfa_stale"})      # returned, not raised: an exception would roll the record back
         refresh_flags(conn, vid)
         try:
             changed = decide(conn, vid, day, body.decision, body.reason_code, principal.subject)
