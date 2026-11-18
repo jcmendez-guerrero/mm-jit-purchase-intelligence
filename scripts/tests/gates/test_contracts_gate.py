@@ -95,6 +95,32 @@ def test_the_gate_and_the_packages_own_compatibility_rule_agree():
     assert all(g.breaking(BASE, new) for label, new in CHANGES.items() if label != "added optional field")
 
 
+# A required property added below the top level is just as breaking (PR 29 added `sku` to the required list of the lines of an array).
+LINE = {"type": "object", "required": ["id"], "properties": {"id": {"type": "integer"}, "sku": {"type": ["string", "null"]}}}
+HEAD = {"type": ["object", "null"], "required": ["id"], "properties": {"id": {"type": "integer"}, "sku": {"type": "string"}}}
+NESTED_BASE = {"type": "object", "properties": {"lines": {"type": "array", "items": LINE}, "head": HEAD}}
+
+
+def _nested(line=None, head=None):
+    return {"type": "object", "properties": {"lines": {"type": "array", "items": {**LINE, **(line or {})}}, "head": {**HEAD, **(head or {})}}}
+
+
+NESTED = {
+    "required added to array items": (_nested(line={"required": ["id", "sku"]}), True),
+    "required added to a nullable object": (_nested(head={"required": ["id", "sku"]}), True),
+    "property removed from array items": (_nested(line={"properties": {"id": LINE["properties"]["id"]}}), True),
+    "optional property added to array items": (_nested(line={"properties": {**LINE["properties"], "name": {"type": "string"}}}), False),
+    "unchanged": (NESTED_BASE, False),
+}
+
+
+def test_a_required_property_added_below_the_top_level_is_breaking():
+    rule = _packaged_rule()
+    for label, (new, is_breaking) in NESTED.items():
+        assert bool(g.breaking(NESTED_BASE, new)) is is_breaking, label
+        assert sorted(g.breaking(NESTED_BASE, new)) == sorted(rule(NESTED_BASE, new)), label   # the package's own CI must say the same
+
+
 OPENAPI = {"paths": {"/api/a": {"get": {}, "post": {}, "parameters": []}}}
 
 
@@ -114,6 +140,24 @@ def test_new_gateway_endpoint_without_entry_fails():
 def test_matrix_endpoint_that_left_the_gateway_fails():
     matrix = _matrix(_ep("GET /api/a"), _ep("POST /api/a"), _ep("PUT /api/z"))
     assert any("PUT /api/z" in p and "not in the gateway" in p for p in g.check_endpoints(matrix, OPENAPI))
+
+
+def _svc(name="GET /forecasts/eligibility", **kw):
+    return {"name": name, "kind": "service_endpoint", "version": 1, "owner": "forecast-service", "consumers": ["inventory-service"],
+            "status": "draft", **kw}
+
+
+def test_a_service_endpoint_needs_no_schema_file_and_is_not_compared_with_the_gateway(tmp_path):
+    root = _tree(tmp_path, {"dto/money.v1.schema.json": {}})
+    matrix = _matrix(_entry(), _ep("GET /api/a"), _ep("POST /api/a"), _svc())
+    assert g.check(root, matrix) == []
+    assert g.check_endpoints(matrix, OPENAPI) == []          # it is not a gateway route, so the gateway's OpenAPI does not list it
+
+
+def test_a_service_endpoint_may_name_the_schema_it_answers_with_and_that_schema_must_exist(tmp_path):
+    root = _tree(tmp_path, {"dto/money.v1.schema.json": {}})
+    assert g.check(root, _matrix(_entry(), _svc(response="money.v1"))) == []
+    assert any("money.v2" in p and "not in the matrix" in p for p in g.check(root, _matrix(_entry(), _svc(response="money.v2"))))
 
 
 def test_run_checks_endpoints_only_when_openapi_is_supplied(tmp_path):

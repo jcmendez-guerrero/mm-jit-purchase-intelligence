@@ -40,8 +40,8 @@ The gateway is `services/api-bff`.
 | `proposal` | dto | v1 | procurement-service | - | frozen |
 | `proposal_detail` | dto | v1 | procurement-service | web | frozen |
 | `proposal_line` | dto | v1 | procurement-service | - | frozen |
-| `scenario` | dto | v1 | procurement-service | - | frozen |
-| `scenario_result` | dto | v1 | procurement-service | - | frozen |
+| `scenario` | dto | v1 | procurement-service | api-bff, web | frozen |
+| `scenario_result` | dto | v1 | procurement-service | api-bff, web | frozen |
 | `scenario_sensitivity` | dto | v1 | procurement-service | - | frozen |
 | `seed_dataset` | dto | v1 | forecast-service | - | frozen |
 | `seed_dataset_summary` | dto | v1 | forecast-service | api-bff | frozen |

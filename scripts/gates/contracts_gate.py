@@ -17,8 +17,17 @@ CONTRACTS = Path("packages/contracts")
 NAME = re.compile(r"^(?P<name>.+)\.v(?P<version>[0-9]+)\.schema\.json$")
 
 
+def _is(spec: dict, kind: str) -> bool:
+    t = spec.get("type")
+    return t == kind or (isinstance(t, list) and kind in t)
+
+
 def breaking(old: dict, new: dict, path: str = "") -> list[str]:
-    """Same additive-only rule as packages/contracts/tests/test_compat.py (kept in sync there)."""
+    """Same additive-only rule as packages/contracts/tests/test_compat.py (kept in sync there).
+
+    It looks into nested objects (also nullable ones) and into the items of arrays, so a required property
+    added to the lines of a response is caught like one added at the top.
+    """
     problems: list[str] = []
     for key, spec in old.get("properties", {}).items():
         if key not in new.get("properties", {}):
@@ -29,8 +38,10 @@ def breaking(old: dict, new: dict, path: str = "") -> list[str]:
             problems.append(f"{path}{key}: type changed")
         if "enum" in spec and not set(spec["enum"]) <= set(n.get("enum", spec["enum"])):
             problems.append(f"{path}{key}: enum narrowed")
-        if spec.get("type") == "object":
+        if _is(spec, "object"):
             problems += breaking(spec, n, f"{path}{key}.")
+        if _is(spec, "array") and isinstance(spec.get("items"), dict):
+            problems += breaking(spec["items"], n.get("items") or {}, f"{path}{key}[].")
     added = set(new.get("required", [])) - set(old.get("required", []))
     if added:
         problems.append(f"{path}new required: {sorted(added)}")
@@ -67,6 +78,8 @@ def check(root: Path, matrix: dict) -> list[str]:
     for e in entries:
         if "schema_path" in e and not (root / CONTRACTS / e["schema_path"]).exists():
             problems.append(f"{e['name']}.v{e['version']}: schema file {e['schema_path']} not found")
+        if e.get("response") and e["response"] not in by_key:                     # a service endpoint names the schema it answers with
+            problems.append(f"{e['name']}: response {e['response']!r} not in the matrix")
         if e["status"] == "deprecated":
             succ = by_key.get(e.get("superseded_by", ""))
             if not succ:

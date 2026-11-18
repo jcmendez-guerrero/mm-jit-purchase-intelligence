@@ -43,8 +43,11 @@ def _breaking(old: dict, new: dict, path="") -> list[str]:
             problems.append(f"{path}{key}: type changed")
         if "enum" in spec and not set(spec["enum"]) <= set(n.get("enum", spec["enum"])):
             problems.append(f"{path}{key}: enum narrowed")
-        if spec.get("type") == "object":
+        types = spec.get("type")
+        if types == "object" or (isinstance(types, list) and "object" in types):
             problems += _breaking(spec, n, f"{path}{key}.")
+        if (types == "array" or (isinstance(types, list) and "array" in types)) and isinstance(spec.get("items"), dict):
+            problems += _breaking(spec["items"], n.get("items") or {}, f"{path}{key}[].")
     added_required = set(new.get("required", [])) - set(old.get("required", []))
     if added_required:
         problems.append(f"{path}new required: {sorted(added_required)}")

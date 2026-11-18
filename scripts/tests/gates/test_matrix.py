@@ -79,6 +79,24 @@ def test_endpoint_entries_validate_against_the_matrix_schema():
     jsonschema.validate(doc, schema)
 
 
+SERVICE_ENDPOINT = {"name": "GET /forecasts/eligibility", "kind": "service_endpoint", "version": 1, "owner": "forecast-service",
+                    "consumers": ["inventory-service"], "status": "draft", "response": "forecast_eligibility.v1"}
+
+
+def test_service_endpoints_survive_regeneration_and_a_gateway_refresh_and_validate_against_the_matrix_schema(tmp_path: Path):
+    (tmp_path / "packages/contracts/dto").mkdir(parents=True)
+    path = m.write(tmp_path, OPENAPI)
+    doc = json.loads(path.read_text())
+    doc["entries"].append(SERVICE_ENDPOINT)                      # curated by hand, like the endpoint owners
+    path.write_text(json.dumps(doc))
+    for refreshed in (m.write(tmp_path), m.write(tmp_path, {"paths": {"/api/c": {"get": {}}}})):
+        entries = json.loads(refreshed.read_text())["entries"]
+        assert SERVICE_ENDPOINT in entries
+        assert [e["name"] for e in entries if e["kind"] == "endpoint"] in (["PUT /api/a", "GET /api/b", "POST /api/b"], ["GET /api/c"])
+    schema = json.loads((REPO / "docs/architecture/integration/schemas/contract-matrix.schema.json").read_text())
+    jsonschema.validate(json.loads(refreshed.read_text()), schema)
+
+
 def test_regeneration_without_changes_is_byte_identical(tmp_path: Path, monkeypatch):
     """T090: a fresh timestamp on every run made every parallel PR conflict on that line."""
     (tmp_path / "packages/contracts/dto").mkdir(parents=True)
