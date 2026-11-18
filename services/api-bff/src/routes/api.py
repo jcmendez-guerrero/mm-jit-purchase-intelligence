@@ -223,8 +223,8 @@ async def update_supplier_terms(
 
 @router.get("/product-suppliers/{sku:path}/{supplier_id}/terms")
 async def get_override_terms(
-    sku: str,
     supplier_id: str,
+    sku: str = Path(pattern=SKU_PATTERN),
     as_of: str | None = Query(default=None),
     session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
     client: ProcurementClient = Depends(get_procurement_client),
@@ -234,9 +234,9 @@ async def get_override_terms(
 
 @router.put("/product-suppliers/{sku:path}/{supplier_id}/terms")
 async def update_override_terms(
-    sku: str,
     supplier_id: str,
     body: dict[str, Any],
+    sku: str = Path(pattern=SKU_PATTERN),
     if_match: str | None = Header(default=None),
     idempotency_key: str | None = Header(default=None),
     session: SessionData = Depends(require_roles("buyer")),

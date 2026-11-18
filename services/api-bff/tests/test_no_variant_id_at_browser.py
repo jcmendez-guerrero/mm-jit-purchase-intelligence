@@ -143,3 +143,23 @@ def test_a_dot_only_sku_never_becomes_a_path_segment_towards_procurement():
         with pytest.raises(HTTPException) as sup_put:
             asyncio.run(client.put_override_terms("SYN-001", bad, {}, "u1"))
         assert sup_put.value.status_code == 422
+
+
+def test_a_sku_with_a_slash_or_a_space_is_refused_on_the_terms_route_too(role_store):
+    """T107: one SKU rule on every route (letters, digits, . _ -, up to 60, starting with a letter or digit)."""
+    from unittest.mock import AsyncMock
+
+    from main import app
+    from routes.api import get_procurement_client
+
+    procurement = AsyncMock()
+    app.dependency_overrides[get_procurement_client] = lambda: procurement
+    try:
+        client, headers = TestClient(app), {**headers_for("buyer-1", ["viewer", "buyer"])}
+        for bad in ("SYN%2F01", "SYN/01", "a%20b", "%2e%2e", ".hidden"):
+            assert client.get(f"/api/product-suppliers/{bad}/s1/terms", headers=headers).status_code == 422, bad
+            assert client.put(f"/api/product-suppliers/{bad}/s1/terms", json={}, headers=headers).status_code == 422, bad
+        procurement.get_override_terms.assert_not_called()
+        procurement.put_override_terms.assert_not_called()
+    finally:
+        app.dependency_overrides.clear()
