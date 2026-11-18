@@ -42,18 +42,19 @@ def endpoint_entries(openapi: dict) -> list[dict]:
             for path, ops in sorted(openapi["paths"].items()) for method in HTTP if method in ops]
 
 
-def _existing_endpoints(root: Path) -> list[dict]:
+def _existing(root: Path, kinds: tuple[str, ...]) -> list[dict]:
     path = root / "docs/architecture/integration/contract-matrix.json"
     if not path.exists():
         return []
-    return [e for e in json.loads(path.read_text())["entries"] if e["kind"] == "endpoint"]
+    return [e for e in json.loads(path.read_text())["entries"] if e["kind"] in kinds]
+
+
+def _existing_endpoints(root: Path) -> list[dict]:
+    return _existing(root, ("endpoint",))
 
 
 def _existing_schemas(root: Path) -> dict[tuple, dict]:
-    path = root / "docs/architecture/integration/contract-matrix.json"
-    if not path.exists():
-        return {}
-    return {(e["kind"], e["name"], e["version"]): e for e in json.loads(path.read_text())["entries"] if e["kind"] != "endpoint"}
+    return {(e["kind"], e["name"], e["version"]): e for e in _existing(root, ("dto", "event", "error"))}
 
 
 def generate(root: Path, endpoints: list[dict] | None = None) -> dict:
@@ -78,6 +79,7 @@ def generate(root: Path, endpoints: list[dict] | None = None) -> dict:
             entry["superseded_by"] = old["superseded_by"]
         entries.append(entry)
     entries += endpoints if endpoints is not None else _existing_endpoints(root)  # regeneration keeps curated endpoints
+    entries += _existing(root, ("service_endpoint",))                             # and the hand-written service-to-service reads, whatever the gateway says
     return {"matrix_version": 1, "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "schema_ownership": OWNERSHIP, "entries": entries}
 
