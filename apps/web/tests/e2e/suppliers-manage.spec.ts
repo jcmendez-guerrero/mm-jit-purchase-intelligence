@@ -31,7 +31,7 @@ async function backend(page: Page, roles: string[]) {
     return r.fulfill(json(suppliers));
   });
   await page.route("**/api/suppliers/*/terms", (r) => r.fulfill(json({ supplier_id: "s1", version: 0, current: null, history: [] })));
-  await page.route("**/api/product-suppliers/**", (r) => r.fulfill(json({ variant_id: 1, supplier_id: "s1", version: 0, override: null, history: [], effective: {} })));
+  await page.route("**/api/product-suppliers/**", (r) => r.fulfill(json({ sku: "SYN-000001", supplier_id: "s1", version: 0, override: null, history: [], effective: {} })));
   await page.route("**/api/suppliers/*/links", (r) => r.fulfill(json([{ sku: "SYN-000001", name: "Pienso sintético", cost: "2.1040", currency: "EUR", cost_source: "inventory_export", includes_recargo: false, pack_size: 6, min_qty: null, verified_at: "2026-11-08T10:00:00Z", erp_link: "no_link" }])));
   await page.route("**/api/suppliers/*/deactivate", async (r) => {
     const confirm = (r.request().postDataJSON() as { confirm: boolean }).confirm;

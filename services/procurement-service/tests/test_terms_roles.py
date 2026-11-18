@@ -62,7 +62,7 @@ def concrete(path: str) -> str:
 def test_the_scan_really_finds_the_change_routes(app):
     paths = {p for _, p in change_routes(app)}
     assert len(change_routes(app)) >= 12
-    assert {"/suppliers", "/suppliers/{supplier_id}/terms", "/product-suppliers/{variant_id}/{supplier_id}/terms"} <= paths
+    assert {"/suppliers", "/suppliers/{supplier_id}/terms", "/product-suppliers/{sku:path}/{supplier_id}/terms"} <= paths
 
 
 def test_viewers_and_anonymous_callers_cannot_change_anything(app):

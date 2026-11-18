@@ -665,7 +665,7 @@ export interface EffectiveTerms {
 }
 
 export interface OverrideView {
-  variant_id: number;
+  sku: string;
   supplier_id: string;
   version: number;
   override: OverrideDoc | null;
@@ -1593,12 +1593,13 @@ export class ApiClient {
     });
   }
 
-  async getOverrideTerms(variantId: number, supplierId: string): Promise<OverrideView> {
-    return this.request<OverrideView>(`/product-suppliers/${variantId}/${encodeURIComponent(supplierId)}/terms`);
+  /** Product-supplier terms are addressed by SKU; the ERP variant id never reaches the browser. */
+  async getOverrideTerms(sku: string, supplierId: string): Promise<OverrideView> {
+    return this.request<OverrideView>(`/product-suppliers/${encodeURIComponent(sku)}/${encodeURIComponent(supplierId)}/terms`);
   }
 
-  async putOverrideTerms(variantId: number, supplierId: string, payload: Record<string, unknown>, version: number, idempotencyKey?: string): Promise<{ version: number }> {
-    return this.request<{ version: number }>(`/product-suppliers/${variantId}/${encodeURIComponent(supplierId)}/terms`, {
+  async putOverrideTerms(sku: string, supplierId: string, payload: Record<string, unknown>, version: number, idempotencyKey?: string): Promise<{ version: number }> {
+    return this.request<{ version: number }>(`/product-suppliers/${encodeURIComponent(sku)}/${encodeURIComponent(supplierId)}/terms`, {
       method: "PUT",
       headers: saveHeaders(version, idempotencyKey),
       body: JSON.stringify(payload),

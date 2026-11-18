@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, R
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
 from mmi_common.time import get_correlation_id
+from policies.service import PolicyError, variant_for_sku
 from proposals.publisher import terms_changed
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -27,6 +28,7 @@ from terms.overrides import (
     current_override,
     current_override_version,
     override_history,
+    pair_label,
     save_override,
     validate_override,
 )
@@ -199,15 +201,23 @@ def register(router: APIRouter, conn_dep: Callable[..., Any], require: Callable[
         announce(conn, "supplier_terms", supplier_id, version)
         return {"version": version}
 
-    @router.get("/product-suppliers/{variant_id}/{supplier_id}/terms")
-    def get_override(variant_id: int, supplier_id: str, as_of: str | None = Query(default=None), conn: Connection = Depends(conn_dep),
+    def variant_of(conn: Connection, sku: str) -> int:
+        """People use SKUs; the variant id is resolved here and never leaves the service (422 sku_unknown / sku_ambiguous)."""
+        try:
+            return variant_for_sku(conn, sku)
+        except PolicyError as exc:
+            raise HTTPException(422, error_code(exc)) from exc
+
+    @router.get("/product-suppliers/{sku:path}/{supplier_id}/terms")
+    def get_override(sku: str, supplier_id: str, as_of: str | None = Query(default=None), conn: Connection = Depends(conn_dep),
                      _p: Any = Depends(require())) -> dict[str, Any]:
         when = _parse_as_of(as_of)
+        variant_id = variant_of(conn, sku)
         ref = conn.execute(select(product_refs.c.product_id).where(product_refs.c.variant_id == variant_id)).first()
         cost = None if ref is None else current_cost(conn, int(ref.product_id), supplier_id, variant_id) or current_cost(conn, int(ref.product_id), supplier_id)
         erp = None if cost is None else {"source": cost.source, "lead_time_days": cost.lead_time_days, "pack_size": cost.pack_size, "min_order_qty": cost.min_order_qty}
         eff = resolve_effective(conn, supplier_id, variant_id, when, erp)
-        return {"variant_id": variant_id, "supplier_id": supplier_id, "version": current_override_version(conn, variant_id, supplier_id),
+        return {"sku": sku.strip(), "supplier_id": supplier_id, "version": current_override_version(conn, variant_id, supplier_id),
                 "override": override_json(current_override(conn, variant_id, supplier_id, when)),
                 "history": [{"version": h["version"], "valid_from": h["valid_from"].isoformat(), "source": h["source"], "reason": h["reason"],
                              "changed_by": h["changed_by"], "terms": override_json(h["terms"])} for h in override_history(conn, variant_id, supplier_id)],
@@ -216,10 +226,11 @@ def register(router: APIRouter, conn_dep: Callable[..., Any], require: Callable[
                               "sources": eff.sources, "conflicts": list(eff.conflicts), "supplier_version": eff.supplier_version,
                               "override_version": eff.override_version, "flags": list(eff.flags)}}
 
-    @router.put("/product-suppliers/{variant_id}/{supplier_id}/terms")
-    def put_override(variant_id: int, supplier_id: str, body: OverrideBody, if_match: str | None = Header(default=None),
+    @router.put("/product-suppliers/{sku:path}/{supplier_id}/terms")
+    def put_override(sku: str, supplier_id: str, body: OverrideBody, if_match: str | None = Header(default=None),
                      idempotency_key: str | None = Header(default=None), conn: Connection = Depends(conn_dep),
                      principal: Any = Depends(buyer)) -> Any:
+        variant_id = variant_of(conn, sku)
         key, digest, replayed = _idempotency(conn, idempotency_key, "product_supplier_terms", f"{variant_id}:{supplier_id}", if_match, body)
         if replayed is not None:
             return replayed
@@ -231,7 +242,7 @@ def register(router: APIRouter, conn_dep: Callable[..., Any], require: Callable[
         expected = _precondition(if_match, current_override_version(conn, variant_id, supplier_id))
         try:
             version = save_override(conn, variant_id, supplier_id, OverrideTerms(**fields), principal.subject, valid_from=body.valid_from, valid_to=body.valid_to,
-                                    expected_version=expected, reason=body.reason)
+                                    expected_version=expected, reason=body.reason, audit_label=pair_label(sku, supplier_id))
         except TermsConflict as exc:
             return _conflict(exc)
         except TermsError as exc:

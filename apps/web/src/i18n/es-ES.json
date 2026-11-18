@@ -218,7 +218,7 @@
   "suppliers.weekday.7": "Dom",
   "suppliers.override.title": "Excepciones por producto",
   "suppliers.override.help": "Un valor de excepción prevalece sobre el del proveedor solo para ese producto. Los campos en «Heredar» usan el valor del proveedor.",
-  "suppliers.override.variant": "ID de variante Siweb",
+  "suppliers.override.sku": "SKU del producto",
   "suppliers.override.load": "Ver condiciones aplicadas",
   "suppliers.override.save": "Guardar excepción",
   "suppliers.override.saved": "Excepción guardada (versión {{version}}).",

@@ -21,7 +21,7 @@ const view = (version = 2): SupplierTermsView => ({
   ],
 });
 const override: OverrideView = {
-  variant_id: 9001, supplier_id: "s1", version: 1, history: [],
+  sku: "SYN-0001", supplier_id: "s1", version: 1, history: [],
   override: { pack_multiple: 12, min_qty_units: null, lead_time_days: null, payment_terms_days: null, preferred: null, reliability: null, disabled: null },
   effective: {
     lead_time_days: 3, pack_multiple: 12, min_qty_units: null, payment_terms_days: null, preferred: true, reliability: null, disabled: false,
@@ -159,7 +159,7 @@ describe("SuppliersScreen (Spanish)", () => {
 
   it("shows where each effective product value comes from and flags the ERP conflict", async () => {
     await open();
-    fireEvent.change(screen.getByLabelText("ID de variante Siweb"), { target: { value: "9001" } });
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: "SYN-0001" } });
     fireEvent.click(screen.getByRole("button", { name: "Ver condiciones aplicadas" }));
     const table = await screen.findByRole("table", { name: "Condiciones aplicadas a un producto" });
     const pack = within(table).getByText("Múltiplo de caja").closest("tr")!;
@@ -172,15 +172,47 @@ describe("SuppliersScreen (Spanish)", () => {
   it("saves a product exception with the version it was based on", async () => {
     const put = vi.spyOn(api, "putOverrideTerms").mockResolvedValue({ version: 2 });
     await open();
-    fireEvent.change(screen.getByLabelText("ID de variante Siweb"), { target: { value: "9001" } });
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: " SYN-0001 " } });
     fireEvent.click(screen.getByRole("button", { name: "Ver condiciones aplicadas" }));
     await screen.findByRole("table", { name: "Condiciones aplicadas a un producto" });
     fireEvent.change(screen.getAllByLabelText("Múltiplo de caja")[0]!, { target: { value: "24" } });
     fireEvent.change(screen.getByLabelText("Desactivado", { selector: "select" }), { target: { value: "yes" } });
     fireEvent.click(screen.getByRole("button", { name: "Guardar excepción" }));
     await waitFor(() => expect(put).toHaveBeenCalled());
-    expect(put.mock.calls[0]!.slice(0, 2)).toEqual([9001, "s1"]);
+    expect(put.mock.calls[0]!.slice(0, 2)).toEqual(["SYN-0001", "s1"]);
     expect(put.mock.calls[0]![2]).toMatchObject({ pack_multiple: 24, disabled: true, preferred: null });
     expect(put.mock.calls[0]![3]).toBe(1);
+  });
+  it("asks for the SKU, keeps the load button off until one is typed and never asks for a numeric id", async () => {
+    await open();
+    const load = screen.getByRole("button", { name: "Ver condiciones aplicadas" }) as HTMLButtonElement;
+    expect(load.disabled).toBe(true);
+    expect(screen.queryByLabelText(/variante/i)).toBeNull();
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: "SYN-0001" } });
+    expect(load.disabled).toBe(false);
+  });
+
+  it("hides the loaded terms and the save button as soon as the SKU box no longer matches them", async () => {
+    await open();
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: "SYN-0001" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ver condiciones aplicadas" }));
+    await screen.findByRole("table", { name: "Condiciones aplicadas a un producto" });
+    expect(screen.getByRole("button", { name: "Guardar excepción" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: "SYN-0002" } });
+    expect(screen.queryByRole("table", { name: "Condiciones aplicadas a un producto" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Guardar excepción" })).toBeNull();
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: " SYN-0001 " } });
+    expect(screen.getByRole("button", { name: "Guardar excepción" })).toBeTruthy();   // typing the loaded SKU again (trimmed) shows it again
+  });
+
+  it("shows the Spanish message for an unknown or ambiguous SKU, never the code", async () => {
+    vi.spyOn(api, "getOverrideTerms").mockRejectedValueOnce(new ApiError(422, "sku_unknown")).mockRejectedValueOnce(new ApiError(422, "sku_ambiguous"));
+    await open();
+    fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: "SYN-NO-EXISTE" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ver condiciones aplicadas" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("El SKU no existe en el catálogo cargado");
+    fireEvent.click(screen.getByRole("button", { name: "Ver condiciones aplicadas" }));
+    await waitFor(() => expect(document.body.textContent).toContain("corresponde a más de un producto"));
+    expect(document.body.textContent).not.toContain("sku_unknown");
   });
 });

@@ -125,6 +125,18 @@
       "status": "frozen"
     },
     {
+      "name": "override_terms_view",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/override_terms_view.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "policy_audit_page",
       "kind": "dto",
       "version": 1,
@@ -1247,7 +1259,7 @@
       "status": "draft"
     },
     {
-      "name": "GET /api/product-suppliers/{variant_id}/{supplier_id}/terms",
+      "name": "GET /api/product-suppliers/{sku}/{supplier_id}/terms",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -1257,7 +1269,7 @@
       "status": "draft"
     },
     {
-      "name": "PUT /api/product-suppliers/{variant_id}/{supplier_id}/terms",
+      "name": "PUT /api/product-suppliers/{sku}/{supplier_id}/terms",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",

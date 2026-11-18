@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 
 from audit.chain import verify_chain
+from conftest import add_product
 from db.tables import audit_events
 from refusal_support import app, client, engine, h, refusals, sid  # noqa: F401
 from sqlalchemy import select
@@ -52,10 +53,25 @@ def test_an_anonymous_caller_is_refused_with_a_401_and_not_stored_one_by_one(cli
     assert refusals(engine) == []
 
 
-def test_product_override_refusals_name_the_pair(client, engine, sid):
-    client.put(f"/product-suppliers/1/{sid}/terms", json={"lead_time_days": 5}, headers=h())
-    assert client.put(f"/product-suppliers/1/{sid}/terms", json={"lead_time_days": 6}, headers=h()).status_code == 428
-    assert [(r[1], r[2], r[3]) for r in refusals(engine)] == [("terms.refused", "product_supplier_terms", f"1:{sid}")]
+def test_product_override_refusals_name_the_pair_by_sku(client, engine, sid):
+    with engine.begin() as c:
+        add_product(c, 1, 10, sku="SYN-0001")
+    client.put(f"/product-suppliers/SYN-0001/{sid}/terms", json={"lead_time_days": 5}, headers=h())
+    assert client.put(f"/product-suppliers/SYN-0001/{sid}/terms", json={"lead_time_days": 6}, headers=h()).status_code == 428
+    assert [(r[1], r[2], r[3]) for r in refusals(engine)] == [("terms.refused", "product_supplier_terms", f"SYN-0001:{sid}")]
+
+
+def test_an_unknown_sku_is_recorded_as_a_422_with_the_sku_and_no_variant_id(client, engine, sid):
+    assert client.put(f"/product-suppliers/SYN-NO-EXISTE/{sid}/terms", json={"lead_time_days": 5}, headers=h()).status_code == 422
+    assert [(r[1], r[2], r[3], r[4]) for r in refusals(engine)] == [
+        ("terms.refused", "product_supplier_terms", f"SYN-NO-EXISTE:{sid}", {"code": "sku_unknown", "status": 422})]
+
+
+def test_a_long_sku_is_cut_in_the_refusal_entry_not_the_supplier_id(client, engine, sid):
+    long_sku = "SYN-NO-EXISTE-" + "L" * 30
+    assert client.put(f"/product-suppliers/{long_sku}/{sid}/terms", json={"lead_time_days": 5}, headers=h()).status_code == 422
+    (entry,) = [r[3] for r in refusals(engine)]
+    assert len(entry) == 60 and entry.endswith(f":{sid}") and entry.startswith("SYN-NO-EXISTE")
 
 
 def test_supplier_and_link_refusals_use_their_own_actions(client, engine, sid):

@@ -21,6 +21,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 from starlette.concurrency import run_in_threadpool
+from terms.overrides import pair_label
 
 __all__ = ["FAMILIES", "MAX_JSON_BYTES", "AuditedRoute"]
 
@@ -40,7 +41,7 @@ def _target(path: str, params: dict[str, Any]) -> tuple[str, str, str]:
     """(action, entity, entity id) of the thing a request was aimed at, from its route path and path parameters."""
     supplier = str(params.get("supplier_id", ""))
     if path.startswith("/product-suppliers"):
-        return "terms.refused", "product_supplier_terms", f"{params.get('variant_id')}:{supplier}"
+        return "terms.refused", "product_supplier_terms", pair_label(str(params.get('sku', '')), supplier)
     if "/terms" in path:
         return "terms.refused", "supplier_terms", supplier or "-"
     if "/links" in path:
