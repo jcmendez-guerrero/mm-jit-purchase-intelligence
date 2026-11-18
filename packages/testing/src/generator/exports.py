@@ -208,6 +208,7 @@ def _normalise_zip(data: bytes) -> bytes:
 
 def _xlsx_bytes(movements: list[dict[str, Any]]) -> bytes:
     wb = openpyxl.Workbook()
+    wb.properties.created = wb.properties.modified = datetime(2026, 1, 1)      # openpyxl stamps now(); two runs a second apart would differ
     ws = wb.active
     ws.title = "Datos"
     ws.append(formats.MOVEMENTS_HEADERS)
