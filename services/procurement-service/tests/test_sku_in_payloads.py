@@ -23,3 +23,9 @@ def test_a_list_and_an_existing_sku_are_left_alone(conn):
     conn.execute(update(product_refs).where(product_refs.c.variant_id == 1).values(sku="SYN-001"))
     assert with_skus(conn, [{"variant_id": 1, "sku": "KEEP"}]) == [{"variant_id": 1, "sku": "KEEP"}]
     assert with_skus(conn, [{"variant_id": 1}]) == [{"variant_id": 1, "sku": "SYN-001"}]
+
+
+
+def test_a_row_that_already_carries_a_sku_key_is_left_to_the_service_that_wrote_it(conn):
+    """Scenario rows carry `sku: None` with a `name` (MMI-15) and their schema has no `sku_missing`: the flag is only for rows that had no `sku` at all."""
+    assert with_skus(conn, [{"variant_id": 404, "sku": None, "name": "Producto"}]) == [{"variant_id": 404, "sku": None, "name": "Producto"}]

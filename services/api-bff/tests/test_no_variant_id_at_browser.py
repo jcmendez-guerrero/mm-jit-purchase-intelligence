@@ -137,3 +137,9 @@ def test_a_dot_only_sku_never_becomes_a_path_segment_towards_procurement():
         with pytest.raises(HTTPException) as put:
             asyncio.run(client.put_override_terms(bad, "s1", {}, "u1"))
         assert put.value.status_code == 422
+        with pytest.raises(HTTPException) as sup:                       # the supplier id is the next segment of the same path
+            asyncio.run(client.get_override_terms("SYN-001", bad))
+        assert sup.value.status_code == 422
+        with pytest.raises(HTTPException) as sup_put:
+            asyncio.run(client.put_override_terms("SYN-001", bad, {}, "u1"))
+        assert sup_put.value.status_code == 422
