@@ -24,6 +24,7 @@ from dashboard.kpis import (
     coverage_by_variant,
     demand_trend,
     forecast_series,
+    shared_scope,
     valued_lots_dated,
     variant_scope,
 )
@@ -146,10 +147,11 @@ BUILDERS: dict[str, Callable[..., dict[str, Any]]] = {
 def build_charts(conn: Connection, keys: list[str] | tuple[str, ...], today: date, fs: FilterSet, forecast: ForecastMeans | None, money: bool) -> list[dict[str, Any]]:
     """One chart per key, in the order asked. A failing chart is an ``error`` chart (no rows, no downstream text) and never stops the others."""
     out = []
-    for key in keys:
-        try:
-            out.append(BUILDERS[key](conn, today, fs, forecast, money))
-        except Exception:
-            log.warning("dashboard chart %s failed", key, exc_info=True)
-            out.append({"key": key, "title_key": f"dashboard.chart.title.{key}", "columns": [], "rows": [], "state": "error"})
+    with shared_scope():
+        for key in keys:
+            try:
+                out.append(BUILDERS[key](conn, today, fs, forecast, money))
+            except Exception:
+                log.warning("dashboard chart %s failed", key, exc_info=True)
+                out.append({"key": key, "title_key": f"dashboard.chart.title.{key}", "columns": [], "rows": [], "state": "error"})
     return out

@@ -12,6 +12,8 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -93,7 +95,30 @@ def data_origin(conn: Connection) -> tuple[str, int]:
     return ("local_load", 0) if local and not erp else ("erp_sync", int(local))
 
 
+_scope_memo: ContextVar[dict[tuple[Any, ...], set[int]] | None] = ContextVar("scope_memo", default=None)
+
+
+@contextmanager
+def shared_scope() -> Iterator[None]:
+    """Inside one request the scope for a filter set cannot change: charts that each ask for it share one calculation. Outside the block nothing is kept."""
+    token = _scope_memo.set({})
+    try:
+        yield
+    finally:
+        _scope_memo.reset(token)
+
+
 def variant_scope(conn: Connection, f: Filters) -> set[int]:
+    memo = _scope_memo.get()
+    if memo is None:
+        return _variant_scope(conn, f)
+    key = (id(conn), f.warehouse_id, f.category, f.family, f.supplier_id)
+    if key not in memo:
+        memo[key] = _variant_scope(conn, f)
+    return set(memo[key])                                                    # a copy: callers may narrow it
+
+
+def _variant_scope(conn: Connection, f: Filters) -> set[int]:
     ids = {r.external_id for r in conn.execute(select(variants.c.external_id).where(variants.c.is_service.is_(False))).all()}
     if data_origin(conn)[0] == "erp_sync":
         ids = {i for i in ids if i < LOCAL_ID_BASE}                         # local loads are never added to ERP figures

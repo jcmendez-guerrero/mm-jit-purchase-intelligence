@@ -179,3 +179,18 @@ def test_a_single_day_of_history_is_one_row_and_a_730_day_range_keeps_every_stor
     long = charts(seeded, ["stock_value_history"], filters=fs(date_from=TODAY - timedelta(days=729)))["stock_value_history"]
     assert len(long["rows"]) == 730 and long["rows"][0][0] < long["rows"][-1][0]                  # complete and in order
     assert long["range_available"]["from"] == (TODAY - timedelta(days=729)).isoformat()
+
+
+def test_the_charts_of_one_request_share_one_scope_calculation_and_nothing_is_kept_after(seeded, monkeypatch):
+    import dashboard.kpis as kpis
+
+    calls = []
+    real = kpis._variant_scope
+    monkeypatch.setattr(kpis, "_variant_scope", lambda conn, f: calls.append(1) or real(conn, f))
+    once = charts(seeded, forecast=Means())
+    assert len(calls) == 1 and set(once) == set(CHART_KEYS)                  # six charts, one calculation
+    calls.clear()
+    with seeded.connect() as c:                                              # outside a chart request every call computes again
+        kpis.variant_scope(c, kpis.Filters())
+        kpis.variant_scope(c, kpis.Filters())
+    assert len(calls) == 2
