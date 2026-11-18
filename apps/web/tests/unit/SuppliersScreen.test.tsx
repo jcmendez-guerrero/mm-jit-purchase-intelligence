@@ -143,6 +143,20 @@ describe("SuppliersScreen (Spanish)", () => {
     expect(screen.getByText("Solo lectura: editar condiciones requiere el rol de comprador.")).toBeTruthy();
   });
 
+  it("keeps the fields locked until the saved terms load, then keeps what is typed (MMI-12)", async () => {
+    let release: (v: SupplierTermsView) => void = () => {};
+    vi.spyOn(api, "getSupplierTerms").mockReturnValue(new Promise<SupplierTermsView>((resolve) => (release = resolve)));
+    render(<SuppliersScreen userRoles={["viewer", "buyer"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Proveedor Sintético A" }));
+    const lead = (await screen.findByLabelText("Plazo de entrega (días)")) as HTMLInputElement;
+    expect(lead.disabled).toBe(true);
+    release(view());
+    await waitFor(() => expect(lead.disabled).toBe(false));
+    expect(lead.value).toBe("3");
+    fireEvent.change(lead, { target: { value: "7" } });
+    expect(lead.value).toBe("7");
+  });
+
   it("shows where each effective product value comes from and flags the ERP conflict", async () => {
     await open();
     fireEvent.change(screen.getByLabelText("SKU del producto"), { target: { value: "SYN-0001" } });
