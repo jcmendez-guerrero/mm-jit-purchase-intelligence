@@ -1,0 +1,62 @@
+# Research: Fix Supplier Terms Keyboard Edit
+
+The root cause was **found during implementation** (2026-11-16) and is recorded in the last section, "Root cause": the form was editable before the saved terms loaded (hypothesis H2). The sections before it are the planning notes: what the code showed and the ordered hypotheses that were tested.
+
+## What the code already does
+
+- `SupplierTermsEditor` locks every field until the saved terms arrive (`readOnly = !canEdit || view === null`) and its loader deliberately does not depend on `t`, so neither a late response nor a translation reload should erase typing. This answers spec story 2 for the screen as it stands; verify rather than rebuild.
+- `FormField` is a plain controlled input (`value` + `onChange`), with nothing key-specific.
+- The test already waits for `toHaveValue("3")` before typing, citing an earlier intermittent failure.
+- `SuppliersScreen` mounts `SupplierTermsEditor` and `OverrideEditor` together; both have a lead-time field (`f-lead`, `o-lead`).
+- Save sends `toPayload(form)`, where `lead_time_days` is `intOrNull(form.lead_time_days)`.
+
+## Decision 1: Reproduce before changing anything
+
+- **Decision**: Run the check un-quarantined locally, with a trace, and capture the focused element and the field value after each key press.
+- **Rationale**: The Jira text gives two candidates (editor input handling, or the test's tab order) and the code review above does not settle it.
+- **Alternatives considered**: Fixing by guess (for example another wait) — rejected; that is how the current intermittent workaround appeared.
+
+## Decision 2: Hypotheses, in the order to test
+
+| # | Hypothesis | How to confirm | Fix site |
+|---|------------|----------------|----------|
+| H1 | Focus lands on another input with the same label text (the `OverrideEditor` lead time), so `7` is typed there and the terms form keeps `3` | Log `document.activeElement.id` after `tabTo`; expect `f-lead` | Test (scope the lookup to the terms form) |
+| H2 | The terms form is re-initialised after typing (a second `load()` or a remount via the list refresh), restoring `3` | Log form value before save; watch network calls to `/api/suppliers` and `/terms` | Screen |
+| H3 | `ControlOrMeta+a` selects the page rather than the field text, so typing `7` appends or is lost | Check the input value after the key presses | Test |
+| H4 | Enter on the save button submits while a stale `form` closure is in use | Compare the request body with the visible field value | Screen |
+
+- **Rationale**: H1 matches "the test's tab order" in the Jira text and the two lead-time fields on one screen; H2 matches "input handling in the supplier terms editor".
+- **Output required by FR-004**: the confirmed hypothesis, with the evidence, is written to the section at the end of this file.
+
+## Decision 3: Test design after the fix
+
+- **Decision**: Remove `test.fixme`; keep the load wait (or replace it with a check that the fields are enabled); scope field lookups to the terms form; add a second keyboard case that edits a money term (minimum order value) and asserts the saved string.
+- **Rationale**: FR-005 and FR-006; avoids matching the same label in `OverrideEditor`.
+- **Alternatives considered**: Loosening the assertion — rejected; the assertion is the requirement.
+
+## Decision 4: Stability proof
+
+- **Decision**: Run the check at least 20 consecutive times (`--repeat-each=20`) and record the result in the PR.
+- **Rationale**: SC-001; the earlier failure was intermittent.
+
+## Root cause (recorded 2026-11-16, T002–T003)
+
+**Held: H2 (the form is re-initialised after typing). H1, H3 and H4 were not the cause.** The defect was in the screen, and it is already fixed on this branch; the work left was to prove it and to lock it in with tests.
+
+**Mechanism.** Before the saved terms arrived, the form was editable. The terms response then called `setForm(toForm(v.current))` and replaced whatever had been typed with the loaded values. A buyer who typed `7` during that window saved `3`.
+
+**Fix.** Commit `e0e8b18` (2026-11-15, "supplier terms form stays locked until the terms load") sets `readOnly = !canEdit || view === null` and keeps the loader independent of `t`. It reached `origin/main` through PR #25 but not the MMI-5 branch where the test was quarantined (`bf4a0f5`), and the local `main` ref in this clone is stale (it does not contain `e0e8b18`). The MMI-12 ticket therefore described `main` as it was before that fix.
+
+**Evidence.**
+
+- With the fix in place, the quarantined test passes 20 of 20 and 15 of 15 with CI settings.
+- With the lock removed (`readOnly = !canEdit`) and the test's `toHaveValue("3")` wait removed, 1 of 10 runs failed with `Expected: 7, Received: 3`, which is the ticket's symptom.
+- H1 rejected: `getByLabel("Plazo de entrega (días)")` passes in Playwright strict mode, so only one field has that label; the override editor's lead time has a different label.
+
+**A second, test-only race found while proving stability.** Under 7 parallel workers, 2–5 of 80 runs failed with "element not reachable with the keyboard" at the first `tabTo` (the supplier button), because the supplier list had not rendered yet and the 120 Tab presses ran out. Fix: wait for the button to be visible before tabbing. After it, 4 × 80 runs passed (320 of 320).
+
+**Regression tests added.** A delayed-terms case (fields disabled while loading, then a keyboard edit is kept) fails if the lock is removed; money-term cases by keyboard and mouse; unit cases for the payload and validation.
+
+## Why the loading lock is checked twice
+
+The lock is covered by a unit case (`tests/unit/SuppliersScreen.test.tsx`, fast guard, runs in the normal unit suite) and by an e2e case (`tests/e2e/a11y-all-routes.spec.ts`, "fields stay locked until the saved terms load"). Both fail if the lock is removed. They are kept on purpose: the e2e case proves the real keyboard flow after a late load, which is the original MMI-12 failure; the unit case is the quick check a developer sees first.
