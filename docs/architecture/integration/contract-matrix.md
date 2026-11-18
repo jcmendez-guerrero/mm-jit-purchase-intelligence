@@ -22,7 +22,12 @@ The gateway is `services/api-bff`.
 | `budget_cap` | dto | v1 | procurement-service | - | frozen |
 | `conditions_block` | dto | v1 | siweb-cost-writer | - | frozen |
 | `cost_write` | dto | v1 | procurement-service | - | frozen |
+| `dashboard_charts` | dto | v1 | inventory-service | api-bff, web | draft |
+| `dashboard_drilldown` | dto | v1 | inventory-service | api-bff | draft |
+| `dashboard_drilldown` | dto | v2 | api-bff | web | draft |
+| `dashboard_freshness` | dto | v1 | inventory-service | api-bff, web | draft |
 | `dashboard_indicators` | dto | v2 | inventory-service | api-bff, web | frozen |
+| `dashboard_sku` | dto | v1 | inventory-service | api-bff, web | draft |
 | `dashboard_summary` | dto | v1 | inventory-service | - | frozen |
 | `demand_rule` | dto | v1 | inventory-service | - | frozen |
 | `effective_policy` | dto | v1 | agent-00 | api-bff, web | draft |
@@ -40,8 +45,8 @@ The gateway is `services/api-bff`.
 | `proposal` | dto | v1 | procurement-service | - | frozen |
 | `proposal_detail` | dto | v1 | procurement-service | web | frozen |
 | `proposal_line` | dto | v1 | procurement-service | - | frozen |
-| `scenario` | dto | v1 | procurement-service | - | frozen |
-| `scenario_result` | dto | v1 | procurement-service | - | frozen |
+| `scenario` | dto | v1 | procurement-service | api-bff, web | frozen |
+| `scenario_result` | dto | v1 | procurement-service | api-bff, web | frozen |
 | `scenario_sensitivity` | dto | v1 | procurement-service | - | frozen |
 | `seed_dataset` | dto | v1 | forecast-service | - | frozen |
 | `seed_dataset_summary` | dto | v1 | forecast-service | api-bff | frozen |
@@ -73,17 +78,21 @@ The gateway is `services/api-bff`.
 | `GET /api/cost-writes` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/costs` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/criticality` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/dashboard/charts` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/dashboard/drilldown` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/dashboard/export` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/dashboard/freshness` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/dashboard/overview` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/dashboard/risk` | endpoint | v1 | agent-00 | web | draft |
-| `GET /api/dashboard/variants/{variant_id}/forecast-basis` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/dashboard/skus/{sku}` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/dashboard/skus/{sku}/forecast-basis` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/data-quality/import-errors` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/imports` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/imports/jobs` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/imports/mappings` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/imports/template` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/imports/{dataset_id}/quarantine` | endpoint | v1 | agent-00 | web | draft |
-| `GET /api/inventory/variants/{variant_id}` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/inventory/skus/{sku}` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/lot-costs` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/me` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/policies/{scope}/{key}` | endpoint | v1 | agent-00 | web | draft |

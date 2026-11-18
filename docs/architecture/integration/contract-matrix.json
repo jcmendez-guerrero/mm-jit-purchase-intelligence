@@ -56,8 +56,7 @@
       "schema_path": "dto/dashboard_drilldown.v1.schema.json",
       "owner": "inventory-service",
       "consumers": [
-        "api-bff",
-        "web"
+        "api-bff"
       ],
       "status": "draft"
     },
