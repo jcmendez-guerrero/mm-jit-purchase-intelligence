@@ -31,12 +31,14 @@ The gateway is `services/api-bff`.
 | `load_result` | dto | v1 | agent-00 | - | frozen |
 | `lot_acquisition_cost` | dto | v1 | procurement-service | - | frozen |
 | `money` | dto | v1 | agent-00 | - | frozen |
+| `override_terms_view` | dto | v1 | procurement-service | api-bff, web | draft |
 | `policy_audit_page` | dto | v1 | agent-00 | api-bff, web | draft |
 | `policy_cleared` | dto | v1 | agent-00 | api-bff, web | draft |
 | `policy_override_request` | dto | v1 | procurement-service | web | frozen |
 | `policy_set` | dto | v1 | procurement-service | - | frozen |
 | `product_supplier_terms` | dto | v1 | procurement-service | - | frozen |
 | `proposal` | dto | v1 | procurement-service | - | frozen |
+| `proposal_detail` | dto | v1 | procurement-service | web | frozen |
 | `proposal_line` | dto | v1 | procurement-service | - | frozen |
 | `scenario` | dto | v1 | procurement-service | - | frozen |
 | `scenario_result` | dto | v1 | procurement-service | - | frozen |
@@ -89,7 +91,7 @@ The gateway is `services/api-bff`.
 | `GET /api/policy-console` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/policy-overrides` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/policy-overrides/recommendation/{sku}` | endpoint | v1 | agent-00 | web | draft |
-| `GET /api/product-suppliers/{variant_id}/{supplier_id}/terms` | endpoint | v1 | agent-00 | web | draft |
+| `GET /api/product-suppliers/{sku}/{supplier_id}/terms` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/products/{sku}/effective-policy` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/products/{sku}/segment-history` | endpoint | v1 | agent-00 | web | draft |
 | `GET /api/proposals` | endpoint | v1 | agent-00 | web | draft |
@@ -157,7 +159,7 @@ The gateway is `services/api-bff`.
 | `PUT /api/demand-rules/rules/{rule}` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/parameters/{key}` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/policies/{scope}/{key}` | endpoint | v1 | agent-00 | web | draft |
-| `PUT /api/product-suppliers/{variant_id}/{supplier_id}/terms` | endpoint | v1 | agent-00 | web | draft |
+| `PUT /api/product-suppliers/{sku}/{supplier_id}/terms` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/products/{sku}/criticality` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/proposals/{proposal_id}/lines/{line_id}` | endpoint | v1 | agent-00 | web | draft |
 | `PUT /api/stocking/{sku}` | endpoint | v1 | agent-00 | web | draft |

@@ -25,9 +25,20 @@ describe("the terms saves send the key", () => {
 
   it("adds it on a product override save too", async () => {
     const sent = capture();
-    await api.putOverrideTerms("SYN-001", "s1", { lead_time_days: 3 }, 0, "key-2");
+    await api.putOverrideTerms("SYN-0001", "s1", { lead_time_days: 3 }, 0, "key-2");
     expect(sent[0]?.get("Idempotency-Key")).toBe("key-2");
     expect(sent[0]?.get("If-Match")).toBeNull();
+  });
+
+  it("addresses a product override by the encoded SKU, never by a variant id", async () => {
+    const urls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      urls.push(url);
+      return new Response(JSON.stringify({ version: 1 }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }));
+    await api.getOverrideTerms("SYN 0001", "s/1");
+    await api.putOverrideTerms("SYN 0001", "s/1", {}, 0);
+    expect(urls.map((u) => u.replace(/^.*\/api/, ""))).toEqual(["/product-suppliers/SYN%200001/s%2F1/terms", "/product-suppliers/SYN%200001/s%2F1/terms"]);
   });
 
   it("sends no header when there is no key", async () => {

@@ -184,6 +184,18 @@
       "status": "frozen"
     },
     {
+      "name": "override_terms_view",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/override_terms_view.v1.schema.json",
+      "owner": "procurement-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "policy_audit_page",
       "kind": "dto",
       "version": 1,

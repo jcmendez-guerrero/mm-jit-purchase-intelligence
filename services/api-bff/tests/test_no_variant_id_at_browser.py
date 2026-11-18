@@ -71,10 +71,10 @@ def test_an_unknown_or_ambiguous_sku_keeps_its_stable_code_and_status(role_store
         app.dependency_overrides[get_procurement_client] = lambda procurement=procurement: procurement
         try:
             client, headers = TestClient(app), headers_for("buyer-1", ["viewer", "buyer"])
-            for res in (client.get("/api/inventory/skus/SYN-001", headers=headers), client.get("/api/product-suppliers/SYN-001/s1/terms", headers=headers),
+            for res in (client.get("/api/inventory/skus/SYN-001", headers=headers),
                         client.get("/api/lot-costs?sku=SYN-001&supplier_id=s1", headers=headers)):
                 assert res.status_code == status and res.json() == {"detail": code}, (res.request.url, res.text)
-            procurement.get_override_terms.assert_not_called()            # nothing reaches the services for a SKU that does not resolve
+            procurement.get_lot_costs.assert_not_called()                 # nothing reaches the services for a SKU that does not resolve
         finally:
             app.dependency_overrides.clear()
 
@@ -110,7 +110,7 @@ def test_a_malformed_sku_is_refused_on_every_sku_route_before_any_service_is_cal
         client, headers = TestClient(app), headers_for("buyer-1", ["viewer", "buyer"])
         for bad in (".hidden", "-x", "a%20b", "%2e%2e"):
             for res in (client.get(f"/api/inventory/skus/{bad}", headers=headers), client.get(f"/api/dashboard/skus/{bad}/forecast-basis", headers=headers),
-                        client.get(f"/api/product-suppliers/{bad}/s1/terms", headers=headers), client.get(f"/api/lot-costs?sku={bad}&supplier_id=s1", headers=headers),
+                        client.get(f"/api/lot-costs?sku={bad}&supplier_id=s1", headers=headers),
                         client.post("/api/lot-costs", json={"sku": bad.replace("%20", " ")}, headers=headers),
                         client.post("/api/cost-updates", json={"sku": bad.replace("%20", " "), "supplier_id": "s1"}, headers=headers)):
                 assert res.status_code == 422, (bad, res.request.url, res.status_code)

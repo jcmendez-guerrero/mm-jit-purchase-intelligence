@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/override_terms_view.v1",
+  "title": "OverrideTermsView",
+  "description": "Override terms of one product with one supplier, addressed by SKU. The Siweb variant id is never part of it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sku",
+    "supplier_id",
+    "version",
+    "override",
+    "history",
+    "effective"
+  ],
+  "properties": {
+    "sku": {
+      "type": "string",
+      "minLength": 1
+    },
+    "supplier_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "override": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/terms"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "valid_from",
+          "source",
+          "reason",
+          "changed_by",
+          "terms"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "valid_from": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "reason": {
+            "type": ["string", "null"]
+          },
+          "changed_by": {
+            "type": "string"
+          },
+          "terms": {
+            "$ref": "#/$defs/terms"
+          }
+        }
+      }
+    },
+    "effective": {
+      "type": "object",
+      "required": [
+        "lead_time_days",
+        "pack_multiple",
+        "min_qty_units",
+        "payment_terms_days",
+        "preferred",
+        "reliability",
+        "disabled",
+        "sources",
+        "conflicts",
+        "supplier_version",
+        "override_version",
+        "flags"
+      ],
+      "properties": {
+        "sources": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": ["override", "supplier", "cost", "default"]
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "supplier_version": {
+          "type": ["integer", "null"]
+        },
+        "override_version": {
+          "type": ["integer", "null"]
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lead_time_days": {
+          "type": ["integer", "null"]
+        },
+        "pack_multiple": {
+          "type": ["integer", "null"]
+        },
+        "min_qty_units": {
+          "type": ["integer", "null"]
+        },
+        "payment_terms_days": {
+          "type": ["integer", "null"]
+        },
+        "reliability": {
+          "type": ["integer", "null"]
+        },
+        "preferred": {
+          "type": ["boolean", "null"]
+        },
+        "disabled": {
+          "type": ["boolean", "null"]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "terms": {
+      "type": "object",
+      "properties": {
+        "pack_multiple": {
+          "type": ["integer", "null"]
+        },
+        "min_qty_units": {
+          "type": ["integer", "null"]
+        },
+        "lead_time_days": {
+          "type": ["integer", "null"]
+        },
+        "payment_terms_days": {
+          "type": ["integer", "null"]
+        },
+        "preferred": {
+          "type": ["boolean", "null"]
+        },
+        "reliability": {
+          "type": ["integer", "null"]
+        },
+        "disabled": {
+          "type": ["boolean", "null"]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

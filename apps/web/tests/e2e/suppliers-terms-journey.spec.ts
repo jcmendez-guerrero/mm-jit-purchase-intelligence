@@ -52,7 +52,7 @@ async function backend(page: Page, roles: string[], extra = 0, endsInDays: numbe
   });
   await page.route("**/api/suppliers/*/links", (r) => r.fulfill(json([{ sku: "SYN-000001", name: "Pienso sintético", cost: "2.1040", currency: "EUR", cost_source: "inventory_export",
     includes_recargo: false, pack_size: 6, min_qty: null, verified_at: "2026-11-08T10:00:00Z", erp_link: "no_link", variant_id: Number(ERP_VARIANT_ID) }])));
-  await page.route("**/api/product-suppliers/**", (r) => r.fulfill(json({ variant_id: 1, supplier_id: "s1", version: 0, override: null, history: [], effective: {} })));
+  await page.route("**/api/product-suppliers/**", (r) => r.fulfill(json({ sku: "SYN-000001", supplier_id: "s1", version: 0, override: null, history: [], effective: {} })));
   await page.route("**/api/suppliers/*/terms", async (r) => {
     if (r.request().method() === "GET") return r.fulfill(json(view()));
     keys.push(r.request().headers()["idempotency-key"] ?? "");
@@ -95,6 +95,27 @@ test.describe("Supplier terms journey (MMI-6)", () => {
     await page.reload();
     await open(page);
     await expect(page.getByLabel("Plazo de entrega (días)")).toHaveValue("4");
+  });
+
+  test("the product exception is looked up by SKU: a known SKU loads, an unknown one shows the Spanish message and no field asks for a numeric id (MMI-16)", async ({ page }) => {
+    await backend(page, ["viewer", "buyer"]);
+    const asked: string[] = [];
+    await page.route("**/api/product-suppliers/**", (r) => {
+      asked.push(decodeURIComponent(new URL(r.request().url()).pathname));
+      if (r.request().url().includes("SYN-NO-EXISTE")) return r.fulfill(json({ detail: "sku_unknown" }, 422));
+      return r.fulfill(json({ sku: "SYN-000001", supplier_id: "s1", version: 0, override: null, history: [], effective: { flags: [], sources: {}, conflicts: [] } }));
+    });
+    await open(page);
+    await expect(page.getByLabel(/variante/i)).toHaveCount(0);
+    const load = page.getByRole("button", { name: "Ver condiciones aplicadas" });
+    await expect(load).toBeDisabled();
+    await page.getByLabel("SKU del producto").fill("SYN-NO-EXISTE");
+    await load.click();
+    await expect(page.getByRole("alert").filter({ hasText: "El SKU no existe en el catálogo cargado" })).toBeVisible();
+    await page.getByLabel("SKU del producto").fill("SYN-000001");
+    await load.click();
+    await expect(page.getByRole("table", { name: "Condiciones aplicadas a un producto" })).toBeVisible();
+    expect(asked).toEqual(["/api/product-suppliers/SYN-NO-EXISTE/s1/terms", "/api/product-suppliers/SYN-000001/s1/terms"]);
   });
 
   test("a version that starts in the future is stored without changing the terms in force today", async ({ page }) => {

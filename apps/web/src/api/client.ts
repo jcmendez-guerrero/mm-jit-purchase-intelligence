@@ -665,7 +665,7 @@ export interface EffectiveTerms {
 }
 
 export interface OverrideView {
-  sku?: string | null;
+  sku: string;
   supplier_id: string;
   version: number;
   override: OverrideDoc | null;
@@ -1682,6 +1682,7 @@ export class ApiClient {
     });
   }
 
+  /** Product-supplier terms are addressed by SKU; the ERP variant id never reaches the browser. */
   async getOverrideTerms(sku: string, supplierId: string): Promise<OverrideView> {
     return this.request<OverrideView>(`/product-suppliers/${encodeURIComponent(sku)}/${encodeURIComponent(supplierId)}/terms`);
   }

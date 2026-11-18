@@ -46,5 +46,8 @@
   "bundleBudgetKb": {
     "total_js_gzip": 350,
     "charts_chunk_gzip": 160
+  },
+  "overrides": {
+    "rollup": "4.67.5"
   }
 }

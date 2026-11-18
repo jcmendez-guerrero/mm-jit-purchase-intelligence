@@ -5,22 +5,9 @@ import glossary from "../../src/i18n/glossary.json";
 // T008 (feature 012): one Spanish term per business concept; no forbidden variant in any catalogue value.
 
 const catalogue = esJson as Record<string, string>;
-/**
- * Known gaps that cannot be closed inside this feature. A key may only leave this list.
- * None open: the override screen asks for the SKU since feature 014 (FR-008a).
- */
-const KNOWN_EXCEPTIONS: Record<string, string> = {};
-
 const entries = Object.entries(glossary as Record<string, { term: string; forbidden: string[] }>);
 
 describe("glossary", () => {
-  it("known exceptions still exist and still violate the glossary (remove them when fixed)", () => {
-    for (const [key, variant] of Object.entries(KNOWN_EXCEPTIONS)) {
-      expect(catalogue[key], key).toBeTruthy();
-      expect(catalogue[key]!.toLowerCase()).toContain(variant);
-    }
-  });
-
   it("has a term and forbidden variants, and a Spanish definition in the catalogue, for every concept", () => {
     expect(entries.length).toBeGreaterThan(0);
     for (const [concept, g] of entries) {
@@ -50,7 +37,7 @@ describe("glossary", () => {
       for (const [concept, g] of entries) {
         for (const f of g.forbidden) {
           const re = new RegExp(`(^|[^\\p{L}_])${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}_])`, "iu");
-          if (re.test(value) && KNOWN_EXCEPTIONS[key]?.toLowerCase() !== f.toLowerCase()) hits.push(`${key}: "${f}" (use "${g.term}" for ${concept})`);
+          if (re.test(value)) hits.push(`${key}: "${f}" (use "${g.term}" for ${concept})`);
         }
       }
     }

@@ -23,13 +23,13 @@ def put(client, sid, body=BODY, etag=None, key=None):
     return client.put(f"/suppliers/{sid}/terms", json=body, headers=headers)
 
 
-def put_override(client, sid, body=OVERRIDE, etag=None, key=None, variant=1):
+def put_override(client, sid, body=OVERRIDE, etag=None, key=None, sku="SYN-0001"):
     headers = auth("buyer")
     if etag is not None:
         headers["If-Match"] = f'"{etag}"'
     if key is not None:
         headers["Idempotency-Key"] = key
-    return client.put(f"/product-suppliers/{variant}/{sid}/terms", json=body, headers=headers)
+    return client.put(f"/product-suppliers/{sku}/{sid}/terms", json=body, headers=headers)
 
 
 def versions(engine, sid):

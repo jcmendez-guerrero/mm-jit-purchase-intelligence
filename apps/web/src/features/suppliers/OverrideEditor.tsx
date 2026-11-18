@@ -18,7 +18,7 @@ const EFFECTIVE_FIELDS = ["lead_time_days", "pack_multiple", "min_qty_units", "p
 
 export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
   const { t } = useTranslation();
-  const [variant, setVariant] = useState("");
+  const [skuText, setSkuText] = useState("");
   const [view, setView] = useState<OverrideView | null>(null);
   const [form, setForm] = useState<OverrideForm>(overrideToForm(null));
   const [baseline, setBaseline] = useState<OverrideForm>(overrideToForm(null));
@@ -28,7 +28,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useActionNotice();
 
-  const sku = variant.trim();
+  const sku = skuText.trim();
   const load = async () => {
     setError(null);
     setNotice(null);
@@ -66,7 +66,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
       return;
     }
     try {
-      const r = await api.putOverrideTerms(sku, supplierId, overrideToPayload(form), view.version, keyFor(JSON.stringify([sku, form, view.version])));
+      const r = await api.putOverrideTerms(view.sku, supplierId, overrideToPayload(form), view.version, keyFor(JSON.stringify([view.sku, form, view.version])));
       setNotice(t("suppliers.override.saved", { version: r.version }));
       await load();
     } catch (err) {
@@ -106,8 +106,8 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
       </h3>
       <p className="mmi-muted mmi-text-sm">{t("suppliers.override.help")}</p>
       <div className="mmi-cluster mmi-mb-4">
-        <FormField id="o-variant" label={t("suppliers.override.variant")} value={variant} onChange={setVariant} />
-        <Button variant="secondary" disabled={sku === "" || sku.length > 60} onClick={() => void load()}>
+        <FormField id="o-sku" label={t("suppliers.override.sku")} value={skuText} onChange={setSkuText} />
+        <Button variant="secondary" disabled={sku === ""} onClick={() => void load()}>
           {t("suppliers.override.load")}
         </Button>
       </div>
@@ -118,7 +118,7 @@ export const OverrideEditor: React.FC<Props> = ({ supplierId, canEdit }) => {
       )}
       {notice && <p role="status">{notice}</p>}
 
-      {view && (
+      {view && view.sku === sku && (            // the result belongs to the SKU it was loaded for; a different SKU in the box hides it until it is loaded
         <>
           {view.effective.flags.includes("no_supplier_terms") && <p>{t("suppliers.override.no_supplier_terms")}</p>}
           <h4>{t("suppliers.override.effective")}</h4>

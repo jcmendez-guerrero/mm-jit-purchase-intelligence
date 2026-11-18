@@ -16,7 +16,7 @@ BODY = {"min_order_value": "150.00", "free_delivery_threshold": "300", "delivery
 def seed(engine):
     with engine.begin() as c:
         sid = add_supplier(c, 1, "Proveedor Sintético A")
-        add_product(c, 9001, 10)
+        add_product(c, 9001, 10, sku="SYN-0001")
     return sid
 
 
@@ -99,7 +99,7 @@ def test_the_supplier_list_shows_the_new_fields_for_the_editor(client, engine):
 def test_a_product_override_and_the_effective_view(client, engine):
     sid = seed(engine)
     put(client, sid)
-    url = f"/product-suppliers/9001/{sid}/terms"
+    url = f"/product-suppliers/SYN-0001/{sid}/terms"
     assert client.get(url, headers=auth()).json()["override"] is None
     r = client.put(url, json={"lead_time_days": 5, "pack_multiple": 12, "reason": "caja de 12"}, headers=auth("buyer"))
     assert r.status_code == 200 and r.json() == {"version": 1}
@@ -119,6 +119,6 @@ def test_the_effective_view_reports_conflicts_with_an_erp_value(client, engine):
     with engine.begin() as c:
         add_version(c, NewCost(product_id=10, supplier_id=sid, cost_with_recargo=Decimal("1.00"), source="siweb_product_supplier", actor="siweb-import",
                                pack_size=6, lead_time_days=4), CostRules(), datetime.now(UTC))
-    client.put(f"/product-suppliers/9001/{sid}/terms", json={"pack_multiple": 12}, headers=auth("buyer"))
-    eff = client.get(f"/product-suppliers/9001/{sid}/terms", headers=auth()).json()["effective"]
+    client.put(f"/product-suppliers/SYN-0001/{sid}/terms", json={"pack_multiple": 12}, headers=auth("buyer"))
+    eff = client.get(f"/product-suppliers/SYN-0001/{sid}/terms", headers=auth()).json()["effective"]
     assert eff["pack_multiple"] == 12 and {"field": "pack_multiple", "erp_value": 6, "local_value": 12, "winner": "local"} in eff["conflicts"]

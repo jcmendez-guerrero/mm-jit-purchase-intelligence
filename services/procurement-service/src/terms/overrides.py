@@ -32,6 +32,11 @@ class OverrideTerms:
 FIELDS = tuple(OverrideTerms.__dataclass_fields__)
 
 
+def pair_label(sku: str, supplier_id: str) -> str:
+    """``<sku>:<supplier>`` for the audit entry. The column holds 60 characters, so a long SKU is cut, never the supplier id."""
+    return f"{sku.strip()[: max(1, 59 - len(supplier_id))]}:{supplier_id}"
+
+
 def validate_override(t: OverrideTerms) -> None:
     if t.pack_multiple is not None and t.pack_multiple < 1:
         raise _bad("pack_multiple must be at least 1")
@@ -71,7 +76,8 @@ def override_history(conn: Connection, variant_id: int, supplier_id: str) -> lis
 
 def save_override(conn: Connection, variant_id: int, supplier_id: str, terms: OverrideTerms, actor: str, now: datetime | None = None, *,
                   valid_from: datetime | None = None, valid_to: datetime | None = None, expected_version: int | None = None,
-                  source: str = "manual", reason: str | None = None) -> int:
+                  source: str = "manual", reason: str | None = None, audit_label: str | None = None) -> int:
+    """``audit_label`` names the pair in the audit entry (the SKU route passes ``<sku>:<supplier>``); by default the stored key is used."""
     validate_override(terms)
     if source not in SOURCES or (reason is not None and len(reason) > 500):
         raise _bad("invalid source or reason")
@@ -89,7 +95,7 @@ def save_override(conn: Connection, variant_id: int, supplier_id: str, terms: Ov
     conn.execute(insert(product_supplier_terms).values(
         variant_id=variant_id, supplier_id=supplier_id, version=version, valid_from=vfrom, valid_to=_aware(valid_to), source=source, reason=reason,
         changed_by=actor, revision=version, **{f: getattr(terms, f) for f in FIELDS}))
-    audit(conn, actor, "terms.override_saved", "product_supplier", f"{variant_id}:{supplier_id}"[:60],
+    audit(conn, actor, "terms.override_saved", "product_supplier", (audit_label or f"{variant_id}:{supplier_id}")[:60],
           before=None if before is None else {f: getattr(before, f) for f in FIELDS},
           after={**{f: getattr(terms, f) for f in FIELDS}, "version": version, "valid_from": vfrom.isoformat(), "source": source}, now=now)
     return version
