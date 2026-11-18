@@ -163,3 +163,27 @@ def test_a_sku_with_a_slash_or_a_space_is_refused_on_the_terms_route_too(role_st
         procurement.put_override_terms.assert_not_called()
     finally:
         app.dependency_overrides.clear()
+
+
+def test_the_policy_routes_refuse_a_bad_sku_before_any_service_is_called(role_store):
+    """T111: the policy routes put the SKU into a downstream path, so they follow the same rule as every other route."""
+    from unittest.mock import AsyncMock
+
+    from main import app
+    from routes.api import get_inventory_client, get_procurement_client
+
+    inventory, procurement = AsyncMock(), AsyncMock()
+    app.dependency_overrides[get_inventory_client] = lambda: inventory
+    app.dependency_overrides[get_procurement_client] = lambda: procurement
+    try:
+        client, headers = TestClient(app), headers_for("buyer-1", ["viewer", "buyer"])
+        routes = (("GET", "/api/products/{}/effective-policy"), ("GET", "/api/stocking/{}"), ("PUT", "/api/stocking/{}"),
+                  ("GET", "/api/policy-overrides/recommendation/{}"), ("PUT", "/api/products/{}/criticality"), ("GET", "/api/products/{}/segment-history"))
+        for bad in ("a%20b", "SYN%2F01", "%2e%2e", ".hidden"):
+            for method, template in routes:
+                res = client.request(method, template.format(bad), json={} if method == "PUT" else None, headers=headers)
+                assert res.status_code in (404, 422), (method, template, bad, res.status_code)        # a slash cannot even match the route
+        inventory.forward.assert_not_called()
+        procurement.forward.assert_not_called()
+    finally:
+        app.dependency_overrides.clear()
