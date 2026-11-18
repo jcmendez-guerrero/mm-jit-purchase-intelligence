@@ -90,28 +90,80 @@ test("reference task 2 by keyboard: review a draft proposal and submit it for ap
   await expect.poll(() => submitted).toBe(1);
 });
 
-// Quarantined (MMI-5 review, finding 3): fails on main too (lead_time_days is saved as 3, not 7). Supplier terms belong to spec 007; restore once fixed there.
-test.fixme("reference task 3 by keyboard: edit one supplier term and save it", async ({ page }) => {
+/**
+ * Supplier terms, edited by keyboard (MMI-12, spec 017). The form is read-only until the saved terms load: typing before that was overwritten
+ * when they arrived, which saved the old value (lead time 3 instead of 7).
+ */
+async function openSupplierTerms(page: Page, opts: { holdTerms?: boolean } = {}) {
   await signInAs(page, "buyer");
   const terms = { min_order_value: "150.0000", min_qty_for_delivery: null, free_delivery_threshold: null, delivery_charge: "9.5000", order_days: [1], delivery_schedule: null, lead_time_days: 3, order_cutoff_time: null, delivery_weekdays: [], discounts: [], payment_terms_days: null, preferred: false, reliability: null, disabled: false, valid_to: null };
-  let saved: Record<string, unknown> | null = null;
+  const out = { saved: null as Record<string, unknown> | null, release: () => {} };
+  const held = new Promise<void>((resolve) => (out.release = resolve));
   await page.route("**/api/suppliers", (r) => r.fulfill(json([{ id: "s1", name: "Proveedor Sintético A", terms, version: 1 }])));
-  await page.route("**/api/suppliers/s1/terms", (r) => {
-    if (r.request().method() === "GET") return r.fulfill(json({ supplier_id: "s1", version: 1, current: terms, history: [] }));
-    saved = r.request().postDataJSON() as Record<string, unknown>;
+  await page.route("**/api/suppliers/s1/terms", async (r) => {
+    if (r.request().method() === "GET") {
+      if (opts.holdTerms) await held;
+      return r.fulfill(json({ supplier_id: "s1", version: 1, current: terms, history: [] }));
+    }
+    out.saved = r.request().postDataJSON() as Record<string, unknown>;
     return r.fulfill(json({ version: 2 }));
   });
   await page.goto("/proveedores");
+  // the list renders after the page loads: pressing Tab before the supplier button exists runs out the Tab limit (a second intermittent failure)
+  await expect(page.getByRole("button", { name: "Proveedor Sintético A" })).toBeVisible();
   await tabTo(page, (e) => e.tag === "BUTTON" && e.name === "Proveedor Sintético A");
   await page.keyboard.press("Enter");
-  // wait for the saved terms to load: typing before that is overwritten when they arrive (an intermittent failure)
-  await expect(page.getByLabel("Plazo de entrega (días)")).toHaveValue("3");
-  await tabTo(page, (e) => e.tag === "INPUT" && e.name === "Plazo de entrega (días)");
+  return out;
+}
+
+/** Selects the field's text and types over it, using only the keyboard. */
+async function typeOverByKeyboard(page: Page, label: string, value: string) {
+  await tabTo(page, (e) => e.tag === "INPUT" && e.name === label);
   await page.keyboard.press("ControlOrMeta+a");
-  await page.keyboard.type("7");
+  await page.keyboard.type(value);
+}
+
+async function reasonAndSaveByKeyboard(page: Page) {
   await tabTo(page, (e) => e.tag === "INPUT" && e.name === "Motivo del cambio");
   await page.keyboard.type("nuevo transportista");
   await tabTo(page, (e) => e.tag === "BUTTON" && /Guardar nueva versión/.test(e.name));
   await page.keyboard.press("Enter");
-  await expect.poll(() => saved?.lead_time_days).toBe(7);
+}
+
+test("reference task 3 by keyboard: edit one supplier term and save it", async ({ page }) => {
+  const out = await openSupplierTerms(page);
+  await expect(page.getByLabel("Plazo de entrega (días)")).toBeEnabled();
+  await typeOverByKeyboard(page, "Plazo de entrega (días)", "7");
+  await reasonAndSaveByKeyboard(page);
+  await expect.poll(() => out.saved?.lead_time_days).toBe(7);
+});
+
+test("supplier terms: a money term typed by keyboard (decimal comma) is saved as typed", async ({ page }) => {
+  const out = await openSupplierTerms(page);
+  await expect(page.getByLabel("Pedido mínimo (€)")).toBeEnabled();
+  await typeOverByKeyboard(page, "Pedido mínimo (€)", "175,5");
+  await reasonAndSaveByKeyboard(page);
+  await expect.poll(() => out.saved?.min_order_value).toBe("175.5");
+  expect(out.saved?.lead_time_days).toBe(3);
+});
+
+test("supplier terms: the same money edit with the mouse saves the same value", async ({ page }) => {
+  const out = await openSupplierTerms(page);
+  await page.getByLabel("Pedido mínimo (€)").fill("175,5");
+  await page.getByLabel("Motivo del cambio").fill("nuevo transportista");
+  await page.getByRole("button", { name: /Guardar nueva versión/ }).click();
+  await expect.poll(() => out.saved?.min_order_value).toBe("175.5");
+  expect(out.saved?.lead_time_days).toBe(3);
+});
+
+test("supplier terms: fields stay locked until the saved terms load, then a keyboard edit is kept", async ({ page }) => {
+  const out = await openSupplierTerms(page, { holdTerms: true });
+  const lead = page.getByLabel("Plazo de entrega (días)");
+  await expect(lead).toBeDisabled();
+  out.release();
+  await expect(lead).toBeEnabled();
+  await expect(lead).toHaveValue("3");
+  await typeOverByKeyboard(page, "Plazo de entrega (días)", "7");
+  await reasonAndSaveByKeyboard(page);
+  await expect.poll(() => out.saved?.lead_time_days).toBe(7);
 });
