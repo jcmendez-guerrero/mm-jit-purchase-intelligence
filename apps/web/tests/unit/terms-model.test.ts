@@ -84,3 +84,17 @@ describe("field-level validation (format only)", () => {
     expect(validateOverride({ ...overrideToForm(null), pack_multiple: "2", min_qty_units: "dos" })).toEqual({ "o-minq": "suppliers.error.integer" });
   });
 });
+
+describe("typed values are what gets saved (MMI-12)", () => {
+  it("sends the lead time and minimum order exactly as typed, with a Spanish decimal comma", () => {
+    const p = toPayload({ ...toForm(doc), lead_time_days: "7", min_order_value: "175,5", reason: "nuevo transportista" });
+    expect(p).toMatchObject({ lead_time_days: 7, min_order_value: "175.5" });
+  });
+  it("a form loaded and left untouched sends the loaded values", () => {
+    expect(toPayload(toForm(doc))).toMatchObject({ lead_time_days: 3, min_order_value: "150" });
+  });
+  it("rejects a negative, text or decimal lead time before anything is built for saving", () => {
+    for (const bad of ["-1", "abc", "3,5"]) expect(validateTerms({ ...toForm(doc), lead_time_days: bad })["f-lead"]).toBe("suppliers.error.integer");
+    expect(validateTerms({ ...toForm(doc), lead_time_days: "7" })["f-lead"]).toBeUndefined();
+  });
+});
