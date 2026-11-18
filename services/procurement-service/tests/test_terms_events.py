@@ -2,7 +2,7 @@
 
 import json
 
-from conftest import add_supplier, auth
+from conftest import add_product, add_supplier, auth
 from db.tables import outbox
 from sqlalchemy import select
 
@@ -23,6 +23,7 @@ class Blob:
 
 def sid_of(engine):
     with engine.begin() as c:
+        add_product(c, 9001, 10, sku="SYN-0001")
         return add_supplier(c, 1, "Proveedor Sintético A")
 
 
@@ -45,7 +46,7 @@ def test_saving_supplier_terms_queues_one_event_with_references_only(client, eng
 def test_saving_a_product_override_queues_an_event_with_the_pair_as_key(client, engine, tmp_path):
     client.app.state.blob_writer = Blob(tmp_path)
     sid = sid_of(engine)
-    client.put(f"/product-suppliers/9001/{sid}/terms", json={"pack_multiple": 12}, headers=auth("buyer"))
+    client.put(f"/product-suppliers/SYN-0001/{sid}/terms", json={"pack_multiple": 12}, headers=auth("buyer"))
     payload = json.loads(next(tmp_path.rglob("*.json")).read_text())
     assert payload == {"scope": "product_supplier_terms", "key": f"9001:{sid}", "version": 1}
 

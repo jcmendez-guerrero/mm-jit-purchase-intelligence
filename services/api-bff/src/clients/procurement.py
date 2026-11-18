@@ -37,14 +37,14 @@ class ProcurementClient(DownstreamClient):
         res.raise_for_status()
         return res.json()
 
-    async def get_override_terms(self, variant_id: int, supplier_id: str, as_of: str | None = None, roles: list[str] | None = None) -> dict[str, Any]:
-        res = await self.get(f"/product-suppliers/{variant_id}/{quote(supplier_id, safe='')}/terms", params={"as_of": as_of} if as_of else None, roles=roles)
+    async def get_override_terms(self, sku: str, supplier_id: str, as_of: str | None = None, roles: list[str] | None = None) -> dict[str, Any]:
+        res = await self.get(f"/product-suppliers/{quote(sku, safe='')}/{quote(supplier_id, safe='')}/terms", params={"as_of": as_of} if as_of else None, roles=roles)
         res.raise_for_status()
         return res.json()
 
-    async def put_override_terms(self, variant_id: int, supplier_id: str, body: dict[str, Any], user_id: str, roles: list[str] | None = None,
+    async def put_override_terms(self, sku: str, supplier_id: str, body: dict[str, Any], user_id: str, roles: list[str] | None = None,
                                  if_match: str | None = None, idempotency_key: str | None = None) -> dict[str, Any]:
-        res = await self.put(f"/product-suppliers/{variant_id}/{quote(supplier_id, safe='')}/terms", json=body, user_id=user_id, roles=roles,
+        res = await self.put(f"/product-suppliers/{quote(sku, safe='')}/{quote(supplier_id, safe='')}/terms", json=body, user_id=user_id, roles=roles,
                              extra_headers=_save_headers(if_match, idempotency_key))
         res.raise_for_status()
         return res.json()

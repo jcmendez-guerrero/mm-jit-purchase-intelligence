@@ -41,7 +41,7 @@ Compared the screens on this branch with `claude/jira-mmi-8-spec-f00d63` (PR 22,
 | `QualityScreen.tsx` | "Variante #id" (2 places) | unchanged | `sku` in the data-quality items |
 | `AdminStatusScreen.tsx` | policy history column | unchanged | `sku` in the policy history |
 | `ScenariosScreen.tsx` | change rows and lines (2) | unchanged | `sku` in the scenario changes and lines |
-| `OverrideEditor.tsx` | typed id | unchanged | a SKU route for `product-suppliers` overrides |
+| `OverrideEditor.tsx` | typed id | SKU (MMI-16, spec 016) | none; the SKU route landed |
 
 So three of the nine are blocked only by PR 22 merging; four need new `sku` fields or a SKU route. This feature does not edit the three PR 22 files, to avoid conflicts.
 

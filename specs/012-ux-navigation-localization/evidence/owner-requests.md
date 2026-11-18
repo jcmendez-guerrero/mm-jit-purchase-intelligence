@@ -33,7 +33,7 @@ On the web side, a shrink-only test (`apps/web/tests/unit/no-variant-id-display.
 - **Web screen after it lands:** `OverrideEditor.tsx` asks for the SKU; the `KNOWN_EXCEPTIONS` entry in `apps/web/tests/unit/glossary.test.ts` goes away (T050).
 - **Done when:** schema, OpenAPI and contract tests cover the SKU route; an unknown SKU returns a stable error code that has a Spanish message.
 
-Opened on 2026-11-16 as tasks under the epic MMI-1, unassigned: the owners (marked "to confirm" above) still have to take them.
+Request 4 is done in spec 016 (MMI-16): the route takes the SKU and the override screen asks for it. Opened on 2026-11-16 as tasks under the epic MMI-1, unassigned: the owners (marked "to confirm" above) still have to take them.
 
 ## Order
 
