@@ -20,6 +20,12 @@ from sqlalchemy.exc import IntegrityError
 
 GENESIS = "0" * 64
 
+# feature 018: action names for the audit chain (actor, time and versions only; never free text)
+ANOMALY_DECIDED = "quality.anomaly_decided"
+CLASSES_RECOMPUTED = "quality.classes_recomputed"
+RETENTION_PURGED = "quality.retention_purged"
+ANOMALY_REFUSED = "quality.anomaly_refused"           # a decision that needed a fresh second factor and did not have one
+
 
 def _canonical(body: dict[str, Any]) -> str:
     return json.dumps(body, sort_keys=True, separators=(",", ":"), default=str)

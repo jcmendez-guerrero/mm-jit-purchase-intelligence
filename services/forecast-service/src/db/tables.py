@@ -19,6 +19,7 @@ from sqlalchemy import (
     String,
     Table,
     UniqueConstraint,
+    text,
 )
 
 metadata = MetaData()
@@ -185,4 +186,63 @@ audit_events = Table(
     Column("after", JSON),
     Column("prev_hash", String(64), nullable=False, unique=True),
     Column("hash", String(64), nullable=False),
+)
+
+
+# ---- feature 018: forecast explanations and per-product backtests (migration 0006) ----
+forecast_explanations = Table(
+    "forecast_explanations", metadata,
+    Column("run_id", String(36), ForeignKey("forecast_runs.id"), primary_key=True),
+    Column("variant_id", Integer, primary_key=True, autoincrement=False),
+    Column("sku", String(60), index=True),                              # the SKU users see; this service has no catalogue to look it up in
+    Column("model_version", String(120), nullable=False),
+    Column("dataset_version_id", String(36)),
+    Column("config_version_id", String(36)),
+    Column("history_start", Date),
+    Column("history_end", Date),
+    Column("abc", String(1)),
+    Column("xyz", String(1)),
+    Column("pattern", String(14)),
+    Column("intermittent", Boolean, nullable=False, default=False),
+    Column("method", String(30), nullable=False),
+    Column("method_reason_code", String(40), nullable=False),
+    Column("censored_days", Integer, nullable=False, default=0),
+    Column("anomaly_days_excluded", Integer, nullable=False, default=0),
+    Column("provenance_mix", JSON, nullable=False),                     # observed / estimated / manual -> days
+    Column("low", Float),                                               # NULL when not eligible: no forecast figure is stored
+    Column("expected", Float),
+    Column("high", Float),
+    Column("confidence", String(10)),                                   # alta / media / baja; NULL when not eligible
+    Column("confidence_reason_codes", JSON, nullable=False),
+    Column("eligibility", String(20), nullable=False),                  # eligible / manual_review_only / not_eligible
+    Column("eligibility_reason_codes", JSON, nullable=False),
+)
+product_backtest = Table(
+    "product_backtest", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("backtest_run_id", String(36), nullable=False),
+    Column("variant_id", Integer, nullable=False),
+    Column("sku", String(60), index=True),                              # the SKU users see; this service has no catalogue to look it up in
+    Column("periods", Integer, nullable=False),
+    Column("wape", Numeric(12, 6)),
+    Column("bias", Numeric(12, 6)),
+    Column("baseline_wape", Numeric(12, 6)),
+    Column("baseline_bias", Numeric(12, 6)),
+    Column("beats_baseline", Boolean, nullable=False),
+    Column("model_version", String(120), nullable=False),
+    Column("dataset_version_id", String(36)),
+    Column("config_version_id", String(36)),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("backtest_run_id", "variant_id", name="uq_product_backtest"),
+)
+backtest_jobs = Table(
+    "backtest_jobs", metadata,
+    Column("id", String(36), primary_key=True),                          # the backtest run id, deterministic from the inputs
+    Column("scope", String(12), nullable=False),                        # catalogue / product
+    Column("status", String(10), nullable=False),                       # running / completed / failed
+    Column("requested_by", String(120), nullable=False),
+    Column("started_at", DateTime(timezone=True), nullable=False),
+    Column("finished_at", DateTime(timezone=True)),
+    Index("uq_backtest_one_running_catalogue", "scope", unique=True, postgresql_where=text("scope = 'catalogue' AND status = 'running'"),
+          sqlite_where=text("scope = 'catalogue' AND status = 'running'")),
 )

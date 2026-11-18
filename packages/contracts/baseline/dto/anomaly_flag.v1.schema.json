@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/anomaly_flag.v1",
+  "title": "AnomalyFlag",
+  "description": "A day flagged as anomalous by a deterministic rule, with the buyer's decision (feature 018). The original value is never edited. The decision request carries an enumerated reason code, never free text.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku", "day", "rule_id", "original_value", "decision"],
+  "properties": {
+    "sku": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "day": { "type": "string", "format": "date" },
+    "rule_id": { "enum": ["mad_outlier", "p95_cap", "negative_qty"] },
+    "original_value": {
+      "type": "string",
+      "pattern": "^-?[0-9]+(\\.[0-9]{1,4})?$"
+    },
+    "decision": { "enum": ["pending", "accepted", "excluded"] },
+    "decided_by": { "type": ["string", "null"], "maxLength": 120 },
+    "decided_at": { "type": ["string", "null"], "format": "date-time" },
+    "reason_code": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z][a-z0-9_]{0,19}$"
+    }
+  },
+  "$defs": {
+    "DecisionRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision"],
+      "properties": {
+        "decision": { "enum": ["accepted", "excluded"] },
+        "reason_code": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9_]{0,19}$"
+        }
+      }
+    }
+  }
+}

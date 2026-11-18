@@ -704,6 +704,117 @@ export function errorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/** Per-product data-quality summary (feature 018); reasons are codes, never sentences. */
+export interface QualitySummaryData {
+  sku: string;
+  period_start: string;
+  period_end: string;
+  days_in_period: number;
+  days_with_data: number;
+  coverage_ratio: string;
+  gap_days: { from: string; to: string }[];
+  rejected_count: number;
+  quarantined_count: number;
+  ambiguous_count: number;
+  reason_counts: { key: string; count: number }[];
+  excluded_by_type: { key: string; count: number }[];
+  anomaly_count: number;
+  censored_days: number;
+  origin: "erp" | "local_export";
+  config_version_id: string;
+  built_at: string;
+}
+
+export interface AnomalyFlag {
+  sku: string;
+  day: string;
+  rule_id: "mad_outlier" | "p95_cap" | "negative_qty";
+  original_value: string;
+  decision: "pending" | "accepted" | "excluded";
+  decided_by: string | null;
+  decided_at: string | null;
+  reason_code: string | null;
+}
+
+/** Why a forecast is what it is (feature 018): versions, class, method and the reason for it, eligibility, provenance. SKU only. */
+export interface ForecastExplanation {
+  run_id: string;
+  sku: string;
+  model_version: string;
+  dataset_version_id: string | null;
+  config_version_id: string | null;
+  history_start: string | null;
+  history_end: string | null;
+  abc: string | null;
+  xyz: string | null;
+  pattern: string | null;
+  intermittent: boolean;
+  method: string;
+  method_reason_code: string;
+  censored_days: number;
+  anomaly_days_excluded: number;
+  provenance_mix: { observed?: number; estimated?: number; manual?: number };
+  low: string | null;
+  expected: string | null;
+  high: string | null;
+  confidence: "alta" | "media" | "baja" | null;
+  confidence_reason_codes: string[];
+  eligibility: "eligible" | "manual_review_only" | "not_eligible";
+  eligibility_reason_codes: string[];
+}
+
+/** How well one product's method would have forecast past periods against the simple baseline (feature 018). SKU only; ratios as decimal strings. */
+export interface ProductBacktest {
+  backtest_run_id: string;
+  sku: string;
+  periods: number;
+  wape: string | null;
+  bias: string | null;
+  baseline_wape: string | null;
+  baseline_bias: string | null;
+  beats_baseline: boolean;
+  model_version: string;
+  dataset_version_id: string | null;
+  config_version_id: string | null;
+  created_at: string;
+}
+
+/** The catalogue-wide quality distribution (feature 018): every bucket total equals the active product count. SKU only. */
+export interface PortfolioBucket {
+  key: string;
+  count: number;
+  drilldown: string;
+}
+
+export interface PortfolioSummary {
+  filters: { category: string | null; supplier: string | null; origin?: "erp" | "local_export" };
+  active_products: number;
+  by_class: PortfolioBucket[];
+  by_eligibility: PortfolioBucket[];
+  by_confidence: PortfolioBucket[];
+  worst_quality: { sku: string; coverage_ratio: string; rejected_share: string | null; anomaly_share: string | null }[];
+}
+
+export interface PortfolioList {
+  bucket: string;
+  key: string;
+  total: number;
+  skus: string[];
+}
+
+export interface PortfolioFilters {
+  category?: string;
+  supplier_id?: string;
+  origin?: "erp" | "local_export"; // defaults to ERP; the two origins are never summed
+}
+
+export interface BacktestJob {
+  job_id: string;
+  status: "completed";
+  reused: boolean;
+  products: number;
+}
+
 export interface RiskItem {
   variant_id: number;
   risk_type: "stockout" | "expiry" | "data_quality";
@@ -1147,6 +1258,45 @@ export class ApiClient {
     await this.request<void>(`/data-quality/import-errors/${id}/resolve`, {
       method: "POST",
       body: JSON.stringify({ decision }),
+    });
+  }
+
+  async getPortfolio(filters: PortfolioFilters = {}): Promise<PortfolioSummary> {
+    const q = new URLSearchParams(Object.entries(filters).filter(([, v]) => v)).toString();
+    return this.request<PortfolioSummary>(`/quality/portfolio${q ? `?${q}` : ""}`);
+  }
+
+  async getPortfolioProducts(bucket: string, key: string, filters: PortfolioFilters = {}, offset = 0, limit = 50): Promise<PortfolioList> {
+    const q = new URLSearchParams({ bucket, key, limit: String(limit), offset: String(offset), ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v)) }).toString();
+    return this.request<PortfolioList>(`/quality/portfolio/products?${q}`);
+  }
+
+  async startBacktest(scope: "catalogue" | "product", sku?: string): Promise<BacktestJob> {
+    return this.request<BacktestJob>("/forecast/backtests", { method: "POST", body: JSON.stringify({ scope, sku: sku ?? null }) });
+  }
+
+  async getProductBacktest(sku: string): Promise<ProductBacktest> {
+    return this.request<ProductBacktest>(`/forecast/products/${encodeURIComponent(sku)}/backtest`);
+  }
+
+  async getForecastExplanation(sku: string, runId?: string): Promise<ForecastExplanation> {
+    const query = runId ? `?run_id=${encodeURIComponent(runId)}` : "";
+    return this.request<ForecastExplanation>(`/forecast/products/${encodeURIComponent(sku)}/explanation${query}`);
+  }
+
+  async getQualitySummary(sku: string): Promise<QualitySummaryData> {
+    return this.request<QualitySummaryData>(`/quality/products/${encodeURIComponent(sku)}`);
+  }
+
+  async getQualityAnomalies(sku: string): Promise<AnomalyFlag[]> {
+    const res = await this.request<{ anomalies: AnomalyFlag[] }>(`/quality/products/${encodeURIComponent(sku)}/anomalies`);
+    return res.anomalies;
+  }
+
+  async decideAnomaly(sku: string, day: string, decision: "accepted" | "excluded", reasonCode?: string): Promise<void> {
+    await this.request<unknown>(`/quality/products/${encodeURIComponent(sku)}/anomalies/${day}`, {
+      method: "PUT",
+      body: JSON.stringify({ decision, reason_code: reasonCode ?? null }),
     });
   }
 

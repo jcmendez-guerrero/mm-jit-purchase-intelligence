@@ -11,6 +11,18 @@
   },
   "entries": [
     {
+      "name": "anomaly_flag",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/anomaly_flag.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "budget_cap",
       "kind": "dto",
       "version": 1,
@@ -87,6 +99,29 @@
       "owner": "forecast-service",
       "consumers": [],
       "status": "frozen"
+    },
+    {
+      "name": "forecast_eligibility",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/forecast_eligibility.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [
+        "inventory-service"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "forecast_explanation",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/forecast_explanation.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
     },
     {
       "name": "forecast_parameter",
@@ -181,6 +216,30 @@
       "status": "frozen"
     },
     {
+      "name": "portfolio_summary",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/portfolio_summary.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "product_backtest",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/product_backtest.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "product_supplier_terms",
       "kind": "dto",
       "version": 1,
@@ -217,6 +276,18 @@
       "owner": "procurement-service",
       "consumers": [],
       "status": "frozen"
+    },
+    {
+      "name": "quality_summary",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/quality_summary.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
     },
     {
       "name": "scenario",
@@ -298,6 +369,17 @@
       "consumers": [
         "api-bff",
         "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "series_export",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/series_export.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "forecast-service"
       ],
       "status": "draft"
     },
@@ -1613,6 +1695,96 @@
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/quality/products/{sku}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/quality/products/{sku}/anomalies",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "PUT /api/quality/products/{sku}/anomalies/{day}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/quality/recompute",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/forecast/products/{sku}/explanation",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "POST /api/forecast/backtests",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/forecast/products/{sku}/backtest",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/quality/portfolio",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/quality/portfolio/products",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "api-bff",
       "consumers": [
         "web"
       ],

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/portfolio_summary.v1",
+  "title": "PortfolioSummary",
+  "description": "Catalogue-wide data-quality and demand-class distribution (feature 018). Every bucket total equals the active product count: products with no forecast result yet fall in the 'pending' eligibility bucket. Each bucket carries a drill-down query.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "active_products",
+    "by_class",
+    "by_eligibility",
+    "by_confidence",
+    "worst_quality"
+  ],
+  "properties": {
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "category": { "type": ["string", "null"], "maxLength": 120 },
+        "supplier": { "type": ["string", "null"], "maxLength": 120 },
+        "origin": { "type": "string", "enum": ["erp", "local_export"] }
+      }
+    },
+    "active_products": { "type": "integer", "minimum": 0 },
+    "by_class": { "type": "array", "items": { "$ref": "#/$defs/Bucket" } },
+    "by_eligibility": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Bucket" }
+    },
+    "by_confidence": { "type": "array", "items": { "$ref": "#/$defs/Bucket" } },
+    "worst_quality": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sku", "coverage_ratio"],
+        "properties": {
+          "sku": { "type": "string", "minLength": 1, "maxLength": 60 },
+          "coverage_ratio": {
+            "type": "string",
+            "pattern": "^[01](\\.[0-9]{1,6})?$"
+          },
+          "rejected_share": {
+            "type": ["string", "null"],
+            "pattern": "^[01](\\.[0-9]{1,6})?$"
+          },
+          "anomaly_share": {
+            "type": ["string", "null"],
+            "pattern": "^[01](\\.[0-9]{1,6})?$"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "Bucket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "count", "drilldown"],
+      "properties": {
+        "key": { "type": "string", "maxLength": 40 },
+        "count": { "type": "integer", "minimum": 0 },
+        "drilldown": { "type": "string", "maxLength": 200 }
+      }
+    }
+  }
+}

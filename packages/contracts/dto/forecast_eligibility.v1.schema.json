@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/forecast_eligibility.v1",
+  "title": "ForecastEligibility",
+  "description": "Service-to-service read (feature 018): eligibility and confidence of every product in the latest completed forecast run, by SKU. forecast-service produces it at GET /forecasts/eligibility; inventory-service pulls it when it recomputes the portfolio. Not a gateway route. The service answers 404 no_forecast_run when no run has completed, and products missing here count as pending.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "variants"],
+  "properties": {
+    "run_id": { "type": "string", "format": "uuid" },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sku", "eligibility", "confidence"],
+        "properties": {
+          "sku": { "type": "string", "minLength": 1, "maxLength": 60 },
+          "eligibility": {
+            "enum": ["eligible", "manual_review_only", "not_eligible"]
+          },
+          "confidence": { "enum": ["alta", "media", "baja", null] }
+        }
+      }
+    }
+  }
+}

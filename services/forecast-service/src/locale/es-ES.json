@@ -29,5 +29,15 @@
   "reason.import_sku_required": "La fila no indica el SKU del producto.",
   "reason.import_unknown_sku": "El SKU no existe en el catálogo sincronizado.",
   "reason.import_ambiguous_sku": "El SKU coincide con más de un producto; revisa mayúsculas y espacios.",
-  "reason.import_erp_export_refused": "El archivo parece una exportación del ERP, que solo puede cargarse en local; sube una hoja de datos predictivos."
+  "reason.import_erp_export_refused": "El archivo parece una exportación del ERP, que solo puede cargarse en local; sube una hoja de datos predictivos.",
+  "provenance.observed": "Observado (ERP)",
+  "provenance.estimated": "Estimado",
+  "provenance.manual": "Manual",
+  "confidence.alta": "Confianza alta",
+  "confidence.media": "Confianza media",
+  "confidence.baja": "Confianza baja",
+  "eligibility.eligible": "Apto para previsión estadística",
+  "eligibility.manual_review_only": "Solo revisión manual",
+  "eligibility.not_eligible": "Sin previsión estadística",
+  "not_a_forecast": "No es una previsión: cantidad mínima y máxima prudentes"
 }

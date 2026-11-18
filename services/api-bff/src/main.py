@@ -19,6 +19,8 @@ from routes.imports import router as imports_router
 from routes.local_load import enabled as local_load_enabled
 from routes.local_load import router as local_load_router
 from routes.policies import router as policies_router
+from routes.quality import forecast_router as quality_forecast_router
+from routes.quality import router as quality_router
 from routes.scenarios import router as scenarios_router
 from routes.suppliers import router as suppliers_router
 
@@ -62,6 +64,8 @@ async def downstream_status(_: Request, exc: httpx.HTTPStatusError) -> JSONRespo
                 body["duplicates"] = extra["duplicates"][:20]
             if isinstance(extra.get("open_lines"), int) and not isinstance(extra["open_lines"], bool):
                 body["open_lines"] = extra["open_lines"]
+            if isinstance(extra.get("running_job_id"), str) and re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", extra["running_job_id"]):
+                body["running_job_id"] = extra["running_job_id"]            # feature 018: the backtest that is already running
         try:
             current = exc.response.json().get("current_version")
         except Exception:
@@ -95,6 +99,8 @@ app.include_router(scenarios_router, prefix="/api")
 app.include_router(admin_status_router, prefix="/api")
 app.include_router(admin_roles_router, prefix="/api")
 app.include_router(admin_audit_router, prefix="/api")
+app.include_router(quality_router, prefix="/api")
+app.include_router(quality_forecast_router, prefix="/api")
 app.include_router(admin_ops_router, prefix="/api")
 if local_load_enabled():          # local export loader only (MMI_LOCAL_LOADER=1, never prod/staging): absent from every cloud configuration
     app.include_router(local_load_router, prefix="/api")
