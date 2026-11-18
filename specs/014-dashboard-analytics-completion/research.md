@@ -63,7 +63,6 @@ Decision: reuse `apps/web/tests/e2e/dashboard-perf.spec.ts` and `services/api-bf
 
 Decision: shared files (`apps/web/src/api/client.ts`, `apps/web/src/i18n/es-ES.json`) are touched additively; if PR 17 lands first, merge `main` again before the PR and resolve conflicts (006 T098).
 
-
 ## R12 - Where the browser still sees `variant_id` (FR-008a)
 
 Decision: the starting list, from a search of the web app and the gateway, is: drill-down rows (`dashboard_drilldown.v1`), the product overlay (`/dashboard/variants/{id}/forecast-basis`, `/inventory/variants/{id}`), supplier terms (`/product-suppliers/{variant_id}/{supplier}/terms`), costs (lot costs, opening and corrected cost bodies), the quality and admin status screens (shown as "variante N"), proposal review notes, scenario lines and changes (shown as `#id`), and the matching generated types. Policies already strip it (`_without_variant_ids`). The implement step re-runs the search and ticks each one.

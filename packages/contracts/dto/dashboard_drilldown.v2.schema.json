@@ -4,14 +4,7 @@
   "title": "DashboardDrilldown",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "kind",
-    "truncated",
-    "total",
-    "offset",
-    "sum",
-    "rows"
-  ],
+  "required": ["kind", "truncated", "total", "offset", "sum", "rows"],
   "description": "GET /api/dashboard/drilldown as the browser receives it (feature 014, FR-008a): the same page as v1 without `variant_id`; products are identified by SKU only. v1 stays the service-level shape between inventory-service and the gateway.",
   "properties": {
     "kind": {
@@ -41,10 +34,7 @@
       "minimum": 0
     },
     "sum": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "pattern": "^-?\\d+(\\.\\d+)?$"
     },
     "rows": {
@@ -52,29 +42,16 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "sku",
-          "name",
-          "figure"
-        ],
+        "required": ["sku", "name", "figure"],
         "properties": {
           "sku": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "name": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "figure": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "pattern": "^-?\\d+(\\.\\d+)?$"
           }
         }

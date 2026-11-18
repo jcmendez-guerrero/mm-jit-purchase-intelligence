@@ -151,7 +151,7 @@ def build_dashboard_router(app: FastAPI, conn_dep: Callable[..., Connection]) ->
             log.warning("dashboard_export_refused kind=%s reason=%s", kind, exc.code)
             raise HTTPException(413, exc.code) from exc
         except (FilterError, ExportRequestInvalid, DrillError) as exc:
-            raise HTTPException(422, getattr(exc, "code", "request_invalid")) from exc
+            raise HTTPException(422, exc.code) from exc
         body = to_csv(made)
         log.info("dashboard_export kind=%s rows=%d bytes=%d", kind, len(made.rows), len(body))
         return Response(body, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="panel-{kind}-{today:%Y%m%d}.csv"', "X-Export-Rows": str(len(made.rows))})

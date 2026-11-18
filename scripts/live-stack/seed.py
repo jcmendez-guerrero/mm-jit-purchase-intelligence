@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path[:0] = [str(ROOT / "services" / "inventory-service" / "src"), str(ROOT / "services" / "inventory-service" / "tests")]
+sys.path[:0] = [str(ROOT / "packages" / "contracts" / "python"), str(ROOT / "services" / "inventory-service" / "src"), str(ROOT / "services" / "inventory-service" / "tests")]
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", ""}
 

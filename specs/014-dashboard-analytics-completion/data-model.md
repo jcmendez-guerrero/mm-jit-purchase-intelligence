@@ -57,7 +57,6 @@ Per source: `source`, `origin` (`erp_sync`, `local_load`), `refreshed_at_utc`, `
 
 Closure row: `unverified` -> `completed` (found done) or `remaining` -> `delivered` or `deferred (with reason, owner, follow-up)`. No other state is allowed at close.
 
-
 ## Product key at the browser (FR-008a)
 
 | Where | Key |
