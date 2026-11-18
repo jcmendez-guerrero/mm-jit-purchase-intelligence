@@ -119,3 +119,21 @@ def test_a_malformed_sku_is_refused_on_every_sku_route_before_any_service_is_cal
         inventory.get_sku_detail.assert_not_called()
     finally:
         app.dependency_overrides.clear()
+
+
+def test_a_dot_only_sku_never_becomes_a_path_segment_towards_procurement():
+    """T106: `..` would be collapsed by the HTTP client into another route; slashes stay allowed because `quote` encodes them."""
+    import asyncio
+
+    import pytest
+    from clients.procurement import ProcurementClient
+    from fastapi import HTTPException
+
+    client = ProcurementClient("http://procurement.invalid")
+    for bad in (".", ".."):
+        with pytest.raises(HTTPException) as got:
+            asyncio.run(client.get_override_terms(bad, "s1"))
+        assert got.value.status_code == 422 and got.value.detail == "request_invalid"
+        with pytest.raises(HTTPException) as put:
+            asyncio.run(client.put_override_terms(bad, "s1", {}, "u1"))
+        assert put.value.status_code == 422

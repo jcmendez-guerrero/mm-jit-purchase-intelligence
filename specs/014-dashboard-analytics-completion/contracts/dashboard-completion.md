@@ -28,7 +28,7 @@ All routes: GET only (export included), session cookie, es-ES error messages, st
 - Freshness `state` is `ok`, `no_data`, `stale` or `error` (the vocabulary of the indicator freshness block); `no_data` and `error` never render as zero.
 - Local-load figures (surrogate ids from 9,000,000) are never added to ERP figures: with both kinds present the figures are the ERP ones and `local_load_excluded` counts the rest; with only local data the origin is `local_load`.
 - The dashboard's "today" is the Madrid business date.
-- Browser-facing payloads, routes and page addresses use the SKU only (spec FR-008a, clarified 2026-11-17); the gateway resolves SKU to the internal id towards services; service APIs and events keep it; no compatibility routes (T080, T087 to T098).
+- Browser-facing payloads, routes and page addresses use the SKU only (spec FR-008a, clarified 2026-11-17); the gateway resolves SKU to the internal id towards services (through inventory-service, except the supplier-terms route, where procurement-service resolves it since MMI-16); service APIs and events keep it; no compatibility routes (T080, T087 to T098).
 
 ## SKU-keyed routes (FR-008a)
 
@@ -38,7 +38,7 @@ Replacing the id-keyed gateway routes, in the same change (no old routes kept; t
 |-----|---------|
 | `GET /api/dashboard/variants/{variant_id}/forecast-basis` | `GET /api/dashboard/skus/{sku}/forecast-basis` |
 | `GET /api/inventory/variants/{variant_id}` | `GET /api/inventory/skus/{sku}` |
-| `/api/product-suppliers/{variant_id}/{supplier_id}/terms` (GET, PUT) | `/api/product-suppliers/{sku}/{supplier_id}/terms` |
+| `/api/product-suppliers/{variant_id}/{supplier_id}/terms` (GET, PUT) | `/api/product-suppliers/{sku}/{supplier_id}/terms` (resolved by procurement-service, MMI-16) |
 | cost routes and bodies with `variant_id` | the same with `sku` |
 | `variant_id` in drill-down rows, review notes, scenario lines and changes, quality and admin rows | removed; `sku` and `name` stay |
 

@@ -6,6 +6,8 @@ import os
 from typing import Any
 from urllib.parse import quote
 
+from fastapi import HTTPException
+
 from .base import DownstreamClient
 
 
@@ -13,6 +15,13 @@ def _save_headers(if_match: str | None, idempotency_key: str | None) -> dict[str
     """The precondition and the retry key, passed through unchanged; None when the caller sent neither."""
     headers = {**({"If-Match": if_match} if if_match else {}), **({"Idempotency-Key": idempotency_key} if idempotency_key else {})}
     return headers or None
+
+
+def _sku_segment(sku: str) -> str:
+    """One path segment for a SKU. Slashes are encoded, but `.` and `..` would be collapsed by the HTTP client into another route (T106)."""
+    if sku in (".", ".."):
+        raise HTTPException(status_code=422, detail="request_invalid")
+    return quote(sku, safe="")
 
 
 class ProcurementClient(DownstreamClient):
@@ -38,13 +47,13 @@ class ProcurementClient(DownstreamClient):
         return res.json()
 
     async def get_override_terms(self, sku: str, supplier_id: str, as_of: str | None = None, roles: list[str] | None = None) -> dict[str, Any]:
-        res = await self.get(f"/product-suppliers/{quote(sku, safe='')}/{quote(supplier_id, safe='')}/terms", params={"as_of": as_of} if as_of else None, roles=roles)
+        res = await self.get(f"/product-suppliers/{_sku_segment(sku)}/{quote(supplier_id, safe='')}/terms", params={"as_of": as_of} if as_of else None, roles=roles)
         res.raise_for_status()
         return res.json()
 
     async def put_override_terms(self, sku: str, supplier_id: str, body: dict[str, Any], user_id: str, roles: list[str] | None = None,
                                  if_match: str | None = None, idempotency_key: str | None = None) -> dict[str, Any]:
-        res = await self.put(f"/product-suppliers/{quote(sku, safe='')}/{quote(supplier_id, safe='')}/terms", json=body, user_id=user_id, roles=roles,
+        res = await self.put(f"/product-suppliers/{_sku_segment(sku)}/{quote(supplier_id, safe='')}/terms", json=body, user_id=user_id, roles=roles,
                              extra_headers=_save_headers(if_match, idempotency_key))
         res.raise_for_status()
         return res.json()

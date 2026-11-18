@@ -295,7 +295,7 @@ From the clarification of 2026-11-17 (option A) and plan section "SKU-only brows
 
 - [X] T098 [US3] Update the Playwright mocks and specs that use `variant_id` (`apps/web/tests/e2e/`, `apps/web/tests/live/dashboard.spec.ts`), run the four suites on PostgreSQL and SQLite, run the live stack scenario "SKU only at the browser" with the network log open, update `contracts/dashboard-completion.md` and `closure-report.md` (T080 delivered), tick T080, and re-run `python -m gates run`
 
-Delivered as built: the gateway resolves a SKU through inventory-service and strips `variant_id` from every JSON answer; services keep their routes by id and add `sku` to their rows (research R13). Live stack: 7 of 7 live specs pass, including the SKU-only check.
+Delivered as built (the supplier-terms route is resolved by procurement-service since MMI-16, see T105): the gateway resolves a SKU through inventory-service and strips `variant_id` from every JSON answer; services keep their routes by id and add `sku` to their rows (research R13). Live stack: 7 of 7 live specs pass, including the SKU-only check.
 
 ## Phase 14: Convergence
 
@@ -311,3 +311,8 @@ Delivered as built: the gateway resolves a SKU through inventory-service and str
 ## Phase 16: Convergence
 
 - [X] T104 Finish T103: show the `sku_missing` flag in the web app (a Spanish label from `apps/web/src/i18n/es-ES.json`, no blank cell) on the rows that carry it (cost writes, proposal lines, scenario lines, supplier deactivation preview), and list those products in the review list of inventory-service so they are not dropped silently, with tests, per FR-008a and project rule 6 (partial) (done as built: the screens already show a Spanish label for a missing SKU (`dashboard.drill.no_sku` "Sin SKU", `proposals.line.no_sku` "Sin código"), so no cell is blank; listing such products in inventory-service's review list is not done, because procurement has no route to inventory and no cross-schema SQL is allowed (rule 9). It needs a new inventory route and an event or a gateway call, so it is left as a follow-up for the owner.)
+
+## Phase 17: Convergence
+
+- [X] T105 Bring the 014 documents in line with MMI-16: the supplier-terms route (`/api/product-suppliers/{sku:path}/{supplier_id}/terms`) now gets its SKU resolved by procurement-service, not by the gateway through inventory-service; correct `contracts/dashboard-completion.md` (SKU-keyed routes table and the sentence on how the gateway resolves SKUs), `research.md` R13, `plan.md` (SKU-only browser API, item 2), `pull-request.md` and T092/T093 notes so each says which routes the gateway resolves through inventory (inventory detail, forecast basis, lot costs, cost updates) and which procurement resolves (terms), per FR-008a and plan: SKU-only browser API (partial)
+- [X] T106 Refuse dot-only SKUs on the terms route: with `{sku:path}` and no pattern, a SKU of `..` is turned by `httpx` into a different procurement path (`/product-suppliers/../s1/terms` becomes `/s1/terms`); keep slashes allowed (MMI-16) but make `ProcurementClient.get_override_terms` and `put_override_terms` in `services/api-bff/src/clients/procurement.py` refuse a SKU whose segments are `.` or `..` with 422 `request_invalid`, and add a test per method in `services/api-bff/tests/test_no_variant_id_at_browser.py`, per T102 and FR-008a (partial)
