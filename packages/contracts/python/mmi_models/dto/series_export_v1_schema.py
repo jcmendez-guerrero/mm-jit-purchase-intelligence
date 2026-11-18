@@ -8,7 +8,6 @@ from enum import Enum
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
-from typing_extensions import TypeAliasType
 
 
 class DemandItem(RootModel[int]):
@@ -51,11 +50,6 @@ class Series(BaseModel):
     clinical_critical: bool
 
 
-RuleVersionsAdditionalProperty = TypeAliasType(
-    "RuleVersionsAdditionalProperty", Annotated[int, Field(ge=0)]
-)
-
-
 class SeriesExport(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -63,4 +57,4 @@ class SeriesExport(BaseModel):
     through_day: date | None
     count: Annotated[int, Field(ge=0)]
     series: list[Series]
-    rule_versions: dict[str, RuleVersionsAdditionalProperty]
+    rule_versions: dict[str, int]

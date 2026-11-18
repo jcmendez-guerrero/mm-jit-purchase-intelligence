@@ -77,7 +77,7 @@
     },
     "rule_versions": {
       "type": "object",
-      "additionalProperties": { "type": "integer", "minimum": 0 }
+      "additionalProperties": { "type": "integer" }
     }
   }
 }
