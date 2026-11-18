@@ -101,6 +101,17 @@
       "status": "frozen"
     },
     {
+      "name": "forecast_eligibility",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/forecast_eligibility.v1.schema.json",
+      "owner": "forecast-service",
+      "consumers": [
+        "inventory-service"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "forecast_explanation",
       "kind": "dto",
       "version": 1,
@@ -358,6 +369,17 @@
       "consumers": [
         "api-bff",
         "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "series_export",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/series_export.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "forecast-service"
       ],
       "status": "draft"
     },

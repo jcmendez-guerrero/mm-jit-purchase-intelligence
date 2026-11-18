@@ -1,8 +1,11 @@
 """T060b (forecast side): the latest run's eligibility and confidence by SKU, for inventory-service's portfolio."""
 
+import json
 import random
+from pathlib import Path
 
 import api
+import jsonschema
 import pytest
 from conftest import export_series, weekly_series
 from fastapi.testclient import TestClient
@@ -47,6 +50,8 @@ def test_every_product_of_the_latest_run_is_listed_by_sku_with_eligibility_and_c
     assert (by_sku["EJ-100"]["eligibility"], by_sku["EJ-100"]["confidence"]) == ("not_eligible", None)
     assert (by_sku["EJ-200"]["eligibility"], by_sku["EJ-200"]["confidence"]) == ("manual_review_only", "baja")
     assert all(set(v) == {"sku", "eligibility", "confidence"} for v in body["variants"])        # no ERP id, nothing else
+    schema = json.loads((Path(__file__).resolve().parents[3] / "packages" / "contracts" / "dto" / "forecast_eligibility.v1.schema.json").read_text(encoding="utf-8"))
+    jsonschema.validate(body, schema, cls=jsonschema.Draft202012Validator)                       # the registered contract is what the route answers
 
 
 def test_a_missing_token_is_refused(client):

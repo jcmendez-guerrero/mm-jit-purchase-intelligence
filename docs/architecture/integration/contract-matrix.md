@@ -28,6 +28,7 @@ The gateway is `services/api-bff`.
 | `demand_rule` | dto | v1 | inventory-service | - | frozen |
 | `effective_policy` | dto | v1 | agent-00 | api-bff, web | draft |
 | `forecast_accuracy` | dto | v1 | forecast-service | - | frozen |
+| `forecast_eligibility` | dto | v1 | forecast-service | inventory-service | draft |
 | `forecast_explanation` | dto | v1 | forecast-service | api-bff, web | draft |
 | `forecast_parameter` | dto | v1 | forecast-service | - | frozen |
 | `load_result` | dto | v1 | agent-00 | - | frozen |
@@ -45,14 +46,15 @@ The gateway is `services/api-bff`.
 | `proposal_detail` | dto | v1 | procurement-service | web | frozen |
 | `proposal_line` | dto | v1 | procurement-service | - | frozen |
 | `quality_summary` | dto | v1 | inventory-service | api-bff, web | draft |
-| `scenario` | dto | v1 | procurement-service | - | frozen |
-| `scenario_result` | dto | v1 | procurement-service | - | frozen |
+| `scenario` | dto | v1 | procurement-service | api-bff, web | frozen |
+| `scenario_result` | dto | v1 | procurement-service | api-bff, web | frozen |
 | `scenario_sensitivity` | dto | v1 | procurement-service | - | frozen |
 | `seed_dataset` | dto | v1 | forecast-service | - | frozen |
 | `seed_dataset_summary` | dto | v1 | forecast-service | api-bff | frozen |
 | `seed_mapping` | dto | v1 | forecast-service | - | frozen |
 | `seed_validation_result` | dto | v1 | forecast-service | - | frozen |
 | `segment_history` | dto | v1 | agent-00 | api-bff, web | draft |
+| `series_export` | dto | v1 | inventory-service | forecast-service | draft |
 | `stocking_setting` | dto | v1 | procurement-service | - | frozen |
 | `supplier` | dto | v1 | procurement-service | - | frozen |
 | `supplier_cost` | dto | v1 | procurement-service | - | frozen |

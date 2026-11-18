@@ -1,5 +1,9 @@
 """T014: no value from seed, local-export, imputed or unknown sources is ever labelled observed (SC-002, FR-014)."""
 
+import json
+from pathlib import Path
+
+import jsonschema
 import pytest
 from demand.provenance import ESTIMATED, LABELS, MANUAL, OBSERVED, SURROGATE_BASE, provenance
 
@@ -39,5 +43,8 @@ def test_the_series_export_labels_every_variant(client, engine):
     seed_variant(engine, 1, 1, SMOOTH, price="20")
     with engine.begin() as c:
         compute_segments(c)
-    series = client.get("/export/series", headers=auth()).json()["series"]
+    body = client.get("/export/series", headers=auth()).json()
+    series = body["series"]
     assert series and all(s["provenance"] == OBSERVED for s in series)
+    schema = json.loads((Path(__file__).resolve().parents[3] / "packages" / "contracts" / "dto" / "series_export.v1.schema.json").read_text(encoding="utf-8"))
+    jsonschema.validate(body, schema, cls=jsonschema.Draft202012Validator)           # the registered contract is what the route answers
