@@ -12,7 +12,7 @@ import io
 import random
 import zipfile
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
@@ -208,7 +208,7 @@ def _normalise_zip(data: bytes) -> bytes:
 
 def _xlsx_bytes(movements: list[dict[str, Any]]) -> bytes:
     wb = openpyxl.Workbook()
-    wb.properties.created = wb.properties.modified = datetime(2026, 1, 1)      # openpyxl stamps now(); two runs a second apart would differ
+    wb.properties.created = wb.properties.modified = datetime(2026, 1, 1, tzinfo=UTC)      # openpyxl stamps now(); two runs a second apart would differ
     ws = wb.active
     ws.title = "Datos"
     ws.append(formats.MOVEMENTS_HEADERS)
