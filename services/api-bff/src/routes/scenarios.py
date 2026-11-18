@@ -14,12 +14,20 @@ router = APIRouter(prefix="/scenarios")
 READ = ("viewer", "buyer", "approver", "admin")
 
 
+def _without_ids(body: Any) -> Any:
+    """Rule 5: people see SKUs; the browser never receives the ERP ids of the critical products (procurement sends both)."""
+    infeasible = body.get("summary", {}).get("infeasible") if isinstance(body, dict) and isinstance(body.get("summary"), dict) else None
+    if isinstance(infeasible, dict):
+        infeasible.pop("clinical_critical_variants", None)
+    return body
+
+
 @router.post("", status_code=201)
 async def create(body: dict[str, Any], idempotency_key: str | None = Header(default=None), session: SessionData = Depends(require_roles("buyer")),
                  proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
     if not idempotency_key:
         raise HTTPException(status_code=422, detail="idempotency_key_required")
-    return await proc.forward("POST", "/scenarios", json=body, user_id=session.user_id, roles=session.roles, extra_headers={"Idempotency-Key": idempotency_key})
+    return _without_ids(await proc.forward("POST", "/scenarios", json=body, user_id=session.user_id, roles=session.roles, extra_headers={"Idempotency-Key": idempotency_key}))
 
 
 @router.get("")
@@ -29,7 +37,7 @@ async def listing(session: SessionData = Depends(require_roles(*READ)), proc: Pr
 
 @router.get("/{sid}")
 async def read(sid: str, session: SessionData = Depends(require_roles(*READ)), proc: ProcurementClient = Depends(get_procurement_client)) -> Any:
-    return await proc.forward("GET", f"/scenarios/{sid}", user_id=session.user_id, roles=session.roles)
+    return _without_ids(await proc.forward("GET", f"/scenarios/{sid}", user_id=session.user_id, roles=session.roles))
 
 
 @router.post("/{sid}/promote", status_code=201)

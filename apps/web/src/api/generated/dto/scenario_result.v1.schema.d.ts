@@ -8,8 +8,19 @@
 export interface ScenarioResult {
   scenario_id: string;
   supplier_id: string;
+  /**
+   * Contract shape of an order line. The procurement read model GET /scenarios/{id} sends qty, line_total and clinical_critical instead of quantity, so only sku and name are shared with it. Only the response summary is validated against a schema, in services/procurement-service/tests/test_scenarios_api.py; the lines are checked field by field.
+   */
   lines: {
     variant_id: number;
+    /**
+     * Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.
+     */
+    sku?: string | null;
+    /**
+     * Catalogue product name at read time; lets rows without a SKU be told apart.
+     */
+    name?: string | null;
     quantity: number;
     unit_cost: Money;
     discount?: Money | null;

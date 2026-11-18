@@ -28,6 +28,37 @@ export interface Scenario {
   };
   result_hash?: string | null;
   created_by?: string;
+  /**
+   * Computed summary; only the changes list is described here
+   */
+  summary?: {
+    changes?: {
+      variant_id: number;
+      /**
+       * Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.
+       */
+      sku?: string | null;
+      supplier_before: string | null;
+      supplier_after: string | null;
+      qty_before: number;
+      qty_after: number;
+      reasons: string[];
+      /**
+       * Catalogue product name at read time; lets rows without a SKU be told apart.
+       */
+      name?: string | null;
+    }[];
+    /**
+     * Set when the budget cannot be met. People see clinical_critical_skus (same order as clinical_critical_variants, null when a SKU is unknown), never the ids.
+     */
+    infeasible?: {
+      over_by?: string;
+      clinical_critical_variants?: number[];
+      clinical_critical_skus?: (string | null)[];
+      [k: string]: unknown;
+    } | null;
+    [k: string]: unknown;
+  };
 }
 export interface Money {
   /**

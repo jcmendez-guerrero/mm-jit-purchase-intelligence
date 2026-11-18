@@ -9,7 +9,7 @@ product (variant) > segment (A/B/C/critical/sparse) > global.
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -224,6 +224,16 @@ def variant_known(conn: Connection, variant_id: int) -> bool:
 def sku_for_variant(conn: Connection, variant_id: int) -> str | None:
     r = conn.execute(select(product_refs.c.sku).where(product_refs.c.variant_id == variant_id)).first()
     return (str(r.sku).strip() or None) if r is not None and r.sku is not None else None   # blank counts as no SKU
+
+
+def product_labels(conn: Connection, variant_ids: Iterable[int]) -> dict[int, dict[str, str | None]]:
+    """One query for many variants: the trimmed SKU and product name, each None when there is no catalogue row or the value is empty."""
+    ids = sorted({int(v) for v in variant_ids})
+    out: dict[int, dict[str, str | None]] = {v: {"sku": None, "name": None} for v in ids}
+    if ids:
+        for r in conn.execute(select(product_refs.c.variant_id, product_refs.c.sku, product_refs.c.name).where(product_refs.c.variant_id.in_(ids))).all():
+            out[int(r.variant_id)] = {k: (str(v).strip() or None) if v is not None else None for k, v in (("sku", r.sku), ("name", r.name))}
+    return out
 
 
 def history(conn: Connection, scope: str, key: str) -> list[dict[str, Any]]:

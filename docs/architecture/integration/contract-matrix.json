@@ -224,7 +224,10 @@
       "version": 1,
       "schema_path": "dto/scenario.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [],
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
       "status": "frozen"
     },
     {
@@ -233,7 +236,10 @@
       "version": 1,
       "schema_path": "dto/scenario_result.v1.schema.json",
       "owner": "procurement-service",
-      "consumers": [],
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
       "status": "frozen"
     },
     {
