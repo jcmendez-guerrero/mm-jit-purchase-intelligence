@@ -70,9 +70,17 @@ VALID = {
     "seed_validation_result": {"dataset_id": U, "accepted": 3, "quarantined": 1, "rows": [{"row_no": 4, "reason_key": "import_unknown_variant"}]},
     "forecast_parameter": {"scope": "global", "key": "horizon_days", "value": 28, "valid_from": "2026-01-01", "revision": 1},
     "forecast_accuracy": {"run_id": U, "segment": "A-X", "metric": "wape", "value": "0.23"},
-    "scenario": {"name": "Sin proveedor B", "parameters": {"disabled_supplier_ids": ["supplier-b"], "budget": M}, "status": "computing"},
+    "scenario": {"name": "Sin proveedor B", "parameters": {"disabled_supplier_ids": ["supplier-b"], "budget": M}, "status": "computing",
+                 "summary": {"changes": [
+                     {"variant_id": 9001, "sku": "SYN-0001", "supplier_before": "supplier-a", "supplier_after": "supplier-b",
+                      "qty_before": 6, "qty_after": 6, "reasons": ["supplier_disabled"]},
+                     {"variant_id": 9002, "sku": None, "supplier_before": None, "supplier_after": "supplier-b",
+                      "qty_before": 0, "qty_after": 3, "reasons": ["rebalanced_by_total_cost"]},
+                     {"variant_id": 9003, "supplier_before": None, "supplier_after": None, "qty_before": 0, "qty_after": 1, "reasons": []}]}},
     "scenario_result": {"scenario_id": U, "supplier_id": "supplier-a", "order_total": M,
-                        "lines": [{"variant_id": 9001, "quantity": 6, "unit_cost": M}],
+                        "lines": [{"variant_id": 9001, "sku": "SYN-0001", "quantity": 6, "unit_cost": M},
+                                  {"variant_id": 9002, "sku": None, "quantity": 2, "unit_cost": M},
+                                  {"variant_id": 9003, "quantity": 1, "unit_cost": M}],      # sku is optional in v1 (ADR-021): an older producer may omit it
                         "binding_constraints": [{"key": "min_order_value"}]},
     "scenario_sensitivity": {"scenario_id": U, "constraint_key": "min_order_value", "delta": "+10%", "cost_impact": M},
     "dashboard_summary": {"refreshed_at": "2026-11-05T10:00:00Z", "cards": [
@@ -92,12 +100,16 @@ INVALID = [
     ("stocking_setting", {"stocking_mode": "sometimes"}),
     ("policy_override_request", {"reason": ""}),
     ("policy_override_request", {"status": "auto_approved"}),
+    ("policy_override_request", {"sku": 5}),
+    ("policy_override_request", {"sku": ""}),
     ("lot_acquisition_cost", {"source": "erp_movement_price"}),
     ("seed_dataset", {"origin": "mixed"}),
     ("seed_dataset", {"file_sha256": "short"}),
     ("seed_mapping", {"column_map": {"Notas": "notes"}}),
     ("forecast_accuracy", {"metric": "mape"}),
     ("scenario", {"status": "done"}),
+    ("scenario", {"summary": {"changes": [{"variant_id": 9001, "sku": "", "supplier_before": None, "supplier_after": None, "qty_before": 0, "qty_after": 1, "reasons": []}]}}),
+    ("scenario_result", {"lines": [{"variant_id": 9001, "sku": "", "quantity": 6, "unit_cost": M}]}),
     ("dashboard_summary", {"cards": [{"key": "pvp_total", "value": "1", "basis": "x"}]}),
 ]
 
@@ -166,3 +178,15 @@ def test_forecast_completed_stays_additive():
     assert errors("events", "forecast.completed", {**old, "dataset_version_id": None}, defs_payload=True) == []
     assert errors("events", "forecast.completed", {**old, "dataset_version_id": "not-a-uuid"}, defs_payload=True) == []  # format is advisory
     assert errors("events", "forecast.completed", {**old, "parameter_version_ids": "x"}, defs_payload=True)
+
+
+@pytest.mark.parametrize("sku", ["SYN-0005", None])
+def test_policy_override_request_accepts_a_sku_or_null(sku):
+    assert errors("dto", "policy_override_request", {**VALID["policy_override_request"], "sku": sku}) == []
+
+
+def test_policy_override_request_without_sku_stays_valid_for_older_producers():
+    """MMI-14 (FR-006, FR-008): the field is additive, so a row that lacks it is accepted."""
+    assert "sku" not in VALID["policy_override_request"]
+    assert errors("dto", "policy_override_request", VALID["policy_override_request"]) == []
+

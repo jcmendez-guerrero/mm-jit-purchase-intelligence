@@ -29,6 +29,13 @@ class PolicyOverrideRequest(BaseModel):
     )
     id: UUID | None = None
     variant_id: Annotated[int, Field(ge=1)]
+    sku: Annotated[
+        str | None,
+        Field(
+            description='Current catalogue SKU of the product the request is about; null when the product is unknown or has no SKU. People see and type this; variant_id is for service calls only',
+            min_length=1,
+        ),
+    ] = None
     field: FieldModel
     recommended_value: Annotated[int, Field(ge=0)]
     requested_value: Annotated[int, Field(ge=0)]

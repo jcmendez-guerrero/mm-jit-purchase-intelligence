@@ -72,6 +72,87 @@
     },
     "created_by": {
       "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "description": "Computed summary; only the changes list is described here",
+      "properties": {
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "variant_id",
+              "supplier_before",
+              "supplier_after",
+              "qty_before",
+              "qty_after",
+              "reasons"
+            ],
+            "properties": {
+              "variant_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "sku": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "description": "Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id."
+              },
+              "supplier_before": {
+                "type": ["string", "null"]
+              },
+              "supplier_after": {
+                "type": ["string", "null"]
+              },
+              "qty_before": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "qty_after": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "name": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "description": "Catalogue product name at read time; lets rows without a SKU be told apart."
+              }
+            }
+          }
+        },
+        "infeasible": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "description": "Set when the budget cannot be met. People see clinical_critical_skus (same order as clinical_critical_variants, null when a SKU is unknown), never the ids.",
+          "properties": {
+            "over_by": {
+              "type": "string"
+            },
+            "clinical_critical_variants": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "clinical_critical_skus": {
+              "type": "array",
+              "items": {
+                "type": ["string", "null"],
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
     }
   },
   "description": "Computed against a read-only copy of inputs; never writes live tables or the ERP."

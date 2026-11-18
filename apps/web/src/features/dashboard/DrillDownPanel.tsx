@@ -64,7 +64,7 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
     {
       id: "variant",
       header: t("common.variant"),
-      cell: (r) => `${r.sku ?? t("dashboard.drill.no_sku")}${r.name ? ` · ${r.name}` : ""}`,
+      cell: (r) => `${r.sku ?? t("common.no_sku")}${r.name ? ` · ${r.name}` : ""}`,
     },
     ...(request.kind !== "stockout_risk" && request.kind !== "expiry_risk"
       ? [{ id: "figure", header: t(figureColumnKey(request.kind)), cell: (r: DrillResponse["rows"][number]) => shown(r.figure), align: "end" as const }]
@@ -73,7 +73,7 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
       id: "actions",
       header: t("common.actions"),
       cell: (r) => (
-        <Button variant="secondary" small disabled={!r.sku} onClick={() => r.sku && onOpenProduct(r.sku)} aria-label={`${t("dashboard.risk_open")} ${r.sku ?? t("dashboard.drill.no_sku")}`}>
+        <Button variant="secondary" small disabled={!r.sku} onClick={() => r.sku && onOpenProduct(r.sku)} aria-label={`${t("dashboard.risk_open")} ${r.sku ?? t("common.no_sku")}`}>
           {t("dashboard.risk_open")}
         </Button>
       ),

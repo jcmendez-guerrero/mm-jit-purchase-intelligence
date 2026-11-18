@@ -24,6 +24,7 @@ On the web side, a shrink-only test (`apps/web/tests/unit/no-variant-id-display.
 - **Change:** add `sku: string | null` to each change and each line, next to `variant_id`.
 - **Web screen after it lands:** `ScenariosScreen.tsx` (2 places: the change rows and the line table). Baseline entry removed.
 - **Done when:** schema and contract tests updated; both places show the SKU.
+- **Status:** done in `specs/015-scenario-sku` (MMI-15): schema, procurement read path, gateway pass-through test, `ScenariosScreen.tsx` and the baseline entry.
 
 ## 4. A SKU route for the product-supplier overrides (Jira [MMI-16](https://mundomascotix.atlassian.net/browse/MMI-16))
 

@@ -56,3 +56,13 @@ def test_a_scenario_with_nothing_to_buy_exports_only_the_header(conn, tmp_path):
     sa, sb = suppliers(conn)
     out = sc.create(conn, Blob(tmp_path), "Nada", P(disabled_suppliers=(sa, sb)), base(sa, sb), "buyer-1", "k-exp-000002", NOW)
     assert sc.export(conn, out["id"], "csv").decode("utf-8-sig").strip().count("\r\n") == 0
+
+
+def test_export_rows_take_the_sku_and_name_from_the_scenario_lines_and_keep_the_columns(conn, tmp_path):
+    """T036: the SKU and name come from get() (one lookup); a product without them gets empty cells, and the ERP-facing variant id column stays."""
+    out = make(conn, tmp_path)
+    conn.execute(update(product_refs).where(product_refs.c.variant_id == 2).values(sku="   ", name=None))
+    rows = {r[3]: r for r in sc.export_rows(conn, out["id"])}
+    assert rows[1][:4] == ["Proveedor A", "SYN-1", "Producto sintético", 1]
+    assert rows[2][1:4] == ["", "", 2]                                                           # blank SKU and no name: empty cells, same columns
+    assert all(len(r) == 8 for r in rows.values())

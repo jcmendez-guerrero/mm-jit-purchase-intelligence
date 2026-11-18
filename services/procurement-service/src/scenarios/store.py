@@ -9,8 +9,9 @@ from decimal import Decimal
 from typing import Any
 
 from audit.chain import append as audit
-from db.tables import product_refs, proposals, scenario_results, scenario_sensitivity, scenarios, suppliers
+from db.tables import proposals, scenario_results, scenario_sensitivity, scenarios, suppliers
 from mmi_common.time import get_correlation_id, set_correlation_id
+from policies.service import product_labels
 from proposals.export import export_csv, export_xlsx
 from proposals.generate import RULE_VERSIONS, Draft, store
 from proposals.model import ProposalInputs
@@ -115,8 +116,26 @@ def get(conn: Connection, sid: str) -> dict[str, Any]:
                for r in conn.execute(select(scenario_results).where(scenario_results.c.scenario_id == sid).order_by(scenario_results.c.supplier_id)).all()]
     sens = [{"constraint_key": r.constraint_key, "delta": r.delta, "cost_impact": str(Decimal(str(r.cost_impact)).quantize(Q2))}
             for r in conn.execute(select(scenario_sensitivity).where(scenario_sensitivity.c.scenario_id == sid).order_by(scenario_sensitivity.c.id)).all()]
+    summary = _with_skus(conn, s.summary, results)
     return {"id": s.id, "name": s.name, "status": s.status, "parameters": s.parameters, "input_versions": s.input_versions, "result_hash": s.result_hash, "created_by": s.created_by,
-            "created_at": s.created_at.isoformat(), "summary": s.summary, "results": results, "sensitivity": sens}
+            "created_at": s.created_at.isoformat(), "summary": summary, "results": results, "sensitivity": sens}
+
+
+def _with_skus(conn: Connection, summary: dict[str, Any] | None, results: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """People see the SKU (and, when it is missing, the product name), never the Siweb variant id: add them to every change and line at read time (one query),
+    so older scenarios get them too and nothing stored changes. The critical-product list of an infeasible scenario gets its SKUs the same way."""
+    changes = [dict(c) for c in (summary or {}).get("changes", [])]
+    infeasible = dict(summary["infeasible"]) if summary and summary.get("infeasible") else None
+    lines = [ln for r in results for ln in r["lines"]]
+    critical = [] if infeasible is None else infeasible.get("clinical_critical_variants", [])
+    labels = product_labels(conn, [*(x["variant_id"] for x in (*changes, *lines)), *critical])
+    for x in (*changes, *lines):
+        x.update(labels[int(x["variant_id"])])
+    if infeasible is not None:
+        infeasible["clinical_critical_skus"] = [labels[int(v)]["sku"] for v in critical]
+    if not summary:
+        return summary
+    return {**summary, **({"changes": changes} if "changes" in summary else {}), **({"infeasible": infeasible} if infeasible is not None else {})}
 
 
 def listing(conn: Connection, limit: int = 50) -> list[dict[str, Any]]:
@@ -148,15 +167,13 @@ def promote(conn: Connection, sid: str, base: ProposalInputs, actor: str, week: 
 def export_rows(conn: Connection, sid: str) -> list[list[Any]]:
     """Same columns as the proposal export, so the buyer reads both the same way."""
     s = get(conn, sid)
-    ref = {r.variant_id: r for r in conn.execute(select(product_refs)).all()}
     out: list[list[Any]] = []
     for r in s["results"]:
         eta = date.fromisoformat(r["expected_delivery"]) if r["expected_delivery"] else None
         for ln in r["lines"]:
             if ln["qty"] <= 0:
                 continue
-            p = ref.get(ln["variant_id"])
-            out.append([r["supplier_name"] or r["supplier_id"], (p.sku if p else None) or "", (p.name if p else None) or "", ln["variant_id"], ln["qty"],
+            out.append([r["supplier_name"] or r["supplier_id"], ln["sku"] or "", ln["name"] or "", ln["variant_id"], ln["qty"],
                         Decimal(ln["unit_cost"]), Decimal(ln["line_total"]), eta])
     return out
 

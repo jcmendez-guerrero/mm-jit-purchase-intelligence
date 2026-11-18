@@ -56,6 +56,8 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
     api.getSuppliers().then(setSuppliers).catch(fail);
   }, [loadList, fail]);
 
+  /** The SKU people know; when there is none, the marker plus the product name so rows can still be told apart. */
+  const skuLabel = (x: { sku: string | null; name?: string | null }) => x.sku ?? (x.name ? `${t("common.no_sku")} · ${x.name}` : t("common.no_sku"));
   const supplierName = (id: string | null) => (id === null ? t("scenarios.none") : suppliers.find((s) => s.id === id)?.name ?? id);
   const setSupplier = (id: string, patch: Partial<SupplierForm>) =>
     setForm((f) => ({ ...f, suppliers: { ...f.suppliers, [id]: { ...(f.suppliers[id] ?? emptySupplier()), ...patch } } }));
@@ -207,7 +209,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
           {s.infeasible && (
             <div role="alert">
               <p>{t("scenarios.infeasible", { over: formatCurrencyEUR(s.infeasible.over_by) })}</p>
-              {s.infeasible.clinical_critical_variants.length > 0 && <p>{t("scenarios.critical", { ids: s.infeasible.clinical_critical_variants.join(", ") })}</p>}
+              {s.infeasible.clinical_critical_skus.length > 0 && <p>{t("scenarios.critical", { ids: s.infeasible.clinical_critical_skus.map((k) => k ?? t("common.no_sku")).join(", ") })}</p>}
             </div>
           )}
 
@@ -217,7 +219,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
               {s.changes.map((c) => (
                 <li key={`${c.sku}-${c.supplier_before}-${c.supplier_after}`}>
                   {t("scenarios.change_row", {
-                    sku: c.sku ?? t("dashboard.drill.no_sku"), from: supplierName(c.supplier_before), to: supplierName(c.supplier_after), qb: c.qty_before, qa: c.qty_after,
+                    sku: skuLabel(c), from: supplierName(c.supplier_before), to: supplierName(c.supplier_after), qb: c.qty_before, qa: c.qty_after,
                     reasons: c.reasons.map((r) => t(reasonKey(r), { defaultValue: r })).join(", "),
                   })}
                 </li>
@@ -252,11 +254,11 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
               <h5>{r.supplier_name ?? supplierName(r.supplier_id)}</h5>
               <div className="mmi-table-wrapper">
                 <table className="mmi-table" aria-label={t("scenarios.group_lines", { name: r.supplier_name ?? supplierName(r.supplier_id) })}>
-                  <thead><tr><th>{t("common.variant")}</th><th>{t("scenarios.line.qty")}</th><th>{t("scenarios.line.unit_cost")}</th><th>{t("scenarios.line.total")}</th></tr></thead>
+                  <thead><tr><th>{t("common.sku")}</th><th>{t("scenarios.line.qty")}</th><th>{t("scenarios.line.unit_cost")}</th><th>{t("scenarios.line.total")}</th></tr></thead>
                   <tbody>
                     {r.lines.map((ln) => (
                       <tr key={`${ln.sku}-${ln.qty}`}>
-                        <td>{ln.sku ?? t("dashboard.drill.no_sku")}{ln.clinical_critical ? ` · ${t("scenarios.line.critical")}` : ""}</td>
+                        <td>{skuLabel(ln)}{ln.clinical_critical ? ` · ${t("scenarios.line.critical")}` : ""}</td>
                         <td>{ln.qty}</td>
                         <td>{formatCurrencyEUR(ln.unit_cost)}</td>
                         <td>{formatCurrencyEUR(ln.line_total)}</td>

@@ -33,6 +33,59 @@ class Status(Enum):
     promoted = 'promoted'
 
 
+class Change(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    variant_id: Annotated[int, Field(ge=1)]
+    sku: Annotated[
+        str | None,
+        Field(
+            description='Catalogue SKU of the product at read time; null when it cannot be resolved. People see this, never variant_id.',
+            min_length=1,
+        ),
+    ] = None
+    supplier_before: str | None
+    supplier_after: str | None
+    qty_before: Annotated[int, Field(ge=0)]
+    qty_after: Annotated[int, Field(ge=0)]
+    reasons: list[str]
+    name: Annotated[
+        str | None,
+        Field(
+            description='Catalogue product name at read time; lets rows without a SKU be told apart.',
+            min_length=1,
+        ),
+    ] = None
+
+
+class ClinicalCriticalVariant(RootModel[int]):
+    root: Annotated[int, Field(ge=1)]
+
+
+class ClinicalCriticalSku(RootModel[str | None]):
+    root: Annotated[str | None, Field(min_length=1)]
+
+
+class Infeasible(BaseModel):
+    model_config = ConfigDict(
+        extra='allow',
+    )
+    over_by: str | None = None
+    clinical_critical_variants: list[ClinicalCriticalVariant] | None = None
+    clinical_critical_skus: list[ClinicalCriticalSku | None] | None = None
+
+
+class Summary(BaseModel):
+    changes: list[Change] | None = None
+    infeasible: Annotated[
+        Infeasible | None,
+        Field(
+            description='Set when the budget cannot be met. People see clinical_critical_skus (same order as clinical_critical_variants, null when a SKU is unknown), never the ids.'
+        ),
+    ] = None
+
+
 class Scenario(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -47,3 +100,7 @@ class Scenario(BaseModel):
     ] = None
     result_hash: str | None = None
     created_by: str | None = None
+    summary: Annotated[
+        Summary | None,
+        Field(description='Computed summary; only the changes list is described here'),
+    ] = None

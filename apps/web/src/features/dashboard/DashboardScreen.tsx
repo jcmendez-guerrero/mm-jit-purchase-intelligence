@@ -190,7 +190,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   };
 
   const riskColumns: Column<RiskItem>[] = [
-    { id: "variant", header: t("common.variant"), cell: (r) => r.sku || t("dashboard.drill.no_sku"), sortValue: (r) => r.sku },
+    { id: "variant", header: t("common.variant"), cell: (r) => r.sku || t("common.no_sku"), sortValue: (r) => r.sku },
     { id: "status", header: t("common.status"), cell: (r) => <StatusBadge domain="risk" code={r.risk_type} />, sortValue: (r) => r.risk_type },
     { id: "why", header: t("proposals.explanation"), cell: (r) => String(t(r.explanation_key, r.params ?? {})) },
     {
