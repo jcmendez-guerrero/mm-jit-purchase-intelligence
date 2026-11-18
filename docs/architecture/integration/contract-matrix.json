@@ -1715,6 +1715,80 @@
         "web"
       ],
       "status": "draft"
+    },
+    {
+      "name": "GET /dashboard/skus/{sku}",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "dashboard_sku.v1",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /dashboard/charts",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "dashboard_charts.v1",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /dashboard/freshness",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "dashboard_freshness.v1",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /dashboard/drilldown",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "dashboard_drilldown.v1",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /dashboard/export",
+      "kind": "service_endpoint",
+      "version": 1,
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /skus/{sku}/variant",
+      "kind": "service_endpoint",
+      "version": 1,
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /skus/{sku}",
+      "kind": "service_endpoint",
+      "version": 1,
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
     }
   ]
 }

@@ -189,3 +189,10 @@ The gateway is `services/api-bff`.
 | `procurement.terms.changed` | event | v1 | procurement-service | - | frozen |
 | `siweb.cost.write_completed` | event | v1 | siweb-cost-writer | procurement-service | frozen |
 | `siweb.sync.completed` | event | v1 | siweb-connector | inventory-service, procurement-service | frozen |
+| `GET /dashboard/charts` | service_endpoint | v1 | inventory-service | api-bff | draft |
+| `GET /dashboard/drilldown` | service_endpoint | v1 | inventory-service | api-bff | draft |
+| `GET /dashboard/export` | service_endpoint | v1 | inventory-service | api-bff | draft |
+| `GET /dashboard/freshness` | service_endpoint | v1 | inventory-service | api-bff | draft |
+| `GET /dashboard/skus/{sku}` | service_endpoint | v1 | inventory-service | api-bff | draft |
+| `GET /skus/{sku}` | service_endpoint | v1 | inventory-service | api-bff | draft |
+| `GET /skus/{sku}/variant` | service_endpoint | v1 | inventory-service | api-bff | draft |
