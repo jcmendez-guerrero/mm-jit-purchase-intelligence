@@ -10,9 +10,10 @@ from __future__ import annotations
 import csv
 import io
 import random
+import re
 import zipfile
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
@@ -194,6 +195,9 @@ def _csv_bytes(headers: list[str], rows: list[dict[str, str]]) -> bytes:
     return b"\xef\xbb\xbf" + buf.getvalue().encode("utf-8")
 
 
+_MODIFIED = re.compile(rb"(<dcterms:modified[^>]*>)[^<]*(</dcterms:modified>)")
+
+
 def _normalise_zip(data: bytes) -> bytes:
     """Fixed timestamps and entry order so the workbook bytes depend only on the content."""
     src = zipfile.ZipFile(io.BytesIO(data))
@@ -202,13 +206,15 @@ def _normalise_zip(data: bytes) -> bytes:
         for name in sorted(src.namelist()):
             info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
-            dst.writestr(info, src.read(name))
+            data = src.read(name)
+            if name == "docProps/core.xml":        # openpyxl stamps `modified` with the clock at save, whatever the property says: two runs a second apart would differ
+                data = _MODIFIED.sub(rb"\g<1>2026-01-01T00:00:00Z\g<2>", data)
+            dst.writestr(info, data)
     return out.getvalue()
 
 
 def _xlsx_bytes(movements: list[dict[str, Any]]) -> bytes:
     wb = openpyxl.Workbook()
-    wb.properties.created = wb.properties.modified = datetime(2026, 1, 1, tzinfo=UTC)      # openpyxl stamps now(); two runs a second apart would differ
     ws = wb.active
     ws.title = "Datos"
     ws.append(formats.MOVEMENTS_HEADERS)
