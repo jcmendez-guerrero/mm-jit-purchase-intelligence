@@ -57,4 +57,9 @@ class SeriesExport(BaseModel):
     through_day: date | None
     count: Annotated[int, Field(ge=0)]
     series: list[Series]
-    rule_versions: dict[str, int]
+    rule_versions: Annotated[
+        dict[str, int],
+        Field(
+            description='Revision counters of the exclusion set and each censoring rule; the values are never negative. Do not add a minimum here: on additionalProperties it makes the generated model fail ruff (UP035, UP040).'
+        ),
+    ]

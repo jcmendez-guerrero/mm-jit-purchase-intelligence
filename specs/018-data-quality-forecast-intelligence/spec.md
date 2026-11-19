@@ -33,6 +33,10 @@ Related features this one builds on and must not duplicate: 001 (forecast and pr
 - Q: When a product's method does not beat the baseline in its latest backtest, what changes besides the flag? → A: Its confidence drops one level (alta to media, media to baja) with the reason `no_supera_baseline`; its eligibility does not change, so a human still decides.
 - Q: Where must the provenance label of each demand value be visible? → A: On every series the series export carries between services, and as the per-product provenance mix in the forecast explanation. No day-by-day history table and no new export column are built in this feature.
 
+### Session 2026-11-19
+
+- Q: A product whose label drops to low only because it does not beat the baseline (FR-018): does its line show the figure or the conservative min/max (FR-013)? → A: The figure, with the lower label, the reason `no_supera_baseline` and the warning. The min/max fallback follows data quality only (`assess`); the baseline finding never changes eligibility. FR-013 now says so.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Know how trustworthy a product's history is (Priority: P1)
@@ -161,7 +165,7 @@ A buyer or admin sees, across the catalogue, the distribution of ABC/XYZ classes
 **Uncertainty, confidence and eligibility**
 
 - **FR-012**: Every forecast MUST show a range (low, expected, high) and a confidence label, derived from history quality and, where available, backtest accuracy (FR-018); the derivation rule MUST be documented and testable.
-- **FR-013**: The system MUST mark each product eligible, manual-review-only or not eligible, with a Spanish reason, based on history sufficiency, quality and confidence thresholds from policy; not-eligible products MUST get no forecast figure and manual-review-only products MUST NOT be auto-suggested. For both, and for low-confidence products, the proposal line MUST show the conservative min/max quantity labelled in Spanish as "not a forecast", with the reason, for the buyer to confirm or edit.
+- **FR-013**: The system MUST mark each product eligible, manual-review-only or not eligible, with a Spanish reason, based on history sufficiency, quality and confidence thresholds from policy; not-eligible products MUST get no forecast figure and manual-review-only products MUST NOT be auto-suggested. For both, and for low-confidence products, the proposal line MUST show the conservative min/max quantity labelled in Spanish as "not a forecast", with the reason, for the buyer to confirm or edit. Low confidence here means low confidence from the quality of the data; a label that drops to low only because of the baseline finding (FR-018) keeps its figure, with the label and the warning, and does not switch to min/max.
 
 **Provenance and no false observed sales**
 

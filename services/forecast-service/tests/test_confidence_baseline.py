@@ -64,6 +64,24 @@ def test_a_run_reads_the_latest_backtest_and_changes_only_that_products_confiden
     assert all("no_supera_baseline" not in r.confidence_reason_codes for k, r in rows.items() if k != vid)
 
 
+def test_a_label_that_drops_to_baja_only_because_of_the_baseline_still_publishes_its_figure(engine, make_export, tmp_path):
+    """T097 (FR-013 and FR-018): the min/max fallback follows the quality of the data (`assess`); the baseline finding only lowers the label and adds the warning."""
+    from db.tables import forecast_values
+
+    export = make_export(seed=3)
+    first = export["series"][0]
+    first["segment"]["xyz"] = "Z"                                        # one quality flag: media before the baseline finding
+    with engine.begin() as c:
+        c.execute(insert(product_backtest).values(backtest_run_id="b1", variant_id=first["variant_id"], periods=5, beats_baseline=False, model_version="m",
+                                                  created_at=datetime(2026, 11, 1, tzinfo=UTC)))
+    run_forecast(engine, FakeSource(export), NullWriter(tmp_path))
+    with engine.connect() as c:
+        explained = c.execute(select(forecast_explanations).where(forecast_explanations.c.variant_id == first["variant_id"])).one()
+        values = c.execute(select(forecast_values).where(forecast_values.c.variant_id == first["variant_id"])).all()
+    assert explained.confidence == "baja" and "no_supera_baseline" in explained.confidence_reason_codes and explained.eligibility == "eligible"
+    assert values and all(v.eligible and v.policy_used != FALLBACK and v.mean is not None for v in values)       # a figure, not min/max
+
+
 def test_a_later_backtest_that_beats_the_baseline_removes_the_flag(engine, make_export, tmp_path):
     export = make_export(seed=3)
     vid = export["series"][0]["variant_id"]
