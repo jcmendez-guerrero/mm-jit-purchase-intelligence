@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { api, DrillRequest, DrillResponse, errorMessage } from "../../api/client";
+import { Link, useInRouterContext } from "react-router-dom";
+import { api, DashFilters, DrillRequest, DrillResponse, errorMessage } from "../../api/client";
+import { ExportButton } from "./ExportButton";
 import { formatCurrencyEUR, formatNumber } from "../../i18n/formatters";
 import { figureColumnKey } from "./dashboardModel";
 import { ScreenState } from "../../ui/ScreenState";
@@ -12,15 +14,23 @@ import { Card } from "../../ui/Card";
 interface Props {
   request: DrillRequest;
   title: string;
-  onOpenProduct: (variantId: number) => void;
+  onOpenProduct: (sku: string) => void;
   onClose: () => void;
+  /** Offer "Exportar productos" (roles that may see costs); the date range of the screen travels with it. */
+  canExport?: boolean | undefined;
+  range?: Pick<DashFilters, "date_from" | "date_to"> | undefined;
+  loadedAt?: string | null | undefined;
+  onForbidden?: (() => void) | undefined;
 }
 
 const PAGE_SIZE = 50;
+/** The kinds whose figure is an amount of money: shown in euros, and removed by the server for a role without cost access. */
+const MONEY_KINDS: readonly DrillRequest["kind"][] = ["inventory_value", "abc_xyz", "capital", "expiry_band"];
 
 /** The products behind one dashboard figure (FR-007). Each row opens the product detail; the list says when it was cut. */
-export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct, onClose }) => {
+export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct, onClose, canExport, range, loadedAt, onForbidden }) => {
   const { t } = useTranslation();
+  const inRouter = useInRouterContext();                 // the panel is also rendered alone in tests; outside a router the link is a plain anchor
   const [data, setData] = useState<DrillResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -46,8 +56,8 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
 
   const shown = (figure: string | null) => {
     if (figure === null) return "—";
-    if (request.kind === "inventory_value") return formatCurrencyEUR(figure);
-    return formatNumber(figure, request.kind === "coverage" ? 1 : 0);
+    if (MONEY_KINDS.includes(request.kind)) return formatCurrencyEUR(figure);
+    return formatNumber(figure, request.kind === "coverage" ? 1 : request.kind === "forecast" ? 2 : 0);
   };
 
   const columns: Column<DrillResponse["rows"][number]>[] = [
@@ -63,10 +73,20 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
       id: "actions",
       header: t("common.actions"),
       cell: (r) => (
-        <Button variant="secondary" small onClick={() => onOpenProduct(r.variant_id)} aria-label={`${t("dashboard.risk_open")} ${r.sku ?? t("common.no_sku")}`}>
+        <Button variant="secondary" small disabled={!r.sku} onClick={() => r.sku && onOpenProduct(r.sku)} aria-label={`${t("dashboard.risk_open")} ${r.sku ?? t("common.no_sku")}`}>
           {t("dashboard.risk_open")}
         </Button>
       ),
+    },
+    {
+      id: "page",
+      header: t("dashboard.sku.link_header"),
+      cell: (r) => {
+        if (!r.sku) return null;
+        const to = `/panel/skus/${encodeURIComponent(r.sku)}`;
+        const cls = "mmi-button mmi-button--secondary mmi-button--small";
+        return inRouter ? <Link className={cls} to={to}>{t("dashboard.sku.open")}</Link> : <a className={cls} href={to}>{t("dashboard.sku.open")}</a>;
+      },
     },
   ];
 
@@ -76,6 +96,15 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
       <Button variant="secondary" small ref={closeRef} onClick={onClose}>
         {t("dashboard.drill.close")}
       </Button>
+      {canExport && (
+        <ExportButton
+          view={{ kind: "drilldown", drill: { ...request, ...(sort ? { sort, order: desc ? "desc" : "asc" } : {}) } }}
+          filters={range ?? {}}
+          loadedAt={loadedAt}
+          onForbidden={onForbidden}
+          label={t("dashboard.export.drill")}
+        />
+      )}
       <div className="mmi-filterbar__field">
         <label htmlFor="drill-sort">{t("dashboard.drill.sort_by")}</label>
         <select id="drill-sort" value={sort} onChange={(e) => { setSort(e.target.value as typeof sort); setOffset(0); }}>
@@ -95,7 +124,8 @@ export const DrillDownPanel: React.FC<Props> = ({ request, title, onOpenProduct,
       {data && data.rows.length === 0 && <EmptyState title={t("dashboard.drill.empty")} hint="" />}
       {data && data.rows.length > 0 && (
         <>
-          <DataTable ariaLabel={title} columns={columns} rows={data.rows} rowKey={(r) => r.variant_id} hideToolbar />
+          <DataTable ariaLabel={title} columns={columns} rows={data.rows} rowKey={(r) => `${r.sku ?? ""}|${r.name ?? ""}|${r.figure ?? ""}`} hideToolbar />
+          {data.sum != null && <p><strong>{t("dashboard.drill.total", { value: shown(data.sum) })}</strong></p>}      {/* the sum of every row, not only this page: it equals the figure it came from */}
           {data.total > data.rows.length && (
             <nav aria-label={t("dashboard.drill.pages")}>
               <p className="mmi-muted" role="status">{t("dashboard.drill.range", { from: offset + 1, to: offset + data.rows.length, total: data.total })}</p>

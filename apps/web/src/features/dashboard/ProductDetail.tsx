@@ -11,12 +11,12 @@ import { Button } from "../../ui/Button";
 import { DataTable } from "../../ui/DataTable";
 
 interface Props {
-  variantId: number;
+  sku: string;
   onClose: () => void;
 }
 
 /** Drill-down for one variant: stock, category, recent real demand, why a forecast is or is not used, and the data it rests on (FR-007). */
-export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
+export const ProductDetail: React.FC<Props> = ({ sku: skuKey, onClose }) => {
   const { t } = useTranslation();
   const [d, setD] = useState<VariantDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,13 +27,13 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
   useEffect(() => {
     let live = true;
     api
-      .getVariant(variantId)
+      .getVariant(skuKey)
       .then((v) => live && setD(v))
       .catch((err) => live && setError(errorMessage(err, t("common.error"))));
     return () => {
       live = false;
     };
-  }, [variantId, t]);
+  }, [skuKey, t]);
 
   const sku = d?.variant.sku;
   useEffect(() => {
@@ -53,13 +53,13 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
     let live = true;
     setBasis(null);
     api
-      .getForecastBasis(variantId)
+      .getForecastBasis(skuKey)
       .then((b) => live && setBasis(b))
       .catch(() => undefined);                                  // no run yet, or no forecast for this product: nothing to label
     return () => {
       live = false;
     };
-  }, [variantId]);
+  }, [skuKey]);
 
   return (
     <Card as="aside" aria-label={t("dashboard.detail.title")}>
@@ -71,7 +71,7 @@ export const ProductDetail: React.FC<Props> = ({ variantId, onClose }) => {
         {t("dashboard.detail.close")}
       </Button>
       {d?.variant.sku && (
-        <Link className="mmi-button mmi-button--secondary mmi-button--small" to={`/propuestas?sku=${encodeURIComponent(d.variant.sku)}&volver=${variantId}`}>
+        <Link className="mmi-button mmi-button--secondary mmi-button--small" to={`/propuestas?sku=${encodeURIComponent(d.variant.sku)}&volver=${encodeURIComponent(skuKey)}`}>
           {t("dashboard.detail.see_in_proposals")}
         </Link>
       )}

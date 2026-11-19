@@ -112,7 +112,7 @@ test("releasing a cost names the product, supplier and value; confirming calls t
   await signInAs(page, "buyer");
   const write = {
     id: "w1", product_id: 10, supplier_id: "s1", trigger: "receipt_matched", proposed_value: "9.0000", previous_siweb_value: "8.0000", status: "pending_review", attempts: 0, last_error: null, median_cost: "9.00",
-    lots: [{ variant_id: 1, lot: "L1", quantity: 3, unit_cost: "9.0000" }], pvp_used: "20.00", pvp_source: "stock_movement_price", margin_before: "0.5000", margin_after: "0.5500", rule_flags: [], tips: { cap: "0.30", cost_at_minimum: "8.50", cost_at_cap: "7.00" }, override: null,
+    lots: [{ sku: "SYN-1", lot: "L1", quantity: 3, unit_cost: "9.0000" }], pvp_used: "20.00", pvp_source: "stock_movement_price", margin_before: "0.5000", margin_after: "0.5500", rule_flags: [], tips: { cap: "0.30", cost_at_minimum: "8.50", cost_at_cap: "7.00" }, override: null,
   };
   const approved: string[] = [];
   await page.route("**/api/suppliers", (r) => r.fulfill(json([{ id: "s1", name: "Proveedor Sintético A", terms: null, version: 0 }])));
@@ -156,7 +156,7 @@ test("changing a user's roles asks first", async ({ page }) => {
 test("ignoring a quarantined movement asks first, names it and sends the same decision on confirm", async ({ page }) => {
   await signInAs(page, "buyer");
   const decisions: unknown[] = [];
-  await page.route("**/api/data-quality/import-errors", (r) => r.fulfill(json({ count: 1, items: [{ id: 7, variant_id: 42, movement_reason_raw: "Ajuste", anomaly_codes: ["negative_quantity"], created_at: "2026-11-01T10:30:00Z" }] })));
+  await page.route("**/api/data-quality/import-errors", (r) => r.fulfill(json({ count: 1, items: [{ id: 7, sku: "SYN-42", movement_reason_raw: "Ajuste", anomaly_codes: ["negative_quantity"], created_at: "2026-11-01T10:30:00Z" }] })));
   await page.route("**/api/data-quality/import-errors/7/resolve", (r) => {
     decisions.push(r.request().postDataJSON());
     return r.fulfill({ status: 204 });
@@ -164,7 +164,7 @@ test("ignoring a quarantined movement asks first, names it and sends the same de
   await page.goto("/calidad");
   await page.getByRole("button", { name: "Descartar / Ignorar" }).click();
   const dialog = page.getByRole("dialog", { name: "Ignorar el movimiento retenido" });
-  await expect(dialog).toContainText("Variante #42");
+  await expect(dialog).toContainText("SYN-42");
   await dialog.getByRole("button", { name: "Cancelar" }).click();
   expect(decisions).toHaveLength(0);
   await page.getByRole("button", { name: "Descartar / Ignorar" }).click();
@@ -176,7 +176,7 @@ test("an admin's cost override asks first and says another buyer must release it
   await signInAs(page, "admin");
   const write = {
     id: "w1", product_id: 10, supplier_id: "s1", trigger: "receipt_matched", proposed_value: "9.0000", previous_siweb_value: "8.0000", status: "pending_review", attempts: 0, last_error: null, median_cost: "9.00",
-    lots: [{ variant_id: 1, lot: "L1", quantity: 3, unit_cost: "9.0000" }], pvp_used: "20.00", pvp_source: "stock_movement_price", margin_before: "0.5000", margin_after: "0.5500", rule_flags: [], tips: { cap: "0.30", cost_at_minimum: "8.50", cost_at_cap: "7.00" }, override: null,
+    lots: [{ sku: "SYN-1", lot: "L1", quantity: 3, unit_cost: "9.0000" }], pvp_used: "20.00", pvp_source: "stock_movement_price", margin_before: "0.5000", margin_after: "0.5500", rule_flags: [], tips: { cap: "0.30", cost_at_minimum: "8.50", cost_at_cap: "7.00" }, override: null,
   };
   const overrides: unknown[] = [];
   await page.route("**/api/suppliers", (r) => r.fulfill(json([{ id: "s1", name: "Proveedor Sintético A", terms: null, version: 0 }])));
@@ -226,11 +226,10 @@ test("the opening-cost form names the field with a problem", async ({ page }) =>
   await page.route("**/api/cost-writes", (r) => r.fulfill(json([])));
   await page.goto("/costes");
   await page.getByLabel("Proveedor", { exact: true }).selectOption("s1");
-  await page.getByLabel("Producto (número)").fill("10");
-  await page.getByLabel("Variante (número)").fill("uno");
+  await page.getByLabel("SKU", { exact: true }).fill("");
   await page.getByLabel("Coste (€)").fill("9,5");
   await page.getByRole("button", { name: "Guardar coste inicial" }).click();
-  const variant = page.getByLabel("Variante (número)");
+  const variant = page.getByLabel("SKU", { exact: true });
   await expect(variant).toHaveAttribute("aria-invalid", "true");
   await expect(variant).toBeFocused();
 });
@@ -241,7 +240,7 @@ test("the cost opening form and the policy parameters ask before edits are lost"
   await page.route("**/api/costs", (r) => r.fulfill(json([])));
   await page.route("**/api/cost-writes", (r) => r.fulfill(json([])));
   await page.goto("/costes");
-  await page.getByLabel("Producto (número)").fill("10");
+  await page.getByLabel("SKU", { exact: true }).fill("SYN-010");
   await page.getByRole("navigation").getByRole("link", { name: "Escenarios", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Tienes cambios sin guardar" })).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "Seguir editando" }).click();

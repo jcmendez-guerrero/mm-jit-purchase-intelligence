@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ageInDays, forecastStats, mergeTrend, periodFor, trendStats } from "../../src/features/dashboard/dashboardModel";
+import type { Indicator } from "../../src/api/client";
+import { ageInDays, forecastStats, mergeTrend, noFilterMatches, periodFor, trendStats } from "../../src/features/dashboard/dashboardModel";
 
 const today = new Date(Date.UTC(2026, 10, 9, 15));
 
@@ -65,5 +66,30 @@ describe("stockout severity split (ruler)", () => {
     expect(severitySplitIsReliable(counts, 4)).toBe(true);
     expect(severitySplitIsReliable(counts, 7)).toBe(false); // the list ignores the category filter
     expect(severitySplitIsReliable(counts, undefined)).toBe(false);
+  });
+});
+
+describe("no match for the filters (feature 014, T022)", () => {
+  const ind = (state: Indicator["state"]): Indicator => ({
+    key: "demand",
+    value: null,
+    unit: "units",
+    state,
+    basis: "erp_sales",
+    definition_key: "dashboard.def.demand",
+    freshness: { source: "movements", refreshed_at: null, origin: "erp_sync", state: "no_data" },
+  });
+
+  it("is true only with active filters and every shown figure having no data", () => {
+    expect(noFilterMatches([ind("no_data"), ind("no_data")], 1)).toBe(true);
+    expect(noFilterMatches([ind("no_data"), ind("no_data")], 0)).toBe(false);       // nothing filtered: the data is simply missing
+    expect(noFilterMatches([ind("no_data"), ind("ok")], 2)).toBe(false);
+    expect(noFilterMatches([], 2)).toBe(false);
+  });
+
+  it("does not count hidden or failed figures as an empty result", () => {
+    expect(noFilterMatches([ind("no_data"), ind("hidden_by_role")], 1)).toBe(true);   // a viewer's hidden money cards do not hide the empty result
+    expect(noFilterMatches([ind("no_data"), ind("error")], 1)).toBe(false);          // a failing source is an error, not an empty result
+    expect(noFilterMatches([ind("hidden_by_role")], 1)).toBe(false);
   });
 });

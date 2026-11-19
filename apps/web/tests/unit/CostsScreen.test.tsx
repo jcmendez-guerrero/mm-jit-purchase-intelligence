@@ -9,7 +9,7 @@ import { confirmAction } from "./confirm";
 
 const write = (over: Partial<CostWriteRecord> = {}): CostWriteRecord => ({
   id: "w1", product_id: 10, supplier_id: "s1", trigger: "receipt_matched", proposed_value: "9.0000", previous_siweb_value: "8.0000", status: "pending_review", attempts: 0,
-  last_error: null, median_cost: "9.00", lots: [{ variant_id: 1, lot: "L1", quantity: 3, unit_cost: "9.0000" }], pvp_used: "10.00", pvp_source: "stock_movement_price",
+  last_error: null, median_cost: "9.00", lots: [{ sku: "SYN-001", lot: "L1", quantity: 3, unit_cost: "9.0000" }], pvp_used: "10.00", pvp_source: "stock_movement_price",
   margin_before: "0.2000", margin_after: "0.1000", rule_flags: ["margin_below_minimum"], tips: { cap: "0.30", cost_at_minimum: "8.50", cost_at_cap: "7.00" }, override: null, ...over,
 });
 
@@ -91,7 +91,7 @@ describe("CostsScreen", () => {
     render(<CostsScreen userRoles={["viewer", "buyer"]} userId="b1" />);
     fireEvent.change(await screen.findByLabelText("Coste corregido del lote L1"), { target: { value: "9,5" } });
     fireEvent.click(screen.getByRole("button", { name: "Corregir coste del lote" }));
-    await waitFor(() => expect(spy).toHaveBeenCalledWith({ variant_id: 1, supplier_id: "s1", lot: "L1", amount: "9.5", includes_recargo: true, source: "receipt_correction" }));
+    await waitFor(() => expect(spy).toHaveBeenCalledWith({ sku: "SYN-001", supplier_id: "s1", lot: "L1", amount: "9.5", includes_recargo: true, source: "receipt_correction" }));
     expect(screen.queryByLabelText(/coste del proveedor/i)).toBeNull();
   });
 
@@ -113,16 +113,15 @@ describe("opening cost and update request", () => {
     await screen.findByLabelText("Proveedor");
     await waitFor(() => expect(screen.getByRole("option", { name: "Proveedor Sintético A" })).toBeTruthy());
     fireEvent.change(screen.getByLabelText("Proveedor"), { target: { value: over.supplier ?? "s1" } });
-    fireEvent.change(screen.getByLabelText("Producto (número)"), { target: { value: over.product ?? "10" } });
-    fireEvent.change(screen.getByLabelText("Variante (número)"), { target: { value: over.variant ?? "1" } });
+    fireEvent.change(screen.getByLabelText("SKU"), { target: { value: over.sku ?? "SYN-001" } });
     fireEvent.change(screen.getByLabelText("Coste (€)"), { target: { value: over.amount ?? "1,5" } });
   };
 
   it("parses the typed values and names the first invalid field", () => {
-    expect(parseOpening("10", "1", "1,5")).toEqual({ productId: 10, variantId: 1, amount: "1.5" });
-    expect(parseOpening("x", "1", "1")).toEqual({ invalid: "product" });
-    expect(parseOpening("1", "0", "1")).toEqual({ invalid: "variant" });
-    expect(parseOpening("1", "1", "-2")).toEqual({ invalid: "amount" });
+    expect(parseOpening(" SYN-001 ", "1,5")).toEqual({ sku: "SYN-001", amount: "1.5" });
+    expect(parseOpening("  ", "1")).toEqual({ invalid: "sku" });
+    expect(parseOpening("X".repeat(61), "1")).toEqual({ invalid: "sku" });
+    expect(parseOpening("SYN-001", "-2")).toEqual({ invalid: "amount" });
   });
 
   it("saves the opening cost as a lot entry and then requests the update, which stays a review request", async () => {
@@ -130,9 +129,9 @@ describe("opening cost and update request", () => {
     const req = vi.spyOn(api, "requestCostUpdate").mockResolvedValue({ status: "pending_review", warnings: [], request_id: "w1" });
     await fill();
     fireEvent.click(screen.getByRole("button", { name: "Guardar coste inicial" }));
-    await waitFor(() => expect(add).toHaveBeenCalledWith({ variant_id: 1, supplier_id: "s1", amount: "1.5", includes_recargo: true }));
+    await waitFor(() => expect(add).toHaveBeenCalledWith({ sku: "SYN-001", supplier_id: "s1", amount: "1.5", includes_recargo: true }));
     fireEvent.click(screen.getByRole("button", { name: "Solicitar actualización de coste" }));
-    await waitFor(() => expect(req).toHaveBeenCalledWith(10, "s1"));
+    await waitFor(() => expect(req).toHaveBeenCalledWith("SYN-001", "s1"));
     expect((await screen.findByRole("status")).textContent).toContain("revísala y libérala más abajo");
   });
 

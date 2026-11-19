@@ -44,7 +44,7 @@ const SCREENS: Screen[] = [
     path: "/calidad",
     mock: async (page, mode) => {
       const longName = "Z".repeat(240);
-      await answer(page, "**/api/data-quality/import-errors", mode, { count: 1, items: [{ id: 1, variant_id: 5, movement_reason_raw: longName, anomaly_codes: ["negative_quantity"], created_at: "2026-11-01T10:00:00Z" }] }, { count: 0, items: [] });
+      await answer(page, "**/api/data-quality/import-errors", mode, { count: 1, items: [{ id: 1, sku: "SYN-5", movement_reason_raw: longName, anomaly_codes: ["negative_quantity"], created_at: "2026-11-01T10:00:00Z" }] }, { count: 0, items: [] });
     },
     empty: /No hay movimientos pendientes de revisión/,
     ready: (page) => page.getByText("negative_quantity"),
@@ -184,7 +184,7 @@ for (const screen of SCREENS) {
 
 test("very long names truncate or wrap without breaking the layout", async ({ page }) => {
   await signInAs(page, "buyer");
-  await answer(page, "**/api/data-quality/import-errors", "ok", { count: 1, items: [{ id: 1, variant_id: 5, movement_reason_raw: "Z".repeat(400), anomaly_codes: ["negative_quantity"], created_at: "2026-11-01T10:00:00Z" }] }, {});
+  await answer(page, "**/api/data-quality/import-errors", "ok", { count: 1, items: [{ id: 1, sku: "SYN-5", movement_reason_raw: "Z".repeat(400), anomaly_codes: ["negative_quantity"], created_at: "2026-11-01T10:00:00Z" }] }, {});
   await page.goto("/calidad");
   await expect(page.getByText("negative_quantity")).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

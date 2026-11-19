@@ -24,7 +24,7 @@ test.describe("Dashboard for a viewer", () => {
         spend: { ok: false, error: "hidden_by_role" },
       })));
     await page.route("**/api/dashboard/drilldown*", (r) =>
-      r.fulfill(json({ kind: "inventory_value", truncated: false, total: 1, offset: 0, sum: null, rows: [{ variant_id: 100, sku: "SYN-100", name: "Variante sintética", figure: null }] })));
+      r.fulfill(json({ kind: "inventory_value", truncated: false, total: 1, offset: 0, sum: null, rows: [{ sku: "SYN-100", name: "Variante sintética", figure: null }] })));
   });
 
   test("shows the role message instead of amounts and keeps the counts", async ({ page }) => {

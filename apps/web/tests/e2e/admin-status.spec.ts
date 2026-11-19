@@ -15,7 +15,7 @@ async function backend(page: Page, roles: string[], runsDown = false) {
     freshness: { ok: true, data: { stock_snapshots: { latest_day: "2026-11-09", rows: 40 }, movements: { rows: 900, quarantined: 3, latest_at: old }, aggregates: { refreshed_at: recent } } },
     import_jobs: { ok: true, data: { jobs: [{ id: "5ba24d0e-5860-4dc0-baf2-caf0cb702742", dataset_id: "d1", version: 2, name: "Hoja sintética", rows: 12000, stage: "validate", state: "failed", queued_at: recent, started_at: recent, finished_at: recent, error_key: "import_failed", requested_by: "buyer-1" }] } },
     model_runs: runsDown ? { ok: false, error: "downstream_unavailable" } : { ok: true, data: { runs: [{ id: "r1", started_at: recent, status: "completed", through_day: "2026-11-09", total: 5, eligible: 3, dataset_version_id: "abcdef1234" }] } },
-    policy_history: { ok: true, data: [{ id: "o1", status: "approved", variant_id: 9001 }] },
+    policy_history: { ok: true, data: [{ id: "o1", status: "approved", sku: "SYN-9001"}] },
     role_mirror: { ok: true, data: { pending: 1, failed: 0, sent: 4, oldest_pending_seconds: 120 } },
     cost: { budget_eur: 120, guardrails: { min_replicas: 0, max_replicas: 1, job_parallelism: 1 } },
   })));

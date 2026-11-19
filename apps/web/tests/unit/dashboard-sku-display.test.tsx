@@ -6,7 +6,7 @@ import { DrillDownPanel } from "../../src/features/dashboard/DrillDownPanel";
 import "../../src/i18n";
 
 const rows = (from: number, n: number): DrillResponse["rows"] =>
-  Array.from({ length: n }, (_, i) => ({ variant_id: 900000 + from + i, sku: `SYN-${String(from + i).padStart(3, "0")}`, name: `Variante ${from + i}`, figure: "10.00" }));
+  Array.from({ length: n }, (_, i) => ({ sku: `SYN-${String(from + i).padStart(3, "0")}`, name: `Variante ${from + i}`, figure: "10.00" }));
 const page = (over: Partial<DrillResponse>): DrillResponse => ({ kind: "inventory_value", truncated: false, total: 2, offset: 0, sum: "20.00", rows: rows(1, 2), ...over });
 
 afterEach(() => {
@@ -24,7 +24,7 @@ describe("drill-down shows products by SKU", () => {
   });
 
   it("says 'Sin SKU' instead of falling back to the id when a product has none", async () => {
-    vi.spyOn(api, "getDrilldown").mockResolvedValue(page({ rows: [{ variant_id: 900001, sku: null, name: "Sin código", figure: "1.00" }], total: 1 }));
+    vi.spyOn(api, "getDrilldown").mockResolvedValue(page({ rows: [{ sku: null, name: "Sin código", figure: "1.00" }], total: 1 }));
     const { container } = render(<DrillDownPanel request={{ kind: "inventory_value" }} title="Productos" onOpenProduct={() => {}} onClose={() => {}} />);
     await screen.findByText(/Sin SKU/);
     expect(container.textContent).not.toMatch(/9000\d\d/);
@@ -63,5 +63,23 @@ describe("drill-down sorting is done by the server", () => {
     render(<DrillDownPanel request={{ kind: "inventory_value" }} title="Productos" onOpenProduct={() => {}} onClose={() => {}} />);
     await screen.findByText(/SYN-001/);
     expect(spy.mock.calls[0]![0]).not.toHaveProperty("sort");
+  });
+
+  it("shows the total of every row, in euros for an amount of money and as units otherwise, and no total when the server sent none", async () => {
+    const spy = vi.spyOn(api, "getDrilldown");
+    spy.mockResolvedValue(page({ kind: "expiry_band", sum: "60.00" }));
+    const money = render(<DrillDownPanel request={{ kind: "expiry_band", band: "d0_30" }} title="Productos" onOpenProduct={() => {}} onClose={() => {}} />);
+    await screen.findByText(/Total: 60,00/);
+    expect(money.container.textContent).toMatch(/Total: 60,00\s€/);
+    expect(money.container.textContent).toMatch(/10,00\s€/);                       // the rows are euros too, not bare numbers
+    money.unmount();
+    spy.mockResolvedValue(page({ kind: "demand", sum: "239", rows: rows(1, 2).map((r) => ({ ...r, figure: "180" })) }));
+    const units = render(<DrillDownPanel request={{ kind: "demand" }} title="Productos" onOpenProduct={() => {}} onClose={() => {}} />);
+    await screen.findByText("Total: 239");
+    units.unmount();
+    spy.mockResolvedValue(page({ kind: "inventory_value", sum: null, rows: rows(1, 2).map((r) => ({ ...r, figure: null })) }));
+    const hidden = render(<DrillDownPanel request={{ kind: "inventory_value" }} title="Productos" onOpenProduct={() => {}} onClose={() => {}} />);
+    await screen.findByText(/SYN-001/);
+    expect(hidden.container.textContent).not.toMatch(/Total:/);
   });
 });

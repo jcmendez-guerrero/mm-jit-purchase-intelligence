@@ -6,7 +6,7 @@ import httpx
 import pytest
 from clients.procurement import ProcurementClient
 from fastapi.testclient import TestClient
-from routes.api import get_procurement_client
+from routes.api import get_inventory_client, get_procurement_client
 from tests_support import headers_for
 
 BUYER = ["viewer", "buyer"]
@@ -16,6 +16,9 @@ def app_with(mock):
     from main import app
 
     app.dependency_overrides[get_procurement_client] = lambda: mock
+    inventory = AsyncMock()
+    inventory.internal_id.return_value = 9001           # the catalogue owner turns the SKU into the id the services use (FR-008a)
+    app.dependency_overrides[get_inventory_client] = lambda: inventory
     return app
 
 

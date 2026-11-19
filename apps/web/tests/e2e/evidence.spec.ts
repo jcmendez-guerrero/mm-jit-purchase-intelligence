@@ -14,12 +14,12 @@ const SUMMARY = {
   baseline: { total: "1000.0000", over_budget: "0.0000", lines: 4 },
   scenario: { total: "1100.0000", over_budget: "0.0000", lines: 4, budget: "1200.0000", utilisation: "0.9167" },
   delta_total: "100.0000",
-  changes: [{ variant_id: 9001, sku: "SYN-9001", supplier_before: "s1", supplier_after: "s2", qty_before: 12, qty_after: 12, reasons: ["supplier_disabled"] }],
+  changes: [{ sku: "SYN-9001", supplier_before: "s1", supplier_after: "s2", qty_before: 12, qty_after: 12, reasons: ["supplier_disabled"] }],
   binding: [{ key: "min_order:s2", params: { status: "topped_up" } }], infeasible: null, notes: [],
 };
 const DETAIL = {
   id: "sc1", name: "Sin proveedor A", status: "ready", parameters: {}, result_hash: "h", created_by: "buyer-1", created_at: recent, summary: SUMMARY,
-  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "102.5000", subtotal: "108.00", delivery_charge: "4.50", discount: "10.00", free_delivery: false, expected_delivery: "2026-11-16", budget_utilisation: "0.9167", lines: [{ variant_id: 9001, sku: "SYN-9001", qty: 12, unit_cost: "5.0000", line_total: "60.0000", clinical_critical: true }, { variant_id: 9002, sku: null, qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false }] }],
+  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "102.5000", subtotal: "108.00", delivery_charge: "4.50", discount: "10.00", free_delivery: false, expected_delivery: "2026-11-16", budget_utilisation: "0.9167", lines: [{ sku: "SYN-9001", qty: 12, unit_cost: "5.0000", line_total: "60.0000", clinical_critical: true }, { sku: null, qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false }] }],
   sensitivity: [{ constraint_key: "budget", delta: "100.0000", cost_impact: "-20.0000" }],
 };
 
@@ -65,7 +65,7 @@ test("admin", async ({ page }) => {
     freshness: { ok: true, data: { stock_snapshots: { latest_day: "2026-11-09", rows: 40 }, movements: { rows: 900, quarantined: 3, latest_at: old }, aggregates: { refreshed_at: recent } } },
     import_jobs: { ok: true, data: { jobs: [{ id: "5ba24d0e-5860-4dc0-baf2-caf0cb702742", dataset_id: "d1", version: 2, name: "Hoja sintética", rows: 12000, stage: "validate", state: "failed", queued_at: recent, started_at: recent, finished_at: recent, error_key: "import_failed", requested_by: "buyer-1" }] } },
     model_runs: { ok: true, data: { runs: [{ id: "r1", started_at: recent, status: "completed", through_day: "2026-11-09", total: 5, eligible: 3, dataset_version_id: "abcdef1234" }] } },
-    policy_history: { ok: true, data: [{ id: "o1", status: "approved", variant_id: 9001 }] },
+    policy_history: { ok: true, data: [{ id: "o1", status: "approved", sku: "SYN-9001"}] },
     role_mirror: { ok: true, data: { pending: 1, failed: 0, sent: 4, oldest_pending_seconds: 120 } },
     cost: { budget_eur: 120, estimate_eur: 0, guardrails: { min_replicas: 0, max_replicas: 1, job_parallelism: 1 } },
   })));

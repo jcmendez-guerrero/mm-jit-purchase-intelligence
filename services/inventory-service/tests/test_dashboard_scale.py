@@ -77,3 +77,32 @@ def test_the_summary_demand_forecast_supplier_filter_and_first_drill_page_each_s
     assert results["forecast"][0]["units"] == str((Decimal(SELLERS) * 28).quantize(Decimal("0.01")))
     assert results["supplier"][0].inventory_value == Decimal("100000.00")
     assert results["drill"][0]["total"] == VARIANTS and len(results["drill"][0]["rows"]) == 50
+
+
+def test_the_charts_indicators_sku_page_and_exports_added_in_feature_014_stay_under_two_seconds(big):
+    """T062 (feature 014, SC-007): the same 20,000-variant database; the new operations answer within the same budget."""
+    from dashboard.export import ExportTooLarge, build_export, to_csv
+    from dashboard.filters import FilterSet
+    from dashboard.indicators import build_indicators
+    from dashboard.series import CHART_KEYS, build_charts
+    from dashboard.sku import sku_detail
+
+    fs = FilterSet.parse(TODAY)
+    supplier = FilterSet.parse(TODAY, supplier_id="sup-a")
+    means = Means({i: 1.0 for i in range(1, SELLERS + 1)})
+    results = {
+        "indicators": timed(big, lambda c: build_indicators(c, TODAY, fs, means, ["buyer"], None, NOW)),
+        "charts": timed(big, lambda c: build_charts(c, list(CHART_KEYS), TODAY, fs, means, True)),
+        "charts_supplier": timed(big, lambda c: build_charts(c, list(CHART_KEYS), TODAY, supplier, means, True)),
+        "sku": timed(big, lambda c: sku_detail(c, "SYN-00001", TODAY, means, True)),
+        "export_cards": timed(big, lambda c: to_csv(build_export(c, "cards", TODAY, fs, means, now=NOW))),
+        "export_chart": timed(big, lambda c: to_csv(build_export(c, "chart", TODAY, fs, means, chart="expiry_bands", now=NOW))),
+    }
+    print("scale timings, feature 014 (s):", {k: round(t, 2) for k, (_out, t) in results.items()})
+    slow = {k: round(t, 2) for k, (_out, t) in results.items() if t >= BUDGET_SECONDS}
+    assert slow == {}, f"over {BUDGET_SECONDS}s: {slow}"
+    states = {c["key"]: c["state"] for c in results["charts"][0]}
+    assert {k: states[k] for k in ("demand_forecast", "expiry_bands", "coverage_buckets", "capital_by_group")} == dict.fromkeys(("demand_forecast", "expiry_bands", "coverage_buckets", "capital_by_group"), "ok")
+    assert states["abc_xyz"] == "no_data"                                          # this dataset has no segments: said, not drawn as zero
+    with big.connect() as c, pytest.raises(ExportTooLarge):                      # the whole stock of 20,000 products is refused, never cut off
+        build_export(c, "drilldown", TODAY, fs, means, drill_kind="inventory_value", now=NOW)

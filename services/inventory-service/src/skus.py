@@ -25,3 +25,11 @@ def resolve_sku(conn: Connection, sku: str) -> tuple[int, int | None, str]:
         raise SkuError("sku_ambiguous")
     r = rows[0]
     return int(r.external_id), None if r.product_id is None else int(r.product_id), str(r.sku).strip()
+
+
+def skus_of(conn: Connection, variant_ids: list[int]) -> dict[int, str]:
+    """The SKU shown to people for each internal id (one query)."""
+    wanted = sorted({int(v) for v in variant_ids})
+    if not wanted:
+        return {}
+    return {int(r.external_id): str(r.sku).strip() for r in conn.execute(select(variants.c.external_id, variants.c.sku).where(variants.c.external_id.in_(wanted))).all()}

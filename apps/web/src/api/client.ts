@@ -28,7 +28,7 @@ export interface CostRecord {
   id: string;
   product_id: number;
   supplier_id: string;
-  variant_id: number | null;
+  sku?: string | null;
   version: number;
   cost_net: string | null;
   cost_with_recargo: string;
@@ -39,7 +39,7 @@ export interface CostRecord {
 }
 
 export interface CostWriteLot {
-  variant_id: number;
+  sku: string | null;
   lot: string;
   quantity: number;
   unit_cost: string;
@@ -68,7 +68,7 @@ export interface CostWriteRecord {
 }
 
 export interface LotCostCorrection {
-  variant_id: number;
+  sku: string;
   supplier_id: string;
   lot: string;
   amount: string;
@@ -78,7 +78,7 @@ export interface LotCostCorrection {
 
 export interface ImportErrorItem {
   id: number;
-  variant_id: number;
+  sku: string | null;
   movement_reason_raw?: string | null;
   anomaly_codes?: string[];
   created_at: string;
@@ -449,7 +449,7 @@ export interface ScenarioSummary {
   baseline: { total: string; over_budget: string; lines: number };
   scenario: { total: string; over_budget: string; lines: number; budget: string | null; utilisation: string | null };
   delta_total: string;
-  changes: Array<{ variant_id: number; sku: string | null; name?: string | null; supplier_before: string | null; supplier_after: string | null; qty_before: number; qty_after: number; reasons: string[] }>;
+  changes: Array<{ sku: string | null; name?: string | null; supplier_before: string | null; supplier_after: string | null; qty_before: number; qty_after: number; reasons: string[] }>;
   binding: Array<{ key: string; params: Record<string, string> }>;
   infeasible: { over_by: string; clinical_critical_skus: Array<string | null> } | null;
   notes: string[];
@@ -467,7 +467,7 @@ export interface ScenarioDetail {
   summary: ScenarioSummary | null;
   results: Array<{ supplier_id: string; supplier_name: string | null; order_total: string; subtotal?: string | null; delivery_charge?: string | null; discount?: string | null; free_delivery?: boolean | null;
     expected_delivery: string | null; budget_utilisation: string | null;
-    lines: Array<{ variant_id: number; sku: string | null; name?: string | null; qty: number; unit_cost: string; line_total: string; clinical_critical: boolean }> }>;
+    lines: Array<{ sku: string | null; name?: string | null; qty: number; unit_cost: string; line_total: string; clinical_critical: boolean }> }>;
   sensitivity: Array<{ constraint_key: string; delta: string; cost_impact: string }>;
 }
 
@@ -610,7 +610,7 @@ export interface LinkInputDoc {
 export interface DeactivationPreview {
   deactivated: boolean;
   open_proposal_lines: number;
-  lines: Array<{ proposal_id: string; variant_id: number }>;
+  lines: Array<{ proposal_id: string; sku: string | null }>;
 }
 
 export interface BulkPreview {
@@ -705,7 +705,7 @@ export function errorMessage(err: unknown, fallback: string): string {
 }
 
 export interface RiskItem {
-  variant_id: number;
+  sku: string;
   risk_type: "stockout" | "expiry" | "data_quality";
   explanation_key: string;
   params?: JsonRecord;
@@ -790,7 +790,7 @@ export interface DashOverview {
 
 export interface ForecastBasis {
   run_id: string;
-  variant_id: number;
+  sku?: string | null;
   eligible: boolean;
   policy: string;
   seed_used: boolean;
@@ -798,7 +798,7 @@ export interface ForecastBasis {
   upper_level?: string;
 }
 
-export type DrillKind = "inventory_value" | "coverage" | "stockout_risk" | "expiry_risk" | "abc_xyz" | "trend_day";
+export type DrillKind = "inventory_value" | "coverage" | "stockout_risk" | "expiry_risk" | "abc_xyz" | "trend_day" | "demand" | "forecast" | "capital" | "expiry_band";
 
 export interface DrillRequest {
   kind: DrillKind;
@@ -813,6 +813,52 @@ export interface DrillRequest {
   offset?: number | undefined;
   sort?: "sku" | "name" | "figure" | undefined;
   order?: "asc" | "desc" | undefined;
+  band?: "expired" | "d0_30" | "d31_60" | undefined;
+  date_from?: string | undefined;
+  date_to?: string | undefined;
+}
+
+/** One chart as a table of rows (the frozen v2 `ChartSeries`). Money travels as decimal strings; a role without cost access receives no money column. */
+export interface ChartSeries {
+  key: "demand_forecast" | "abc_xyz" | "expiry_bands" | "coverage_buckets" | "capital_by_group" | "forecast_error" | "stock_value_history";
+  title_key: string;
+  summary_params?: Record<string, unknown> | undefined;
+  columns: string[];
+  rows: Array<Array<string | number | null>>;
+  range_available?: { from?: string; to?: string } | undefined;
+  state: "ok" | "no_data" | "error";
+}
+
+/** The view of the dashboard to put in a file (feature 014): the indicators, one chart, or the products behind a figure. Only roles that may see costs can export. */
+export type DashboardExportView = { kind: "cards" } | { kind: "chart"; chart: ChartSeries["key"] } | { kind: "drilldown"; drill: DrillRequest };
+
+/** How fresh each source is and what was left out of the figures (the `dashboard_freshness.v1` contract). Counts only. */
+export interface DashboardFreshness {
+  sources: Array<{
+    source: "inventory_snapshot" | "movements" | "aggregates" | "forecast" | "accuracy" | "budget_spend";
+    refreshed_at: string | null;
+    refreshed_at_original: string | null;
+    origin: "erp_sync" | "local_load" | "forecast" | "proposal";
+    state: "ok" | "no_data" | "stale" | "error";
+    stale_after_hours: number;
+  }>;
+  excluded_records: number;
+  local_load_excluded: number;
+  review_list_link: string;
+}
+
+/** One product on its own dashboard page (feature 014). Identified by SKU only; `cost` exists only when the role may see costs. */
+export interface DashboardSku {
+  sku: string;
+  name: string | null;
+  stock: { on_hand: number | null };
+  coverage: { days: string; basis: string } | null;
+  demand: { units: number; days: number };
+  forecast: { daily_mean: string; days: number } | null;
+  supplier: { id: string } | null;
+  expiry_lots: Array<{ batch: string; quantity: number; expiry_date: string | null; band: "expired" | "d0_30" | "d31_60" | "later" | "none" }>;
+  states: string[];
+  cost?: { value: string | null; estimated: boolean; unit_cost: string | null };
 }
 
 export interface DrillResponse {
@@ -821,7 +867,7 @@ export interface DrillResponse {
   total: number;
   offset?: number;
   sum?: string | null;
-  rows: Array<{ variant_id: number; sku: string | null; name: string | null; figure: string | null }>;
+  rows: Array<{ sku: string | null; name: string | null; figure: string | null }>;
 }
 
 export interface DashFilters {
@@ -836,12 +882,11 @@ export interface DashFilters {
 
 export interface VariantDetail {
   variant: {
-    id: number;
     sku: string;
     name: string;
     pack_size: number;
     uom: string;
-    product: { id: number; status?: string };
+    product: { status?: string };
   };
   stock?: {
     on_hand: number;
@@ -904,7 +949,6 @@ export interface ProposalExplanation {
 
 export interface ProposalLine {
   id: string;
-  variant_id: number;
   sku: string | null;
   product_name: string | null;
   supplier_id: string;
@@ -954,7 +998,7 @@ export interface Proposal extends Omit<ProposalSummary, "updated_at"> {
   approval: { approver: string; decision: string; version: number; valid: boolean } | null;
   warnings?: string[];
   /** Needed variants the plan could not source (FR-014): shown to the buyer, never dropped silently. */
-  review_notes?: Array<{ code: string; variant_id: number; sku: string | null; product_name: string | null }>;
+  review_notes?: Array<{ code: string; sku: string | null; product_name: string | null }>;
   flags?: ProposalFlags | null;
 }
 
@@ -1097,8 +1141,8 @@ export class ApiClient {
     setCsrfToken(null);
   }
 
-  async getForecastBasis(variantId: number): Promise<ForecastBasis> {
-    return this.request(`/dashboard/variants/${variantId}/forecast-basis`);
+  async getForecastBasis(sku: string): Promise<ForecastBasis> {
+    return this.request(`/dashboard/skus/${encodeURIComponent(sku)}/forecast-basis`);
   }
 
   async getDrilldown(r: DrillRequest): Promise<DrillResponse> {
@@ -1114,7 +1158,52 @@ export class ApiClient {
     if (r.offset) q.set("offset", String(r.offset));
     if (r.sort) q.set("sort", r.sort);
     if (r.sort && r.order) q.set("order", r.order);
+    if (r.band) q.set("band", r.band);
+    if (r.date_from) q.set("date_from", r.date_from);
+    if (r.date_to) q.set("date_to", r.date_to);
     return this.request<DrillResponse>(`/dashboard/drilldown?${q.toString()}`);
+  }
+
+  async getDashboardCharts(f: DashFilters, keys: ChartSeries["key"][] = []): Promise<{ charts: ChartSeries[] }> {
+    const q = new URLSearchParams();
+    if (keys.length > 0) q.set("keys", keys.join(","));
+    if (f.warehouse_id !== undefined) q.set("warehouse_id", String(f.warehouse_id));
+    if (f.category) q.set("category", f.category);
+    if (f.family) q.set("family", f.family);
+    if (f.supplier_id) q.set("supplier_id", f.supplier_id);
+    if (f.date_from) q.set("date_from", f.date_from);
+    if (f.date_to) q.set("date_to", f.date_to);
+    const qs = q.toString();
+    return this.request<{ charts: ChartSeries[] }>(`/dashboard/charts${qs ? `?${qs}` : ""}`);
+  }
+
+  async exportDashboard(view: DashboardExportView, f: DashFilters, loadedAt?: string | null): Promise<{ blob: Blob; filename: string; rows: number }> {
+    const q = new URLSearchParams({ kind: view.kind });
+    if (loadedAt) q.set("loaded_at", loadedAt);                       // when the screen loaded its data: the file says so if newer data exists
+    if (view.kind === "chart") q.set("chart", view.chart);
+    if (view.kind === "drilldown") {
+      const d = view.drill;
+      q.set("drill_kind", d.kind);
+      for (const [k, v] of [["abc", d.abc], ["xyz", d.xyz], ["day", d.day], ["band", d.band], ["sort", d.sort], ["order", d.sort ? d.order : undefined]] as const) if (v) q.set(k, v);
+    }
+    const scope = view.kind === "drilldown" ? { ...f, warehouse_id: view.drill.warehouse_id ?? f.warehouse_id, category: view.drill.category ?? f.category, family: view.drill.family ?? f.family, supplier_id: view.drill.supplier_id ?? f.supplier_id } : f;
+    if (scope.warehouse_id !== undefined) q.set("warehouse_id", String(scope.warehouse_id));
+    for (const [k, v] of [["category", scope.category], ["family", scope.family], ["supplier_id", scope.supplier_id], ["date_from", f.date_from], ["date_to", f.date_to]] as const) if (v) q.set(k, v);
+    const res = await fetch(`${this.baseUrl}/dashboard/export?${q.toString()}`, { credentials: "same-origin", headers: { Accept: "text/csv" } });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { detail?: unknown };
+      throw new ApiError(res.status, typeof body.detail === "string" && /^[a-z][a-z0-9_:]*$/.test(body.detail) ? body.detail : "unknown");
+    }
+    const named = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "");
+    return { blob: await res.blob(), filename: named?.[1] ?? "panel.csv", rows: Number(res.headers.get("X-Export-Rows") ?? 0) };
+  }
+
+  async getDashboardFreshness(): Promise<DashboardFreshness> {
+    return this.request<DashboardFreshness>("/dashboard/freshness");
+  }
+
+  async getDashboardSku(sku: string): Promise<DashboardSku> {
+    return this.request<DashboardSku>(`/dashboard/skus/${encodeURIComponent(sku)}`);
   }
 
   async getDashboardOverview(f: DashFilters = {}): Promise<DashOverview> {
@@ -1135,8 +1224,8 @@ export class ApiClient {
     return this.request<RiskItem[]>(`/dashboard/risk${query}`);
   }
 
-  async getVariant(variantId: number): Promise<VariantDetail> {
-    return this.request<VariantDetail>(`/inventory/variants/${variantId}`);
+  async getVariant(sku: string): Promise<VariantDetail> {
+    return this.request<VariantDetail>(`/inventory/skus/${encodeURIComponent(sku)}`);
   }
 
   async getImportErrors(): Promise<{ count: number; items: ImportErrorItem[] }> {
@@ -1167,14 +1256,14 @@ export class ApiClient {
   }
 
   /** The buyer's opening cost for a pair whose ERP record has none. It becomes a lot entry, never a free supplier cost. */
-  async addOpeningCost(body: { variant_id: number; supplier_id: string; amount: string; includes_recargo: boolean }): Promise<JsonRecord> {
+  async addOpeningCost(body: { sku: string; supplier_id: string; amount: string; includes_recargo: boolean }): Promise<JsonRecord> {
     return this.request<JsonRecord>("/lot-costs", { method: "POST", body: JSON.stringify({ ...body, lot: "opening", source: "buyer_entry", quantity: 0 }) });
   }
 
   /** Builds the review request carrying the median of the lots in stock (or the opening entry). Nothing is sent to the ERP from here. */
-  async requestCostUpdate(productId: number, supplierId: string): Promise<{ status: string; warnings: string[]; request_id: string | null }> {
+  async requestCostUpdate(sku: string, supplierId: string): Promise<{ status: string; warnings: string[]; request_id: string | null }> {
     return this.request<{ status: string; warnings: string[]; request_id: string | null }>("/cost-updates", {
-      method: "POST", body: JSON.stringify({ product_id: productId, supplier_id: supplierId }),
+      method: "POST", body: JSON.stringify({ sku, supplier_id: supplierId }),
     });
   }
 

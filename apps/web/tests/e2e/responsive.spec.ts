@@ -64,7 +64,7 @@ test.describe("navigation collapses below 1024 px", () => {
 
   test("a wide table scrolls inside its own region and keeps its first column visible", async ({ page }) => {
     await signInAs(page, "buyer");
-    const items = Array.from({ length: 6 }, (_, i) => ({ id: i + 1, variant_id: 100 + i, movement_reason_raw: "Motivo sintético largo ".repeat(6), anomaly_codes: ["negative_quantity", "unknown_reason"], created_at: "2026-11-01T10:00:00Z" }));
+    const items = Array.from({ length: 6 }, (_, i) => ({ id: i + 1, sku: `SYN-${100 + i}`, movement_reason_raw: "Motivo sintético largo ".repeat(6), anomaly_codes: ["negative_quantity", "unknown_reason"], created_at: "2026-11-01T10:00:00Z" }));
     await page.route("**/api/data-quality/import-errors", (r) => r.fulfill(json({ count: items.length, items })));
     await open(page, "/calidad");
     const region = page.getByRole("region", { name: /Tabla desplazable/ });
@@ -144,7 +144,7 @@ test("a proposal prints without the shell, sticky headers or clipped tables", as
   await signInAs(page, "buyer");
   const summary = { id: "prop-1", week: "2026-W45", status: "draft", version: 3, created_by: "buyer-1", updated_at: "2026-11-04T10:00:00Z" };
   const line = {
-    id: "l1", variant_id: 101, sku: "SYN-101", product_name: "Producto sintético", supplier_id: "s1", supplier_name: "Proveedor Sintético A", qty: 10, unit_cost_with_recargo: "5.2600", line_total: "52.6000",
+    id: "l1", sku: "SYN-101", product_name: "Producto sintético", supplier_id: "s1", supplier_name: "Proveedor Sintético A", qty: 10, unit_cost_with_recargo: "5.2600", line_total: "52.6000",
     risk: "low", confidence: "high", manual_override: false, topup: false, constraints_applied: [],
     explanation: { policy: "forecast", forecast_eligible: true, service_level: "95", horizon_days: 14, expected_demand: 8, safety_stock: 2, order_up_to: 12, reorder_point: 5, need: 10, top_up: false, clinical_critical: false, position: { on_hand: 0, expiring: 0, usable: 0, inbound: 0, total: 0 }, supplier: { chosen: "s1", reason: "lowest_cost", alternatives: [], rejected: [] }, cost: { unit: "5.2600", source: "manual", status: "ok" }, constraints: [] },
   };
@@ -186,7 +186,7 @@ test("a plain scroll-region table keeps its first column visible when it scrolls
   await signInAs(page, "buyer");
   const summary = { id: "prop-1", week: "2026-W45", status: "draft", version: 3, created_by: "buyer-1", updated_at: "2026-11-04T10:00:00Z" };
   const line = {
-    id: "l1", variant_id: 101, sku: "SYN-101", product_name: "Producto sintético con un nombre bastante largo", supplier_id: "s1", supplier_name: "Proveedor Sintético A", qty: 10, unit_cost_with_recargo: "5.2600", line_total: "52.6000",
+    id: "l1", sku: "SYN-101", product_name: "Producto sintético con un nombre bastante largo", supplier_id: "s1", supplier_name: "Proveedor Sintético A", qty: 10, unit_cost_with_recargo: "5.2600", line_total: "52.6000",
     risk: "low", confidence: "high", manual_override: false, topup: false, constraints_applied: [],
     explanation: { policy: "forecast", forecast_eligible: true, service_level: "95", horizon_days: 14, expected_demand: 8, safety_stock: 2, order_up_to: 12, reorder_point: 5, need: 10, top_up: false, clinical_critical: false, position: { on_hand: 0, expiring: 0, usable: 0, inbound: 0, total: 0 }, supplier: { chosen: "s1", reason: "lowest_cost", alternatives: [], rejected: [] }, cost: { unit: "5.2600", source: "manual", status: "ok" }, constraints: [] },
   };

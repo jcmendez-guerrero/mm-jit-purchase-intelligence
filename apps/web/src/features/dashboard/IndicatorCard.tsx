@@ -11,13 +11,15 @@ interface Props {
   period?: { from: string; to: string } | undefined;
   /** Opens the products behind the figure; offered when there is a figure, or when only the amount is hidden. */
   onDrill?: (() => void) | undefined;
+  /** Asks for the figures again; offered when the figure could not be calculated. */
+  onRetry?: (() => void) | undefined;
 }
 
 const DECIMALS: Record<Indicator["unit"], number> = { EUR: 2, days: 1, units: 0, count: 0, percent: 1 };
 const day = (d: string) => formatDate(`${d}T12:00:00`);          // noon, so the local date never shifts
 
 /** One indicator: the figure in es-ES, what it rests on, where and when it came from, and what it leaves out. Every state is told in words. */
-export const IndicatorCard: React.FC<Props> = ({ indicator: i, period, onDrill }) => {
+export const IndicatorCard: React.FC<Props> = ({ indicator: i, period, onDrill, onRetry }) => {
   const { t } = useTranslation();
   const titleId = useId();
   const show = (value: string): string => (i.unit === "EUR" ? formatCurrencyEUR(value) : t(`dashboard.ind.${i.unit}`, { n: formatNumber(value, DECIMALS[i.unit]) }));
@@ -42,7 +44,16 @@ export const IndicatorCard: React.FC<Props> = ({ indicator: i, period, onDrill }
       {hasFigure && <p className="mmi-figure__value">{show(i.value as string)}</p>}
       {hidden && <p className="mmi-figure__value">{t("dashboard.kpi.hidden_by_role")}</p>}
       {i.state === "no_data" && <p className="mmi-figure__value">{t("dashboard.ind.state.no_data")}</p>}
-      {i.state === "error" && <p role="alert">{t("dashboard.ind.state.error")}</p>}
+      {i.state === "error" && (
+        <>
+          <p role="alert">{t("dashboard.ind.state.error")}</p>
+          {onRetry && (
+            <Button variant="secondary" small onClick={onRetry}>
+              {t("ui.error.retry")}
+            </Button>
+          )}
+        </>
+      )}
       {i.state === "stale" && <p className="mmi-figure__note">{t("dashboard.ind.state.stale")}</p>}
       {!hidden && (
         <>

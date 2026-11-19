@@ -80,4 +80,13 @@ test.describe("Dashboard filters", () => {
     await expect(budget.getByText(/Gasto propuesto \(pedido sin confirmar\): 50,50/)).toBeVisible();
     await expect(budget.getByText(/Gasto \(pedidos confirmados\): 90,00/)).toBeVisible();
   });
+
+  test("a well-formed value that is not among the options is ignored with a notice and leaves the address (T085)", async ({ page }) => {
+    await page.goto("/panel?proveedor=ghost&categoria=A");
+    await expect(page.getByText(/Se han ignorado filtros no válidos de la dirección: proveedor/)).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.get("proveedor")).toBeNull();
+    expect(new URL(page.url()).searchParams.get("categoria")).toBe("A");                       // the valid one stays
+    await expect.poll(() => last().get("supplier_id")).toBeNull();
+    await expect.poll(() => last().get("category")).toBe("A");
+  });
 });
