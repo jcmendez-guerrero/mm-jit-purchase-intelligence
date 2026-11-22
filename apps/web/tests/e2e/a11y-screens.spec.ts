@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { json, overview, signIn } from "./dashboard-mock";
+import { freshness, json, overview, signIn } from "./dashboard-mock";
 
 /** T171: WCAG 2 A and AA (colour contrast included) on the screens added by MMI 002. Synthetic data, mocked backends. */
 
@@ -9,14 +9,14 @@ const SUMMARY = {
   baseline: { total: "1000.0000", over_budget: "0.0000", lines: 4 },
   scenario: { total: "1100.0000", over_budget: "50.0000", lines: 4, budget: "1200.0000", utilisation: "0.9167" },
   delta_total: "100.0000",
-  changes: [{ variant_id: 9001, sku: "SYN-9001", supplier_before: "s1", supplier_after: "s2", qty_before: 12, qty_after: 12, reasons: ["supplier_disabled"] }],
+  changes: [{ sku: "SYN-9001", supplier_before: "s1", supplier_after: "s2", qty_before: 12, qty_after: 12, reasons: ["supplier_disabled"] }],
   binding: [{ key: "min_order:s2", params: { status: "topped_up" } }],
   infeasible: { over_by: "50.0000", clinical_critical_skus: ["SYN-9001"] },
   notes: [],
 };
 const DETAIL = {
   id: "sc1", name: "Sin proveedor A", status: "ready", parameters: {}, result_hash: "h", created_by: "buyer-1", created_at: recent, summary: SUMMARY,
-  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "102.5000", subtotal: "108.00", delivery_charge: "4.50", discount: "10.00", free_delivery: false, expected_delivery: "2026-11-16", budget_utilisation: "0.9167", lines: [{ variant_id: 9001, sku: "SYN-9001", qty: 12, unit_cost: "5.0000", line_total: "60.0000", clinical_critical: true }, { variant_id: 9002, sku: null, qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false }] }],
+  results: [{ supplier_id: "s2", supplier_name: "Proveedor B", order_total: "102.5000", subtotal: "108.00", delivery_charge: "4.50", discount: "10.00", free_delivery: false, expected_delivery: "2026-11-16", budget_utilisation: "0.9167", lines: [{ sku: "SYN-9001", qty: 12, unit_cost: "5.0000", line_total: "60.0000", clinical_critical: true }, { sku: null, qty: 6, unit_cost: "8.0000", line_total: "48.0000", clinical_critical: false }] }],
   sensitivity: [{ constraint_key: "budget", delta: "100.0000", cost_impact: "-20.0000" }],
 };
 
@@ -75,7 +75,7 @@ test("administration", async ({ page }) => {
 test("dashboard drill-down and supplier panels", async ({ page }) => {
   await signIn(page);
   await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview(1, { spend: { ok: true, data: { proposal_id: "p1", week: "2026-W46", status: "draft", total: "300.00", by_supplier: [{ supplier_id: "s1", supplier_name: "Proveedor Sintético A", total: "300.00" }], budget: null, over_budget: false } } }))));
-  await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: true, total: 80, rows: [{ variant_id: 100, sku: "SYN-100", name: "Variante sintética", figure: "40.00" }] })));
+  await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: true, total: 80, rows: [{ sku: "SYN-100", name: "Variante sintética", figure: "40.00" }] })));
   await page.route("**/api/suppliers/s1/terms", (r) => r.fulfill(json({ supplier_id: "s1", version: 1, history: [], current: null })));
   await page.goto("/");
   await page.getByLabel("Valor del stock").getByRole("button", { name: "Ver productos" }).click();
@@ -94,5 +94,42 @@ test("dashboard trend chart with the forecast and its notes", async ({ page }) =
   await page.getByText(/Previsión para los próximos 5 días/).waitFor();
   await check(page);
   await page.getByRole("button", { name: "Ver como tabla" }).first().click();
+  await check(page);
+});
+
+
+/** Feature 014 (T061): the charts with their tables and export buttons, the trust banner, the drill-down panel with its export, and the SKU page. */
+const SKU_PAGE = {
+  sku: "SYN-001", name: "Producto sintético", stock: { on_hand: 15 }, coverage: { days: "5.00", basis: "actual_90d" }, demand: { units: 84, days: 28 }, forecast: { daily_mean: "2.00", days: 28 },
+  supplier: { id: "sup-a" }, expiry_lots: [{ batch: "L1", quantity: 10, expiry_date: "2027-12-20", band: "later" }, { batch: "L2", quantity: 5, expiry_date: "2026-11-19", band: "d0_30" }],
+  states: ["cost_estimated"], cost: { value: "40.00", estimated: true, unit_cost: "2.00" },
+};
+
+test("dashboard charts, export buttons and trust banner", async ({ page }) => {
+  await signIn(page);
+  await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview())));
+  await page.route("**/api/dashboard/freshness*", (r) => r.fulfill(json({ ...freshness({ excluded_records: 3, local_load_excluded: 2 }, "2026-10-01T08:00:00Z"), sources: freshness().sources.map((x) => ({ ...x, refreshed_at: "2026-10-01T08:00:00Z", state: "stale" })) })));
+  await page.goto("/panel");
+  await page.getByRole("heading", { name: "Valor que caduca por tramo" }).waitFor();
+  await page.getByRole("alert").filter({ hasText: "Los datos están desactualizados" }).waitFor();
+  await page.getByRole("figure", { name: "Valor que caduca por tramo" }).getByRole("button", { name: "Ver como tabla" }).click();   // the table view is scanned too
+  await check(page);
+});
+
+test("dashboard drill-down panel with export", async ({ page }) => {
+  await signIn(page);
+  await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview())));
+  await page.route("**/api/dashboard/drilldown*", (r) => r.fulfill(json({ kind: "inventory_value", truncated: false, total: 1, offset: 0, sum: "40.00", rows: [{ sku: "SYN-001", name: "Producto sintético", figure: "40.00" }] })));
+  await page.goto("/panel");
+  await page.getByRole("button", { name: "Ver productos" }).first().click();
+  await page.getByRole("button", { name: "Exportar productos", exact: true }).waitFor();
+  await check(page);
+});
+
+test("SKU page", async ({ page }) => {
+  await signIn(page);
+  await page.route("**/api/dashboard/skus/SYN-001", (r) => r.fulfill(json(SKU_PAGE)));
+  await page.goto("/panel/skus/SYN-001");
+  await page.getByText("Existencias totales: 15").waitFor();
   await check(page);
 });

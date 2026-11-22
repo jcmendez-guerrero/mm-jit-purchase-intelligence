@@ -55,3 +55,28 @@ test("when the data arrives after a delay the page does not jump (the skeleton h
   console.log(`layout shift when data arrives after a delay: ${cls.toFixed(3)}`);
   expect(cls).toBeLessThan(MAX_LAYOUT_SHIFT);
 });
+
+/** Feature 014 (T062, SC-007): a filter change updates every figure, the charts included, within 2 seconds (browser side, services simulated with a 150 ms answer each). */
+test("a filter change updates the cards and the charts within 2 seconds", async ({ page }) => {
+  const { charts, freshness, indicators } = await import("./dashboard-mock");
+  await signIn(page);
+  const slow = async (fulfill: () => Promise<void>) => {
+    await new Promise((r) => setTimeout(r, 150));
+    await fulfill();
+  };
+  await page.route("**/api/dashboard/overview*", (r) => {
+    const category = new URL(r.request().url()).searchParams.get("category");
+    return slow(() => r.fulfill(json(overview(1000, { indicators: indicators().map((i) => (i.key === "stock_value" ? { ...i, value: category === "A" ? "555.00" : i.value } : i)) }))));
+  });
+  await page.route("**/api/dashboard/charts*", (r) => slow(() => r.fulfill(json(charts()))));
+  await page.route("**/api/dashboard/freshness*", (r) => r.fulfill(json(freshness())));
+  await page.goto("/");
+  await expect(page.getByLabel("Valor del stock")).toContainText("1.234,50");
+  const t0 = Date.now();
+  await page.getByLabel("Categoría").selectOption("A");
+  await expect(page.getByLabel("Valor del stock")).toContainText("555,00");
+  await expect(page.getByRole("heading", { name: "Valor que caduca por tramo" })).toBeVisible();
+  const elapsed = Date.now() - t0;
+  console.log(`dashboard filter change, cards and charts: ${elapsed} ms`);
+  expect(elapsed).toBeLessThan(BUDGET_MS);
+});

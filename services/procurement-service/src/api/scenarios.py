@@ -16,6 +16,7 @@ from proposals.inputs import InputsUnavailableError
 from pydantic import BaseModel, Field
 from scenarios import store as sc
 from scenarios.engine import ScenarioError, ScenarioParams, SupplierDelta
+from sku_labels import with_skus
 from sqlalchemy.engine import Connection, Engine
 
 from api.costs import get_engine
@@ -76,7 +77,7 @@ def build_router(app: FastAPI) -> APIRouter:
         if not idempotency_key or not (8 <= len(idempotency_key) <= 120):
             raise HTTPException(422, "idempotency_key_required")
         try:
-            return sc.create(conn, writer(), body.name, body.params(), base_inputs(conn), principal.subject, f"{principal.subject}:{idempotency_key}")
+            return with_skus(conn, sc.create(conn, writer(), body.name, body.params(), base_inputs(conn), principal.subject, f"{principal.subject}:{idempotency_key}"))
         except ScenarioError as exc:
             raise HTTPException(422, error_code(exc)) from exc
 
@@ -87,7 +88,7 @@ def build_router(app: FastAPI) -> APIRouter:
     @router.get("/scenarios/{sid}")
     def read(sid: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
         try:
-            return sc.get(conn, sid)
+            return with_skus(conn, sc.get(conn, sid))
         except sc.ScenarioStateError as exc:
             raise HTTPException(404, error_code(exc)) from exc
 

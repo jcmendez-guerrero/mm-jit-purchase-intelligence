@@ -25,13 +25,10 @@ export function flagKey(flag: string): string {
 
 export const canRequestUpdate = (roles: string[]): boolean => roles.includes("buyer");
 
-/** What the buyer typed for the opening cost, or the name of the first field that is not valid. */
-export function parseOpening(product: string, variant: string, amount: string): { productId: number; variantId: number; amount: string } | { invalid: "product" | "variant" | "amount" } {
-  const id = (t: string) => (/^[1-9]\d*$/.test(t.trim()) && Number.isSafeInteger(Number(t.trim())) ? Number(t.trim()) : null);
-  const productId = id(product);
-  if (productId === null) return { invalid: "product" };
-  const variantId = id(variant);
-  if (variantId === null) return { invalid: "variant" };
+/** What the buyer typed for the opening cost (the SKU and the amount), or the name of the first field that is not valid. */
+export function parseOpening(sku: string, amount: string): { sku: string; amount: string } | { invalid: "sku" | "amount" } {
+  const code = sku.trim();
+  if (code === "" || code.length > 60) return { invalid: "sku" };
   const a = parseAmount(amount);
-  return a === null ? { invalid: "amount" } : { productId, variantId, amount: a };
+  return a === null ? { invalid: "amount" } : { sku: code, amount: a };
 }

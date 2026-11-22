@@ -3,13 +3,15 @@ the release is a different buyer's, with fresh MFA. The BFF checks roles and for
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from auth.session import SessionData
+from clients.inventory import InventoryClient
 from clients.procurement import ProcurementClient
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from routes.api import get_procurement_client
+from routes.api import SKU_PATTERN, get_inventory_client, get_procurement_client
 from routes.rbac import require_fresh_mfa, require_roles
 
 router = APIRouter()
@@ -26,11 +28,13 @@ class ReleaseBody(BaseModel):
 
 @router.get("/lot-costs")
 async def list_lot_costs(
-    variant_id: int, supplier_id: str,
+    supplier_id: str,
+    sku: str = Query(pattern=SKU_PATTERN),
     session: SessionData = Depends(require_roles("viewer", "buyer", "approver", "admin")),
     client: ProcurementClient = Depends(get_procurement_client),
+    inventory: InventoryClient = Depends(get_inventory_client),
 ) -> list[dict[str, Any]]:
-    return await client.get_lot_costs(variant_id, supplier_id, roles=session.roles)
+    return await client.get_lot_costs(await inventory.internal_id(sku, session.roles), supplier_id, roles=session.roles)
 
 
 @router.post("/lot-costs", status_code=201)
@@ -38,8 +42,12 @@ async def add_lot_cost(
     body: dict[str, Any],
     session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
+    inventory: InventoryClient = Depends(get_inventory_client),
 ) -> dict[str, Any]:
-    return await client.add_lot_cost(body, user_id=session.user_id, roles=session.roles)
+    sku = body.pop("sku", None)
+    if not isinstance(sku, str) or not re.match(SKU_PATTERN, sku):
+        raise HTTPException(status_code=422, detail="request_invalid")
+    return await client.add_lot_cost({**body, "variant_id": await inventory.internal_id(sku, session.roles)}, user_id=session.user_id, roles=session.roles)
 
 
 @router.post("/cost-updates", status_code=201)
@@ -47,8 +55,15 @@ async def request_cost_update(
     body: dict[str, Any],
     session: SessionData = Depends(require_roles("buyer")),
     client: ProcurementClient = Depends(get_procurement_client),
+    inventory: InventoryClient = Depends(get_inventory_client),
 ) -> dict[str, Any]:
-    return await client.request_cost_update(body, user_id=session.user_id, roles=session.roles)
+    sku = body.get("sku")
+    if not isinstance(sku, str) or not re.match(SKU_PATTERN, sku) or not isinstance(body.get("supplier_id"), str):
+        raise HTTPException(status_code=422, detail="request_invalid")
+    product_id = (await inventory.internal_ids(sku, session.roles)).get("product_id")
+    if not isinstance(product_id, int):
+        raise HTTPException(status_code=422, detail="sku_without_product")
+    return await client.request_cost_update({"product_id": product_id, "supplier_id": body["supplier_id"]}, user_id=session.user_id, roles=session.roles)
 
 
 @router.post("/cost-writes/{write_id}/approve")

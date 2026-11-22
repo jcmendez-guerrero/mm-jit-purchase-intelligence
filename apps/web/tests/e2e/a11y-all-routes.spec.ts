@@ -59,10 +59,10 @@ for (const size of SIZES) {
 test("reference task 1 by keyboard: find a product at risk and open its detail", async ({ page }) => {
   await signInAs(page, "buyer");
   await page.route("**/api/dashboard/overview**", (r) => r.fulfill(json(overview(3))));
-  await page.route("**/api/inventory/variants/100", (r) => r.fulfill(json({
-    variant: { id: 100, sku: "SYN-100", name: "Variante sintética", pack_size: 1, uom: "u", product: { id: 1 } }, stock: { on_hand: 0, available: 0, reserved: 0, as_of: "2026-11-09" },
+  await page.route("**/api/inventory/skus/SYN-100", (r) => r.fulfill(json({
+    variant: { sku: "SYN-100", name: "Variante sintética", pack_size: 1, uom: "u", product: { status: "active" } }, stock: { on_hand: 0, available: 0, reserved: 0, as_of: "2026-11-09" },
     demand: [], flows: [], history: [], history_reconciled: true, segment: { abc: "A", xyz: "X", pattern: "smooth", forecast_eligible: true, reasons: [], metrics: {} } })));
-  await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ detail: "no_forecast_run" }, 404)));
+  await page.route("**/api/dashboard/skus/SYN-100/forecast-basis", (r) => r.fulfill(json({ detail: "no_forecast_run" }, 404)));
   await page.goto("/panel");
   await expect(page.getByRole("table", { name: "Tabla de riesgos detectados" })).toBeVisible();
   await tabTo(page, (e) => e.tag === "BUTTON" && /Ver detalle/.test(e.name));

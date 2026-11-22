@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/dashboard_drilldown.v1",
+  "title": "DashboardDrilldown",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "truncated", "total", "offset", "sum", "rows"],
+  "description": "GET /api/dashboard/drilldown: the products behind one dashboard figure, ordered by contribution with ties broken by SKU. `sum` covers every row, not only the page. For a money kind and a role without cost access, `sum` and every `figure` are null. `variant_id` is kept only for the existing product overlay; removing it is a v2 change.",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": [
+        "inventory_value",
+        "coverage",
+        "stockout_risk",
+        "expiry_risk",
+        "abc_xyz",
+        "trend_day",
+        "demand",
+        "forecast",
+        "capital",
+        "expiry_band"
+      ]
+    },
+    "truncated": { "type": "boolean" },
+    "total": { "type": "integer", "minimum": 0 },
+    "offset": { "type": "integer", "minimum": 0 },
+    "sum": { "type": ["string", "null"], "pattern": "^-?\\d+(\\.\\d+)?$" },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["variant_id", "sku", "name", "figure"],
+        "properties": {
+          "variant_id": { "type": "integer" },
+          "sku": { "type": ["string", "null"] },
+          "name": { "type": ["string", "null"] },
+          "figure": {
+            "type": ["string", "null"],
+            "pattern": "^-?\\d+(\\.\\d+)?$"
+          }
+        }
+      }
+    }
+  }
+}

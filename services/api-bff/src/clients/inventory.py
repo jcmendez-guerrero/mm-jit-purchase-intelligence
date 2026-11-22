@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from urllib.parse import quote
 
 from .base import DownstreamClient
 
@@ -19,10 +20,19 @@ class InventoryClient(DownstreamClient):
         res.raise_for_status()
         return res.json()
 
-    async def get_variant_detail(self, variant_id: int, roles: list[str] | None = None) -> dict[str, Any]:
-        res = await self.get(f"/variants/{variant_id}", roles=roles)
+    async def get_sku_detail(self, sku: str, roles: list[str] | None = None) -> dict[str, Any]:
+        res = await self.get(f"/skus/{quote(sku, safe='')}", roles=roles)
         res.raise_for_status()
         return res.json()
+
+    async def internal_ids(self, sku: str, roles: list[str] | None = None) -> dict[str, Any]:
+        """The catalogue owner turns a SKU into the ids the services use between themselves (FR-008a); nothing is cached or computed here."""
+        res = await self.get(f"/skus/{quote(sku, safe='')}/variant", roles=roles)
+        res.raise_for_status()
+        return res.json()
+
+    async def internal_id(self, sku: str, roles: list[str] | None = None) -> int:
+        return int((await self.internal_ids(sku, roles))["id"])
 
     async def get_review_items(self, roles: list[str] | None = None) -> dict[str, Any]:
         res = await self.get("/review", roles=roles)

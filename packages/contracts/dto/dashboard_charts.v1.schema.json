@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/dashboard_charts.v1",
+  "title": "DashboardCharts",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["charts"],
+  "description": "GET /api/dashboard/charts (feature 014): the chart tables for the requested keys, in the order asked. Each item has the shape of `ChartSeries` in dashboard_indicators.v2, which stays frozen; this schema only defines the list around it. A chart the data cannot support is `no_data` with the reason in `summary_params.reason`, never an empty or zero-filled series; a chart that failed is `error` on its own and never stops the others. A role without cost access receives no money column and no value history.",
+  "properties": {
+    "charts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "title_key", "columns", "rows", "state"],
+        "properties": {
+          "key": {
+            "enum": [
+              "demand_forecast",
+              "abc_xyz",
+              "expiry_bands",
+              "coverage_buckets",
+              "capital_by_group",
+              "forecast_error",
+              "stock_value_history"
+            ]
+          },
+          "title_key": { "type": "string" },
+          "summary_params": { "type": "object" },
+          "columns": { "type": "array", "items": { "type": "string" } },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "description": "One value per column; money and decimals travel as strings"
+            }
+          },
+          "range_available": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "from": { "type": "string", "format": "date" },
+              "to": { "type": "string", "format": "date" }
+            }
+          },
+          "state": { "enum": ["ok", "no_data", "error"] }
+        }
+      }
+    }
+  }
+}

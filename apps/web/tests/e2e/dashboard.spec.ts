@@ -8,8 +8,8 @@ test.describe("Dashboard (T124)", () => {
   test.beforeEach(async ({ page }) => {
     await signIn(page);
     await page.route("**/api/dashboard/overview*", (r) => r.fulfill(json(overview())));
-    await page.route("**/api/inventory/variants/100", (r) => r.fulfill(json({
-      variant: { id: 100, sku: "SYN-100", name: "Variante sintética", pack_size: 1, uom: "u", product: { id: 1 } }, stock: { on_hand: 0, available: 0, reserved: 0, as_of: "2026-11-09" },
+    await page.route("**/api/inventory/skus/SYN-100", (r) => r.fulfill(json({
+      variant: { sku: "SYN-100", name: "Variante sintética", pack_size: 1, uom: "u", product: { status: "active" } }, stock: { on_hand: 0, available: 0, reserved: 0, as_of: "2026-11-09" },
       demand: [{ day: "2026-11-01", warehouse_id: 1, qty: 3, censored: false }], flows: [], history: [], history_reconciled: true,
       segment: { abc: "A", xyz: "X", pattern: "smooth", forecast_eligible: true, reasons: [], metrics: {} } })));
   });
@@ -45,7 +45,7 @@ test.describe("Dashboard (T124)", () => {
   });
 
   test("the product detail says when the forecast rests on imported estimates", async ({ page }) => {
-    await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ run_id: "r1", variant_id: 100, eligible: true, policy: "minmax_poisson", seed_used: true, upper_level: "0.95", horizons: [{ days: 14, mean: 21, upper: 27.5 }] })));
+    await page.route("**/api/dashboard/skus/SYN-100/forecast-basis", (r) => r.fulfill(json({ run_id: "r1", sku: "SYN-100", eligible: true, policy: "minmax_poisson", seed_used: true, upper_level: "0.95", horizons: [{ days: 14, mean: 21, upper: 27.5 }] })));
     await page.goto("/");
     await page.getByRole("button", { name: "Ver detalle" }).first().click();
     await expect(page.getByLabel("Detalle del producto")).toContainText("Previsión con datos importados");
@@ -62,7 +62,7 @@ test.describe("Dashboard (T124)", () => {
   });
 
   test("a product with no forecast basis shows no estimate label", async ({ page }) => {
-    await page.route("**/api/dashboard/variants/100/forecast-basis", (r) => r.fulfill(json({ detail: "no_forecast_run" }, 404)));
+    await page.route("**/api/dashboard/skus/SYN-100/forecast-basis", (r) => r.fulfill(json({ detail: "no_forecast_run" }, 404)));
     await page.goto("/");
     await page.getByRole("button", { name: "Ver detalle" }).first().click();
     await expect(page.getByLabel("Detalle del producto")).toContainText("Previsión estadística disponible");
@@ -83,7 +83,7 @@ test.describe("Dashboard (T124)", () => {
     await page.route("**/api/dashboard/drilldown*", (r) => {
       asked.push(new URL(r.request().url()).search);
       const kind = new URL(r.request().url()).searchParams.get("kind");
-      const rows = kind === "abc_xyz" ? [] : [{ variant_id: 100, sku: "SYN-100", name: "Variante sintética", figure: kind === "inventory_value" ? "40.00" : kind === "coverage" ? "4.0" : kind === "trend_day" ? "3" : null }];
+      const rows = kind === "abc_xyz" ? [] : [{ sku: "SYN-100", name: "Variante sintética", figure: kind === "inventory_value" ? "40.00" : kind === "coverage" ? "4.0" : kind === "trend_day" ? "3" : null }];
       return r.fulfill(json({ kind, truncated: kind === "inventory_value", total: kind === "inventory_value" ? 80 : rows.length, rows }));
     });
     await page.goto("/");

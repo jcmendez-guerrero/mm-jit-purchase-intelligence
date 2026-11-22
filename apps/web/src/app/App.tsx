@@ -10,6 +10,7 @@ import { QueuePanel } from "../features/admin/QueuePanel";
 import { RolesScreen } from "../features/admin/RolesScreen";
 import { CostsScreen } from "../features/costs/CostsScreen";
 import { DashboardScreen } from "../features/dashboard/DashboardScreen";
+import { SkuDetailPage } from "../features/dashboard/SkuDetailPage";
 import { ImportScreen } from "../features/imports/ImportScreen";
 import { LocalLoadScreen } from "../features/localload/LocalLoadScreen";
 import { PoliciesScreen } from "../features/policies/PoliciesScreen";
@@ -25,7 +26,7 @@ import { NotFound } from "./NotFound";
 import { DEFAULT_PATH } from "./routes";
 
 /** The selected warehouse lives in the address (?almacen=), so a link reproduces the view (FR-002). */
-const DashboardRoute: React.FC = () => {
+const DashboardRoute: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
   const [params, setParams] = useSearchParams();
   const raw = params.get("almacen");
   const warehouse = raw !== null && /^\d+$/.test(raw) ? parseInt(raw, 10) : undefined;
@@ -44,14 +45,14 @@ const DashboardRoute: React.FC = () => {
     [setParams],
   );
   const rawProduct = params.get("producto");
-  const product = rawProduct !== null && /^\d+$/.test(rawProduct) ? parseInt(rawProduct, 10) : null;
+  const product = rawProduct !== null && rawProduct.trim() !== "" && rawProduct.length <= 60 ? rawProduct : null;
   const selectProduct = useCallback(
-    (id: number | null) => {
+    (sku: string | null) => {
       setParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          if (id === null) next.delete("producto");
-          else next.set("producto", String(id));
+          if (sku === null) next.delete("producto");
+          else next.set("producto", sku);
           return next;
         },
         { replace: true },
@@ -59,7 +60,7 @@ const DashboardRoute: React.FC = () => {
     },
     [setParams],
   );
-  return <DashboardScreen selectedWarehouse={warehouse} onSelectWarehouse={select} selectedProduct={product} onSelectProduct={selectProduct} />;
+  return <DashboardScreen selectedWarehouse={warehouse} onSelectWarehouse={select} selectedProduct={product} onSelectProduct={selectProduct} userRoles={userRoles} />;
 };
 
 /** The proposals screen, filtered to one SKU when arriving from a product's detail (?sku=), with a way back to it (?volver=). */
@@ -68,8 +69,8 @@ const ProposalsRoute: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
   const [params, setParams] = useSearchParams();
   const sku = params.get("sku") || undefined;
   const back = params.get("volver");
-  const backAction = back !== null && /^\d+$/.test(back) ? (
-    <Link className="mmi-button mmi-button--secondary mmi-button--small" to={`/panel?producto=${back}`}>
+  const backAction = back !== null && back.trim() !== "" && back.length <= 60 ? (
+    <Link className="mmi-button mmi-button--secondary mmi-button--small" to={`/panel?producto=${encodeURIComponent(back)}`}>
       {t("proposals.back_to_product")}
     </Link>
   ) : undefined;
@@ -166,7 +167,8 @@ export const App: React.FC = () => {
     <Routes>
       <Route element={<AppShell session={session} roles={userRoles} sessionExpired={sessionExpired} onLogout={handleLogout} features={features} />}>
         <Route index element={<Navigate to={DEFAULT_PATH} replace />} />
-        <Route path="panel" element={<DashboardRoute />} />
+        <Route path="panel" element={<DashboardRoute userRoles={userRoles} />} />
+        <Route path="panel/skus/:sku" element={<SkuDetailPage />} />
         <Route path="calidad" element={<QualityScreen userRoles={userRoles} showLocalReview={features.includes("localLoad")} />} />
         <Route path="propuestas" element={<ProposalsRoute userRoles={userRoles} />} />
         <Route path="escenarios" element={<ScenariosScreen userRoles={userRoles} />} />

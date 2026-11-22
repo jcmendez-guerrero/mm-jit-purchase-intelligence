@@ -47,7 +47,7 @@ describe("superseded proposals, export roles and review notes (FR-008, FR-010, F
 
   it("lists a needed variant with no usable supplier instead of hiding it", async () => {
     vi.spyOn(api, "getProposals").mockResolvedValue(summary("draft"));
-    vi.spyOn(api, "getProposal").mockResolvedValue(base({ review_notes: [{ code: "no_eligible_supplier", variant_id: 7, sku: "SYN-007", product_name: "Producto Sintético" }] }));
+    vi.spyOn(api, "getProposal").mockResolvedValue(base({ review_notes: [{ code: "no_eligible_supplier", sku: "SYN-007", product_name: "Producto Sintético" }] }));
     render(<ProposalsScreen userRoles={["viewer", "buyer"]} />);
     expect(await screen.findByText(/SYN-007 — Producto Sintético: ninguna oferta es utilizable/)).toBeTruthy();
   });

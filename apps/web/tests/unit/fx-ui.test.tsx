@@ -70,7 +70,7 @@ describe("links of a foreign supplier", () => {
 describe("proposal line", () => {
   const line = (fx: Record<string, string> | undefined): ProposalLine =>
     ({
-      id: "l1", variant_id: 9001, sku: "SYN-001", qty: 10,
+      id: "l1", sku: "SYN-001", qty: 10,
       explanation: {
         policy: "forecast", forecast_eligible: true, forecast_basis: "actual_demand", service_level: "95", horizon_days: 14, expected_demand: 8, safety_stock: 2,
         order_up_to: 12, reorder_point: 5, need: 6, clinical_critical: false, position: { on_hand: 0, expiring: 0, usable: 0, inbound: 0, total: 0 },

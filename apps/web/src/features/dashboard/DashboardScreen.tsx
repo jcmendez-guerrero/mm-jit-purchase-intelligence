@@ -5,16 +5,21 @@ import { api, DashOverview, DrillRequest, errorMessage, type IndicatorKey, RiskI
 import { formatCurrencyEUR, formatDate, formatNumber, formatPercent } from "../../i18n/formatters";
 import { DataTable, type Column } from "../../ui/DataTable";
 import { FilterBar, type FilterChip } from "../../ui/FilterBar";
+import { EmptyState } from "../../ui/EmptyState";
 import { ScreenState } from "../../ui/ScreenState";
 import { SeverityRuler, type Severity } from "../../ui/SeverityRuler";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { statusInfo } from "../../ui/statusVocabulary";
 import { useChartColors } from "../../ui/useChartColors";
+import { ChartsSection } from "./charts/ChartsSection";
+import { canExportDashboard, ExportButton } from "./ExportButton";
+import { TrustBanner } from "./TrustBanner";
+import { useNewerDataNotice } from "./useNewerDataNotice";
 import { ChartWithTable } from "./ChartWithTable";
-import { ageInDays, DEFAULT_DAYS, forecastStats, mergeTrend, periodFor, severitySplitIsReliable, stockoutSeverityCounts, trendStats } from "./dashboardModel";
+import { ageInDays, DEFAULT_DAYS, forecastStats, mergeTrend, noFilterMatches, periodFor, severitySplitIsReliable, stockoutSeverityCounts, trendStats } from "./dashboardModel";
 import { DrillDownPanel } from "./DrillDownPanel";
 import { IndicatorCard } from "./IndicatorCard";
-import { useDashboardFilters } from "./useDashboardFilters";
+import { PARAM, useDashboardFilters } from "./useDashboardFilters";
 import { ProductDetail } from "./ProductDetail";
 import { SupplierPanel } from "./SupplierPanel";
 import { Button } from "../../ui/Button";
@@ -24,23 +29,32 @@ interface Props {
   selectedWarehouse?: number | undefined;
   onSelectWarehouse?: ((id: number | undefined) => void) | undefined;
   /** The open product detail, kept in the address (?producto=) so a link or the back button returns to it (feature 012). */
-  selectedProduct?: number | null | undefined;
-  onSelectProduct?: ((id: number | null) => void) | undefined;
+  selectedProduct?: string | null | undefined;
+  onSelectProduct?: ((sku: string | null) => void) | undefined;
+  /** The signed-in user's roles: only those that may see costs are offered the export. */
+  userRoles?: string[] | undefined;
 }
 
-const DRILL_OF: Partial<Record<IndicatorKey, DrillRequest["kind"]>> = { stock_value: "inventory_value", coverage_days: "coverage", stockout_risk: "stockout_risk", expiry_exposure: "expiry_risk" };
+const DRILL_OF: Partial<Record<IndicatorKey, DrillRequest["kind"]>> = { stock_value: "inventory_value", coverage_days: "coverage", stockout_risk: "stockout_risk", expiry_exposure: "expiry_risk", demand: "demand", forecast: "forecast", capital_tied_up: "capital" };
 const METRICS = ["wape", "bias", "stockout_rate"] as const;
 type AccuracyRow = [string, Record<string, string>];
 
 // The ruler grows once, the first time the dashboard is shown in this page view; refetches and filters never replay it.
 let rulerPlayed = false;
 
-const Unavailable: React.FC = () => {
+const Unavailable: React.FC<{ onRetry: () => void }> = ({ onRetry }) => {
   const { t } = useTranslation();
-  return <p role="alert">{t("dashboard.card_unavailable")}</p>;
+  return (
+    <>
+      <p role="alert">{t("dashboard.card_unavailable")}</p>
+      <Button variant="secondary" small onClick={onRetry}>
+        {t("ui.error.retry")}
+      </Button>
+    </>
+  );
 };
 
-export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWarehouse, selectedProduct, onSelectProduct }) => {
+export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWarehouse, selectedProduct, onSelectProduct, userRoles }) => {
   const { t } = useTranslation();
   const [data, setData] = useState<DashOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +70,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   const setSupplier = (v: string) => setFilters({ supplier: v || undefined });
   const [drill, setDrill] = useState<{ request: DrillRequest; title: string } | null>(null);
   const [supplierOpen, setSupplierOpen] = useState<string | null>(null);
-  const [detailLocal, setDetailLocal] = useState<number | null>(null);
+  const [detailLocal, setDetailLocal] = useState<string | null>(null);
   const detail = selectedProduct !== undefined ? selectedProduct : detailLocal;
   const setDetail = onSelectProduct ?? setDetailLocal;
   const [severity, setSeverity] = useState<Severity | null>(null);
@@ -65,6 +79,10 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   useEffect(() => {
     rulerPlayed = true;
   }, []);
+  const exportRole = canExportDashboard(userRoles);
+  const [forbidden, setForbidden] = useState(false);                  // the server refused an export: the role lost cost access while the screen was open
+  const [chartsVersion, setChartsVersion] = useState(0);
+  const scopeFilters = { warehouse_id: warehouse, category: category || undefined, family: family || undefined, supplier_id: supplier || undefined, date_from: filters.from, date_to: filters.to };
   const scope = { warehouse_id: warehouse, category: category || undefined, family: family || undefined, supplier_id: supplier || undefined };
   const openDrill = (request: Omit<DrillRequest, "warehouse_id" | "category" | "family" | "supplier_id">, title: string) => {
     setDetail(null);
@@ -92,6 +110,49 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   useEffect(() => {
     void load();
   }, [load]);
+
+  // A well-formed value that is not among the current options (a supplier or category that no longer exists) is not guessed at: it is dropped from the address and reported.
+  const [droppedUnknown, setDroppedUnknown] = useState<string[]>([]);
+  useEffect(() => {
+    if (!data) return;
+    const names: string[] = [];
+    const o = data.options.ok ? data.options.data : undefined;                   // a list that failed to load proves nothing about a value
+    const known = data.suppliers.ok ? data.suppliers.data : undefined;
+    const patch: Partial<typeof filters> = {};
+    if (o && o.categories.length > 0 && category && !o.categories.some((c) => c.id === category)) {
+      patch.category = undefined;
+      names.push(PARAM.category);
+    }
+    if (o && o.family_available && (o.families ?? []).length > 0 && family && !(o.families ?? []).some((f) => f.id === family)) {
+      patch.family = undefined;
+      names.push(PARAM.family);
+    }
+    if (known && known.length > 0 && supplier && !known.some((s) => s.id === supplier)) {
+      patch.supplier = undefined;
+      names.push(PARAM.supplier);
+    }
+    if (o && o.warehouses.length > 0 && warehouse !== undefined && !o.warehouses.some((w) => w.id === warehouse)) {
+      names.push(PARAM.warehouse);
+      setWarehouse(undefined);
+      onSelectWarehouse?.(undefined);
+    }
+    if (names.length === 0) return;
+    if (Object.keys(patch).length > 0) setFilters(patch);
+    setDroppedUnknown((prev) => [...new Set([...prev, ...names])]);
+  // runs when a response arrives, with the values that request used
+  }, [data]);
+  const trust = useNewerDataNotice(data);                 // asks, once a minute, whether newer data exists; the figures change only when the user accepts
+  const moneyHidden = (data?.indicators ?? []).some((i) => i.state === "hidden_by_role");                       // the server says this role no longer sees costs
+  const canExport = exportRole && !forbidden && !moneyHidden;
+  const roleLost = () => {                                                                                      // no stale copy of a cost figure stays on screen
+    setForbidden(true);
+    setDrill(null);
+    setChartsVersion((v) => v + 1);
+    void load();
+  };
+  useEffect(() => {
+    if (moneyHidden) setDrill(null);                                                                            // a drill-down opened with cost figures is closed when the role loses them
+  }, [moneyHidden]);
 
   const pickWarehouse = (v: string) => {
     const id = v === "all" ? undefined : parseInt(v, 10);
@@ -123,19 +184,20 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
   if (filters.from) chips.push({ key: "from", name: t("dashboard.filter.from"), label: nameOf("dashboard.filter.from", formatDate(`${filters.from}T12:00:00`)), onRemove: () => setFilters({ from: undefined }) });
   if (filters.to) chips.push({ key: "to", name: t("dashboard.filter.to"), label: nameOf("dashboard.filter.to", formatDate(`${filters.to}T12:00:00`)), onRemove: () => setFilters({ to: undefined }) });
   const clearFilters = () => {
+    setDroppedUnknown([]);
     pickWarehouse("all");
     clearAddressFilters();
   };
 
   const riskColumns: Column<RiskItem>[] = [
-    { id: "variant", header: t("common.variant"), cell: (r) => String(r.params?.sku ?? t("common.no_sku")), sortValue: (r) => String(r.params?.sku ?? "") },
+    { id: "variant", header: t("common.variant"), cell: (r) => r.sku || t("common.no_sku"), sortValue: (r) => r.sku },
     { id: "status", header: t("common.status"), cell: (r) => <StatusBadge domain="risk" code={r.risk_type} />, sortValue: (r) => r.risk_type },
     { id: "why", header: t("proposals.explanation"), cell: (r) => String(t(r.explanation_key, r.params ?? {})) },
     {
       id: "actions",
       header: t("common.actions"),
       cell: (r) => (
-        <Button variant="secondary" small onClick={() => setDetail(r.variant_id)}>
+        <Button variant="secondary" small disabled={!r.sku} onClick={() => setDetail(r.sku)}>
           {t("dashboard.risk_open")}
         </Button>
       ),
@@ -211,7 +273,9 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           <input id="f-to" type="date" value={period.to} min={period.from} onChange={(e) => setFilters({ to: e.target.value || undefined })} />
         </div>
       </FilterBar>
-      {ignored.length > 0 && <p role="note">{t("dashboard.filter.ignored", { names: ignored.join(", ") })}</p>}
+      <TrustBanner freshness={trust.freshness} newer={trust.newer} onRefresh={() => void load()} />
+      {forbidden && <p className="mmi-banner" role="alert">{t("dashboard.export.role_lost")}</p>}
+      {[...ignored, ...droppedUnknown].length > 0 && <p role="note">{t("dashboard.filter.ignored", { names: [...ignored, ...droppedUnknown].join(", ") })}</p>}
       {warehouse !== undefined && <p role="note">{t("dashboard.warehouse_informational")}</p>}
       {opts && !opts.family_available && <p className="mmi-muted">{t("dashboard.family_pending")}</p>}
       {s && (
@@ -236,10 +300,14 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
             action={s ? viewProducts("stockout_risk") : undefined}
           />
 
+          {noFilterMatches(indicators, chips.length) && (
+            <EmptyState title={t("dashboard.filter.no_match_title")} hint={t("dashboard.filter.no_match_hint")} actionLabel={t("dashboard.filter.no_match_action")} onAction={clearFilters} />
+          )}
+          {canExport && <ExportButton view={{ kind: "cards" }} filters={scopeFilters} loadedAt={trust.loadedAt} onForbidden={roleLost} label={t("dashboard.export.cards")} />}
           <div className="mmi-figures">
             {indicators.map((i) => {
               const kind = DRILL_OF[i.key];
-              return <IndicatorCard key={i.key} indicator={i} period={period} onDrill={kind && s ? () => openDrill({ kind }, t(`dashboard.drill.title.${kind}`)) : undefined} />;
+              return <IndicatorCard key={i.key} indicator={i} period={period} onRetry={() => void load()} onDrill={kind && s ? () => openDrill(kind === "demand" ? { kind, date_from: filters.from, date_to: filters.to } : { kind }, t(`dashboard.drill.title.${kind}`)) : undefined} />;
             })}
           </div>
           {s && s.valued_with_estimate > 0 && <p className="mmi-muted">{t("dashboard.kpi.value_estimated", { n: s.valued_with_estimate })}</p>}
@@ -274,7 +342,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
               ) : data.spend.error === "hidden_by_role" ? (
                 <p className="mmi-figure__note">{t("dashboard.kpi.hidden_by_role")}</p>
               ) : (
-                <Unavailable />
+                <Unavailable onRetry={() => void load()} />
               )}
             </div>
           </div>
@@ -282,7 +350,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           <Card as="div">
             <h3>{t("dashboard.accuracy")}</h3>
             {!data.accuracy.ok || !data.accuracy.data ? (
-              <Unavailable />
+              <Unavailable onRetry={() => void load()} />
             ) : Object.keys(data.accuracy.data.metrics).length === 0 ? (
               <p>{t("dashboard.accuracy_none")}</p>
             ) : (
@@ -338,7 +406,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                 </ChartWithTable>
               )
             ) : (
-              <Unavailable />
+              <Unavailable onRetry={() => void load()} />
             )}
             <p className="mmi-muted">{t("dashboard.chart.trend_note")}</p>
             {trendData && (
@@ -379,24 +447,33 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
                 </ChartWithTable>
               )
             ) : (
-              <Unavailable />
+              <Unavailable onRetry={() => void load()} />
             )}
           </Card>
+
+          <ChartsSection
+            filters={scopeFilters}
+            canExport={canExport}
+            loadedAt={trust.loadedAt}
+            onForbidden={roleLost}
+            version={chartsVersion}
+            onDrillBand={(band) => openDrill({ kind: "expiry_band", band }, t("dashboard.drill.title.expiry_band"))}
+          />
 
           <Card as="div">
             <h3>{t("dashboard.risks")}</h3>
             {!data.risks.ok ? (
-              <Unavailable />
+              <Unavailable onRetry={() => void load()} />
             ) : risks.length === 0 ? (
               <p>✓ {t("dashboard.no_risks")}</p>
             ) : (
-              <DataTable ariaLabel={t("a11y.risk_table")} columns={riskColumns} rows={shownRisks} rowKey={(r) => `${r.variant_id}-${r.risk_type}-${r.explanation_key}`} rowTone={riskTone} />
+              <DataTable ariaLabel={t("a11y.risk_table")} columns={riskColumns} rows={shownRisks} rowKey={(r) => `${r.sku}-${r.risk_type}-${r.explanation_key}-${JSON.stringify(r.params ?? {})}`} rowTone={riskTone} />
             )}
           </Card>
         </>
       )}
       {drill !== null && (
-        <DrillDownPanel request={drill.request} title={drill.title} onClose={() => setDrill(null)} onOpenProduct={(id) => setDetail(id)} />
+        <DrillDownPanel request={drill.request} title={drill.title} onClose={() => setDrill(null)} onOpenProduct={(sku) => setDetail(sku)} canExport={canExport} loadedAt={trust.loadedAt} onForbidden={roleLost} range={{ date_from: filters.from, date_to: filters.to }} />
       )}
       {supplierOpen !== null && (
         <SupplierPanel
@@ -406,7 +483,7 @@ export const DashboardScreen: React.FC<Props> = ({ selectedWarehouse, onSelectWa
           onClose={() => setSupplierOpen(null)}
         />
       )}
-      {detail !== null && <ProductDetail variantId={detail} onClose={() => setDetail(null)} />}
+      {detail !== null && <ProductDetail sku={detail} onClose={() => setDetail(null)} />}
     </section>
   );
 };

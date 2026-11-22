@@ -82,20 +82,19 @@ def test_only_a_buyer_saves_and_the_precondition_and_the_key_are_forwarded(role_
     assert "variant_id" not in kw
 
 
-def test_a_sku_with_a_slash_and_accents_reaches_the_service_whole(role_store):
+def test_a_sku_with_a_slash_or_accents_is_refused_before_the_service(role_store):
+    """Changed by MMI-11 (T107, decided by the user): a SKU is letters, digits, `.`, `_` and `-`; the gateway refuses anything else on every route."""
     mock = AsyncMock()
-    mock.get_override_terms.return_value = {"sku": "SYN/áño-1"}
-    mock.put_override_terms.return_value = {"version": 1}
     app = app_with(mock)
     path = "/api/product-suppliers/SYN%2F%C3%A1%C3%B1o-1/s1/terms"
     try:
         h = headers_for("buyer-1", BUYER)
-        assert TestClient(app).get(path, headers=h).status_code == 200
-        assert TestClient(app).put(path, json={"pack_multiple": 6}, headers=h).status_code == 200
+        assert TestClient(app).get(path, headers=h).status_code == 422
+        assert TestClient(app).put(path, json={"pack_multiple": 6}, headers=h).status_code == 422
     finally:
         app.dependency_overrides.clear()
-    assert mock.get_override_terms.call_args.args[:2] == ("SYN/áño-1", "s1")
-    assert mock.put_override_terms.call_args.kwargs["sku"] == "SYN/áño-1"
+    mock.get_override_terms.assert_not_called()
+    mock.put_override_terms.assert_not_called()
 
 
 def test_the_variant_id_path_no_longer_means_a_variant(role_store):
