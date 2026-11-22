@@ -1961,6 +1961,28 @@
         "api-bff"
       ],
       "status": "draft"
+    },
+    {
+      "name": "GET /forecasts/eligibility",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "forecast_eligibility.v1",
+      "owner": "forecast-service",
+      "consumers": [
+        "inventory-service"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /export/series",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "series_export.v1",
+      "owner": "inventory-service",
+      "consumers": [
+        "forecast-service"
+      ],
+      "status": "draft"
     }
   ]
 }

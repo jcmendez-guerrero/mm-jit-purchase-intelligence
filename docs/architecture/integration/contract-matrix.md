@@ -210,5 +210,7 @@ The gateway is `services/api-bff`.
 | `GET /dashboard/export` | service_endpoint | v1 | inventory-service | api-bff | draft |
 | `GET /dashboard/freshness` | service_endpoint | v1 | inventory-service | api-bff | draft |
 | `GET /dashboard/skus/{sku}` | service_endpoint | v1 | inventory-service | api-bff | draft |
+| `GET /export/series` | service_endpoint | v1 | inventory-service | forecast-service | draft |
+| `GET /forecasts/eligibility` | service_endpoint | v1 | forecast-service | inventory-service | draft |
 | `GET /skus/{sku}` | service_endpoint | v1 | inventory-service | api-bff | draft |
 | `GET /skus/{sku}/variant` | service_endpoint | v1 | inventory-service | api-bff | draft |
