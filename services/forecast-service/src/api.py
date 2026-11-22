@@ -5,15 +5,16 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Iterator
 from datetime import UTC, date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from audit import append
-from db.tables import audit_events, forecast_runs, forecast_values
+from backtest.jobs import BacktestConflict, JobFailed, UnknownProduct, run_backtest
+from db.tables import audit_events, forecast_explanations, forecast_runs, forecast_values, product_backtest
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Path, Query
 from fastapi.responses import JSONResponse
 from mmi_common.errors import error_code
 from parameters import ParameterConflict, ParameterError, listing, save_parameter
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from runs.accuracy import latest_accuracy
 from runs.runner import run_forecast
 from sqlalchemy import create_engine, select
@@ -22,9 +23,25 @@ from sqlalchemy.engine import Connection, Engine
 _engine: Engine | None = None
 
 
+def _utc(moment: datetime) -> str:
+    """A stored moment as ISO text that always says UTC (SQLite hands back naive values, PostgreSQL aware ones)."""
+    return (moment if moment.tzinfo else moment.replace(tzinfo=UTC)).astimezone(UTC).isoformat()
+
+
 class ParameterBody(BaseModel):
     value: str
     valid_from: date | None = None
+
+
+class BacktestBody(BaseModel):
+    scope: Literal["catalogue", "product"]
+    sku: str | None = None
+
+    @model_validator(mode="after")
+    def _product_needs_a_sku(self) -> BacktestBody:
+        if self.scope == "product" and not self.sku:
+            raise ValueError("a product backtest needs a SKU")
+        return self
 
 
 def get_engine() -> Engine:
@@ -57,6 +74,70 @@ def build_router(app: FastAPI) -> APIRouter:
             v["horizons"][str(r.horizon_days)] = {"mean": r.mean, "quantiles": r.quantiles}
         return {"run_id": run.id, "input_hash": run.input_hash, "dataset_version_id": run.dataset_version_id, "through_day": run.through_day, "total": run.total_count, "eligible": run.eligible_count,
                 "variants": {str(k): v for k, v in variants.items()}}
+
+    @router.get("/forecasts/products/{sku}/explanation")
+    def explanation(sku: str, run_id: str | None = Query(default=None, max_length=36), conn: Connection = Depends(conn_dep),
+                    _p: Any = Depends(require())) -> dict[str, Any]:
+        """T036: why this product's forecast is what it is (latest completed run, or the one asked for). SKU only: the ERP id never leaves the service."""
+        q = (select(forecast_explanations).join(forecast_runs, forecast_runs.c.id == forecast_explanations.c.run_id)
+             .where(forecast_explanations.c.sku == sku, forecast_runs.c.status == "completed"))
+        if run_id:
+            q = q.where(forecast_explanations.c.run_id == run_id)
+        row = conn.execute(q.order_by(forecast_runs.c.started_at.desc(), forecast_runs.c.id.desc()).limit(1)).first()
+        if row is None:
+            raise HTTPException(404, "forecast_explanation_not_available")
+
+        def figure(v: float | None) -> str | None:
+            return None if v is None else f"{v:.4f}"
+
+        return {"run_id": row.run_id, "sku": row.sku, "model_version": row.model_version, "dataset_version_id": row.dataset_version_id,
+                "config_version_id": row.config_version_id, "history_start": row.history_start.isoformat() if row.history_start else None,
+                "history_end": row.history_end.isoformat() if row.history_end else None, "abc": row.abc, "xyz": row.xyz, "pattern": row.pattern,
+                "intermittent": bool(row.intermittent), "method": row.method, "method_reason_code": row.method_reason_code, "censored_days": row.censored_days,
+                "anomaly_days_excluded": row.anomaly_days_excluded, "provenance_mix": row.provenance_mix, "low": figure(row.low), "expected": figure(row.expected),
+                "high": figure(row.high), "confidence": row.confidence, "confidence_reason_codes": row.confidence_reason_codes, "eligibility": row.eligibility,
+                "eligibility_reason_codes": row.eligibility_reason_codes}
+
+    @router.get("/forecasts/eligibility")
+    def eligibility(conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """T060b: eligibility and confidence of every product in the latest completed run, by SKU. Inventory-service pulls it to build the portfolio."""
+        run = conn.execute(select(forecast_runs.c.id).where(forecast_runs.c.status == "completed").order_by(forecast_runs.c.started_at.desc(), forecast_runs.c.id.desc()).limit(1)).scalar()
+        if run is None:
+            raise HTTPException(404, "no_forecast_run")
+        rows = conn.execute(select(forecast_explanations.c.sku, forecast_explanations.c.eligibility, forecast_explanations.c.confidence)
+                            .where(forecast_explanations.c.run_id == run, forecast_explanations.c.sku.is_not(None)).order_by(forecast_explanations.c.sku)).all()
+        return {"run_id": run, "variants": [{"sku": r.sku, "eligibility": r.eligibility, "confidence": r.confidence} for r in rows]}
+
+    @router.post("/forecasts/backtests")
+    def start_backtest(body: BacktestBody, engine: Engine = Depends(get_engine), principal: Any = Depends(require())) -> Any:
+        """T055: score the method of one product, or of the whole catalogue, against the baseline on past periods. Changes no forecast or proposal."""
+        if not ({"buyer", "admin"} & set(principal.roles)):
+            raise HTTPException(403, "auth_forbidden_role")
+        source = getattr(app.state, "series_source", None)
+        if source is None:
+            raise HTTPException(503, "not_configured")
+        try:
+            return run_backtest(engine, source, scope=body.scope, sku=body.sku, actor=principal.subject)
+        except UnknownProduct as exc:
+            raise HTTPException(404, "quality_product_not_found") from exc
+        except BacktestConflict as exc:
+            return JSONResponse(status_code=409, content={"detail": "forecast_backtest_conflict", "running_job_id": exc.job_id})
+        except JobFailed as exc:
+            raise HTTPException(502, "quality_job_failed") from exc
+
+    @router.get("/forecasts/products/{sku}/backtest")
+    def product_backtest_result(sku: str, conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:
+        """T055: the latest backtest result of one product, by SKU."""
+        row = conn.execute(select(product_backtest).where(product_backtest.c.sku == sku).order_by(product_backtest.c.created_at.desc(), product_backtest.c.id.desc()).limit(1)).first()
+        if row is None:
+            raise HTTPException(404, "quality_product_not_found")
+
+        def dec(v: Any) -> str | None:
+            return None if v is None else str(v)
+
+        return {"backtest_run_id": row.backtest_run_id, "sku": row.sku, "periods": row.periods, "wape": dec(row.wape), "bias": dec(row.bias), "baseline_wape": dec(row.baseline_wape),
+                "baseline_bias": dec(row.baseline_bias), "beats_baseline": bool(row.beats_baseline), "model_version": row.model_version, "dataset_version_id": row.dataset_version_id,
+                "config_version_id": row.config_version_id, "created_at": _utc(row.created_at)}
 
     @router.get("/forecasts/variant/{variant_id}")
     def variant_forecast(variant_id: int = Path(ge=1), conn: Connection = Depends(conn_dep), _p: Any = Depends(require())) -> dict[str, Any]:

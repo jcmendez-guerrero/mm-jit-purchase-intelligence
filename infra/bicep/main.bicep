@@ -357,8 +357,8 @@ module connectorJob 'modules/containerAppJob.bicep' = {
 // values that are only known during the deployment.
 var serviceJobs = [
   { key: 'connector', dir: 'siweb-connector', image: images.connector, identityId: idConnector.id, env: connectorEnv, secrets: dbSecret(vaultUri, dbUrlPrefix, 'connector', idConnector.id), migrate: true, work: false }
-  { key: 'inventory', dir: 'inventory-service', image: images.inventory, identityId: idInventory.id, env: inventoryEnv, secrets: dbSecret(vaultUri, dbUrlPrefix, 'inventory', idInventory.id), migrate: true, work: true }
-  { key: 'forecast', dir: 'forecast-service', image: images.forecast, identityId: idForecast.id, env: forecastEnv, secrets: dbSecret(vaultUri, dbUrlPrefix, 'forecast', idForecast.id), migrate: true, work: true }
+  { key: 'inventory', dir: 'inventory-service', image: images.inventory, identityId: idInventory.id, env: inventoryEnv, secrets: dbSecret(vaultUri, dbUrlPrefix, 'inventory', idInventory.id), migrate: true, work: true, retention: true }
+  { key: 'forecast', dir: 'forecast-service', image: images.forecast, identityId: idForecast.id, env: forecastEnv, secrets: dbSecret(vaultUri, dbUrlPrefix, 'forecast', idForecast.id), migrate: true, work: true, retention: true }
   { key: 'procurement', dir: 'procurement-service', image: images.procurement, identityId: idProcurement.id, env: procurementEnv, secrets: dbSecret(vaultUri, dbUrlPrefix, 'procurement', idProcurement.id), migrate: true, work: true }
   { key: 'bff', dir: 'api-bff', image: images.bff, identityId: idBff.id, env: bffEnv, secrets: bffSecrets, migrate: true, work: true }
   { key: 'costwrite', dir: 'siweb-cost-writer', image: deployCostWriter ? images.costWriter : images.connector, identityId: idCostWriter.id, env: concat(commonEnv, dbEnv), secrets: dbSecret(vaultUri, dbUrlPrefix, 'costwrite', idCostWriter.id), migrate: deployCostWriter, work: false }

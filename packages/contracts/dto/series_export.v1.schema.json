@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/series_export.v1",
+  "title": "SeriesExport",
+  "description": "Service-to-service read: per-variant daily demand with segment and service-level target, the forecast job's only input. inventory-service produces it at GET /export/series; forecast-service consumes it. Not a gateway route. Feature 018 adds provenance, anomaly_excluded_days and segment.config_version_id, all additive; an excluded day already reads as censored, so demand rows are never changed. Money is a decimal string.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["through_day", "count", "series", "rule_versions"],
+  "properties": {
+    "through_day": { "type": ["string", "null"], "format": "date" },
+    "count": { "type": "integer", "minimum": 0 },
+    "series": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "variant_id",
+          "sku",
+          "product_id",
+          "price",
+          "start_day",
+          "demand",
+          "censored",
+          "provenance",
+          "anomaly_excluded_days",
+          "segment",
+          "service_level",
+          "clinical_critical"
+        ],
+        "properties": {
+          "variant_id": { "type": "integer" },
+          "sku": { "type": ["string", "null"], "maxLength": 60 },
+          "product_id": { "type": ["integer", "null"] },
+          "price": {
+            "type": "string",
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,6})?$"
+          },
+          "start_day": { "type": "string", "format": "date" },
+          "demand": {
+            "type": "array",
+            "items": { "type": "integer", "minimum": 0 }
+          },
+          "censored": { "type": "array", "items": { "type": "boolean" } },
+          "provenance": { "enum": ["observed", "estimated", "manual"] },
+          "anomaly_excluded_days": { "type": "integer", "minimum": 0 },
+          "segment": {
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "required": [
+              "abc",
+              "xyz",
+              "pattern",
+              "forecast_eligible",
+              "reasons",
+              "config_version_id"
+            ],
+            "properties": {
+              "abc": { "type": "string" },
+              "xyz": { "type": "string" },
+              "pattern": { "type": "string" },
+              "forecast_eligible": { "type": "boolean" },
+              "reasons": { "type": "array", "items": { "type": "string" } },
+              "config_version_id": {
+                "type": ["string", "null"],
+                "maxLength": 36
+              }
+            }
+          },
+          "service_level": {
+            "type": "string",
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,6})?$"
+          },
+          "clinical_critical": { "type": "boolean" }
+        }
+      }
+    },
+    "rule_versions": {
+      "description": "Revision counters of the exclusion set and each censoring rule; the values are never negative. Do not add a minimum here: on additionalProperties it makes the generated model fail ruff (UP035, UP040).",
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    }
+  }
+}

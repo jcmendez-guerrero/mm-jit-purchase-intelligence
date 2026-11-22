@@ -108,19 +108,21 @@ def shared_scope() -> Iterator[None]:
         _scope_memo.reset(token)
 
 
-def variant_scope(conn: Connection, f: Filters) -> set[int]:
+def variant_scope(conn: Connection, f: Filters, local: bool = False) -> set[int]:
     memo = _scope_memo.get()
     if memo is None:
-        return _variant_scope(conn, f)
-    key = (id(conn), f.warehouse_id, f.category, f.family, f.supplier_id)
+        return _variant_scope(conn, f, local=True) if local else _variant_scope(conn, f)
+    key = (id(conn), f.warehouse_id, f.category, f.family, f.supplier_id, local)
     if key not in memo:
-        memo[key] = _variant_scope(conn, f)
+        memo[key] = _variant_scope(conn, f, local=True) if local else _variant_scope(conn, f)
     return set(memo[key])                                                    # a copy: callers may narrow it
 
 
-def _variant_scope(conn: Connection, f: Filters) -> set[int]:
+def _variant_scope(conn: Connection, f: Filters, local: bool = False) -> set[int]:
     ids = {r.external_id for r in conn.execute(select(variants.c.external_id).where(variants.c.is_service.is_(False))).all()}
-    if data_origin(conn)[0] == "erp_sync":
+    if local:
+        ids = {i for i in ids if i >= LOCAL_ID_BASE}                        # the local-export view of the portfolio (feature 018): only locally loaded products, never ERP ones
+    elif data_origin(conn)[0] == "erp_sync":
         ids = {i for i in ids if i < LOCAL_ID_BASE}                         # local loads are never added to ERP figures
     if f.family is not None:
         in_family = {r.external_id for r in conn.execute(select(variants.c.external_id).join(products, products.c.external_id == variants.c.product_id)

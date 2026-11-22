@@ -159,6 +159,8 @@ services:
       timeout: 3s
       retries: 20
 
+  # Retention (feature 018): one pass on demand, e.g.
+  #   docker compose run --rm inventory-worker sh -c 'cd /app/services/inventory-service && python -m retention'
   inventory-worker:
     build: { context: .., dockerfile: services/inventory-service/Dockerfile }
     environment:

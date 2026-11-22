@@ -730,6 +730,36 @@
       "http": 422,
       "kind": "request",
       "meaning": "An operations threshold is outside its allowed range or the set is inconsistent"
+    },
+    "quality_product_not_found": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The SKU is not in the synchronised catalogue or has no quality data"
+    },
+    "quality_anomaly_not_found": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "The product has no anomaly flagged on that day"
+    },
+    "quality_decision_invalid": {
+      "http": 422,
+      "kind": "request",
+      "meaning": "The decision or its reason is not in the allowed list"
+    },
+    "forecast_explanation_not_available": {
+      "http": 404,
+      "kind": "request",
+      "meaning": "No forecast run holds an explanation for this product yet"
+    },
+    "forecast_backtest_conflict": {
+      "http": 409,
+      "kind": "request",
+      "meaning": "A full-catalogue backtest is already running; the response names it"
+    },
+    "quality_job_failed": {
+      "http": 502,
+      "kind": "request",
+      "meaning": "A quality recompute or backtest job failed and left no partial result"
     }
   }
 }
