@@ -112,8 +112,13 @@ def test_free_text_in_a_downstream_refusal_is_never_echoed(role_store):
 def test_sku_paths_are_encoded_and_checked(role_store):
     mock = AsyncMock()
     mock.forward.return_value = {}
-    call("PUT", "/suppliers/s1/links/SYN%2F01%20A", mock, json={"cost": "1.00"}, headers=BUYER)
-    assert mock.forward.call_args.args[1] == "/suppliers/s1/links/SYN%2F01%20A"
+    call("PUT", "/suppliers/s1/links/SYN-01.A_2", mock, json={"cost": "1.00"}, headers=BUYER)
+    assert mock.forward.call_args.args[1] == "/suppliers/s1/links/SYN-01.A_2"
+    for bad in ("SYN%2F01", "SYN%2F01%20A", "a%20b", "%2e%2e", ".hidden"):                  # one SKU rule everywhere (T107): no slash, no space, starts with a letter or digit
+        for method in ("PUT", "DELETE"):
+            res, refused = call(method, "/suppliers/s1/links/" + bad, AsyncMock(), json={"cost": "1.00"}, headers=BUYER)
+            assert res.status_code == 422, (method, bad, res.status_code)
+            refused.forward.assert_not_called()
     res, mock2 = call("PUT", "/suppliers/s1/links/" + "x" * 61, AsyncMock(), json={"cost": "1.00"}, headers=BUYER)
     assert res.status_code == 422 and res.json() == {"detail": "request_invalid"}
     mock2.forward.assert_not_called()

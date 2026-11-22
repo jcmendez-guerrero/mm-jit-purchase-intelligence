@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mmi/dto/dashboard_sku.v1",
+  "title": "DashboardSku",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sku",
+    "name",
+    "stock",
+    "coverage",
+    "demand",
+    "forecast",
+    "supplier",
+    "expiry_lots",
+    "states"
+  ],
+  "description": "GET /api/dashboard/skus/{sku} (feature 014): one product on its own dashboard page, identified by SKU only. The `cost` object exists only in the response of a role that may see costs; for any other role the key is absent, not hidden.",
+  "properties": {
+    "sku": { "type": "string", "maxLength": 60 },
+    "name": { "type": ["string", "null"] },
+    "stock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["on_hand"],
+      "properties": {
+        "on_hand": {
+          "type": ["integer", "null"],
+          "description": "Units on hand in all warehouses at the latest snapshot; null when there is none"
+        }
+      }
+    },
+    "coverage": {
+      "oneOf": [
+        {
+          "type": "null",
+          "description": "No demand to compute days of cover from"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["days", "basis"],
+          "properties": {
+            "days": { "type": "string", "pattern": "^-?\\d+(\\.\\d+)?$" },
+            "basis": { "type": "string", "enum": ["forecast", "actual_90d"] }
+          }
+        }
+      ]
+    },
+    "demand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["units", "days"],
+      "properties": {
+        "units": {
+          "type": "integer",
+          "description": "Units sold in the window; days with unobserved demand (stock-outs) are left out"
+        },
+        "days": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "forecast": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["daily_mean", "days"],
+          "properties": {
+            "daily_mean": { "type": "string", "pattern": "^-?\\d+(\\.\\d+)?$" },
+            "days": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "supplier": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,36}$",
+              "description": "Public supplier id of the latest lot cost"
+            }
+          }
+        }
+      ]
+    },
+    "expiry_lots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["batch", "quantity", "expiry_date", "band"],
+        "properties": {
+          "batch": { "type": "string" },
+          "quantity": { "type": "integer" },
+          "expiry_date": { "type": ["string", "null"], "format": "date" },
+          "band": {
+            "type": "string",
+            "enum": ["expired", "d0_30", "d31_60", "later", "none"]
+          }
+        }
+      }
+    },
+    "states": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "negative_stock",
+          "no_demand_history",
+          "cost_estimated",
+          "no_cost"
+        ]
+      },
+      "description": "Explanations the page must show instead of a blank or a silent zero"
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "estimated", "unit_cost"],
+      "description": "Only for roles allowed to see costs (buyer, approver, admin)",
+      "properties": {
+        "value": {
+          "type": ["string", "null"],
+          "pattern": "^-?\\d+(\\.\\d+)?$",
+          "description": "Stock valued at lot acquisition cost, EUR"
+        },
+        "estimated": { "type": "boolean" },
+        "unit_cost": {
+          "type": ["string", "null"],
+          "pattern": "^-?\\d+(\\.\\d+)?$"
+        }
+      }
+    }
+  }
+}

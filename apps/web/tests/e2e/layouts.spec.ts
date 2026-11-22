@@ -5,7 +5,7 @@ import { signInAs } from "./ui-helpers";
 /** T094 / T095 — the screen layouts of design.md §8, and how they stack on narrow screens. Synthetic data. */
 
 const line = (id: string, supplier: string, name: string) => ({
-  id, variant_id: 100 + id.length, sku: `SYN-${id}`, product_name: `Producto ${id}`, supplier_id: supplier, supplier_name: name, qty: 10, unit_cost_with_recargo: "5.2600", line_total: "52.6000",
+  id, sku: `SYN-${id}`, product_name: `Producto ${id}`, supplier_id: supplier, supplier_name: name, qty: 10, unit_cost_with_recargo: "5.2600", line_total: "52.6000",
   risk: "low", confidence: "high", manual_override: false, topup: false, constraints_applied: [],
   explanation: { policy: "forecast", forecast_eligible: true, service_level: "95", horizon_days: 14, expected_demand: 8, safety_stock: 2, order_up_to: 12, reorder_point: 5, need: 10, top_up: false, clinical_critical: false, position: { on_hand: 0, expiring: 0, usable: 0, inbound: 0, total: 0 }, supplier: { chosen: supplier, reason: "lowest_cost", alternatives: [], rejected: [] }, cost: { unit: "5.2600", source: "manual", status: "ok" }, constraints: [] },
 });

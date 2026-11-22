@@ -1,4 +1,4 @@
-import type { DashTrend } from "../../api/client";
+import type { DashTrend, Indicator } from "../../api/client";
 
 export const DEFAULT_DAYS = 60;
 
@@ -7,6 +7,13 @@ export function ageInDays(day: string, today: Date = new Date()): number {
   const d = new Date(`${day}T00:00:00Z`);
   const t = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
   return Math.max(0, Math.round((t - d.getTime()) / 86_400_000));
+}
+
+/** True when filters are active and every figure that is shown has no data: the combination matches nothing. Hidden figures are left out; a failing figure means "error", not "empty". */
+export function noFilterMatches(indicators: readonly Pick<Indicator, "state">[], activeFilters: number): boolean {
+  if (activeFilters === 0) return false;
+  const shown = indicators.filter((i) => i.state !== "hidden_by_role");
+  return shown.length > 0 && shown.every((i) => i.state === "no_data");
 }
 
 export interface TrendStats {
@@ -29,7 +36,7 @@ export function trendStats(series: DashTrend["series"]): TrendStats | null {
 
 /** Column heading for the figure shown next to each product in a drill-down. */
 export const figureColumnKey = (kind: string): string =>
-  ({ inventory_value: "dashboard.drill.col.value", coverage: "dashboard.drill.col.days", trend_day: "dashboard.drill.col.units", abc_xyz: "dashboard.drill.col.value" })[kind] ?? "dashboard.drill.col.value";
+  ({ inventory_value: "dashboard.drill.col.value", coverage: "dashboard.drill.col.days", trend_day: "dashboard.drill.col.units", abc_xyz: "dashboard.drill.col.value", capital: "dashboard.drill.col.value", expiry_band: "dashboard.drill.col.value", demand: "dashboard.drill.col.units", forecast: "dashboard.drill.col.units" })[kind] ?? "dashboard.drill.col.value";
 
 export interface TrendRow {
   day: string;

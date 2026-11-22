@@ -13,7 +13,7 @@ from urllib.parse import quote
 from auth.session import SessionData
 from clients.procurement import ProcurementClient
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, Response, UploadFile
-from routes.api import get_procurement_client
+from routes.api import SKU_PATTERN, get_procurement_client
 from routes.rbac import require_roles
 from upload_settings import load_limits
 
@@ -30,7 +30,7 @@ def _check_id(value: str) -> str:
 
 
 def _sku(value: str) -> str:
-    if not value.strip() or len(value) > SKU_MAX or any(ord(c) < 32 for c in value):
+    if not re.match(SKU_PATTERN, value):                                       # the one SKU rule of the gateway (T107)
         raise HTTPException(422, "request_invalid")
     return quote(value, safe="")
 

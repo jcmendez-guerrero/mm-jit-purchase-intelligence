@@ -1,0 +1,11 @@
+Tab hasta "Ver como tabla" (primer gráfico): 50 pulsaciones (la navegación lateral y los filtros van antes)
+Tab hasta "Exportar indicadores": 101 pulsaciones
+Descarga por teclado: panel-cards-20261117.csv
+Tab hasta "Ver productos": 2 pulsaciones
+Tab hasta "Ver ficha": 5 pulsaciones
+Dirección con filtros: /panel?proveedor=sup-a&categoria=A
+Lector: botones de exportar = 0
+Inventario caído: avisos de error (role=alert) = 14
+Inventario caído: botones Reintentar = 14
+Inventario caído: el único "0,00 €" es "Gasto (pedidos confirmados)" de la tarjeta Presupuesto de compras: es el valor real de compras (la carga sintética no tiene pedidos confirmados) y compras sigue en marcha; ninguna cifra de inventario aparece como cero
+Inventario caído: tarjetas de otros servicios siguen visibles (Presupuesto de compras) = true

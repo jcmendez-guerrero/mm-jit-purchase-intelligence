@@ -7,7 +7,7 @@ import { signInAs } from "./ui-helpers";
  * could not express, each labelled with its source. Outside the local environment the loader table never appears. Synthetic data only.
  */
 
-const platformItem = { id: 7, variant_id: 9000001, movement_reason_raw: "sale_shipment", anomaly_codes: ["unreferenced_sale"], created_at: "2026-11-05T10:00:00Z" };
+const platformItem = { id: 7, sku: "SYN-9000001", movement_reason_raw: "sale_shipment", anomaly_codes: ["unreferenced_sale"], created_at: "2026-11-05T10:00:00Z" };
 const loaderItems = [
   { kind: "movements", row: 4, code: "unknown_sku", detail: "", source: "loader" },
   { kind: "inventory", row: 12, code: "currency_not_eur", detail: "", source: "loader" },

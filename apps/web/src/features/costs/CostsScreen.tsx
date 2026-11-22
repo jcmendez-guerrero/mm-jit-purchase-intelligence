@@ -36,7 +36,7 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
   const [overrideValue, setOverrideValue] = useState<Record<string, string>>({});
   const [overrideReason, setOverrideReason] = useState<Record<string, string>>({});
   const [suppliers, setSuppliers] = useState<SupplierSummary[]>([]);
-  const [opening, setOpening] = useState({ supplier: "", product: "", variant: "", amount: "", recargo: true });
+  const [opening, setOpening] = useState({ supplier: "", sku: "", amount: "", recargo: true });
 
   const fail = useCallback((err: unknown) => setError(errorMessage(err, t("common.error"))), [t]);
 
@@ -65,7 +65,7 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
       setError(t("costs.opening.no_supplier"));
       return null;
     }
-    const p = parseOpening(opening.product, opening.variant, opening.amount);
+    const p = parseOpening(opening.sku, opening.amount);
     if ("invalid" in p) {
       const message = t("costs.opening.invalid", { field: t(`costs.opening.field.${p.invalid}`) });
       setError(message);
@@ -80,7 +80,7 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
     setNotice(null);
     const p = openingInput();
     if (!p) return;
-    await run(() => api.addOpeningCost({ variant_id: p.variantId, supplier_id: opening.supplier, amount: p.amount, includes_recargo: opening.recargo }), t("costs.opening.saved"));
+    await run(() => api.addOpeningCost({ sku: p.sku, supplier_id: opening.supplier, amount: p.amount, includes_recargo: opening.recargo }), t("costs.opening.saved"));
   };
 
   const requestUpdate = async () => {
@@ -89,7 +89,7 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
     const p = openingInput();
     if (!p) return;
     try {
-      const r = await api.requestCostUpdate(p.productId, opening.supplier);
+      const r = await api.requestCostUpdate(p.sku, opening.supplier);
       setNotice(t(r.request_id ? "costs.opening.requested" : "costs.opening.not_applicable"));
     } catch (err) {
       fail(err);
@@ -111,15 +111,15 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
 
   const release = (w: CostWriteRecord) => run(() => api.approveCostWrite(w.id), t("costs.released"));
 
-  const correct = (w: CostWriteRecord, variantId: number, lot: string) => {
-    const key = `${w.id}:${variantId}:${lot}`;
+  const correct = (w: CostWriteRecord, sku: string, lot: string) => {
+    const key = `${w.id}:${sku}:${lot}`;
     const amount = parseAmount(fixing[key] ?? "");
     if (amount === null) {
       fail(new ApiError(422, "negative_cost"));
       return Promise.resolve();
     }
     return run(
-      () => api.correctLotCost({ variant_id: variantId, supplier_id: w.supplier_id, lot, amount, includes_recargo: true, source: "receipt_correction" }),
+      () => api.correctLotCost({ sku, supplier_id: w.supplier_id, lot, amount, includes_recargo: true, source: "receipt_correction" }),
       t("costs.lot_corrected"),
     );
   };
@@ -144,7 +144,7 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
 
   const pct = (v: string | null) => (v === null ? t("costs.margin_unavailable") : formatPercent(v, 1));
 
-  const dirty = opening.product.trim() !== "" || opening.variant.trim() !== "" || opening.amount.trim() !== "" || Object.values(overrideValue).some((v) => v.trim() !== "") || Object.values(overrideReason).some((v) => v.trim() !== "") || Object.values(fixing).some((v) => v.trim() !== "");
+  const dirty = opening.sku.trim() !== "" || opening.amount.trim() !== "" || Object.values(overrideValue).some((v) => v.trim() !== "") || Object.values(overrideReason).some((v) => v.trim() !== "") || Object.values(fixing).some((v) => v.trim() !== "");
 
   return (
     <section aria-labelledby="costs-title">
@@ -233,8 +233,7 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
                 ))}
               </select>
             </div>
-            <FormField id="op-product" label={t("costs.opening.product")} value={opening.product} error={fe.errors["op-product"]} onChange={(v) => { setOpening({ ...opening, product: v }); fe.clear("op-product"); }} inputMode="numeric" />
-            <FormField id="op-variant" label={t("costs.opening.variant")} value={opening.variant} error={fe.errors["op-variant"]} onChange={(v) => { setOpening({ ...opening, variant: v }); fe.clear("op-variant"); }} inputMode="numeric" />
+            <FormField id="op-sku" label={t("costs.opening.sku")} value={opening.sku} error={fe.errors["op-sku"]} onChange={(v) => { setOpening({ ...opening, sku: v }); fe.clear("op-sku"); }} />
             <FormField id="op-amount" label={t("costs.opening.amount")} value={opening.amount} error={fe.errors["op-amount"]} onChange={(v) => { setOpening({ ...opening, amount: v }); fe.clear("op-amount"); }} inputMode="decimal" />
             <label>
               <input type="checkbox" checked={opening.recargo} onChange={(e) => setOpening({ ...opening, recargo: e.target.checked })} /> {t("costs.opening.recargo")}
@@ -278,7 +277,7 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
               </thead>
               <tbody>
                 {w.lots.map((l) => {
-                  const key = `${w.id}:${l.variant_id}:${l.lot}`;
+                  const key = `${w.id}:${l.sku ?? ""}:${l.lot}`;
                   return (
                     <tr key={key}>
                       <td>{l.lot}</td>
@@ -293,7 +292,7 @@ export const CostsScreen: React.FC<Props> = ({ userRoles, userId }) => {
                             value={fixing[key] ?? ""}
                             onChange={(ev) => setFixing({ ...fixing, [key]: ev.target.value })}
                           />
-                          <Button variant="secondary" small onClick={() => void correct(w, l.variant_id, l.lot)}>
+                          <Button variant="secondary" small onClick={() => l.sku && void correct(w, l.sku, l.lot)}>
                             {t("costs.correct_lot")}
                           </Button>
                         </td>

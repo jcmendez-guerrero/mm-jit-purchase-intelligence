@@ -217,7 +217,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
           {s.changes.length === 0 ? <p>{t("scenarios.changes_none")}</p> : (
             <ul>
               {s.changes.map((c) => (
-                <li key={c.variant_id}>
+                <li key={`${c.sku}-${c.supplier_before}-${c.supplier_after}`}>
                   {t("scenarios.change_row", {
                     sku: skuLabel(c), from: supplierName(c.supplier_before), to: supplierName(c.supplier_after), qb: c.qty_before, qa: c.qty_after,
                     reasons: c.reasons.map((r) => t(reasonKey(r), { defaultValue: r })).join(", "),
@@ -257,7 +257,7 @@ export const ScenariosScreen: React.FC<Props> = ({ userRoles }) => {
                   <thead><tr><th>{t("common.sku")}</th><th>{t("scenarios.line.qty")}</th><th>{t("scenarios.line.unit_cost")}</th><th>{t("scenarios.line.total")}</th></tr></thead>
                   <tbody>
                     {r.lines.map((ln) => (
-                      <tr key={ln.variant_id}>
+                      <tr key={`${ln.sku}-${ln.qty}`}>
                         <td>{skuLabel(ln)}{ln.clinical_critical ? ` · ${t("scenarios.line.critical")}` : ""}</td>
                         <td>{ln.qty}</td>
                         <td>{formatCurrencyEUR(ln.unit_cost)}</td>

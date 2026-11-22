@@ -34,7 +34,7 @@ const overview = (over: Partial<DashOverview> = {}): DashOverview => ({
   },
   trend: { ok: true, data: { from: "2026-09-10", to: today, estimated: [], series: [{ day: "2026-11-01", actual: 3, censored_rows: 0, kind: "actual_erp" }, { day: "2026-11-02", actual: 9, censored_rows: 0, kind: "actual_erp" }] } },
   abc_xyz: { ok: true, data: { cells: [{ abc: "A", xyz: "X", variant_count: 4, value: "100.00" }, { abc: "B", xyz: "Y", variant_count: 6, value: "50.00" }] } },
-  risks: { ok: true, data: [{ variant_id: 7, risk_type: "stockout", explanation_key: "risk.stockout.out_of_stock", params: {} }] },
+  risks: { ok: true, data: [{ sku: "SYN-7", risk_type: "stockout", explanation_key: "risk.stockout.out_of_stock", params: {} }] },
   options: { ok: true, data: { warehouses: [{ id: 1, name: "Almacén sintético A" }, { id: 2, name: "Almacén sintético B" }], categories: [{ id: "A", kind: "demand_group" }, { id: "critical", kind: "clinical_critical" }], family_available: false } },
   accuracy: { ok: true, data: { run_id: "r1", window_days: 7, metrics: { all: { wape: "0.2500", bias: "-0.0500", stockout_rate: "0.1000" }, A: { stockout_rate: "1.0000" } } } },
   spend: { ok: true, data: { proposal_id: "p1", week: "2026-W46", status: "draft", total: "300.00", by_supplier: [], budget: "250.00", over_budget: true } },
@@ -207,7 +207,7 @@ describe("DashboardScreen", () => {
 
   it("opens the product detail from an alert and closes it", async () => {
     vi.spyOn(api, "getVariant").mockResolvedValue({
-      variant: { id: 7, sku: "SYN-7", name: "Variante sintética", pack_size: 1, uom: "u", product: { id: 1 } }, stock: { on_hand: 0, available: 0, reserved: 0, as_of: today },
+      variant: { sku: "SYN-7", name: "Variante sintética", pack_size: 1, uom: "u", product: { status: "active" } }, stock: { on_hand: 0, available: 0, reserved: 0, as_of: today },
       demand: [{ day: "2026-11-01", warehouse_id: 1, qty: 3, censored: true }], flows: [], history: [], history_reconciled: false,
       segment: { abc: "A", xyz: "X", pattern: "smooth", forecast_eligible: false, reasons: ["new"], metrics: {} },
     });
@@ -226,14 +226,14 @@ describe("DashboardScreen", () => {
   });
 
   const detail = (risks: Array<{ risk_type: string; explanation_key: string; params: Record<string, unknown> }>) => ({
-    variant: { id: 7, sku: "SYN-7", name: "Variante sintética", pack_size: 1, uom: "u", product: { id: 1 } }, stock: { on_hand: 2, available: 2, reserved: 0, as_of: today },
+    variant: { sku: "SYN-7", name: "Variante sintética", pack_size: 1, uom: "u", product: { status: "active" } }, stock: { on_hand: 2, available: 2, reserved: 0, as_of: today },
     demand: [{ day: "2026-11-01", warehouse_id: 1, qty: 3, censored: false }], flows: [], history: [], history_reconciled: true, risks,
     segment: { abc: "A", xyz: "X", pattern: "smooth", forecast_eligible: true, reasons: [], metrics: {} },
   });
 
   it("shows a product's forecast with its uncertainty apart from actual demand, and its own risk reasons", async () => {
     vi.spyOn(api, "getVariant").mockResolvedValue(detail([{ risk_type: "stockout", explanation_key: "risk.stockout.imminent", params: { sku: "SYN-7", available: 2 } }]));
-    vi.spyOn(api, "getForecastBasis").mockResolvedValue({ run_id: "r1", variant_id: 7, eligible: true, policy: "minmax_poisson", seed_used: true, upper_level: "0.95",
+    vi.spyOn(api, "getForecastBasis").mockResolvedValue({ run_id: "r1", eligible: true, policy: "minmax_poisson", seed_used: true, upper_level: "0.95",
       horizons: [{ days: 7, mean: 10.5, upper: 14 }, { days: 14, mean: 21, upper: 27.5 }] });
     renderScreen(<DashboardScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
@@ -269,7 +269,7 @@ describe("DashboardScreen", () => {
 
   it("says why there is no forecast table for a min/max product or when no forecast exists, and when no risk was found", async () => {
     vi.spyOn(api, "getVariant").mockResolvedValue(detail([]));
-    const basis = vi.spyOn(api, "getForecastBasis").mockResolvedValue({ run_id: "r1", variant_id: 7, eligible: false, policy: "minmax_conservative", seed_used: false, horizons: [] });
+    const basis = vi.spyOn(api, "getForecastBasis").mockResolvedValue({ run_id: "r1", eligible: false, policy: "minmax_conservative", seed_used: false, horizons: [] });
     const first = renderScreen(<DashboardScreen />);
     fireEvent.click(await screen.findByRole("button", { name: "Ver detalle" }));
     const panel = await screen.findByLabelText("Detalle del producto");
@@ -333,5 +333,51 @@ describe("DashboardScreen when the role may not see money", () => {
     await waitFor(() => expect(spy).toHaveBeenLastCalledWith({ date_from: "2026-10-01", date_to: "2026-10-19" }));
     fireEvent.click(screen.getByRole("button", { name: "Quitar filtros" }));
     await waitFor(() => expect(spy).toHaveBeenLastCalledWith({ days: 60 }));
+  });
+});
+
+describe("DashboardScreen no-match state (feature 014, T022)", () => {
+  const empty = () => overview({ indicators: indicators(Object.fromEntries(KEYS.map((k) => [k, { value: null, state: "no_data" as const }]))) });
+
+  it("explains that nothing matches the filters and offers one action that removes them", async () => {
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(empty());
+    renderScreen(<DashboardScreen />, "/?proveedor=s1");
+    await screen.findByText("Ningún dato coincide con los filtros");
+    fireEvent.click(screen.getByRole("button", { name: "Quitar todos los filtros" }));
+    await waitFor(() => expect(screen.queryByText("Ningún dato coincide con los filtros")).toBeNull());
+  });
+
+  it("does not claim a filter problem when nothing is filtered", async () => {
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(empty());
+    renderScreen(<DashboardScreen />);
+    await screen.findByRole("heading", { name: "Valor del stock" });
+    expect(screen.queryByText("Ningún dato coincide con los filtros")).toBeNull();
+  });
+});
+
+describe("DashboardScreen unknown filter values (feature 014, T085)", () => {
+  it("drops a well-formed value that is not among the current options, says so, and asks again without it", async () => {
+    const spy = vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview());
+    renderScreen(<DashboardScreen />, "/?proveedor=ghost&categoria=B");
+    await screen.findByText(/Se han ignorado filtros no válidos de la dirección: (categoria, proveedor|proveedor, categoria)/);
+    await waitFor(() => {
+      const last = spy.mock.calls[spy.mock.calls.length - 1]![0]!;
+      expect([last.supplier_id, last.category, last.family]).toEqual([undefined, undefined, undefined]);        // nothing is guessed: the unknown values are not sent
+    });
+  });
+
+  it("keeps a value that is among the options", async () => {
+    const spy = vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview());
+    renderScreen(<DashboardScreen />, "/?proveedor=s1&categoria=A");
+    await screen.findByRole("heading", { name: "Valor del stock" });
+    expect(screen.queryByText(/Se han ignorado filtros no válidos/)).toBeNull();
+    expect(spy.mock.calls[spy.mock.calls.length - 1]![0]).toMatchObject({ supplier_id: "s1", category: "A" });
+  });
+
+  it("does not drop anything when the options could not be loaded", async () => {
+    vi.spyOn(api, "getDashboardOverview").mockResolvedValue(overview({ options: { ok: false, error: "downstream_unavailable" }, suppliers: { ok: false, error: "downstream_unavailable" } }));
+    renderScreen(<DashboardScreen />, "/?proveedor=ghost&categoria=B");
+    await screen.findByRole("heading", { name: "Valor del stock" });
+    expect(screen.queryByText(/Se han ignorado filtros no válidos/)).toBeNull();                              // a failed option list proves nothing about a value
   });
 });

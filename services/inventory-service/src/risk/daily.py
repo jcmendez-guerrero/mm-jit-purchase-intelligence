@@ -6,9 +6,10 @@ Outputs items adhering to the RiskList schema for the Spanish dashboard.
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any
 
+from businessday import business_today
 from db.tables import (
     ALL_WAREHOUSES,
     products,
@@ -17,6 +18,7 @@ from db.tables import (
     stock_snapshots,
     variants,
 )
+from skus import skus_of
 from sqlalchemy import func, select
 from sqlalchemy.engine import Connection
 
@@ -27,7 +29,7 @@ def evaluate_risks(
     as_of: date | None = None,
     expiry_horizon_days: int = 60,
 ) -> list[dict[str, Any]]:
-    today = as_of or datetime.now(UTC).date()
+    today = as_of or business_today()
     risks: list[dict[str, Any]] = []
 
     # 1. Stockout evaluation
@@ -158,4 +160,7 @@ def evaluate_risks(
             "params": {"product_name": v.name},
         })
 
+    shown = skus_of(conn, [r["variant_id"] for r in risks])           # people see the SKU (feature 014, FR-008a)
+    for r in risks:
+        r["sku"] = shown.get(int(r["variant_id"]), "")
     return risks

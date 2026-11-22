@@ -1,12 +1,13 @@
 """api-bff service entrypoint (T109, T110, T111, T137)."""
 
+import json
 import re
 
 import httpx
 from auth.identity import current_identity
 from auth.session import get_current_session
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from mmi_common.service import create_service_app
 from routes.admin_audit import router as admin_audit_router
 from routes.admin_ops import router as admin_ops_router
@@ -23,6 +24,7 @@ from routes.quality import forecast_router as quality_forecast_router
 from routes.quality import router as quality_router
 from routes.scenarios import router as scenarios_router
 from routes.suppliers import router as suppliers_router
+from scrub import without_variant_ids
 
 # In api-bff, user session cookies are used for the frontend API.
 # Service skeleton provides /healthz, /readyz.
@@ -38,6 +40,22 @@ async def bind_identity(request: Request, call_next):  # type: ignore[no-untyped
         return await call_next(request)
     finally:
         current_identity.reset(token)
+
+
+@app.middleware("http")
+async def keep_variant_ids_off_the_browser(request: Request, call_next):  # type: ignore[no-untyped-def]
+    """FR-008a: no JSON answer of the gateway carries `variant_id`; files (CSV, XLSX) and streams pass through untouched."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/") or not response.headers.get("content-type", "").startswith("application/json"):
+        return response
+    body = b"".join([chunk async for chunk in response.body_iterator])
+    try:
+        clean = json.dumps(without_variant_ids(json.loads(body)), ensure_ascii=False, separators=(",", ":")).encode()
+    except ValueError:
+        clean = body
+    out = Response(clean, status_code=response.status_code, media_type="application/json")
+    out.raw_headers.extend((k, v) for k, v in response.raw_headers if k.lower() not in (b"content-length", b"content-type"))   # a dict would keep one Set-Cookie
+    return out
 
 
 CODE = re.compile(r"[a-z][a-z0-9_:]{0,79}")

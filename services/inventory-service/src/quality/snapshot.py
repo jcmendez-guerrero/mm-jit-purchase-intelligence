@@ -17,6 +17,7 @@ from typing import Any
 
 from audit import ANOMALY_DECIDED
 from audit import append as audit
+from businessday import business_today
 from classification.policy_source import current_config
 from db.tables import (
     ALL_WAREHOUSES,
@@ -150,7 +151,7 @@ def decide(conn: Connection, variant_id: int, day: date, decision: str, reason_c
 
 
 def default_period(conn: Connection, variant_id: int, days: int = DEFAULT_DAYS) -> tuple[date, date]:
-    last = conn.execute(select(func.max(stock_history.c.day)).where(stock_history.c.variant_id == variant_id)).scalar() or datetime.now(UTC).date()
+    last = conn.execute(select(func.max(stock_history.c.day)).where(stock_history.c.variant_id == variant_id)).scalar() or business_today()
     return last - timedelta(days=days - 1), last
 
 

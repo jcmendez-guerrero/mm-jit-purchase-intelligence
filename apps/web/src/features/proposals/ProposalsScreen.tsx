@@ -158,7 +158,7 @@ export const ProposalsScreen: React.FC<Props> = ({ userRoles, skuFilter, onClear
                 <strong>{t("proposals.review_notes")}</strong>
                 <ul>
                   {current.review_notes.map((n) => (
-                    <li key={`${n.code}-${n.variant_id}`}>{t(`proposals.review_note.${n.code}`, { product: [n.sku, n.product_name].filter(Boolean).join(" — ") })}</li>
+                    <li key={`${n.code}-${n.sku ?? n.product_name}`}>{t(`proposals.review_note.${n.code}`, { product: [n.sku, n.product_name].filter(Boolean).join(" — ") })}</li>
                   ))}
                 </ul>
               </div>

@@ -67,14 +67,16 @@ def test_export_roles_are_buyer_approver_and_admin_and_a_viewer_is_refused_witho
     proc.forward_raw.assert_not_called()
 
 
-def test_the_scenario_read_passes_the_sku_through_untouched_and_the_gateway_adds_nothing(role_store):
-    """MMI-15: procurement resolves the SKU; the gateway forwards the body as it came (ADR-023)."""
+def test_the_scenario_read_keeps_the_sku_and_the_gateway_only_drops_the_internal_id(role_store):
+    """MMI-15: procurement resolves the SKU; the gateway adds nothing (ADR-023) and, since FR-008a (MMI-11), drops `variant_id` from every answer."""
     body = {"id": "s1", "summary": {"changes": [{"variant_id": 9001, "sku": "SYN-9001"}, {"variant_id": 9002, "sku": None}]},
             "results": [{"supplier_id": "a", "lines": [{"variant_id": 9001, "sku": "SYN-9001", "qty": 1}, {"variant_id": 9002, "sku": None, "qty": 2}]}]}
     proc = AsyncMock()
     proc.forward.return_value = body
     got = call("GET", "/api/scenarios/s1", headers_for("v", ["viewer"]), proc).json()
-    assert got == body
+    assert "variant_id" not in str(got)
+    assert got == {"id": "s1", "summary": {"changes": [{"sku": "SYN-9001"}, {"sku": None}]},
+                   "results": [{"supplier_id": "a", "lines": [{"sku": "SYN-9001", "qty": 1}, {"sku": None, "qty": 2}]}]}
 
 
 def test_the_browser_never_receives_the_critical_variant_ids_of_an_infeasible_scenario(role_store):

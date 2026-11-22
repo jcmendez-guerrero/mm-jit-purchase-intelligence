@@ -50,6 +50,52 @@
       "status": "frozen"
     },
     {
+      "name": "dashboard_charts",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/dashboard_charts.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "dashboard_drilldown",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/dashboard_drilldown.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "dashboard_drilldown",
+      "kind": "dto",
+      "version": 2,
+      "schema_path": "dto/dashboard_drilldown.v2.schema.json",
+      "owner": "api-bff",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "dashboard_freshness",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/dashboard_freshness.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "dashboard_indicators",
       "kind": "dto",
       "version": 2,
@@ -60,6 +106,18 @@
         "web"
       ],
       "status": "frozen"
+    },
+    {
+      "name": "dashboard_sku",
+      "kind": "dto",
+      "version": 1,
+      "schema_path": "dto/dashboard_sku.v1.schema.json",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff",
+        "web"
+      ],
+      "status": "draft"
     },
     {
       "name": "dashboard_summary",
@@ -921,7 +979,37 @@
       "status": "draft"
     },
     {
+      "name": "GET /api/dashboard/charts",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "GET /api/dashboard/drilldown",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/dashboard/export",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/dashboard/freshness",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -951,7 +1039,17 @@
       "status": "draft"
     },
     {
-      "name": "GET /api/dashboard/variants/{variant_id}/forecast-basis",
+      "name": "GET /api/dashboard/skus/{sku}",
+      "kind": "endpoint",
+      "version": 1,
+      "owner": "agent-00",
+      "consumers": [
+        "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /api/dashboard/skus/{sku}/forecast-basis",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -1141,7 +1239,7 @@
       "status": "draft"
     },
     {
-      "name": "GET /api/inventory/variants/{variant_id}",
+      "name": "GET /api/inventory/skus/{sku}",
       "kind": "endpoint",
       "version": 1,
       "owner": "agent-00",
@@ -1711,12 +1809,34 @@
       "status": "draft"
     },
     {
+      "name": "GET /dashboard/skus/{sku}",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "dashboard_sku.v1",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "GET /api/quality/products/{sku}/anomalies",
       "kind": "endpoint",
       "version": 1,
       "owner": "api-bff",
       "consumers": [
         "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /dashboard/charts",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "dashboard_charts.v1",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
       ],
       "status": "draft"
     },
@@ -1731,12 +1851,34 @@
       "status": "draft"
     },
     {
+      "name": "GET /dashboard/freshness",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "dashboard_freshness.v1",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "POST /api/quality/recompute",
       "kind": "endpoint",
       "version": 1,
       "owner": "api-bff",
       "consumers": [
         "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /dashboard/drilldown",
+      "kind": "service_endpoint",
+      "version": 1,
+      "response": "dashboard_drilldown.v1",
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
       ],
       "status": "draft"
     },
@@ -1751,12 +1893,32 @@
       "status": "draft"
     },
     {
+      "name": "GET /dashboard/export",
+      "kind": "service_endpoint",
+      "version": 1,
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
+      ],
+      "status": "draft"
+    },
+    {
       "name": "POST /api/forecast/backtests",
       "kind": "endpoint",
       "version": 1,
       "owner": "api-bff",
       "consumers": [
         "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /skus/{sku}/variant",
+      "kind": "service_endpoint",
+      "version": 1,
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
       ],
       "status": "draft"
     },
@@ -1787,6 +1949,16 @@
       "owner": "api-bff",
       "consumers": [
         "web"
+      ],
+      "status": "draft"
+    },
+    {
+      "name": "GET /skus/{sku}",
+      "kind": "service_endpoint",
+      "version": 1,
+      "owner": "inventory-service",
+      "consumers": [
+        "api-bff"
       ],
       "status": "draft"
     }

@@ -17,8 +17,9 @@ from clients.procurement import ProcurementClient
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from routes.admin_roles import _mirror_pass, get_store
 from routes.api import get_inventory_client, get_procurement_client
-from routes.policies import _without_variant_ids, get_forecast_client
+from routes.policies import get_forecast_client
 from routes.rbac import require_fresh_mfa, require_roles
+from scrub import without_variant_ids
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 JOB_ID = re.compile(r"^[0-9a-fA-F-]{8,40}$")
@@ -55,7 +56,7 @@ async def status(session: SessionData = Depends(require_roles("admin")), inv: In
         _card(fc.forward("GET", "/runs", params={"limit": 10}, **who)), _card(proc.forward("GET", "/policy-overrides", params={"status": "all", "limit": 20}, **who)),
         _local(get_store().mirror_status))
     if policy.get("ok"):
-        policy["data"] = _without_variant_ids(policy["data"])                      # people see SKUs; the variant id stays inside the platform (rule 5)
+        policy["data"] = without_variant_ids(policy["data"])                      # people see SKUs; the variant id stays inside the platform (rule 5)
     return {"freshness": freshness, "import_jobs": jobs, "model_runs": runs, "policy_history": policy, "role_mirror": mirror, "cost": cost_indicators()}
 
 

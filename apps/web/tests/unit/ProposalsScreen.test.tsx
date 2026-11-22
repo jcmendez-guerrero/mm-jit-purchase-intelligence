@@ -13,7 +13,7 @@ const proposal = (over: Partial<Proposal> = {}): Proposal => ({
   ],
   lines: [
     {
-      id: "l1", variant_id: 9001, sku: "SYN-001", product_name: "Producto Sintético", supplier_id: "s1", supplier_name: "Proveedor Sintético A", qty: 10,
+      id: "l1", sku: "SYN-001", product_name: "Producto Sintético", supplier_id: "s1", supplier_name: "Proveedor Sintético A", qty: 10,
       unit_cost_with_recargo: "10.0000", line_total: "100.0000", risk: "low", confidence: "high", manual_override: false, topup: false, constraints_applied: ["pack_multiple"],
       explanation: {
         policy: "forecast", forecast_eligible: true, service_level: "95", horizon_days: 14, expected_demand: 8, safety_stock: 2, order_up_to: 12, reorder_point: 5, need: 10, top_up: false,

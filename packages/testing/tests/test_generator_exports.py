@@ -128,3 +128,12 @@ def test_written_files_pass_the_repository_guard_when_placed_in_the_fixtures_fol
     spec.loader.exec_module(guard)
     write_exports(tmp_path / "packages" / "testing" / "fixtures" / "exports", seed=42)
     assert guard.find_violations(tmp_path) == []
+
+
+def test_the_workbook_dates_are_fixed_so_two_runs_a_second_apart_give_the_same_bytes(tmp_path):
+    """The determinism test above passed or failed with the clock: openpyxl writes `modified` at save time."""
+    import zipfile
+
+    write_exports(tmp_path, seed=42)
+    core = zipfile.ZipFile(tmp_path / "movimientos.xlsx").read("docProps/core.xml").decode()
+    assert core.count("2026-01-01T00:00:00Z") == 2, core

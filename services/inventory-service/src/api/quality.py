@@ -10,12 +10,13 @@ import hashlib
 import logging
 import time
 from collections.abc import Callable
-from datetime import UTC, date, datetime
+from datetime import date
 from typing import Any
 
 import httpx
 from audit import ANOMALY_REFUSED, CLASSES_RECOMPUTED
 from audit import append as audit
+from businessday import business_today
 from classification.policy_source import current_config
 from classification.run import compute_segments
 from dashboard.filters import FilterError, FilterSet
@@ -121,7 +122,7 @@ def build_quality_router(app: FastAPI, conn_dep: Callable[..., Connection]) -> A
 
     def parse_filters(category: str | None, supplier_id: str | None, family: str | None) -> Any:
         try:
-            return FilterSet.parse(datetime.now(UTC).date(), supplier_id=supplier_id, category=category, family=family).to_filters()
+            return FilterSet.parse(business_today(), supplier_id=supplier_id, category=category, family=family).to_filters()
         except FilterError as exc:
             raise HTTPException(422, "request_invalid") from exc
 

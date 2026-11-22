@@ -61,7 +61,7 @@ def _class_key(abc: str, xyz: str) -> str:
 
 
 def _in_scope(conn: Connection, f: Filters, origin: str = "erp") -> list[Any]:
-    scope = variant_scope(conn, f)
+    scope = variant_scope(conn, f, local=origin == "local_export")
     rows = conn.execute(select(portfolio_aggregate, variants.c.sku).join(variants, variants.c.external_id == portfolio_aggregate.c.variant_id)).all()
     return [r for r in rows if r.variant_id in scope and r.origin == origin]
 
