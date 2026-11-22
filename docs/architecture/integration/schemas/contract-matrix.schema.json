@@ -23,9 +23,15 @@
         "additionalProperties": false,
         "properties": {
           "name": { "type": "string" },
-          "kind": { "enum": ["dto", "event", "error", "endpoint"] },
+          "kind": {
+            "enum": ["dto", "event", "error", "endpoint", "service_endpoint"]
+          },
           "version": { "type": "integer", "minimum": 1 },
           "schema_path": { "type": "string" },
+          "response": {
+            "type": "string",
+            "description": "service_endpoint only: the matrix entry (name.vN) of the schema the route answers with"
+          },
           "owner": { "type": "string" },
           "consumers": {
             "type": "array",
@@ -37,7 +43,11 @@
         },
         "allOf": [
           {
-            "if": { "properties": { "kind": { "const": "endpoint" } } },
+            "if": {
+              "properties": {
+                "kind": { "enum": ["endpoint", "service_endpoint"] }
+              }
+            },
             "else": { "required": ["schema_path"] }
           },
           {

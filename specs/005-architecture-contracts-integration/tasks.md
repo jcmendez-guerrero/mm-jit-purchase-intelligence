@@ -171,3 +171,8 @@ MVP is Phase 1, Phase 2 and US1, then US2 to freeze contracts so other agents ca
 ## Phase 17: Convergence
 
 - [X] T094 In `docs/architecture/integration/README.md` say that consumers added by hand in `contract-matrix.json` are kept when the matrix is regenerated, and replace the "34 of the 42 schema entries" count by the current number of schema entries without consumers per FR-003 (partial)
+
+## Phase 18: Convergence
+
+- [X] T095 Make the compatibility check (`breaking` in `scripts/gates/contracts_gate.py` and `_breaking` in `packages/contracts/tests/test_compat.py`) look into nested objects, nullable objects and array items, with a test that both implementations refuse a required property added to the items of an array (found in the review of PR 29)
+- [X] T096 Add the matrix kind `service_endpoint` (matrix schema and its design copy, optional `response`, kept by `python -m gates matrix`, ignored by the endpoint check, `response` checked against the matrix) with tests, and document it in `docs/architecture/integration/README.md` (asked in PR 28, T093)

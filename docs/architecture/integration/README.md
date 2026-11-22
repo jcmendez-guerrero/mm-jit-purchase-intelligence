@@ -76,3 +76,11 @@ When: after the domain PRs are open and listed in `integration-plan.json` **on `
 ## Adding a new contract
 
 A new schema (for example `name.v1.schema.json`) needs a matrix entry before the contracts gate passes: owner, consumers and status. Start it as `draft` while no consumer has merged and set it to `frozen` when the first consumer PR merges; a contract whose consumers are in the same PR may start as `frozen`. Ask Agent 00 to curate owner and consumers instead of copying the generated guess.
+
+### Service-to-service reads
+
+A route that one service calls on another (not a gateway route) is registered with the kind `service_endpoint`: `name` is the method and path (`GET /forecasts/eligibility`), `owner` is the service that answers, `consumers` are the services that call it, and the optional `response` names the matrix entry (`name.vN`) of the schema it answers with. It has no schema file of its own and the gateway's OpenAPI never lists it, so the endpoint check ignores it; the contracts gate only checks that `response` exists in the matrix. Write the response schema first (a `dto`), register it, then the route. `python -m gates matrix` keeps these entries when it regenerates the file. Both services change in the same PR when the schema changes, because the schemas refuse unknown properties.
+
+### What the compatibility check looks at
+
+A change against `packages/contracts/baseline` may only add optional properties. The check goes into nested objects (also nullable ones) and into the `items` of arrays, so a required property added to the lines of a response is refused like one added at the top. The gate and `packages/contracts/tests/test_compat.py` hold the same rule; change both together.
