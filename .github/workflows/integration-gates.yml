@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
       - name: Fetch PR heads (public repository, read only)
         run: git fetch origin '+refs/pull/*/head:refs/pull/*/head'
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 20 }
       # Third-party dependencies only: the shared packages are installed from the integration tree by `--install` below.
@@ -68,7 +68,7 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
       - run: uv venv --python 3.12 && uv pip install jsonschema
       - name: Download the gate report (untrusted data)
         env:
